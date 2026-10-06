@@ -17,11 +17,14 @@ import { POS_KEYS, load } from '../posStore';
 import { formatBDT } from '../format';
 import { addDays } from './period';
 import { EXPENSE_KINDS } from './defs/finance';
+import { editionChannels } from '../edition';
 
 const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch { return fb; } };
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const inDay = (t, from, to) => typeof t === 'number' && t >= from && t < to;
-const CHANNELS = ['Retail', 'Online', 'Wholesale'];
+const ALL_CHANNELS = ['Retail', 'Online', 'Wholesale'];
+// only the edition's sales channels (Retail has no Online row; wholesale is switched off)
+const channels = () => ALL_CHANNELS.filter((c) => editionChannels().includes(c));
 const money = (n) => (n < 0 ? '−' : '') + formatBDT(Math.abs(Math.round(n)));
 
 /** Figure (path in the pack) → metric id in the dictionary. */
@@ -37,7 +40,7 @@ export function dailySummary(day, now = clockNow()) {
 
   // ---- sales ----
   const ch = safe(() => salesBook.salesByChannel(from, to), null);
-  const byChannel = CHANNELS.map((c) => ({ channel: c, revenue: ch ? ch[c].revenue : 0, returns: ch ? ch[c].returns : 0, orders: ch ? ch[c].orders : 0 }));
+  const byChannel = channels().map((c) => ({ channel: c, revenue: ch ? ch[c].revenue : 0, returns: ch ? ch[c].returns : 0, orders: ch ? ch[c].orders : 0 }));
   const lines = safe(() => (typeof salesBook.getSaleLines === 'function' ? salesBook.getSaleLines() : []), []).filter((l) => inDay(l.at, from, to));
   const placeMap = new Map();
   lines.forEach((l) => {
@@ -122,7 +125,7 @@ export function dailySummary(day, now = clockNow()) {
 /** The short list of figures a message carries: [[label, text]]. */
 export function keyFigures(d) {
   return [
-    ['Sales', `${money(d.sales.total)} · ${CHANNELS.map((c) => `${c} ${money((d.sales.byChannel.find((x) => x.channel === c) || {}).revenue || 0)}`).join(', ')}`, 'sales'],
+    ['Sales', `${money(d.sales.total)} · ${channels().map((c) => `${c} ${money((d.sales.byChannel.find((x) => x.channel === c) || {}).revenue || 0)}`).join(', ')}`, 'sales'],
     ['Orders', `${d.orders.placed} online placed · ${d.orders.delivered} delivered · ${d.orders.returned} returned`, 'online_orders'],
     ['Money at closing', `${money(d.cashTotal)} (${d.cash.map((c) => `${c.label} ${money(c.closing)}`).join(', ')})`],
     ['Payouts', `${money(d.payouts.arrivedTotal)} arrived${d.payouts.late.length ? ` · ${d.payouts.late.length} late (${money(d.payouts.lateTotal)})` : ''}`],

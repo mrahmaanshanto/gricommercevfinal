@@ -11,11 +11,11 @@ import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 var RC = [
-  { name: 'Men’s Polo Shirt · Navy · M', pending: 20 },
-  { name: 'Men’s Polo Shirt · Navy · L', pending: 20 },
-  { name: 'Denim Jeans · Blue · 32', pending: 10 },
-  { name: 'Denim Jeans · Blue · 34', pending: 10 },
-  { name: 'Cotton T-shirt · Black · M', pending: 40 }
+  { name: 'Liquid Silicone Case · Navy · M', pending: 20 },
+  { name: 'Liquid Silicone Case · Navy · L', pending: 20 },
+  { name: 'Baseus Car Phone Holder', pending: 10 },
+  { name: 'Baseus Car Phone Holder · Vent', pending: 10 },
+  { name: 'Camera Lens Protector · Clear', pending: 40 }
 ];
 class Component extends DCLogic {
   componentWillUnmount() { clearTimeout(this.t); }
@@ -105,7 +105,7 @@ export default class MobileReceiveScreen extends Component {
             <__Link href="/receive-goods" className="mr-ib" aria-label="Back"><__Icon name="chevron-left" width="18" height="18" aria-hidden="true" /></__Link>
             <div className="mr-title">
               <h1>Receive goods</h1>
-              <div className="mr-id">PO-2609-0020 · Nabil Fashion House</div>
+              <div className="mr-id">PO-2609-0020 · Nabil Mobile House</div>
             </div>
             <button type="button" className="mr-ib" aria-label="Scan from a photo"><__Icon name="image" width="18" height="18" aria-hidden="true" /></button>
           </header>

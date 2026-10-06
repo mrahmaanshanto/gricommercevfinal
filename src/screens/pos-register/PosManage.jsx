@@ -17,6 +17,7 @@ import { Dialog, PageHeader, EmptyState } from '@/components/ui';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { POS_KEYS, load, getCounters, saveCounters, getShifts, getCash, saveCash, getSettings, saveSettings, shiftReport, nextId, LOCATIONS, EMPLOYEES, MANAGERS, CASH_PLACES, CASH_LABEL, DEFAULT_SETTINGS, postCashMove, getPosLocations, getOpenShifts, releaseCounter, deviceId, drawerOf, getDrawerOpens } from '@/lib/posStore';
 import { ManagerPin } from '@/components/ManagerPin';
+import { ModuleSetup } from '@/components/ModuleSetup';
 
 const TABS = [['counters', 'Counters', 'store'], ['shifts', 'Employees and shifts', 'users'], ['cash', 'Cash pickups', 'hand-coins'], ['settings', 'Settings', 'settings']];
 const PRINTERS = ['Epson TM-T82 · USB', 'Epson TM-T82 · LAN', 'Xprinter XP-80 · USB', 'No printer'];
@@ -184,6 +185,7 @@ export default function PosManage() {
                 <Link href="/pos" className="gc-btn gc-btn--solid"><Icon name="scan-line" width="18" height="18" aria-hidden="true" /> {open ? 'Go to register' : 'Open register'}</Link>
               </>}
             />
+            <ModuleSetup area="area-pos" />
 
             <div className="gc-tabs pm-tabs" role="tablist" aria-label="POS management">
               {TABS.map(([id, label, icon]) => (

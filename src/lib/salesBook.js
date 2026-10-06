@@ -160,8 +160,8 @@ const WHOLESALE_PHONES = { 'Rahim Traders': '01711458822', 'Jamal Telecom': '018
 const WHOLESALE_METHODS = ['Cash', 'bKash', 'Bank', 'Cash', 'Bank', 'bKash', 'Cash', 'Bank'];
 const RETAIL_HOURS = { 10: 3, 11: 4, 12: 5, 13: 5, 14: 4, 15: 5, 16: 6, 17: 8, 18: 10, 19: 10, 20: 8, 21: 3 };
 const ONLINE_HOURS = { 8: 1, 9: 2, 10: 3, 11: 4, 12: 4, 13: 4, 14: 4, 15: 4, 16: 4, 17: 5, 18: 5, 19: 6, 20: 8, 21: 8, 22: 6, 23: 3 };
-const RETAIL_CAT = { Grocery: 5, 'Skin care': 3, Clothing: 2.2, Home: 1.4, Electronics: 0.8 };
-const ONLINE_CAT = { 'Skin care': 3, Clothing: 3, Electronics: 1.5, Home: 1.2, Grocery: 1.2 };
+const RETAIL_CAT = { Accessories: 5, Audio: 3, Phones: 2.4, 'Power banks': 1.4, Wearables: 0.8 };
+const ONLINE_CAT = { Accessories: 3, Audio: 3, Phones: 2.5, 'Power banks': 1.2, Wearables: 1.2 };
 export const ONLINE_SOURCES = { Website: 45, Facebook: 35, Phone: 15, 'Order link': 5 };
 const ONLINE_ZONES = { 'Inside Dhaka': 55, 'Sub-Dhaka': 20, 'Outside Dhaka': 25 };
 const ONLINE_METHODS = { COD: 60, Gateway: 30, bKash: 10 };
@@ -202,7 +202,7 @@ function retailSeedLines(day) {
     parts.forEach((part, i) => {
       const { b, c } = where[i];
       const pool = CATALOG.filter((p) => p.sell !== 'wholesale' && ((p.on || {})[b.place] || 0) > 0);
-      const bk = fillBasket(rand, part + carry, pool, { final: i === parts.length - 1, maxLines: 4, discChance: 0.12, price: (p) => p.price, weight: (p) => (RETAIL_CAT[p.cat] || 1) / (1 + p.price / 2000), qty: (r, p) => 1 + Math.floor(r() * (p.cat === 'Grocery' ? 3 : 2)) });
+      const bk = fillBasket(rand, part + carry, pool, { final: i === parts.length - 1, maxLines: 4, discChance: 0.12, price: (p) => p.price, weight: (p) => (RETAIL_CAT[p.cat] || 1) / (1 + p.price / 2000), qty: (r, p) => 1 + Math.floor(r() * (p.cat === 'Accessories' ? 3 : 2)) });
       carry = part + carry - bk.used;
       if (!bk.lines.length) return;
       n += 1;
@@ -235,7 +235,7 @@ function orderLife(rand, placed, zone) {
   const rto = rand() < RTO_RATE[zone];
   const end = times.shipped + (days + (rto ? 1 : 0)) * 24 * HOUR - (rand() * 8) * HOUR;
   let status;
-  if (times.ready > CUTOFF) { times.ready = null; times.shipped = null; status = 'Approved'; } else if (times.shipped > CUTOFF) { times.shipped = null; status = 'Ready for courier'; } else if (end > CUTOFF) status = 'In transit';
+  if (times.ready > CUTOFF) { times.ready = null; times.shipped = null; status = 'Approved'; } else if (times.shipped > CUTOFF) { times.shipped = null; status = 'Ready for courier'; } else if (end > CUTOFF) status = 'Sent to courier';
   else if (rto) { times.returned = end; status = 'Returned'; } else { times.delivered = end; status = 'Delivered'; }
   Object.keys(times).forEach((k) => { if (times[k]) times[k] = Math.round(times[k]); });
   return { status, courier, times, rtoReason: status === 'Returned' ? RTO_REASONS[Math.floor(rand() * RTO_REASONS.length)] : '', deliveryDays: status === 'Delivered' ? r2((times.delivered - times.shipped) / (24 * HOUR)) : null };
@@ -287,7 +287,7 @@ function onlineSeedDay(day, demo) {
 function wholesaleSeedLines(rec, i) {
   const rand = seeded(4000 + i);
   const pool = CATALOG.filter((p) => p.sell !== 'retail' && p.wholesale > 0 && ((p.on || {})['Central Warehouse'] || 0) > 0);
-  const b = fillBasket(rand, rec.revenue, pool, { final: true, maxLines: 4, price: (p) => p.wholesale, weight: (p) => (p.cat === 'Electronics' ? 3 : p.cat === 'Grocery' ? 1 : 2), qty: (r, p) => Math.max(1, p.moq || 1) * (1 + Math.floor(r() * 3)) });
+  const b = fillBasket(rand, rec.revenue, pool, { final: true, maxLines: 4, price: (p) => p.wholesale, weight: (p) => (p.cat === 'Phones' ? 3 : p.cat === 'Accessories' ? 1 : 2), qty: (r, p) => Math.max(1, p.moq || 1) * (1 + Math.floor(r() * 3)) });
   const base = {
     saleId: rec.id, at: rec.at, channel: 'Wholesale', place: 'Dhanmondi branch', counter: 'Dhanmondi · Counter 1', cashier: 'Sadia Akter', salesperson: 'Rakib Hasan',
     customer: { name: rec.party, phone: WHOLESALE_PHONES[rec.party] || '', type: 'Wholesale' }, method: WHOLESALE_METHODS[i % WHOLESALE_METHODS.length], source: '', zone: '',

@@ -56,7 +56,7 @@ const PAGES = [
   { id: 'page-sales-book', kind: 'page', group: 'sales', title: 'Sales book', description: 'Every counter memo with filters by day, staff and payment.', icon: 'notebook', href: '/sales-book' },
   { id: 'page-return-history', kind: 'page', group: 'sales', title: 'Return & exchange history', description: 'Every return and exchange from Online, Retail and Wholesale.', icon: 'undo-2', href: '/return-history' },
   { id: 'page-dues', kind: 'page', group: 'finance', title: 'Dues (receivable and payable)', description: 'What customers and partners owe you and what you owe, with ageing.', icon: 'scale', href: '/dues' },
-  { id: 'page-settlements', kind: 'page', group: 'online', title: 'Settlements & COD payouts', description: 'Money gateways and couriers hold, expected payouts, late and short payouts.', icon: 'hourglass', href: '/settlements' },
+  { id: 'page-settlements', kind: 'page', group: 'online', title: 'Payouts & COD', description: 'Money gateways and couriers hold, expected payouts, late and short payouts.', icon: 'hourglass', href: '/settlements' },
   { id: 'page-liabilities', kind: 'page', group: 'finance', title: 'Liabilities', description: 'Salaries, commission, affiliates, promotions and money held for customers.', icon: 'file-clock', href: '/liabilities' },
   { id: 'page-team-report', kind: 'page', group: 'marketing', title: 'Team report', description: 'Agent leaderboard, conversations and revenue from chat.', icon: 'bar-chart-3', href: '/team-report' },
   { id: 'page-analytics-hub', kind: 'page', group: 'marketing', title: 'Analytics hub', description: 'Delivered revenue against ad spend, new and repeat buyers.', icon: 'bar-chart-3', href: '/analytics-hub' },
@@ -80,6 +80,8 @@ const REPORT_MODULES = {
   'transfers-report': 'places', 'holds-report': 'places', 'bin-utilisation': 'places',
   'po-status': 'purchasing', 'receiving-discrepancies': 'purchasing',
   'sales-by-branch-counter': 'pos', 'sales-by-staff': 'pos',
+  // marketing reports about online ads, the blog and the inbox
+  'ad-spend-roas': 'online', 'blog-report': 'online', 'team-inbox': 'comms', 'calls-report': 'comms', 'comments-report': 'comms',
 };
 const ownInEdition = (r, ed) => !REPORT_MODULES[r.id] || hasModule(REPORT_MODULES[r.id], ed);
 /** The report groups of an edition. */

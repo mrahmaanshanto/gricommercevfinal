@@ -31,20 +31,20 @@ const ASKS = ['Send replacements', 'Give a credit note', 'Refund the money', 'Ta
 const REPORT_KEY = 'gc.receive.reports';
 const RECEIVERS = ['Karim (store)', 'Rafi Ahmed', 'Sadia Akter'];
 const DEMO = {
-  no: 'PO-2609-0020', supplier: 'Nabil Fashion House', place: 'Central Warehouse', status: 'Partly received', stored: false,
+  no: 'PO-2609-0020', supplier: 'Nabil Mobile House', place: 'Central Warehouse', status: 'Partly received', stored: false,
   lines: [
-    { name: 'Men’s Polo Shirt · Navy · M', code: '8941200100118', pending: 20 },
-    { name: 'Men’s Polo Shirt · Navy · L', code: '8941200100125', pending: 20 },
-    { name: 'Denim Jeans · Blue · 32', code: '8941200200214', pending: 10 },
-    { name: 'Denim Jeans · Blue · 34', code: '8941200200221', pending: 10 },
-    { name: 'Cotton T-shirt · Black · M', code: '8941200300317', pending: 40 },
+    { name: 'Liquid Silicone Case · Navy · M', code: '8941200100118', pending: 20 },
+    { name: 'Liquid Silicone Case · Navy · L', code: '8941200100125', pending: 20 },
+    { name: 'Baseus Car Phone Holder', code: '8941200200214', pending: 10 },
+    { name: 'Baseus Car Phone Holder · Vent', code: '8941200200221', pending: 10 },
+    { name: 'Camera Lens Protector · Clear', code: '8941200300317', pending: 40 },
   ],
 };
 const DEMO_GOT = [12, 12, 6, 4, 0];
 const DEMO_COSTS = [{ label: 'Transport (van from supplier)', amt: 1200, hint: 'From order' }, { label: 'Labour / unloading', amt: 300, hint: '' }];
 // barcodes that turn up in a delivery without being on the order
 const STRAYS = ['8941100500112', '8941300900014'];
-const KNOWN = { '8941100500112': 'Aloe Vera Soothing Gel 300ml', '8941300900014': 'Shipping box · Medium' };
+const KNOWN = { '8941100500112': 'Phone Ring Holder', '8941300900014': 'Shipping box · Medium' };
 const nameOf = (code) => productBy(code)?.name || KNOWN[code] || '';
 const sum = (list) => list.reduce((a, b) => a + (b || 0), 0);
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -582,7 +582,7 @@ export default function ReceiveGoods() {
               <div><label className="gc-label" htmlFor="rp-ask">What should the supplier do?</label><select id="rp-ask" className="gc-input gc-select" value={rep.ask} onChange={(e) => setRep({ ...rep, ask: e.target.value })}>{ASKS.map((x) => <option key={x}>{x}</option>)}</select></div>
               <div><span className="gc-label">Photo of the problem</span><button type="button" className="gc-btn gc-btn--neutral gc-btn--block" onClick={() => { setRep({ ...rep, photo: true }); toast('Photo attached to the report'); }}><Icon name="camera" width="16" height="16" aria-hidden="true" />{rep.photo ? 'Photo attached' : 'Take photo'}</button></div>
             </div>
-            <div><label className="gc-label" htmlFor="rp-note">What is wrong</label><textarea id="rp-note" className="gc-input" rows="2" placeholder="For example: 3 shirts torn at the seam, 2 jeans are size 36 instead of 34" value={rep.note} onChange={(e) => setRep({ ...rep, note: e.target.value })} /></div>
+            <div><label className="gc-label" htmlFor="rp-note">What is wrong</label><textarea id="rp-note" className="gc-input" rows="2" placeholder="For example: 3 cases cracked, 2 chargers are 18W instead of 20W" value={rep.note} onChange={(e) => setRep({ ...rep, note: e.target.value })} /></div>
             <div className="gc-modal__foot" style={{ marginTop: 0 }}>
               <span style={{ marginRight: 'auto', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{plural(sum(rep.dmg) + sum(rep.wrong), 'piece')} reported</span>
               <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setRep(null)}>Cancel</button>

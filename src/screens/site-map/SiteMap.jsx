@@ -263,7 +263,7 @@ export default class SiteMapScreen extends Component {
               {" "}
               <span style={{ display: "block", marginTop: "6px", fontSize: "var(--text-xs-plus)", lineHeight: "18px" }}>AI writing, inventory, variants, IMEI/serial, warranty, size guide, custom fields.</span>
             </__Link>
-            <__Link className="dc-h530" href="/add-product-tabs" style={{ display: "block", padding: "20px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", color: "inherit" }}>
+            <__Link className="dc-h530" href="/add-product" style={{ display: "block", padding: "20px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", color: "inherit" }}>
               <span style={{ display: "block", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Add product · tabs</span>
               {" "}
               <span style={{ display: "block", marginTop: "6px", fontSize: "var(--text-xs-plus)", lineHeight: "18px" }}>{"Same form in 9 tabs, with Validity & batches for food and expiring goods."}</span>

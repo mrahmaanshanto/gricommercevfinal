@@ -2,6 +2,7 @@
 // Everything reads the Staff & HR snapshot (src/lib/hr.js loadSnapshot): attendance cells, leave,
 // loans, payroll runs and the roster are the same numbers the HR pages show.
 
+import { wholesaleOn } from '../../edition';
 import {
   loadSnapshot, cellOf, leaveBalance, leaveDaysOf, leaveType, coverageOf, isClosedDay, loanLeft, loanPaid, scheduleOf,
   computeLines, runStatusLabel, monthLabel, staffBy, runStaff, daysIn, dayPlan,
@@ -497,7 +498,7 @@ const salesBySalesperson = {
           { key: 'revenue', label: 'Sold for', format: 'money', align: 'right', total: 'sum' },
           { key: 'avg', label: 'Average sale', format: 'money', align: 'right', total: count ? revenue / count : null },
           { key: 'retail', label: 'Retail', format: 'money', align: 'right', total: 'sum' },
-          { key: 'wholesale', label: 'Wholesale', format: 'money', align: 'right', total: 'sum' },
+          ...(wholesaleOn() ? [{ key: 'wholesale', label: 'Wholesale', format: 'money', align: 'right', total: 'sum' }] : []),
           { key: 'commission', label: 'Commission', format: 'money', align: 'right', total: 'sum' },
         ],
         rows,

@@ -34,6 +34,7 @@ const LOG_KEY = 'gc.orders.log';
 const RTO_KEY = 'gc.orders.rto';
 const TIMES_KEY = 'gc.orders.times';
 
+// the built-in online place, for a first render; pages use locations.onlinePlace() once the browser's setup is read
 export const DEFAULT_HOLD_PLACE = 'Central Warehouse';
 /** Which statuses allow which action (statuses: orderStatus.js). */
 export const CAN_APPROVE = [...NEW_KEYS];
@@ -97,9 +98,9 @@ function demoTimes(o) {
 
 // courier returns already booked in (they match the demo stock holds and the returns history)
 const RTO_SEED = {
-  '#136804': [{ at: at(30, 9, 30), by: 'Sadia Akter', lines: [{ name: 'Denim Jeans · Blue · 32', good: 1, damaged: 0 }] }],
-  '#136799': [{ at: at(29, 11, 0), by: 'Sadia Akter', lines: [{ name: 'Hyaluronic Toner 150ml', good: 0, damaged: 1 }] }],
-  '#136795': [{ at: at(29, 15, 40), by: 'Arif Rahman', lines: [{ name: 'Premium Cotton Oversized T-Shirt', good: 1, damaged: 0 }] }],
+  '#136804': [{ at: at(30, 9, 30), by: 'Sadia Akter', lines: [{ name: 'Baseus Car Phone Holder', good: 1, damaged: 0 }] }],
+  '#136799': [{ at: at(29, 11, 0), by: 'Sadia Akter', lines: [{ name: 'Type-C Wired Earphones', good: 0, damaged: 1 }] }],
+  '#136795': [{ at: at(29, 15, 40), by: 'Arif Rahman', lines: [{ name: 'Spigen Tough Armor Case · Galaxy A55', good: 1, damaged: 0 }] }],
 };
 
 // ---- demo orders ------------------------------------------------------------------------------
@@ -107,21 +108,26 @@ const L = (name, qty, price) => ({ name, qty, price });
 const NUSRAT = 'House 14, Road 7, Sector 4, Uttara, Dhaka 1230';
 const demo = (id, when, channel, customer, phone, zone, address, lines, shipping, courier, consignment, status, payment, more) => ({ id, at: when, channel, customer, phone, zone, address, lines, shipping, courier, consignment, status, payment, ...more });
 const DEMO = [
-  // #136811 and #136812 are a duplicate pair: same phone, same sunscreen, placed half an hour apart
-  demo('#136812', at(30, 10, 5), 'Online store', 'Nusrat Jahan', '01553-336655', 'Inside Dhaka', NUSRAT, [L('Sunscreen SPF 50 · 50ml', 2, 1250)], 70, 'Not assigned', '—', 'Approved', 'COD'),
-  demo('#136811', at(30, 9, 41), 'Facebook shop', 'Nusrat Jahan', '01553-336655', 'Inside Dhaka', NUSRAT, [L('Sunscreen SPF 50 · 50ml', 1, 1250), L('Hyaluronic Toner 150ml', 1, 990)], 70, 'Not assigned', '—', 'Pending', 'COD'),
+  // #136811 and #136812 are a duplicate pair: same phone, same charger, placed half an hour apart
+  demo('#136812', at(30, 10, 5), 'Online store', 'Nusrat Jahan', '01553-336655', 'Inside Dhaka', NUSRAT, [L('Anker 20W USB-C Charger', 2, 1250)], 70, 'Not assigned', '—', 'Approved', 'COD'),
+  demo('#136811', at(30, 9, 41), 'Facebook shop', 'Nusrat Jahan', '01553-336655', 'Inside Dhaka', NUSRAT, [L('Anker 20W USB-C Charger', 1, 1250), L('Type-C Wired Earphones', 1, 990)], 70, 'Not assigned', '—', 'Pending', 'COD'),
   demo('#136810', at(29, 17, 32), 'Online store', 'Karim Saheb', '01718-445120', 'Inside Dhaka', 'Flat 3B, House 9, Road 2, Mohammadpur, Dhaka 1207', [L('Wireless Earbuds Pro', 1, 3490)], 70, 'Pathao', 'PT-4480127', 'Returned', 'COD', { rtoReason: 'Customer not reachable' }),
-  demo('#136804', at(27, 11, 58), 'Online store', 'Salma Begum', '01912-330845', 'Sub-Dhaka', 'Holding 21, Bank Colony, Savar, Dhaka 1340', [L('Denim Jeans · Blue · 32', 1, 1890)], 110, 'Steadfast', 'SF-9931402', 'Returned', 'Paid', { rtoReason: 'Customer refused the parcel' }),
-  demo('#136799', at(26, 15, 10), 'Online store', 'Rafiq Mia', '01676-221904', 'Outside Dhaka', 'Kazir Dewri, Chattogram 4000', [L('Hyaluronic Toner 150ml', 1, 990)], 150, 'RedX', 'RX-1190874', 'Returned', 'Paid', { rtoReason: 'Parcel damaged in transit' }),
-  demo('#136795', at(26, 11, 20), 'Online store', 'Mahmudul Hasan', '01815-667723', 'Outside Dhaka', 'Zindabazar, Sylhet 3100', [L('Classic White Sneakers', 1, 3450), L('Premium Cotton Oversized T-Shirt', 2, 1240)], 150, 'Steadfast', 'SF-9929915', 'Returned', 'COD', { rtoReason: 'Customer cancelled at the door' }),
-  demo('#136779', at(7, 20, 48), 'Online store', 'Nusrat Jahan', '01553-336655', 'Inside Dhaka', NUSRAT, [L('Hyaluronic Toner 150ml', 1, 990)], 70, 'Not assigned', '—', 'Pending', 'Unpaid'),
-  demo('#136778', at(7, 19, 12), 'Online store', 'Mostafizur Rahman', '01711-902244', 'Outside Dhaka', '22 Jubilee Road, Chattogram 4000', [L('Daily Care Shampoo 340ml', 1, 420), L('Steel Water Bottle 750ml', 1, 650), L('Mustard Oil 1L Pure Ghani', 1, 320)], 150, 'Steadfast', 'SF-9920841', 'Ready to ship', 'COD'),
-  demo('#136776', at(7, 16, 3), 'POS · Dhanmondi · Counter 1', 'Walk-in customer', '—', 'Counter sale', '', [L('Budget Android Phone 6/128', 1, 14990)], 0, 'Store pickup', '—', 'Delivered', 'Paid'),
-  demo('#136771', at(6, 11, 40), 'Online store', 'Tanvir Hasan', '01822-771190', 'Sub-Dhaka', 'Block C, Savar, Dhaka 1340', [L('Chickpeas Boot Dal 1kg', 2, 165)], 110, 'Pathao', 'PT-4471203', 'Shipped', 'COD'),
-  demo('#136764', at(6, 9, 5), 'Online store', 'Sadia Afrin', '01966-330012', 'Outside Dhaka', 'Zindabazar, Sylhet 3100', [L('Budget Android Phone 6/128', 1, 14990)], 150, 'RedX', 'RX-1180553', 'Approved', 'Partial', { paid: 5000 }),
+  demo('#136804', at(27, 11, 58), 'Online store', 'Salma Begum', '01912-330845', 'Sub-Dhaka', 'Holding 21, Bank Colony, Savar, Dhaka 1340', [L('Baseus Car Phone Holder', 1, 1890)], 110, 'Steadfast', 'SF-9931402', 'Returned', 'Paid', { rtoReason: 'Customer refused the parcel' }),
+  demo('#136799', at(26, 15, 10), 'Online store', 'Rafiq Mia', '01676-221904', 'Outside Dhaka', 'Kazir Dewri, Chattogram 4000', [L('Type-C Wired Earphones', 1, 990)], 150, 'RedX', 'RX-1190874', 'Returned', 'Paid', { rtoReason: 'Parcel damaged in transit' }),
+  demo('#136795', at(26, 11, 20), 'Online store', 'Mahmudul Hasan', '01815-667723', 'Outside Dhaka', 'Zindabazar, Sylhet 3100', [L('Xiaomi Smart Band 8', 1, 3450), L('Spigen Tough Armor Case · Galaxy A55', 2, 1240)], 150, 'Steadfast', 'SF-9929915', 'Returned', 'COD', { rtoReason: 'Customer cancelled at the door' }),
+  demo('#136779', at(7, 20, 48), 'Online store', 'Nusrat Jahan', '01553-336655', 'Inside Dhaka', NUSRAT, [L('Type-C Wired Earphones', 1, 990)], 70, 'Not assigned', '—', 'Pending', 'Unpaid'),
+  demo('#136778', at(7, 19, 12), 'Online store', 'Mostafizur Rahman', '01711-902244', 'Outside Dhaka', '22 Jubilee Road, Chattogram 4000', [L('Lightning Cable 1m', 1, 420), L('Foldable Phone Stand', 1, 650), L('USB-C OTG Adapter', 1, 320)], 150, 'Steadfast', 'SF-9920841', 'Ready to ship', 'COD'),
+  demo('#136776', at(7, 16, 3), 'POS · Dhanmondi · Counter 1', 'Walk-in customer', '—', 'Counter sale', '', [L('Realme Note 50 6/128GB', 1, 14990)], 0, 'Store pickup', '—', 'Delivered', 'Paid', { soldBy: 'Sadia Akter' }),
+  demo('#136771', at(6, 11, 40), 'Online store', 'Tanvir Hasan', '01822-771190', 'Sub-Dhaka', 'Block C, Savar, Dhaka 1340', [L('Screen Cleaning Kit', 2, 165)], 110, 'Pathao', 'PT-4471203', 'Shipped', 'COD'),
+  demo('#136764', at(6, 9, 5), 'Online store', 'Sadia Afrin', '01966-330012', 'Outside Dhaka', 'Zindabazar, Sylhet 3100', [L('Realme Note 50 6/128GB', 1, 14990)], 150, 'RedX', 'RX-1180553', 'Approved', 'Partial', { paid: 5000 }),
   demo('#136750', at(5, 18, 22), 'Online store', 'Imran Kabir', '01533-889001', 'Inside Dhaka', 'House 5, Road 12, Banani, Dhaka 1213', [L('Wireless Earbuds Pro', 1, 3490)], 70, 'Carrybee', 'CB-7729014', 'Cancelled', 'Unpaid'),
-  demo('#136742', at(5, 13, 15), 'Online store', 'Farhana Islam', '01744-556677', 'Outside Dhaka', 'Amberkhana, Sylhet 3100', [L('Rice Cooker 1.8L Walton', 1, 2950)], 150, 'Steadfast', 'SF-9918770', 'Returned', 'Paid', { rtoReason: 'Wrong address' }),
-  demo('#136737', at(4, 10, 48), 'Online store', 'Rakib Uddin', '01677-220945', 'Inside Dhaka', 'House 31, Lake Circus, Kalabagan, Dhaka 1205', [L('Classic White Sneakers', 1, 3450)], 70, 'Pathao', 'PT-4469881', 'Delivered', 'Paid'),
+  demo('#136742', at(5, 13, 15), 'Online store', 'Farhana Islam', '01744-556677', 'Outside Dhaka', 'Amberkhana, Sylhet 3100', [L('Anker Power Bank 10000mAh', 1, 2950)], 150, 'Steadfast', 'SF-9918770', 'Returned', 'Paid', { rtoReason: 'Wrong address' }),
+  demo('#136737', at(4, 10, 48), 'Online store', 'Rakib Uddin', '01677-220945', 'Inside Dhaka', 'House 31, Lake Circus, Kalabagan, Dhaka 1205', [L('Xiaomi Smart Band 8', 1, 3450)], 70, 'Pathao', 'PT-4469881', 'Delivered', 'Paid'),
+  // earlier purchases of Nusrat Jahan, for the Warranty card on her customer profile: a phone still covered,
+  // a charger whose cover ends soon and earbuds whose cover has ended
+  demo('#136410', new Date(2026, 1, 14, 12, 20).getTime(), 'Online store', 'Nusrat Jahan', '01553-336655', 'Inside Dhaka', NUSRAT, [L('Redmi Note 13 8/256GB', 1, 26999)], 70, 'Pathao', 'PT-4012877', 'Delivered', 'Paid'),
+  demo('#136522', new Date(2026, 4, 2, 18, 5).getTime(), 'Online store', 'Nusrat Jahan', '01553-336655', 'Inside Dhaka', NUSRAT, [L('Anker 20W USB-C Charger', 1, 1250)], 70, 'Steadfast', 'SF-9611204', 'Delivered', 'Paid'),
+  demo('#136301', new Date(2025, 11, 10, 15, 40).getTime(), 'Facebook shop', 'Nusrat Jahan', '01553-336655', 'Inside Dhaka', NUSRAT, [L('Wireless Earbuds Pro', 1, 3490)], 70, 'Pathao', 'PT-3910456', 'Delivered', 'Paid'),
 ].map((o) => ({ ...o, total: sum(o.lines, (l) => l.price * l.qty) + o.shipping, source: sourceOf(o), times: demoTimes(o) }));
 
 // ---- building the list ------------------------------------------------------------------------

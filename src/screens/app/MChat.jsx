@@ -189,7 +189,7 @@ export default class MChatScreen extends Component {
           <div className="content" style={{ top: "170px", bottom: "156px", padding: "6px 16px", display: "flex", flexDirection: "column", gap: "8px", justifyContent: "flex-end" }}>
             <div style={{ alignSelf: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", background: "#e9eef5", padding: "3px 10px", borderRadius: "var(--radius-full)" }}>Today</div>
             <div style={{ display: "flex", justifyContent: "flex-start" }}>
-              <div style={{ maxWidth: "76%", padding: "10px 14px 7px", borderRadius: "var(--radius-xl) var(--radius-xl) var(--radius-xl) var(--radius-md)", background: "var(--card)", color: "var(--ink)", fontSize: "var(--text-sm-plus)", lineHeight: "21px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>Assalamu alaikum. Is the sunscreen original?<div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", fontSize: "var(--text-xs)", opacity: ".7", marginTop: "2px" }}>2:21 PM</div></div>
+              <div style={{ maxWidth: "76%", padding: "10px 14px 7px", borderRadius: "var(--radius-xl) var(--radius-xl) var(--radius-xl) var(--radius-md)", background: "var(--card)", color: "var(--ink)", fontSize: "var(--text-sm-plus)", lineHeight: "21px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>Assalamu alaikum. Is the charger original?<div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", fontSize: "var(--text-xs)", opacity: ".7", marginTop: "2px" }}>2:21 PM</div></div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <div style={{ maxWidth: "76%", padding: "10px 14px 7px", borderRadius: "var(--radius-xl) var(--radius-xl) var(--radius-md) var(--radius-xl)", background: "linear-gradient(160deg,#0a4bb5,#003087)", color: "#fff", fontSize: "var(--text-sm-plus)", lineHeight: "21px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>Wa alaikum assalam. Yes, 100% original, imported from Korea. Batch expires Jun 2027.<div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", fontSize: "var(--text-xs)", opacity: ".7", marginTop: "2px" }}>2:22 PM<svg width="16" height="10" viewBox="0 0 16 10" aria-label="Seen" style={{ marginLeft: "4px" }}>
@@ -198,7 +198,7 @@ export default class MChatScreen extends Component {
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <div className="card" style={{ width: "76%", overflow: "hidden", borderRadius: "var(--radius-xl) var(--radius-xl) var(--radius-md) var(--radius-xl)" }}>
-                <div role="img" aria-label="Sunscreen SPF 50 tube" style={{ height: "76px", background: "linear-gradient(135deg,#fff4e0,#ffe0b8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div role="img" aria-label="Anker 20W charger" style={{ height: "76px", background: "linear-gradient(135deg,#fff4e0,#ffe0b8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="72" height="60" viewBox="0 0 72 60" aria-hidden="true">
                     <rect x="20" y="13" width="40" height="34" rx="9" transform="rotate(-18 40 30)" fill="#fff" stroke="#f3b562" strokeWidth="1.5" />
                     <rect x="8" y="30" width="14" height="16" rx="3" transform="rotate(-18 40 30)" fill="#f59e0b" />
@@ -207,7 +207,7 @@ export default class MChatScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ padding: "10px 14px 12px" }}>
-                  <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Sunscreen SPF 50 · 50ml</div>
+                  <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Anker 20W USB-C Charger</div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
                     <span className="num" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>৳940 <s style={{ fontWeight: "var(--weight-regular)", color: "var(--muted)", fontSize: "var(--text-xs-plus)" }}>৳1,250</s></span>
                     <span className="pill p-warn"><span className="sh warn" aria-hidden="true" />12 left</span>

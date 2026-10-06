@@ -134,7 +134,7 @@ export default class SetDeliveryScreen extends Component {
                           <span id={v.f.id("online_orders_ship_from") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Default pickup address given to couriers for online orders, and the base for zone matching.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                             <__Icon name="warehouse" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
-                            <__In f={v.f} n="online_orders_ship_from" labelled desc opts={["Central Warehouse — Plot 12, Tejgaon I/A, Dhaka","Feni branch — 4th floor, Feni Center, Feni","Gulshan branch — Gulshan Avenue, Dhaka","Chattogram hub — Agrabad C/A, Chattogram"]} />
+                            <__In f={v.f} n="online_orders_ship_from" labelled desc opts={["Central Warehouse — Plot 12, Tejgaon I/A, Dhaka","Dhanmondi branch — House 42, Road 27, Dhanmondi","Mirpur branch — Plot 8, Section 10, Mirpur"]} />
                             <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
                           </span>
                           <__Err f={v.f} n="online_orders_ship_from" />

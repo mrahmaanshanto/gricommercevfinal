@@ -106,13 +106,13 @@ export default class PosReturnScreen extends Component {
                     </span>
                     <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#eef2f7", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#a9b8d4" }}>C</span>
                     <span style={{ display: "block", flex: "1 1 160px", minWidth: "0" }}>
-                      <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Classic White Sneakers</span>
+                      <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Xiaomi Smart Band 8</span>
                       <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>White · 42 · ৳3,450.00 each · sold 2</span>
                     </span>
                     <span style={{ display: "flex", alignItems: "center", gap: "2px", flex: "none", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff" }}>
-                      <button type="button" className="dc-h397" aria-label="Return fewer: Classic White Sneakers" style={{ width: "44px", height: "44px", border: "none", borderRadius: "var(--radius-md)", background: "none", fontFamily: "inherit", fontSize: "var(--text-sm-plus)", color: "#475569", cursor: "pointer" }}><__Icon name="minus" strokeWidth="1.75" width="16" height="16" /></button>
+                      <button type="button" className="dc-h397" aria-label="Return fewer: Xiaomi Smart Band 8" style={{ width: "44px", height: "44px", border: "none", borderRadius: "var(--radius-md)", background: "none", fontFamily: "inherit", fontSize: "var(--text-sm-plus)", color: "#475569", cursor: "pointer" }}><__Icon name="minus" strokeWidth="1.75" width="16" height="16" /></button>
                       <span style={{ minWidth: "24px", textAlign: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>2</span>
-                      <button type="button" className="dc-h398" aria-label="Return more: Classic White Sneakers" style={{ width: "44px", height: "44px", border: "none", borderRadius: "var(--radius-md)", background: "none", fontFamily: "inherit", fontSize: "var(--text-sm-plus)", color: "#475569", cursor: "pointer" }}><__Icon name="plus" strokeWidth="1.75" width="16" height="16" /></button>
+                      <button type="button" className="dc-h398" aria-label="Return more: Xiaomi Smart Band 8" style={{ width: "44px", height: "44px", border: "none", borderRadius: "var(--radius-md)", background: "none", fontFamily: "inherit", fontSize: "var(--text-sm-plus)", color: "#475569", cursor: "pointer" }}><__Icon name="plus" strokeWidth="1.75" width="16" height="16" /></button>
                     </span>
                     <span style={{ minWidth: "84px", marginLeft: "auto", flex: "none", textAlign: "right", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳6,900.00</span>
                   </div>
@@ -122,13 +122,13 @@ export default class PosReturnScreen extends Component {
                     </span>
                     <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#eef2f7", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#a9b8d4" }}>D</span>
                     <span style={{ display: "block", flex: "1 1 160px", minWidth: "0" }}>
-                      <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Daily Care Shampoo 340ml</span>
+                      <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Lightning Cable 1m</span>
                       <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Anti-dandruff · ৳420.00 each · sold 1</span>
                     </span>
                     <span style={{ display: "flex", alignItems: "center", gap: "2px", flex: "none", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff" }}>
-                      <button type="button" className="dc-h399" aria-label="Return fewer: Daily Care Shampoo 340ml" style={{ width: "44px", height: "44px", border: "none", borderRadius: "var(--radius-md)", background: "none", fontFamily: "inherit", fontSize: "var(--text-sm-plus)", color: "#475569", cursor: "pointer" }}><__Icon name="minus" strokeWidth="1.75" width="16" height="16" /></button>
+                      <button type="button" className="dc-h399" aria-label="Return fewer: Lightning Cable 1m" style={{ width: "44px", height: "44px", border: "none", borderRadius: "var(--radius-md)", background: "none", fontFamily: "inherit", fontSize: "var(--text-sm-plus)", color: "#475569", cursor: "pointer" }}><__Icon name="minus" strokeWidth="1.75" width="16" height="16" /></button>
                       <span style={{ minWidth: "24px", textAlign: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>1</span>
-                      <button type="button" className="dc-h400" aria-label="Return more: Daily Care Shampoo 340ml" style={{ width: "44px", height: "44px", border: "none", borderRadius: "var(--radius-md)", background: "none", fontFamily: "inherit", fontSize: "var(--text-sm-plus)", color: "#475569", cursor: "pointer" }}><__Icon name="plus" strokeWidth="1.75" width="16" height="16" /></button>
+                      <button type="button" className="dc-h400" aria-label="Return more: Lightning Cable 1m" style={{ width: "44px", height: "44px", border: "none", borderRadius: "var(--radius-md)", background: "none", fontFamily: "inherit", fontSize: "var(--text-sm-plus)", color: "#475569", cursor: "pointer" }}><__Icon name="plus" strokeWidth="1.75" width="16" height="16" /></button>
                     </span>
                     <span style={{ minWidth: "84px", marginLeft: "auto", flex: "none", textAlign: "right", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳420.00</span>
                   </div>
@@ -136,7 +136,7 @@ export default class PosReturnScreen extends Component {
                     <span style={{ display: "grid", placeItems: "center", width: "22px", height: "22px", flex: "none", borderRadius: "var(--radius-md)", border: "1px solid #cbd5e1", background: "#fff" }} />
                     <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#eef2f7", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#a9b8d4" }}>P</span>
                     <span style={{ display: "block", flex: "1 1 160px", minWidth: "0" }}>
-                      <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Premium Cotton Oversized T-Shirt</span>
+                      <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Spigen Tough Armor Case · Galaxy A55</span>
                       <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Black · M · ৳1,240.00 each · sold 1</span>
                     </span>
                     <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Keep</span>
@@ -146,7 +146,7 @@ export default class PosReturnScreen extends Component {
                     <span style={{ display: "grid", placeItems: "center", width: "22px", height: "22px", flex: "none", borderRadius: "var(--radius-md)", border: "1px solid #cbd5e1", background: "#fff" }} />
                     <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#eef2f7", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#a9b8d4" }}>S</span>
                     <span style={{ display: "block", flex: "1 1 160px", minWidth: "0" }}>
-                      <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Steel Water Bottle 750ml</span>
+                      <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Foldable Phone Stand</span>
                       <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Brushed steel · ৳650.00 each · sold 1</span>
                     </span>
                     <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Keep</span>
@@ -156,7 +156,7 @@ export default class PosReturnScreen extends Component {
                     <span style={{ display: "grid", placeItems: "center", width: "22px", height: "22px", flex: "none", borderRadius: "var(--radius-md)", border: "1px solid #cbd5e1", background: "#f1f5f9" }} />
                     <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#eef2f7", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#a9b8d4" }}>C</span>
                     <span style={{ display: "block", flex: "1 1 160px", minWidth: "0" }}>
-                      <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Chickpeas Boot Dal 1kg</span>
+                      <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Screen Cleaning Kit</span>
                       <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-danger)" }}>Perishable — not returnable</span>
                     </span>
                     <span style={{ minWidth: "84px", marginLeft: "auto", flex: "none", textAlign: "right", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>৳165.00</span>

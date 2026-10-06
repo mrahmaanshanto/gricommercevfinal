@@ -24,10 +24,10 @@ import { currentUser } from '@/lib/team';
 import { ChannelFrame, SyncState, ConnBadge, useChannels } from '@/screens/channels/chShared';
 
 const CHANNEL_APP = { meta: 'meta-catalog', gmc: 'gmc', gbp: 'gbp', woo: 'woocommerce', shopify: 'shopify' };
-const CATALOGS = [['GridShop · Main catalog', 'Used by your Facebook page and Instagram shop'], ['new', 'Create a new catalog']];
+const CATALOGS = [['Dazzle Shop · Main catalog', 'Used by your Facebook page and Instagram shop'], ['new', 'Create a new catalog']];
 const BUSINESS = {
-  'meta-catalog': { label: 'Business account', items: [['GridShop BD', 'Business account · 3 pages'], ['GridShop Wholesale', 'Business account · 1 page']] },
-  gmc: { label: 'Merchant Center account', items: [['GridShop BD', 'ID 512 349 8722 · gridshop.com.bd'], ['new', 'Create a new account']] },
+  'meta-catalog': { label: 'Business account', items: [['Dazzle Shop', 'Business account · 3 pages'], ['Dazzle Shop Wholesale', 'Business account · 1 page']] },
+  gmc: { label: 'Merchant Center account', items: [['Dazzle Shop', 'ID 512 349 8722 · dazzleshop.com.bd'], ['new', 'Create a new account']] },
 };
 const PRODUCT_WHAT = [['products', 'Products', 'Names, descriptions, categories'], ['inventory', 'Stock', 'So you never sell what you don’t have'], ['prices', 'Prices', 'Prices and sale prices'], ['images', 'Images', 'Product photos']];
 const WHAT = {
@@ -158,7 +158,7 @@ export default function ConnectApp() {
     if (a.id === 'woocommerce') {
       if (!/^https?:\/\/\S+\.\S+/.test(f.url || '')) { setErr('Enter your store address, starting with https://'); return; }
       if (!f.ck || !f.cs) { setErr('Enter the consumer key and the consumer secret.'); return; }
-    } else if (!/^[a-z0-9-]+\.myshopify\.com$/i.test((f.url || '').trim())) { setErr('Enter the store address, e.g. gridshop.myshopify.com'); return; }
+    } else if (!/^[a-z0-9-]+\.myshopify\.com$/i.test((f.url || '').trim())) { setErr('Enter the store address, e.g. dazzleshop.myshopify.com'); return; }
     setErr(''); setAcct('busy');
     timer.current = setTimeout(() => setAcct('done'), 1500);
   };
@@ -179,12 +179,12 @@ export default function ConnectApp() {
   const host = (u) => String(u || '').replace(/^https?:\/\//, '').replace(/\/.*$/, '');
   const finish = () => {
     let info;
-    if (a.id === 'meta-catalog') info = { business: pick === 'new' ? 'GridShop BD' : pick, catalog: cat === 'new' ? 'GridShop · New catalog' : cat, catalogId: '1048227199340', account: user.name, what };
-    else if (a.id === 'gmc') info = { account: pick === 'new' ? 'GridShop BD' : pick, merchantId: '5123498722', website: 'gridshop.com.bd', what };
-    else if (a.id === 'gbp') info = { account: 'GridShop BD', locations: pickedLocs.map((l) => l.id), what };
+    if (a.id === 'meta-catalog') info = { business: pick === 'new' ? 'Dazzle Shop' : pick, catalog: cat === 'new' ? 'Dazzle Shop · New catalog' : cat, catalogId: '1048227199340', account: user.name, what };
+    else if (a.id === 'gmc') info = { account: pick === 'new' ? 'Dazzle Shop' : pick, merchantId: '5123498722', website: 'dazzleshop.com.bd', what };
+    else if (a.id === 'gbp') info = { account: 'Dazzle Shop', locations: pickedLocs.map((l) => l.id), what };
     else if (a.id === 'woocommerce') info = { store: host(form.url), account: host(form.url), version: 'WooCommerce 9.3', what };
     else if (a.id === 'shopify') info = { store: form.url.trim(), account: form.url.trim(), what };
-    else if (a.kind === 'keys') info = { account: [form.provider, form.sender_id || form.from || ''].filter(Boolean).join(' · ') || (a.id === 'telegram' ? '@gridshop_bot' : a.name) };
+    else if (a.kind === 'keys') info = { account: [form.provider, form.sender_id || form.from || ''].filter(Boolean).join(' · ') || (a.id === 'telegram' ? '@dazzleshop_bot' : a.name) };
     else info = { account: a.pick && a.pick.multi ? `${Object.values(multi).filter(Boolean).length} ${lc(a.pick.label)}s` : pick, what };
     connectApp(a.id, info);
     setStep(steps.indexOf('Done'));

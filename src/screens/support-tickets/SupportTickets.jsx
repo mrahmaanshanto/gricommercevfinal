@@ -28,7 +28,7 @@ const TEAMS = ['Order support', 'Payments', 'Delivery', 'Sales'];
 const SOON = 'This action is not available in the demo yet.';
 // Demo tickets shown on the list, the board and in the ticket panel.
 const TICKETS = {
-  '2304': { subject: 'Add one more saree to GC-10482 before dispatch', customer: 'Nusrat Jahan', initials: 'NJ', img: '/assets/9f66d32bb99031029a6fbcfd91e221f2.png', imgPos: '52% 22%', meta: 'VIP · 14 orders · ৳84,600 LTV', ch: 'instagram', priority: 'Urgent', status: 'New', sla: 'SLA 18m', hot: true, order: 'GC-10482', orderTotal: '৳4,850', assignee: '', full: true },
+  '2304': { subject: 'Add one more case to GC-10482 before dispatch', customer: 'Nusrat Jahan', initials: 'NJ', img: '/assets/9f66d32bb99031029a6fbcfd91e221f2.png', imgPos: '52% 22%', meta: 'VIP · 14 orders · ৳84,600 LTV', ch: 'instagram', priority: 'Urgent', status: 'New', sla: 'SLA 18m', hot: true, order: 'GC-10482', orderTotal: '৳4,850', assignee: '', full: true },
   '2303': { subject: 'bKash payment not reflecting on order', customer: 'Rakib Hasan', initials: 'RH', ch: 'whatsapp', priority: 'Normal', status: 'New', sla: '3h left', assignee: '' },
   '2302': { subject: 'Asks for size chart in Bangla', customer: '@tanvir.rides', initials: 'TR', ch: 'tiktok', priority: 'Low', status: 'New', sla: '5h left', assignee: '' },
   '2298': { subject: 'Wrong colour delivered — wants exchange', customer: 'Sadia Ferdous', initials: 'SF', img: '/assets/48a47ed6468079a61846b91934211c40.png', imgPos: '55% 18%', ch: 'facebook', priority: 'High', status: 'Assigned', sla: '2h left', order: 'GC-10455', assignee: 'Tasnim' },
@@ -52,7 +52,7 @@ function threadSeed(t) {
     return [
       { id: id + 1, at: at(52), from: 'customer', type: 'call', dir: 'in', dur: 134 },
       { id: id + 2, at: at(51), from: 'system', type: 'text', icon: 'phone-incoming', text: 'Ticket created from the call by Rina · recording attached' },
-      { id: id + 3, at: at(50), from: 'customer', type: 'text', text: 'Ekta saree add korte chai, difference bKash e dicchi.' },
+      { id: id + 3, at: at(50), from: 'customer', type: 'text', text: 'Ekta case add korte chai, difference bKash e dicchi.' },
       { id: id + 4, at: at(44), from: 'note', by: 'rina', type: 'text', text: 'Stock confirmed — 6 left of JAM-114. Courier pickup 5 PM, needs packing hold. @Tasnim please hold it.' },
       { id: id + 5, at: at(40), from: 'system', type: 'text', icon: 'merge', text: 'Earlier Instagram chat merged into this ticket · 4 messages' },
     ];

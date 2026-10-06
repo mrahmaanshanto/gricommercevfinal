@@ -144,7 +144,7 @@ function CampaignList({ tick, go }) {
 }
 
 // ---- one campaign ----------------------------------------------------------------------------------------------------------
-const BLANK = { name: '', objective: 'Sales', segment: 'all', channels: ['whatsapp', 'sms'], template: 'T-EID-WA', vars: { offer: '10% off', coupon_code: '', link: 'https://gridshop.com.bd/offers' }, schedule: { mode: 'now', at: null }, status: 'draft', utm: '' };
+const BLANK = { name: '', objective: 'Sales', segment: 'all', channels: ['whatsapp', 'sms'], template: 'T-EID-WA', vars: { offer: '10% off', coupon_code: '', link: 'https://dazzleshop.com.bd/offers' }, schedule: { mode: 'now', at: null }, status: 'draft', utm: '' };
 function CampaignRecord({ id, tick, go }) {
   const isNew = id === 'new';
   const [c, setC] = useState(null);

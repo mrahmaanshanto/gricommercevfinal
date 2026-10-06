@@ -48,6 +48,9 @@ export default function SalaryStatements() {
   const { S, ready } = useHr();
   const years = yearsFrom(S);
   const [code, setCode] = useState('');
+  // "Prepared" is the browser's date: set after mount (the page is prerendered on a UTC server)
+  const [prepared, setPrepared] = useState('');
+  useEffect(() => { setPrepared(formatDate(Date.now())); }, []);
   const [mode, setMode] = useState(years[0].from.slice(0, 4));
   const [range, setRange] = useState({ from: years[0].from, to: monthOf(todayKey(S)) });
 
@@ -101,7 +104,7 @@ export default function SalaryStatements() {
 
         {st ? (
           <>
-            <PrintLetterhead kind="Salary statement" title={st.name} meta={[['Employee no.', st.code], ['Position', `${st.designation}${gradeOf(S, st) ? ' · ' + gradeLabel(S, gradeOf(S, st)) : ''}`], ['Period', period], ['Prepared', formatDate(Date.now())]]} />
+            <PrintLetterhead kind="Salary statement" title={st.name} meta={[['Employee no.', st.code], ['Position', `${st.designation}${gradeOf(S, st) ? ' · ' + gradeLabel(S, gradeOf(S, st)) : ''}`], ['Period', period], ['Prepared', prepared]]} />
             <div className="ss-who">
               <div><span>Name</span><b>{st.name}</b></div>
               <div><span>Employee no.</span><b className="hr-fig">{st.code}</b></div>
@@ -123,13 +126,13 @@ export default function SalaryStatements() {
                   </table>
                 </div>
                 <p className="ss-words">Total earned {money(one.totals.earned)} ({takaWords(one.totals.earned)}) before cuts and loan instalments; {money(one.totals.net)} net{one.totals.owed ? `, of which ${money(one.totals.owed)} is approved and not paid yet` : ''}.</p>
-                <PrintSignOff when={formatDate(Date.now())} />
+                <PrintSignOff when={prepared} />
               </>
             ) : <div className="ix-empty"><EmptyState icon="file-spreadsheet" title="No pay in this period" body={`${st.name} was not in an approved payroll run between ${monthLabel(from)} and ${monthLabel(to)}.`} /></div>}
           </>
         ) : (
           <>
-            <PrintLetterhead kind="Salary statement" title="All staff" meta={[['Period', period], ['People', String(all.length)], ['Prepared', formatDate(Date.now())]]} />
+            <PrintLetterhead kind="Salary statement" title="All staff" meta={[['Period', period], ['People', String(all.length)], ['Prepared', prepared]]} />
             {all.length ? (
               <>
                 <ul className="ix-plist" aria-label="Everyone">
@@ -154,7 +157,7 @@ export default function SalaryStatements() {
                 </div>
               </>
             ) : <div className="ix-empty"><EmptyState icon="file-spreadsheet" title="No payroll in this period" /></div>}
-            <PrintSignOff when={formatDate(Date.now())} />
+            <PrintSignOff when={prepared} />
           </>
         )}
       </section>

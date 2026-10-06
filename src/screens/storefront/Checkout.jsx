@@ -13,7 +13,7 @@ import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@
 
 function bdt(n) { n = Math.round(n); var s = String(Math.abs(n)), last = s.slice(-3), rest = s.slice(0, -3); if (rest) last = ',' + last; rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); return '৳' + rest + last; }
 function val(e) { return e && e.target ? e.target.value : e; }
-var ITEMS = [ { k: 'd', cat: 'Clothing', n: 'Denim Jeans · Blue', v: 'Size 32', p: 1290, was: 1890, i: 'D', bg: '#e0f2fe' }, { k: 'm', cat: 'Clothing', n: 'Men’s Polo Shirt · Navy', v: 'Size M', p: 990, was: 1450, i: 'M', bg: '#eef2f7' }, { k: 's', sku: 'SK-SUN-50', cat: 'Skin care', n: 'Sunscreen SPF 50 · 50 ml', v: 'Skin care', p: 890, was: 1250, i: 'S', bg: '#fff4e0' } ];
+var ITEMS = [ { k: 'd', cat: 'Accessories', n: 'Baseus Car Phone Holder', v: 'Black', p: 1290, was: 1890, i: 'B', bg: '#e0f2fe' }, { k: 'm', cat: 'Accessories', n: 'Liquid Silicone Case · Navy', v: 'iPhone 15', p: 990, was: 1450, i: 'M', bg: '#eef2f7' }, { k: 's', sku: 'AC-CHG-20', cat: 'Accessories', n: 'Anker 20W USB-C Charger', v: 'White', p: 890, was: 1250, i: 'A', bg: '#fff4e0' } ];
 var ZONES = [ ['in', 'Inside Dhaka', '1–2 days · Pathao', 70], ['sub', 'Sub-Dhaka', 'Savar, Gazipur, Narayanganj · 2–3 days', 110], ['out', 'Outside Dhaka', '3–5 days · Steadfast', 150] ];
 var PAYS = [ ['cod', 'Cash on delivery', 'Pay the rider when it arrives', ''], ['bkash', 'bKash', 'Pay now from your bKash account', '10% off · up to ৳150'], ['nagad', 'Nagad', 'Pay now from your Nagad account', ''], ['rocket', 'Rocket', 'Pay now from your Rocket account', ''], ['card', 'Card', 'Visa, Mastercard or Amex · secured by SSLCOMMERZ', ''] ];
 // Provider marks shown on the payment options.
@@ -168,13 +168,13 @@ export default class CheckoutScreen extends Component {
           <header className="sf-header sf-pad" style={{ minHeight: "76px", background: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "32px", padding: "0 64px" }}>
             <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
               <span style={{ width: "38px", height: "38px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>G</span>
-              <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>GridShop</span>
+              <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Dazzle Shop</span>
             </a>
             <nav aria-label="Shop" className="sf-navrow" style={{ display: "flex", gap: "26px" }}>
               <a className="sf-nav" href="#">Home</a>
-              <a className="sf-nav" href="#">Skin care</a>
-              <a className="sf-nav" href="#">Clothing</a>
-              <a className="sf-nav" href="#">Grocery</a>
+              <a className="sf-nav" href="#">Phones</a>
+              <a className="sf-nav" href="#">Accessories</a>
+              <a className="sf-nav" href="#">Audio</a>
               <__Link href="/offers" className="sf-nav">Offers</__Link>
             </nav>
             <label className="sf-search" style={{ position: "relative", flexGrow: "1", maxWidth: "420px", marginLeft: "auto" }}>
@@ -344,7 +344,7 @@ export default class CheckoutScreen extends Component {
             </>) : null}
           </main>
           <footer className="sf-footer sf-pad" style={{ marginTop: "auto", background: "#0f172a", color: "#cbd5e1", padding: "36px 64px", display: "flex", alignItems: "center", gap: "24px", fontSize: "var(--text-sm)" }}>
-            <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#fff" }}>GridShop</span>
+            <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#fff" }}>Dazzle Shop</span>
             <span>House 12, Road 5, Dhanmondi, Dhaka</span>
             <span>Call 09610-XXXXXX</span>
             <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>Powered by <img src="/assets/820d4a69b45ed8fa40c9bc6015985c0e.png" alt="GridCommerce" style={{ height: "18px", objectFit: "contain" }} /></span>

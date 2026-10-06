@@ -213,7 +213,7 @@ export default class MStockScreen extends Component {
               <div className="lrow">
                 <span className="av" style={{ width: "48px", height: "48px", background: "#fff4e0", color: "#003087", fontSize: "var(--text-lg)" }}>S</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Sunscreen SPF 50 · 50ml</span>
+                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Anker 20W USB-C Charger</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--err)", marginTop: "2px" }}><span className="sh err" style={{ color: "var(--text-danger)" }} />4 left · reorder at 20</span>
                   <span className="bar" style={{ display: "block", marginTop: "8px" }}>
                     <i style={{ width: "10%", background: "#ff5724" }} />
@@ -224,7 +224,7 @@ export default class MStockScreen extends Component {
               <div className="lrow">
                 <span className="av" style={{ width: "48px", height: "48px", background: "#e7f7f0", color: "#003087", fontSize: "var(--text-lg)" }}>R</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Rice Water Cleanser 150ml</span>
+                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Magnetic Wireless Charger 15W</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--warn)", marginTop: "2px" }}><span className="sh warn" style={{ color: "var(--text-warning)" }} />8 left · reorder at 15</span>
                   <span className="bar" style={{ display: "block", marginTop: "8px" }}>
                     <i style={{ width: "27%", background: "#ff9800" }} />
@@ -235,7 +235,7 @@ export default class MStockScreen extends Component {
               <div className="lrow">
                 <span className="av" style={{ width: "48px", height: "48px", background: "#fde7ef", color: "#003087", fontSize: "var(--text-lg)" }}>V</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Vitamin C Serum 30ml</span>
+                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Galaxy A35 Clear Case</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--err)", marginTop: "2px" }}><span className="sh err" style={{ color: "var(--text-danger)" }} />Out of stock · 14 on order</span>
                   <span className="bar" style={{ display: "block", marginTop: "8px" }}>
                     <i style={{ width: "0%", background: "#ff5724" }} />
@@ -246,7 +246,7 @@ export default class MStockScreen extends Component {
               <div className="lrow">
                 <span className="av" style={{ width: "48px", height: "48px", background: "#e0f3fb", color: "#003087", fontSize: "var(--text-lg)" }}>D</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Denim Jeans · Blue · 32</span>
+                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Baseus Car Phone Holder</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--muted)", marginTop: "2px" }}><span className="sh ok" style={{ color: "var(--text-success)" }} />40 in stock · 3 weeks left</span>
                   <span className="bar" style={{ display: "block", marginTop: "8px" }}>
                     <i style={{ width: "100%", background: "#10b981" }} />
@@ -257,7 +257,7 @@ export default class MStockScreen extends Component {
               <div className="lrow">
                 <span className="av" style={{ width: "48px", height: "48px", background: "#e7f7f0", color: "#003087", fontSize: "var(--text-lg)" }}>A</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Aloe Soothing Gel 300ml</span>
+                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Micro-USB Cable 1m</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--muted)", marginTop: "2px" }}><span className="sh ok" style={{ color: "var(--text-success)" }} />120 in stock · expires Mar 2027</span>
                   <span className="bar" style={{ display: "block", marginTop: "8px" }}>
                     <i style={{ width: "100%", background: "#10b981" }} />

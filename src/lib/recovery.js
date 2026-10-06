@@ -45,7 +45,7 @@ export const RECOVERY_BASIS = 'An order from the same customer within 7 days of 
 export const DEFAULT_REMINDERS = {
   on: true, windowDays: 7, minCart: 500, bigCart: 5000, skipRepeat: true, repeatLimit: 3, stricterCap: 0, backStock: true, linkDays: 7,
   steps: [
-    { title: 'Gentle reminder', wait: 1, ch: { wa: true, sms: true }, offerId: null, trigger: 'cart_abandoned', on: true, text: 'Hi {name}, you left something in your cart at GridShop. Finish your order here: {link}' },
+    { title: 'Gentle reminder', wait: 1, ch: { wa: true, sms: true }, offerId: null, trigger: 'cart_abandoned', on: true, text: 'Hi {name}, you left something in your cart at Dazzle Shop. Finish your order here: {link}' },
     { title: 'Small coupon', wait: 24, ch: { wa: true, email: true }, offerId: 'PR-EID300', trigger: 'cart_abandoned', on: true, text: 'আপনার কার্টের পণ্যগুলো এখনও আছে! কোড {code} দিয়ে ছাড় পান, ৪৮ ঘণ্টার মধ্যে। {link}' },
     { title: 'Last chance', wait: 72, ch: { sms: true, email: true }, offerId: 'PR-EID300', trigger: 'cart_abandoned', on: true, text: 'Last chance, {name}! Use code {code} on your cart. Ends in 48 hours: {link}' },
   ],
@@ -61,18 +61,18 @@ const I = (name, qty, price, inStock = true) => ({ name, qty, price, inStock });
 function seed(now) {
   const o = (id, type, ago, f) => ({ id, type, leftAt: now - ago, contacts: [], step: 0, callQueued: false, recovered: null, closed: null, payment: null, guest: null, customerId: null, channel: 'Website', ...f });
   return [
-    o('ABN-8931', 'cart', 35 * MIN, { customerId: 'C-10482', items: [I('Sunscreen SPF 50 · 50ml', 1, 1250), I('Lip Balm Strawberry 4g', 2, 240), I('Cotton Face Towel (pack of 3)', 1, 1510)] }),
-    o('ABN-8929', 'checkout', 2 * HOUR, { guest: { name: 'Guest', phone: '01716-4X8-220', consent: { sms: 'in', whatsapp: 'unknown' } }, items: [I('Denim Jeans · Blue · 32', 1, 1890), I('Canvas Belt', 1, 290)], step: 1, contacts: [{ at: now - HOUR, channel: 'sms', by: 'Automation', kind: 'auto', step: 1 }] }),
-    o('ABN-8927', 'cart', 3 * HOUR, { customerId: 'C-10519', items: [I('Gaming Laptop RTX Edition', 1, 124500)], callQueued: true }),
-    o('ABN-8924', 'checkout', 5 * HOUR, { customerId: 'C-10077', items: [I('Men’s Polo Shirt · Navy · M', 2, 1290), I('Chino Trousers · Khaki · 32', 1, 1790), I('Leather Wallet', 1, 1490)], step: 1, contacts: [{ at: now - 3 * HOUR, channel: 'whatsapp', by: 'Rupa', kind: 'manual' }] }),
-    o('ABN-8920', 'cart', 26 * HOUR, { customerId: 'C-10233', items: [I('Rice Water Cleanser 150ml', 1, 1540)], contacts: [{ at: now - 22 * HOUR, channel: 'call', by: 'Shanto', kind: 'manual' }], recovered: { at: now - 20 * HOUR, orderId: '#136790', value: 1540, basis: 'operational' } }),
+    o('ABN-8931', 'cart', 35 * MIN, { customerId: 'C-10482', items: [I('Anker 20W USB-C Charger', 1, 1250), I('SIM Ejector Pin Pack', 2, 240), I('Cotton Face Towel (pack of 3)', 1, 1510)] }),
+    o('ABN-8929', 'checkout', 2 * HOUR, { guest: { name: 'Guest', phone: '01716-4X8-220', consent: { sms: 'in', whatsapp: 'unknown' } }, items: [I('Baseus Car Phone Holder', 1, 1890), I('Canvas Belt', 1, 290)], step: 1, contacts: [{ at: now - HOUR, channel: 'sms', by: 'Automation', kind: 'auto', step: 1 }] }),
+    o('ABN-8927', 'cart', 3 * HOUR, { customerId: 'C-10519', items: [I('iPhone 15 Pro (old stock)', 1, 124500)], callQueued: true }),
+    o('ABN-8924', 'checkout', 5 * HOUR, { customerId: 'C-10077', items: [I('Liquid Silicone Case · Navy · M', 2, 1290), I('Chino Trousers · Khaki · 32', 1, 1790), I('Leather Wallet', 1, 1490)], step: 1, contacts: [{ at: now - 3 * HOUR, channel: 'whatsapp', by: 'Rupa', kind: 'manual' }] }),
+    o('ABN-8920', 'cart', 26 * HOUR, { customerId: 'C-10233', items: [I('Magnetic Wireless Charger 15W', 1, 1540)], contacts: [{ at: now - 22 * HOUR, channel: 'call', by: 'Shanto', kind: 'manual' }], recovered: { at: now - 20 * HOUR, orderId: '#136790', value: 1540, basis: 'operational' } }),
     o('ABN-8918', 'checkout', 30 * HOUR, { customerId: 'C-10538', items: [I('5G Smartphone 128GB', 1, 32990, false)], step: 1, contacts: [{ at: now - 29 * HOUR, channel: 'sms', by: 'Automation', kind: 'auto', step: 1 }] }),
-    o('ABN-8915', 'cart', 50 * HOUR, { customerId: 'C-10501', items: [I('Premium Miniket Rice 5kg', 1, 520), I('Mustard Oil 1L', 1, 320), I('Red Lentils 1kg', 2, 160), I('Sugar 1kg', 1, 160)], step: 1, contacts: [{ at: now - 49 * HOUR, channel: 'whatsapp', by: 'Automation', kind: 'auto', step: 1 }] }),
-    o('ABN-8912', 'cart', 52 * HOUR, { customerId: 'C-09311', items: [I('Aloe Vera Soothing Gel 300ml', 1, 1290), I('Lip Balm Strawberry 4g', 2, 300)], step: 1, contacts: [{ at: now - 51 * HOUR, channel: 'sms', by: 'Automation', kind: 'auto', step: 1 }], recovered: { at: now - 40 * HOUR, orderId: '#136801', value: 1890, basis: 'operational' } }),
+    o('ABN-8915', 'cart', 50 * HOUR, { customerId: 'C-10501', items: [I('Baseus USB-C Cable 100W 1m', 1, 520), I('USB-C OTG Adapter', 1, 320), I('Camera Lens Protector', 2, 160), I('Phone Lanyard Strap', 1, 160)], step: 1, contacts: [{ at: now - 49 * HOUR, channel: 'whatsapp', by: 'Automation', kind: 'auto', step: 1 }] }),
+    o('ABN-8912', 'cart', 52 * HOUR, { customerId: 'C-09311', items: [I('Magnetic Wireless Charger 15W', 1, 1290), I('Phone Ring Holder', 2, 300)], step: 1, contacts: [{ at: now - 51 * HOUR, channel: 'sms', by: 'Automation', kind: 'auto', step: 1 }], recovered: { at: now - 40 * HOUR, orderId: '#136801', value: 1890, basis: 'operational' } }),
     o('PAY-4410', 'payment', 50 * MIN, { customerId: 'C-09654', items: [I('Smart Watch Series 5', 1, 7450)], payment: { provider: 'bKash', state: 'pending', amount: 7450, ref: 'BK-8KQ21' } }),
     o('PAY-4407', 'payment', 4 * HOUR, { customerId: 'C-09120', items: [I('Hair Dryer 1800W', 1, 2990)], payment: { provider: 'SSLCOMMERZ', state: 'failed', amount: 2990, ref: 'SSL-77120', arrivesAt: now - 3 * HOUR } }),
     o('ABN-8907', 'cart', 6 * HOUR, { customerId: 'C-10140', items: [I('Wireless Earbuds Pro', 1, 2450)] }),
-    o('ABN-8890', 'cart', 8 * DAY, { customerId: 'C-10544', items: [I('Night Repair Cream 50g', 1, 980)], step: 2, contacts: [{ at: now - 8 * DAY + HOUR, channel: 'sms', by: 'Automation', kind: 'auto', step: 1 }, { at: now - 7 * DAY, channel: 'whatsapp', by: 'Automation', kind: 'auto', step: 2 }] }),
+    o('ABN-8890', 'cart', 8 * DAY, { customerId: 'C-10544', items: [I('Galaxy Buds FE', 1, 980)], step: 2, contacts: [{ at: now - 8 * DAY + HOUR, channel: 'sms', by: 'Automation', kind: 'auto', step: 1 }, { at: now - 7 * DAY, channel: 'whatsapp', by: 'Automation', kind: 'auto', step: 2 }] }),
   ];
 }
 function readOpps() {

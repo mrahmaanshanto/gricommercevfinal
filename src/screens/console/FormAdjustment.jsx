@@ -6,10 +6,27 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { ConsoleSide, ConsoleTop, ConsoleToast } from './ConsoleFrame';
+import { MAIN, TITLEROW, H1, SUBT, H2, PHEAD, PSIDE, PANEL, BTN, Go } from './consoleParts';
+import { attach, db, now, staff, param, balance, invoiceState, mrrOf, requestAdjustment, catalogue, fmt } from '@/lib/platform';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
+// New bill adjustment: credit note, discount on the next bill, waiver or an extra charge, always with a reason code.
+// ?shop=0031&invoice=INV-…&type=credit prefill it. Live from lib/platform.
+const TYPES = [['credit', 'Credit note', 'Money off an issued invoice.'], ['discount', 'Discount on next invoice', 'Amount or percent off once.'], ['waive', 'Waive an invoice', 'Cancel it in full; needs Admin.'], ['charge', 'Add a charge', 'A one-off line, for example extra setup.']];
+const LINKS = ['Nothing', 'INC-114 · Steadfast webhook delays', 'INC-108 · courier outage', 'Ticket T-2291'];
+
 class Component extends DCLogic {
+  componentDidMount() {
+    this.off = attach(this);
+    const shop = param('shop'); const inv = param('invoice'); const type = param('type');
+    const d = db();
+    const fromInv = inv ? d.invoices.find((i) => i.id === inv) : null;
+    this.setState({ ...(shop || fromInv ? { shop: shop || fromInv.shopId } : {}), ...(inv ? { inv } : {}), ...(type ? { type } : {}) });
+  }
+  componentWillUnmount() { if (this.off) this.off(); }
+
   renderVals() {
     const v = this.renderVals0() || {};
     const mini = !!(this.state || {}).mini;
@@ -20,7 +37,62 @@ class Component extends DCLogic {
   }
 
   renderVals0() {
-    return {};
+    const s = this.state || {};
+    const t = now();
+    const d = db();
+    const me = staff();
+    const shops = d.shops.filter((x) => x.status === 'live').slice().sort((a, b) => a.name.localeCompare(b.name));
+    const shopId = s.shop || '0031';
+    const shop = d.shops.find((x) => x.id === shopId) || shops[0];
+    const sub = d.subs[shop.id];
+    const type = s.type || 'credit';
+    const bills = d.invoices.filter((i) => i.shopId === shop.id && !i.noCharge).sort((a, b) => b.dueAt - a.dueAt).slice(0, 8);
+    const needsBill = type === 'credit' || type === 'waive';
+    const defaultInv = needsBill ? ((bills.find((i) => balance(d, i) > 0) || bills[0] || {}).id || '') : 'next';
+    const invId = s.inv && (s.inv === 'next' ? !needsBill : bills.some((i) => i.id === s.inv)) ? s.inv : defaultInv;
+    const inv = invId && invId !== 'next' ? bills.find((i) => i.id === invId) : null;
+    const base = inv ? inv.total : mrrOf(d, sub, t);
+    const pctN = Number(String(s.pct || '').replace(/[^0-9.]/g, '')) || 0;
+    const amtTyped = fmt.parseAmount(s.amount ?? '');
+    const amount = type === 'waive' && inv ? balance(d, inv) : Number.isFinite(amtTyped) && amtTyped > 0 ? Math.round(amtTyped) : pctN ? Math.round((base * pctN) / 100) : 0;
+    const reason = s.reason || (type === 'discount' ? 'PREPAY-DISCOUNT' : type === 'charge' ? 'BILLING-ERROR' : 'OUTAGE-CREDIT');
+    const threshold = d.settings.adjThreshold;
+    const over = amount > threshold;
+    const planPrice = inv ? (inv.lines.find((l) => l.kind === 'plan') || inv.lines[0] || { label: '', amount: 0 }) : { label: `${catalogue.PLAN_NAME[sub.plan]} plan, next bill`, amount: mrrOf(d, sub, t) };
+    const after = type === 'charge' ? base + amount : Math.max(0, base - amount);
+    const nextNo = (() => { const y = fmt.yearOf(t); return `CN-${y}-${String((d.seq.cn[y] || 0) + 1).padStart(4, '0')}`; })();
+    const help = inv && type === 'credit' && amount ? `${Math.round((amount / Math.max(1, inv.total)) * 30)} of 30 days at ${fmt.taka(inv.total)}` : type === 'discount' && pctN ? `${pctN}% of ${fmt.taka(base)}` : '';
+    return {
+      shops, shop, type, invId, inv, bills, needsBill, amount, reason, over, threshold, after, base, help,
+      types: TYPES.map(([k, label, sub2]) => ({ k, label, sub: sub2, cls: type === k ? 'rc on' : 'rc', checked: type === k ? 'true' : 'false', pick: () => this.setState({ type: k, inv: undefined, amount: k === 'waive' ? undefined : s.amount }) })),
+      invOptions: [...(needsBill ? [] : [{ value: 'next', label: `Next invoice · ${sub.nextDue ? fmt.dm(sub.nextDue) : 'after the trial'}` }]), ...bills.map((i) => { const st = invoiceState(d, i, t); return { value: i.id, label: `${i.id} · ${fmt.taka(i.total)} · ${st.key === 'overdue' ? 'overdue' : st.key === 'due' ? 'due ' + fmt.dm(i.dueAt) : 'paid'}` }; })],
+      amountText: s.amount ?? (type === 'waive' && inv ? String(balance(d, inv)) : ''), pctText: s.pct || '', note: s.note ?? '', linked: s.linked || 'Nothing',
+      links: LINKS, reasons: catalogue.REASONS,
+      onShop: (e) => this.setState({ shop: e.target.value, inv: undefined }),
+      onInv: (e) => this.setState({ inv: e.target.value }),
+      onAmount: (e) => this.setState({ amount: e.target.value, pct: '' }),
+      onPct: (e) => this.setState({ pct: e.target.value, amount: '' }),
+      onReason: (e) => this.setState({ reason: e.target.value }),
+      onLinked: (e) => this.setState({ linked: e.target.value }),
+      onNote: (e) => this.setState({ note: e.target.value }),
+      previewLines: [
+        { key: 'base', label: inv ? `${planPrice.label}, ${fmt.monthOf(inv.period)}` : planPrice.label, amount: fmt.taka(base), color: undefined },
+        ...(amount ? [{ key: 'adj', label: type === 'credit' || type === 'waive' ? `Credit note ${nextNo}` : type === 'discount' ? 'Discount on this bill' : 'Extra charge', amount: type === 'charge' ? fmt.taka(amount) : fmt.taka(-amount), color: type === 'charge' ? undefined : '#c2410c' }] : []),
+      ],
+      afterText: fmt.taka(after),
+      noteCls: type === 'waive' && me.role !== 'admin' ? 'note n-err' : over ? 'note n-warn' : 'note n-ok',
+      noteHtml: type === 'waive' && me.role !== 'admin' ? 'Waiving a bill needs an Admin.' : over ? `Over ${fmt.taka(threshold)}: ` : `Up to ${fmt.taka(threshold)}: `,
+      noteStrong: type === 'waive' && me.role !== 'admin' ? '' : over ? 'a second person must approve.' : 'applied at once.',
+      noteTail: over ? ' You cannot approve your own request.' : '',
+      submitLabel: over ? 'Send for approval' : 'Apply',
+      go: s.go || null,
+      submit: () => {
+        const r = requestAdjustment({ shopId: shop.id, invoiceId: invId, type, amount: type === 'waive' ? undefined : (Number.isFinite(amtTyped) && amtTyped > 0 ? amtTyped : undefined), pct: pctN || undefined, reason, linked: (s.linked || 'Nothing') === 'Nothing' ? null : s.linked, note: s.note || '' });
+        if (!r.ok) { this.setState({ toast: r.error, toastTone: 'err' }); return; }
+        this.setState({ go: '/adjustments?id=' + r.adjustment.id });
+      },
+      toast: s.toast || '', toastTone: s.toastTone || 'ok', hideToast: () => this.setState({ toast: '' }),
+    };
   }
 }
 
@@ -241,246 +313,17 @@ export default class FormAdjustmentScreen extends Component {
       <div className="dc-screen" data-screen="FormAdjustment">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className={`cs ${v.miniCls ?? ""}`} style={{ width: "1440px", height: "1040px", overflow: "hidden", position: "relative", background: "var(--bg)" }}>
-          <aside className="side" aria-label="Console navigation">
-            <div className="sidein">
-              <div className="sidehead" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "18px 12px 6px 20px" }}>
-                <span className="logo-full">
-                  <img src="/assets/62dadbbb3f365aebdd41bb9975f5931f.png" alt="GridCommerce" style={{ height: "28px", width: "auto", display: "block" }} />
-                </span>
-                <img className="logo-mini" src="/assets/9b6f9ad369f1cbde65271a968e6ba1f1.png" alt="GridCommerce" style={{ height: "32px", width: "auto" }} />
-                <button className="tb sidetoggle" type="button" onClick={v.toggleSide} aria-label={v.sideLabel} title={v.sideLabel}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3" y="3" width="18" height="18" rx="3" />
-                    <path d="M9 3v18" />
-                  </svg>
-                </button>
-              </div>
-              <div className="sidemeta" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 20px 12px" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", height: "22px", padding: "0 8px", borderRadius: "var(--radius-md)", background: "var(--iconbg)", color: "var(--iconfg)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase" }}>Console</span>
-                <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Staff only · views logged</span>
-              </div>
-              <nav aria-label="Console" className="sidenav">
-                <__Link href="/console-shell" className="nav top" title="Overview">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Overview</span>
-                </__Link>
-                <div className="navlabel" style={{ margin: "10px 10px 6px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--sidemuted)" }}>Manage</div>
-                <__Link href="/merchants" className="nav grp" title="Tenants" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 9 4.5 4h15L21 9" />
-                      <path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9Z" />
-                      <path d="M5 12v9h14v-9" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Tenants</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/module-catalogue" className="nav grp" title="Packaging" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" />
-                      <path d="m3 7 9 5 9-5M12 12v10" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Packaging</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/subscriptions" className="nav grp open" title="Billing" aria-expanded="true">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="2" y="5" width="20" height="14" rx="2" />
-                      <path d="M2 10h20M6 15h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Billing</span>
-                  <span className="chev open">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <div className="kids">
-                  <__Link href="/subscriptions" className="nav sub">
-                    <span className="navtxt">Subscriptions</span>
-                  </__Link>
-                  <__Link href="/invoices" className="nav sub">
-                    <span className="navtxt">Invoices</span>
-                  </__Link>
-                  <__Link href="/collections" className="nav sub">
-                    <span className="navtxt">Collections</span>
-                    <span className="badge warn">4</span>
-                  </__Link>
-                  <__Link href="/adjustments" className="nav sub on" aria-current="page">
-                    <span className="navtxt">Adjustments</span>
-                  </__Link>
-                </div>
-                <__Link href="/health-risk" className="nav grp" title="Monitoring" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 12h4l3-8 4 16 3-8h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Monitoring</span>
-                  <span className="badge warn">5</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/support-desk" className="nav grp" title="Support" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 14v-2a9 9 0 0 1 18 0v2" />
-                      <path d="M21 14v3a2 2 0 0 1-2 2h-2v-7h4M3 14v3a2 2 0 0 0 2 2h2v-7H3" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Support</span>
-                  <span className="badge ">12</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/leads" className="nav grp" title="Sales CRM" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Sales CRM</span>
-                  <span className="badge ">18</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/ops-centre" className="nav grp" title="Operations" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Operations</span>
-                  <span className="badge err">2</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/releases" className="nav grp" title="System" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="4" y="11" width="16" height="10" rx="2" />
-                      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">System</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-              </nav>
-              <__Link href="/ops-centre" className="statuscard" title="1 open incident" style={{ display: "block", color: "inherit", textDecoration: "none" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ flex: "none", width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#ff9800", boxShadow: "0 0 0 3px rgba(255,152,0,.2)" }} />
-                  <span className="statustxt" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>1 open incident</span>
-                  <span className="num statustxt" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>99.96%</span>
-                </div>
-                <div className="statustxt ell" style={{ marginTop: "4px", fontSize: "var(--text-xs)", color: "var(--sidebody)" }}>Steadfast webhooks delayed · 38 stores</div>
-              </__Link>
-              <div className="me">
-                <span style={{ position: "relative", display: "inline-flex", flex: "none" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-xl)", background: "linear-gradient(145deg,#2eaee4,#003087)", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>FA</span>
-                  <span style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "11px", height: "11px", borderRadius: "var(--radius-full)", background: "#10b981", border: "2px solid var(--side)" }} />
-                </span>
-                <div className="metxt" style={{ minWidth: "0" }}>
-                  <div className="ell" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>Farhana Akter</div>
-                  <div className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Support lead · 2FA on</div>
-                </div>
-                <__Link href="/staff-roles" className="tb mebtn" aria-label="Account and roles" style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--sidemuted)" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 21a8 8 0 0 1 16 0" />
-                  </svg>
-                </__Link>
-              </div>
-            </div>
-          </aside>
-          <header className="topbar">
-            <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", minWidth: "230px" }}>
-              <span className="crumbic">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="2" y="5" width="20" height="14" rx="2" />
-                  <path d="M2 10h20M6 15h4" />
-                </svg>
-              </span>
-              <span style={{ color: "var(--muted)" }}>Billing</span>
-              <span style={{ color: "var(--muted)" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m9 6 6 6-6 6" />
-                </svg>
-              </span>
-              <span style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>New adjustment</span>
-            </nav>
-            <button className="searchbtn" type="button"><span style={{ display: "inline-flex" }}>
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </svg>
-</span>Search stores, phones, invoices, leads<span className="kbd">Ctrl K</span></button>
-            {" "}
-            <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "8px", height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "var(--okbg)", color: "var(--okt)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-lg)", background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,.18)" }} />Production</span>
-            {" "}
-            <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)", padding: "0 4px" }}>Sun 20 Sep · 14:32</span>
-            {" "}
-            <span style={{ width: "1px", height: "24px", background: "var(--line)" }} />
-            {" "}
-            <button className="tb" type="button" aria-label="Notifications, 3 unread" style={{ position: "relative" }}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                <path d="M10 21h4" />
-              </svg>
-              <span style={{ position: "absolute", top: "8px", right: "9px", width: "8px", height: "8px", borderRadius: "var(--radius-lg)", background: "#ff5724", border: "2px solid var(--surface)" }} />
-            </button>
-            {" "}
-            <button className="tb" type="button" aria-label="Help and runbooks">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
-              </svg>
-            </button>
-          </header>
-          <main className="mainarea" style={{ position: "absolute", left: "272px", right: "0", top: "64px", bottom: "0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <ConsoleSide group="billing" item="adjustments" toggle={v.toggleSide} label={v.sideLabel} />
+          <ConsoleTop group="billing" page="New adjustment" />
+          <main className="mainarea" style={MAIN}>
             <div style={{ padding: "22px 28px 96px", display: "flex", flexDirection: "column", gap: "16px", minHeight: "0" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)" }}>
                 <__Link href="/adjustments" style={{ fontWeight: "var(--weight-medium)" }}>← Adjustments</__Link>
               </div>
-              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px" }}>
+              <div style={TITLEROW}>
                 <div style={{ minWidth: "0" }}>
-                  <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>New bill adjustment</h1>
-                  <p style={{ margin: "5px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Credit, discount, waiver or extra charge, always with a reason</p>
+                  <h1 style={H1}>New bill adjustment</h1>
+                  <p style={SUBT}>Credit, discount, waiver or extra charge, always with a reason</p>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: "none" }} />
               </div>
@@ -495,16 +338,14 @@ export default class FormAdjustmentScreen extends Component {
                       <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
                         <label className="fld">
                           <span className="flab">Store<span className="req" aria-hidden="true">*</span></span>
-                          <select defaultValue="Dhaka Gadget Hub · tenant 0031" className="in">
-                            <option>Dhaka Gadget Hub · tenant 0031</option>
-                            <option>Bindu Beauty · tenant 0044</option>
+                          <select value={v.shop.id} onChange={v.onShop} className="in">
+                            {v.shops.map((x) => <option key={x.id} value={x.id}>{x.name} · tenant {x.id}</option>)}
                           </select>
                         </label>
                         <label className="fld">
                           <span className="flab">Invoice<span className="req" aria-hidden="true">*</span></span>
-                          <select defaultValue="INV-2026-0912 · ৳2,500 · overdue" className="in">
-                            <option>INV-2026-0912 · ৳2,500 · overdue</option>
-                            <option>Next invoice · 01 Oct</option>
+                          <select value={v.invId} onChange={v.onInv} className="in">
+                            {v.invOptions.length ? v.invOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>) : <option value="">No bills yet</option>}
                           </select>
                         </label>
                       </div>
@@ -516,49 +357,30 @@ export default class FormAdjustmentScreen extends Component {
                       <p className="fsd" />
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                      <div className="rgrid" role="radiogroup" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
-                        <div className="rc on" role="radio" aria-checked="true" tabIndex="0">
-                          <span className="rdot" aria-hidden="true" />
-                          <div style={{ minWidth: "0" }}>
-                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Credit note</div>
-                            <div className="fhelp" style={{ marginTop: "2px" }}>Money off an issued invoice.</div>
+                      <div className="rgrid" role="radiogroup" aria-label="Type" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
+                        {v.types.map((x) => (
+                          <div key={x.k} className={x.cls} role="radio" aria-checked={x.checked} tabIndex="0" onClick={x.pick} onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); x.pick(); } }} style={{ cursor: "pointer" }}>
+                            <span className="rdot" aria-hidden="true" />
+                            <div style={{ minWidth: "0" }}>
+                              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>{x.label}</div>
+                              <div className="fhelp" style={{ marginTop: "2px" }}>{x.sub}</div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="rc" role="radio" aria-checked="false" tabIndex="0">
-                          <span className="rdot" aria-hidden="true" />
-                          <div style={{ minWidth: "0" }}>
-                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Discount on next invoice</div>
-                            <div className="fhelp" style={{ marginTop: "2px" }}>Amount or percent off once.</div>
-                          </div>
-                        </div>
-                        <div className="rc" role="radio" aria-checked="false" tabIndex="0">
-                          <span className="rdot" aria-hidden="true" />
-                          <div style={{ minWidth: "0" }}>
-                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Waive an invoice</div>
-                            <div className="fhelp" style={{ marginTop: "2px" }}>Cancel it in full; needs Admin.</div>
-                          </div>
-                        </div>
-                        <div className="rc" role="radio" aria-checked="false" tabIndex="0">
-                          <span className="rdot" aria-hidden="true" />
-                          <div style={{ minWidth: "0" }}>
-                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Add a charge</div>
-                            <div className="fhelp" style={{ marginTop: "2px" }}>A one-off line, for example extra setup.</div>
-                          </div>
-                        </div>
+                        ))}
                       </div>
                       <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
                         <label className="fld">
                           <span className="flab">Amount<span className="req" aria-hidden="true">*</span></span>
                           <div className="affix ">
                             <span className="pre">৳</span>
-                            <input type="text" defaultValue="833" />
+                            <input type="text" inputMode="numeric" value={v.amountText} onChange={v.onAmount} disabled={v.type === "waive"} />
                           </div>
-                          <span className="fhelp">10 of 30 days at ৳2,500</span>
+                          <span className="fhelp">{v.help || (v.type === "waive" ? "The whole unpaid amount" : " ")}</span>
                         </label>
                         <label className="fld">
                           <span className="flab">Or percent</span>
                           <div className="affix ">
-                            <input type="text" defaultValue="" />
+                            <input type="text" inputMode="numeric" value={v.pctText} onChange={v.onPct} disabled={v.type === "waive"} />
                             <span className="post">%</span>
                           </div>
                         </label>
@@ -574,24 +396,19 @@ export default class FormAdjustmentScreen extends Component {
                       <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
                         <label className="fld">
                           <span className="flab">Reason code<span className="req" aria-hidden="true">*</span></span>
-                          <select defaultValue="OUTAGE-CREDIT" className="in">
-                            <option>OUTAGE-CREDIT</option>
-                            <option>PREPAY-DISCOUNT</option>
-                            <option>GOODWILL</option>
-                            <option>BILLING-ERROR</option>
+                          <select value={v.reason} onChange={v.onReason} className="in">
+                            {v.reasons.map((r) => <option key={r}>{r}</option>)}
                           </select>
                         </label>
                         <label className="fld">
                           <span className="flab">Linked to</span>
-                          <select defaultValue="INC-114 · Steadfast webhook delays" className="in">
-                            <option>INC-114 · Steadfast webhook delays</option>
-                            <option>Ticket T-2291</option>
-                            <option>Nothing</option>
+                          <select value={v.linked} onChange={v.onLinked} className="in">
+                            {v.links.map((r) => <option key={r}>{r}</option>)}
                           </select>
                         </label>
                         <label className="fld" style={{ gridColumn: "1 / -1" }}>
                           <span className="flab">Note for the owner<span className="req" aria-hidden="true">*</span></span>
-                          <textarea className="in" rows="2" placeholder="" defaultValue={"Credit for 10 days of Steadfast delivery failures caused by the courier outage."} />
+                          <textarea className="in" rows="2" placeholder="What happened and why the bill changes" value={v.note} onChange={v.onNote} />
                           <span className="fhelp">Shown on the credit note.</span>
                         </label>
                       </div>
@@ -599,36 +416,36 @@ export default class FormAdjustmentScreen extends Component {
                   </section>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Invoice after the change</h2>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
+                  <section className="panel" style={PANEL}>
+                    <div style={PHEAD}>
+                      <h2 style={H2}>Invoice after the change</h2>
+                      <div style={PSIDE} />
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs-plus)", minHeight: "32px" }}>
-                      <span>Business plan, Sep</span>
-                      <span className="num">৳2,500</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs-plus)", minHeight: "32px", color: "#c2410c" }}>
-                      <span>Credit note CN-2026-0015</span>
-                      <span className="num">−৳833</span>
-                    </div>
+                    {v.previewLines.map((l) => (
+                      <div key={l.key} style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs-plus)", minHeight: "32px", color: l.color }}>
+                        <span>{l.label}</span>
+                        <span className="num">{l.amount}</span>
+                      </div>
+                    ))}
                     <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "10px", borderTop: "2px solid var(--ink)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>
                       <span>To pay</span>
-                      <span className="num">৳1,667</span>
+                      <span className="num">{v.afterText}</span>
                     </div>
                   </section>
-                  <div className="note n-warn">Over ৳500: <strong>a second person must approve.</strong> You cannot approve your own request.</div>
+                  <div className={v.noteCls}>{v.noteHtml}<strong>{v.noteStrong}</strong>{v.noteTail}</div>
                 </div>
               </div>
             </div>
             <div className="formbar">
               <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Fields marked <span style={{ color: "#c2410c" }}>*</span> are required · every save is written to the audit log</span>
               <span style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
-                <__Link href="/adjustments" className="btn btng" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Cancel</__Link>
-                <button className="btn btnp" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Send for approval</button>
+                <__Link href="/adjustments" className="btn btng" style={BTN}>Cancel</__Link>
+                <button className="btn btnp" type="button" onClick={v.submit} style={BTN}>{v.submitLabel}</button>
               </span>
             </div>
           </main>
+          <ConsoleToast text={v.toast} tone={v.toastTone} onClose={v.hideToast} />
+          <Go to={v.go} />
         </div>
       </div>
     );

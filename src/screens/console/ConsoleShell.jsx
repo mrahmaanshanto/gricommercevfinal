@@ -6,13 +6,19 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { ConsoleSide, ConsoleTop } from './ConsoleFrame';
+import { attach, db, now, overview } from '@/lib/platform';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
-const GROUPS = [{"id": "tenants", "label": "Tenants", "items": [{"id": "merchants", "label": "Merchants", "step": 2, "desc": "Every store with segment, plan, state, health and usage.", "badge": "", "tone": "", "board": "Merchants.dc.html"}, {"id": "provisioning", "label": "Provisioning", "step": 2, "desc": "Each signup moving through the job chain, live.", "badge": "", "tone": "", "board": "Provisioning.dc.html"}, {"id": "domains", "label": "Domains", "step": 2, "desc": "DNS, propagation and certificate expiry for every custom domain.", "badge": "", "tone": "", "board": "Domains.dc.html"}, {"id": "backups", "label": "Backups", "step": 2, "desc": "Per-store snapshots and restore with a dry run first.", "badge": "", "tone": "", "board": "Backups.dc.html"}]}, {"id": "packaging", "label": "Packaging", "items": [{"id": "catalogue", "label": "Module catalogue", "step": 3, "desc": "All 48 modules in nine sets.", "badge": "", "tone": "", "board": "ModuleCatalogue.dc.html"}, {"id": "plans", "label": "Plans", "step": 3, "desc": "Versioned plan builder on three ladders.", "badge": "", "tone": "", "board": "Plans.dc.html"}, {"id": "entitlements", "label": "Entitlements", "step": 3, "desc": "Per-store toggle grid, overrides and one-module trials.", "badge": "", "tone": "", "board": "Entitlements.dc.html"}, {"id": "limits", "label": "Limits and meters", "step": 3, "desc": "Usage across stores against each limit.", "badge": "", "tone": "", "board": "Limits.dc.html"}]}, {"id": "billing", "label": "Billing", "items": [{"id": "subscriptions", "label": "Subscriptions", "step": 4, "desc": "Recurring revenue, movement, collections and value at risk.", "badge": "", "tone": "", "board": "Subscriptions.dc.html"}, {"id": "invoices", "label": "Invoices", "step": 4, "desc": "Invoices, receipts and credit notes.", "badge": "", "tone": "", "board": "Invoices.dc.html"}, {"id": "collections", "label": "Collections", "step": 4, "desc": "Stores with a due or overdue invoice: who to call, and payments taken on a call.", "badge": "4", "tone": "warn", "board": "Collections.dc.html"}, {"id": "adjustments", "label": "Adjustments", "step": 4, "desc": "Bill changes with reason codes and second approval.", "badge": "", "tone": "", "board": "Adjustments.dc.html"}]}, {"id": "monitoring", "label": "Monitoring", "items": [{"id": "health", "label": "Health and risk", "step": 5, "desc": "Stores grouped by warning, with owner and next step.", "badge": "5", "tone": "warn", "board": "HealthRisk.dc.html"}, {"id": "funnel", "label": "Trial funnel", "step": 5, "desc": "Signup to paid, stall points and cohort retention.", "badge": "", "tone": "", "board": "TrialFunnel.dc.html"}, {"id": "cost", "label": "Cost to serve", "step": 5, "desc": "Resource use against revenue for every store.", "badge": "", "tone": "", "board": "CostToServe.dc.html"}]}, {"id": "support", "label": "Support", "items": [{"id": "tickets", "label": "Tickets", "step": 0, "desc": "Every merchant ticket across in-app, WhatsApp, email and phone.", "badge": "12", "tone": "", "board": "SupportDesk.dc.html"}, {"id": "storeaccess", "label": "Store access · PIN", "step": 0, "desc": "Enter a store with the owner's PIN, for a set time.", "badge": "", "tone": "", "board": "StoreAccess.dc.html"}, {"id": "accesslog", "label": "Access log", "step": 0, "desc": "Who entered which store, for how long, and why.", "badge": "", "tone": "", "board": "AccessLog.dc.html"}, {"id": "supportperf", "label": "Performance", "step": 0, "desc": "SLA, volume, categories and agent performance.", "badge": "", "tone": "", "board": "SupportPerformance.dc.html"}]}, {"id": "crm", "label": "Sales CRM", "items": [{"id": "leads", "label": "Leads", "step": 0, "desc": "Every prospect from ads, the website, events, referrals and CSV.", "badge": "18", "tone": "", "board": "Leads.dc.html"}, {"id": "trials", "label": "Trials", "step": 0, "desc": "Every store in trial, how far it has set up, and who follows up.", "badge": "", "tone": "", "board": "Trials.dc.html"}, {"id": "leadimport", "label": "Import leads", "step": 0, "desc": "Bring leads in from a CSV file.", "badge": "", "tone": "", "board": "LeadImport.dc.html"}]}, {"id": "operations", "label": "Operations", "items": [{"id": "opscentre", "label": "Ops centre", "step": 0, "desc": "Every service, job and alert on one screen.", "badge": "", "tone": "", "board": "OpsCentre.dc.html"}, {"id": "platform", "label": "Platform health", "step": 6, "desc": "Uptime, latency and error rate at a glance.", "badge": "", "tone": "", "board": "PlatformHealth.dc.html"}, {"id": "integrations", "label": "Integrations", "step": 6, "desc": "Couriers, gateways, SMS, WhatsApp and Meta across stores.", "badge": "1", "tone": "err", "board": "Integrations.dc.html"}, {"id": "webhooks", "label": "Webhooks", "step": 0, "desc": "Inbound and outbound deliveries, retries and replay.", "badge": "", "tone": "", "board": "Webhooks.dc.html"}, {"id": "queues", "label": "Queues and jobs", "step": 0, "desc": "Depth, lag, failures and dead letters.", "badge": "", "tone": "", "board": "QueuesJobs.dc.html"}, {"id": "incidents", "label": "Incidents", "step": 6, "desc": "Severity, responder, affected stores and runbook.", "badge": "1", "tone": "warn", "board": "Incidents.dc.html"}]}, {"id": "system", "label": "System", "items": [{"id": "releases", "label": "Releases", "step": 0, "desc": "Deploys, canaries and rollbacks.", "badge": "", "tone": "", "board": "Releases.dc.html"}, {"id": "security", "label": "Security", "step": 0, "desc": "Sign-ins, blocked traffic, keys and 2FA.", "badge": "", "tone": "", "board": "Security.dc.html"}, {"id": "messaging", "label": "Messaging", "step": 0, "desc": "SMS, WhatsApp and email delivery and credits.", "badge": "", "tone": "", "board": "Messaging.dc.html"}, {"id": "cron", "label": "Scheduled tasks", "step": 0, "desc": "Every scheduled job, its last run and next run.", "badge": "", "tone": "", "board": "ScheduledTasks.dc.html"}, {"id": "flags", "label": "Flags and notices", "step": 6, "desc": "Staged rollout and broadcast notices.", "badge": "", "tone": "", "board": "FlagsNotices.dc.html"}, {"id": "staff", "label": "Staff and roles", "step": 0, "desc": "Console staff, roles and permissions.", "badge": "", "tone": "", "board": "StaffRoles.dc.html"}, {"id": "audit", "label": "Audit log", "step": 6, "desc": "Every staff and merchant action, filterable.", "badge": "", "tone": "", "board": "AuditLog.dc.html"}]}];
-const KPIS = {"1": [{"label": "Active stores", "value": "62", "delta": "+1 today", "toneCls": "tone-good", "d": "M0.0,20.9 L8.7,23.7 L17.4,19.5 L26.1,23.3 L34.8,20.8 L43.5,20.6 L52.2,24.6 L60.9,22.4 L69.6,26.7 L78.3,25.6 L87.0,29.4 L95.7,33.0 L104.3,32.0 L113.0,25.4 L121.7,28.5 L130.4,30.3 L139.1,26.4 L147.8,18.2 L156.5,15.1 L165.2,14.4 L173.9,5.8 L182.6,10.0 L191.3,3.0 L200.0,3.8", "area": "M0.0,20.9 L8.7,23.7 L17.4,19.5 L26.1,23.3 L34.8,20.8 L43.5,20.6 L52.2,24.6 L60.9,22.4 L69.6,26.7 L78.3,25.6 L87.0,29.4 L95.7,33.0 L104.3,32.0 L113.0,25.4 L121.7,28.5 L130.4,30.3 L139.1,26.4 L147.8,18.2 L156.5,15.1 L165.2,14.4 L173.9,5.8 L182.6,10.0 L191.3,3.0 L200.0,3.8 L200,36 L0,36 Z"}, {"label": "Recurring revenue", "value": "৳88,000", "delta": "▲ 0.4% vs yesterday", "toneCls": "tone-good", "d": "M0.0,32.7 L8.7,33.0 L17.4,32.4 L26.1,29.4 L34.8,29.3 L43.5,27.4 L52.2,25.2 L60.9,24.3 L69.6,22.6 L78.3,23.1 L87.0,23.7 L95.7,23.6 L104.3,21.2 L113.0,20.0 L121.7,19.3 L130.4,17.4 L139.1,16.1 L147.8,15.5 L156.5,12.6 L165.2,10.1 L173.9,9.8 L182.6,8.0 L191.3,6.3 L200.0,3.0", "area": "M0.0,32.7 L8.7,33.0 L17.4,32.4 L26.1,29.4 L34.8,29.3 L43.5,27.4 L52.2,25.2 L60.9,24.3 L69.6,22.6 L78.3,23.1 L87.0,23.7 L95.7,23.6 L104.3,21.2 L113.0,20.0 L121.7,19.3 L130.4,17.4 L139.1,16.1 L147.8,15.5 L156.5,12.6 L165.2,10.1 L173.9,9.8 L182.6,8.0 L191.3,6.3 L200.0,3.0 L200,36 L0,36 Z"}, {"label": "Stores at risk", "value": "5", "delta": "▲ 1 since yesterday", "toneCls": "tone-bad", "d": "M0.0,26.5 L8.7,28.8 L17.4,22.3 L26.1,26.8 L34.8,27.4 L43.5,23.7 L52.2,27.8 L60.9,27.5 L69.6,33.0 L78.3,30.5 L87.0,26.7 L95.7,25.3 L104.3,20.2 L113.0,22.1 L121.7,19.2 L130.4,17.6 L139.1,16.2 L147.8,16.4 L156.5,11.6 L165.2,5.6 L173.9,5.5 L182.6,3.0 L191.3,8.2 L200.0,5.2", "area": "M0.0,26.5 L8.7,28.8 L17.4,22.3 L26.1,26.8 L34.8,27.4 L43.5,23.7 L52.2,27.8 L60.9,27.5 L69.6,33.0 L78.3,30.5 L87.0,26.7 L95.7,25.3 L104.3,20.2 L113.0,22.1 L121.7,19.2 L130.4,17.6 L139.1,16.2 L147.8,16.4 L156.5,11.6 L165.2,5.6 L173.9,5.5 L182.6,3.0 L191.3,8.2 L200.0,5.2 L200,36 L0,36 Z"}, {"label": "Open incidents", "value": "1", "delta": "Steadfast webhooks · 4 h", "toneCls": "tone-bad", "d": "M0.0,13.2 L8.7,7.0 L17.4,3.0 L26.1,5.7 L34.8,7.1 L43.5,5.0 L52.2,11.0 L60.9,11.5 L69.6,15.6 L78.3,20.4 L87.0,26.0 L95.7,22.6 L104.3,27.2 L113.0,30.4 L121.7,31.8 L130.4,27.1 L139.1,32.4 L147.8,33.0 L156.5,32.4 L165.2,27.6 L173.9,23.6 L182.6,19.0 L191.3,21.8 L200.0,22.9", "area": "M0.0,13.2 L8.7,7.0 L17.4,3.0 L26.1,5.7 L34.8,7.1 L43.5,5.0 L52.2,11.0 L60.9,11.5 L69.6,15.6 L78.3,20.4 L87.0,26.0 L95.7,22.6 L104.3,27.2 L113.0,30.4 L121.7,31.8 L130.4,27.1 L139.1,32.4 L147.8,33.0 L156.5,32.4 L165.2,27.6 L173.9,23.6 L182.6,19.0 L191.3,21.8 L200.0,22.9 L200,36 L0,36 Z"}], "7": [{"label": "Active stores", "value": "62", "delta": "+3 this week", "toneCls": "tone-good", "d": "M0.0,33.0 L8.7,30.3 L17.4,27.3 L26.1,27.5 L34.8,27.6 L43.5,27.5 L52.2,27.3 L60.9,26.2 L69.6,24.7 L78.3,24.4 L87.0,25.2 L95.7,24.3 L104.3,23.7 L113.0,22.2 L121.7,19.2 L130.4,17.3 L139.1,16.0 L147.8,14.4 L156.5,12.5 L165.2,13.1 L173.9,10.3 L182.6,8.0 L191.3,5.4 L200.0,3.0", "area": "M0.0,33.0 L8.7,30.3 L17.4,27.3 L26.1,27.5 L34.8,27.6 L43.5,27.5 L52.2,27.3 L60.9,26.2 L69.6,24.7 L78.3,24.4 L87.0,25.2 L95.7,24.3 L104.3,23.7 L113.0,22.2 L121.7,19.2 L130.4,17.3 L139.1,16.0 L147.8,14.4 L156.5,12.5 L165.2,13.1 L173.9,10.3 L182.6,8.0 L191.3,5.4 L200.0,3.0 L200,36 L0,36 Z"}, {"label": "Recurring revenue", "value": "৳88,000", "delta": "▲ 1.8% vs last week", "toneCls": "tone-good", "d": "M0.0,33.0 L8.7,31.5 L17.4,30.8 L26.1,28.5 L34.8,28.0 L43.5,27.4 L52.2,26.4 L60.9,25.5 L69.6,24.1 L78.3,23.5 L87.0,23.1 L95.7,22.3 L104.3,21.6 L113.0,20.2 L121.7,19.7 L130.4,16.8 L139.1,14.6 L147.8,13.8 L156.5,12.7 L165.2,11.3 L173.9,9.8 L182.6,9.1 L191.3,6.2 L200.0,3.0", "area": "M0.0,33.0 L8.7,31.5 L17.4,30.8 L26.1,28.5 L34.8,28.0 L43.5,27.4 L52.2,26.4 L60.9,25.5 L69.6,24.1 L78.3,23.5 L87.0,23.1 L95.7,22.3 L104.3,21.6 L113.0,20.2 L121.7,19.7 L130.4,16.8 L139.1,14.6 L147.8,13.8 L156.5,12.7 L165.2,11.3 L173.9,9.8 L182.6,9.1 L191.3,6.2 L200.0,3.0 L200,36 L0,36 Z"}, {"label": "Stores at risk", "value": "5", "delta": "▲ 2 vs last week", "toneCls": "tone-bad", "d": "M0.0,10.0 L8.7,9.2 L17.4,15.9 L26.1,22.2 L34.8,24.0 L43.5,27.3 L52.2,19.9 L60.9,25.1 L69.6,33.0 L78.3,23.2 L87.0,21.5 L95.7,27.0 L104.3,25.0 L113.0,32.8 L121.7,31.1 L130.4,20.8 L139.1,12.7 L147.8,7.8 L156.5,11.2 L165.2,12.5 L173.9,17.7 L182.6,11.3 L191.3,9.5 L200.0,3.0", "area": "M0.0,10.0 L8.7,9.2 L17.4,15.9 L26.1,22.2 L34.8,24.0 L43.5,27.3 L52.2,19.9 L60.9,25.1 L69.6,33.0 L78.3,23.2 L87.0,21.5 L95.7,27.0 L104.3,25.0 L113.0,32.8 L121.7,31.1 L130.4,20.8 L139.1,12.7 L147.8,7.8 L156.5,11.2 L165.2,12.5 L173.9,17.7 L182.6,11.3 L191.3,9.5 L200.0,3.0 L200,36 L0,36 Z"}, {"label": "Open incidents", "value": "1", "delta": "3 closed this week", "toneCls": "tone-flat", "d": "M0.0,29.2 L8.7,33.0 L17.4,28.7 L26.1,22.1 L34.8,17.2 L43.5,13.0 L52.2,8.7 L60.9,5.4 L69.6,9.1 L78.3,8.9 L87.0,10.9 L95.7,17.3 L104.3,23.8 L113.0,26.8 L121.7,30.1 L130.4,27.5 L139.1,21.2 L147.8,21.9 L156.5,15.9 L165.2,9.2 L173.9,3.0 L182.6,4.9 L191.3,8.7 L200.0,12.4", "area": "M0.0,29.2 L8.7,33.0 L17.4,28.7 L26.1,22.1 L34.8,17.2 L43.5,13.0 L52.2,8.7 L60.9,5.4 L69.6,9.1 L78.3,8.9 L87.0,10.9 L95.7,17.3 L104.3,23.8 L113.0,26.8 L121.7,30.1 L130.4,27.5 L139.1,21.2 L147.8,21.9 L156.5,15.9 L165.2,9.2 L173.9,3.0 L182.6,4.9 L191.3,8.7 L200.0,12.4 L200,36 L0,36 Z"}], "30": [{"label": "Active stores", "value": "62", "delta": "+6 this month", "toneCls": "tone-good", "d": "M0.0,33.0 L8.7,32.6 L17.4,31.3 L26.1,29.3 L34.8,27.4 L43.5,26.4 L52.2,25.0 L60.9,23.2 L69.6,23.1 L78.3,21.7 L87.0,19.7 L95.7,17.9 L104.3,16.3 L113.0,15.3 L121.7,15.0 L130.4,13.2 L139.1,12.6 L147.8,10.8 L156.5,8.6 L165.2,7.8 L173.9,7.0 L182.6,4.9 L191.3,3.3 L200.0,3.0", "area": "M0.0,33.0 L8.7,32.6 L17.4,31.3 L26.1,29.3 L34.8,27.4 L43.5,26.4 L52.2,25.0 L60.9,23.2 L69.6,23.1 L78.3,21.7 L87.0,19.7 L95.7,17.9 L104.3,16.3 L113.0,15.3 L121.7,15.0 L130.4,13.2 L139.1,12.6 L147.8,10.8 L156.5,8.6 L165.2,7.8 L173.9,7.0 L182.6,4.9 L191.3,3.3 L200.0,3.0 L200,36 L0,36 Z"}, {"label": "Recurring revenue", "value": "৳88,000", "delta": "▲ 6.2% vs August", "toneCls": "tone-good", "d": "M0.0,33.0 L8.7,32.2 L17.4,30.4 L26.1,28.8 L34.8,28.0 L43.5,26.3 L52.2,24.4 L60.9,22.9 L69.6,21.9 L78.3,20.5 L87.0,19.8 L95.7,19.1 L104.3,17.3 L113.0,15.8 L121.7,14.5 L130.4,12.7 L139.1,11.5 L147.8,9.8 L156.5,8.1 L165.2,7.2 L173.9,6.3 L182.6,5.3 L191.3,4.4 L200.0,3.0", "area": "M0.0,33.0 L8.7,32.2 L17.4,30.4 L26.1,28.8 L34.8,28.0 L43.5,26.3 L52.2,24.4 L60.9,22.9 L69.6,21.9 L78.3,20.5 L87.0,19.8 L95.7,19.1 L104.3,17.3 L113.0,15.8 L121.7,14.5 L130.4,12.7 L139.1,11.5 L147.8,9.8 L156.5,8.1 L165.2,7.2 L173.9,6.3 L182.6,5.3 L191.3,4.4 L200.0,3.0 L200,36 L0,36 Z"}, {"label": "Stores at risk", "value": "5", "delta": "▼ 3 vs August", "toneCls": "tone-good", "d": "M0.0,29.1 L8.7,29.0 L17.4,33.0 L26.1,25.6 L34.8,26.4 L43.5,25.6 L52.2,23.0 L60.9,15.7 L69.6,15.5 L78.3,8.0 L87.0,6.6 L95.7,4.7 L104.3,3.0 L113.0,8.7 L121.7,8.2 L130.4,11.5 L139.1,17.4 L147.8,11.6 L156.5,15.0 L165.2,14.1 L173.9,9.4 L182.6,7.2 L191.3,8.3 L200.0,6.7", "area": "M0.0,29.1 L8.7,29.0 L17.4,33.0 L26.1,25.6 L34.8,26.4 L43.5,25.6 L52.2,23.0 L60.9,15.7 L69.6,15.5 L78.3,8.0 L87.0,6.6 L95.7,4.7 L104.3,3.0 L113.0,8.7 L121.7,8.2 L130.4,11.5 L139.1,17.4 L147.8,11.6 L156.5,15.0 L165.2,14.1 L173.9,9.4 L182.6,7.2 L191.3,8.3 L200.0,6.7 L200,36 L0,36 Z"}, {"label": "Open incidents", "value": "1", "delta": "7 closed this month", "toneCls": "tone-flat", "d": "M0.0,27.2 L8.7,24.0 L17.4,28.4 L26.1,27.7 L34.8,30.5 L43.5,33.0 L52.2,30.0 L60.9,29.9 L69.6,29.2 L78.3,26.3 L87.0,21.7 L95.7,22.4 L104.3,21.1 L113.0,21.1 L121.7,20.9 L130.4,18.8 L139.1,19.3 L147.8,19.0 L156.5,19.2 L165.2,14.3 L173.9,12.1 L182.6,7.9 L191.3,3.0 L200.0,5.7", "area": "M0.0,27.2 L8.7,24.0 L17.4,28.4 L26.1,27.7 L34.8,30.5 L43.5,33.0 L52.2,30.0 L60.9,29.9 L69.6,29.2 L78.3,26.3 L87.0,21.7 L95.7,22.4 L104.3,21.1 L113.0,21.1 L121.7,20.9 L130.4,18.8 L139.1,19.3 L147.8,19.0 L156.5,19.2 L165.2,14.3 L173.9,12.1 L182.6,7.9 L191.3,3.0 L200.0,5.7 L200,36 L0,36 Z"}]};
-const STEPNAMES = {"0": "Support and CRM", "2": "Multi-tenancy", "3": "Packaging", "4": "Billing", "5": "Customer monitoring", "6": "Platform operations"};
+// Console overview: the business in four figures, the stores that need someone today, and the platform.
+// Live from lib/platform (overview()); the period switch compares with the period before.
+const RANGES = [['1', 'Today'], ['7', '7 days'], ['30', '30 days']];
+
 class Component extends DCLogic {
+  componentDidMount() { this.off = attach(this); this.loadedAt = now(); }
+  componentWillUnmount() { if (this.off) this.off(); }
+
   renderVals() {
     const v = this.renderVals0() || {};
     const mini = !!(this.state || {}).mini;
@@ -25,56 +31,21 @@ class Component extends DCLogic {
 
   renderVals0() {
     const s = this.state || {};
-    const active = s.active ?? 'overview';
-    const open = s.open ?? 'monitoring';
     const range = s.range ?? '7';
     const dark = s.dark ?? (this.props.dark === true);
-    const g = {};
-    let cur = { label: 'Overview', group: 'Console', desc: '', step: 1, stepName: '', href: '', hasBoard: false, noBoard: true };
-    GROUPS.forEach((gr) => {
-      const isOpen = open === gr.id;
-      g[gr.id] = {
-        open: isOpen,
-        expanded: isOpen ? 'true' : 'false',
-        chev: isOpen ? 'chev open' : 'chev',
-        hcls: isOpen ? 'nav grp open' : 'nav grp',
-        toggle: () => this.setState({ open: isOpen ? '' : gr.id }),
-        items: gr.items.map((it) => {
-          if (it.id === active) cur = { label: it.label, group: gr.label, desc: it.desc, step: it.step, stepName: STEPNAMES[it.step], href: it.board, hasBoard: !!it.board, noBoard: !it.board };
-          return {
-            label: it.label,
-            cls: it.id === active ? 'nav sub on' : 'nav sub',
-            current: it.id === active ? 'page' : 'false',
-            pick: () => this.setState({ active: it.id }),
-            hasBadge: !!it.badge,
-            badge: it.badge,
-            badgeCls: 'badge ' + it.tone,
-            badgeLabel: it.badge + ' need attention',
-          };
-        }),
-      };
-    });
-    const labels = { '1': 'Today', '7': '7 days', '30': '30 days' };
+    const t = now();
+    const o = overview(db(), t, range);
+    const mins = this.loadedAt ? Math.max(0, Math.round((t - this.loadedAt) / 60000)) : 0;
     return {
       rootCls: dark ? 'cs dark' : 'cs',
       dark, light: !dark,
       themeLabel: dark ? 'Switch to light theme' : 'Switch to dark theme',
       toggleTheme: () => this.setState({ dark: !dark }),
-      g,
-      overviewCls: active === 'overview' ? 'nav top on' : 'nav top',
-      overviewCurrent: active === 'overview' ? 'page' : 'false',
-      pickOverview: () => this.setState({ active: 'overview' }),
-      isOverview: active === 'overview',
-      notOverview: active !== 'overview',
-      cur,
-      crumbGroup: active === 'overview' ? 'Console' : cur.group,
-      crumbPage: cur.label,
-      ranges: ['1', '7', '30'].map((r) => ({ label: labels[r], cls: r === range ? 'segb on' : 'segb', pressed: r === range ? 'true' : 'false', pick: () => this.setState({ range: r }) })),
-      rangeLabel: labels[range],
-      kpis: KPIS[range],
-      palette: !!s.palette,
-      openPalette: () => this.setState({ palette: true }),
-      closePalette: () => this.setState({ palette: false }),
+      ranges: RANGES.map(([r, label]) => ({ r, label, cls: r === range ? 'segb on' : 'segb', pressed: r === range ? 'true' : 'false', pick: () => this.setState({ range: r }) })),
+      rangeLabel: RANGES.find(([r]) => r === range)[1],
+      kpis: o.kpis,
+      sub: `All ${o.stores} stores · refreshed ${mins ? mins + ' min ago' : 'just now'}`,
+      attention: o.attention, attentionCount: o.attentionCount,
     };
   }
 }
@@ -256,312 +227,14 @@ export default class ConsoleShellScreen extends Component {
       <div className="dc-screen" data-screen="ConsoleShell">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className={v.rootCls} style={{ width: "1440px", height: "900px", overflow: "hidden", position: "relative", background: "var(--bg)", fontFamily: "var(--font-sans)" }}>
-          <aside className="side" aria-label="Console navigation">
-            <div className="sidehead" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "18px 12px 6px 20px" }}>
-              <span className="logo-full">
-                {v.light ? (<>
-                  <img src="/assets/62dadbbb3f365aebdd41bb9975f5931f.png" alt="GridCommerce" style={{ height: "28px", width: "auto", display: "block" }} />
-                </>) : null}
-                {v.dark ? (<>
-                  <img src="/assets/2cdd11de6454f32fc6bb856d35bf4f3e.png" alt="GridCommerce" style={{ height: "28px", width: "auto", display: "block" }} />
-                </>) : null}
-              </span>
-              <img className="logo-mini" src="/assets/9b6f9ad369f1cbde65271a968e6ba1f1.png" alt="GridCommerce" style={{ height: "32px", width: "auto" }} />
-              <button className="tb sidetoggle" type="button" onClick={v.toggleSide} aria-label={v.sideLabel} title={v.sideLabel}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="3" y="3" width="18" height="18" rx="3" />
-                  <path d="M9 3v18" />
-                </svg>
-              </button>
-            </div>
-            <div className="sidemeta" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 20px 12px" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", height: "22px", padding: "0 8px", borderRadius: "var(--radius-md)", background: "var(--iconbg)", color: "var(--iconfg)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase" }}>Console</span>
-              <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Staff only · views logged</span>
-            </div>
-            <nav aria-label="Console" className="sidenav">
-              <button className={v.overviewCls} type="button" onClick={v.pickOverview} aria-current={v.overviewCurrent}>
-                <span className="navic">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-                  </svg>
-                </span>
-                <span className="navtxt">Overview</span>
-              </button>
-              <div className="navlabel" style={{ margin: "10px 10px 6px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--sidemuted)" }}>Manage</div>
-              <button className={v.g?.tenants?.hcls} type="button" onClick={v.g?.tenants?.toggle} title="Tenants" aria-expanded={v.g?.tenants?.expanded}>
-                <span className="navic">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M3 9 4.5 4h15L21 9" />
-                    <path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9Z" />
-                    <path d="M5 12v9h14v-9" />
-                  </svg>
-                </span>
-                <span className="navtxt">Tenants</span>
-                <span className={v.g?.tenants?.chev}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m9 6 6 6-6 6" />
-                  </svg>
-                </span>
-              </button>
-              {v.g?.tenants?.open ? (<>
-                <div className="kids">
-                  {__list(v.g?.tenants?.items).map((it, $index) => (<React.Fragment key={$index}>
-                      <button className={it?.cls} type="button" onClick={it?.pick} aria-current={it?.current}>{it?.label}{it?.hasBadge ? (<>
-  <span className={it?.badgeCls} aria-label={it?.badgeLabel}>{it?.badge}</span>
-</>) : null}</button>
-                    </React.Fragment>))}
-                </div>
-              </>) : null}
-              <button className={v.g?.packaging?.hcls} type="button" onClick={v.g?.packaging?.toggle} title="Packaging" aria-expanded={v.g?.packaging?.expanded}>
-                <span className="navic">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" />
-                    <path d="m3 7 9 5 9-5M12 12v10" />
-                  </svg>
-                </span>
-                <span className="navtxt">Packaging</span>
-                <span className={v.g?.packaging?.chev}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m9 6 6 6-6 6" />
-                  </svg>
-                </span>
-              </button>
-              {v.g?.packaging?.open ? (<>
-                <div className="kids">
-                  {__list(v.g?.packaging?.items).map((it, $index) => (<React.Fragment key={$index}>
-                      <button className={it?.cls} type="button" onClick={it?.pick} aria-current={it?.current}>{it?.label}{it?.hasBadge ? (<>
-  <span className={it?.badgeCls} aria-label={it?.badgeLabel}>{it?.badge}</span>
-</>) : null}</button>
-                    </React.Fragment>))}
-                </div>
-              </>) : null}
-              <button className={v.g?.billing?.hcls} type="button" onClick={v.g?.billing?.toggle} title="Billing" aria-expanded={v.g?.billing?.expanded}>
-                <span className="navic">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="2" y="5" width="20" height="14" rx="2" />
-                    <path d="M2 10h20M6 15h4" />
-                  </svg>
-                </span>
-                <span className="navtxt">Billing</span>
-                <span className={v.g?.billing?.chev}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m9 6 6 6-6 6" />
-                  </svg>
-                </span>
-              </button>
-              {v.g?.billing?.open ? (<>
-                <div className="kids">
-                  {__list(v.g?.billing?.items).map((it, $index) => (<React.Fragment key={$index}>
-                      <button className={it?.cls} type="button" onClick={it?.pick} aria-current={it?.current}>{it?.label}{it?.hasBadge ? (<>
-  <span className={it?.badgeCls} aria-label={it?.badgeLabel}>{it?.badge}</span>
-</>) : null}</button>
-                    </React.Fragment>))}
-                </div>
-              </>) : null}
-              <button className={v.g?.monitoring?.hcls} type="button" onClick={v.g?.monitoring?.toggle} title="Monitoring" aria-expanded={v.g?.monitoring?.expanded}>
-                <span className="navic">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M3 12h4l3-8 4 16 3-8h4" />
-                  </svg>
-                </span>
-                <span className="navtxt">Monitoring</span>
-                <span className={v.g?.monitoring?.chev}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m9 6 6 6-6 6" />
-                  </svg>
-                </span>
-              </button>
-              {v.g?.monitoring?.open ? (<>
-                <div className="kids">
-                  {__list(v.g?.monitoring?.items).map((it, $index) => (<React.Fragment key={$index}>
-                      <button className={it?.cls} type="button" onClick={it?.pick} aria-current={it?.current}>{it?.label}{it?.hasBadge ? (<>
-  <span className={it?.badgeCls} aria-label={it?.badgeLabel}>{it?.badge}</span>
-</>) : null}</button>
-                    </React.Fragment>))}
-                </div>
-              </>) : null}
-              <button className={v.g?.support?.hcls} type="button" onClick={v.g?.support?.toggle} title="Support" aria-expanded={v.g?.support?.expanded}>
-                <span className="navic">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M3 14v-2a9 9 0 0 1 18 0v2" />
-                    <path d="M21 14v3a2 2 0 0 1-2 2h-2v-7h4M3 14v3a2 2 0 0 0 2 2h2v-7H3" />
-                  </svg>
-                </span>
-                <span className="navtxt">Support</span>
-                <span className={v.g?.support?.chev}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m9 6 6 6-6 6" />
-                  </svg>
-                </span>
-              </button>
-              {v.g?.support?.open ? (<>
-                <div className="kids">
-                  {__list(v.g?.support?.items).map((it, $index) => (<React.Fragment key={$index}>
-                      <button className={it?.cls} type="button" onClick={it?.pick} aria-current={it?.current}>{it?.label}{it?.hasBadge ? (<>
-  <span className={it?.badgeCls} aria-label={it?.badgeLabel}>{it?.badge}</span>
-</>) : null}</button>
-                    </React.Fragment>))}
-                </div>
-              </>) : null}
-              <button className={v.g?.crm?.hcls} type="button" onClick={v.g?.crm?.toggle} title="Sales CRM" aria-expanded={v.g?.crm?.expanded}>
-                <span className="navic">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" />
-                  </svg>
-                </span>
-                <span className="navtxt">Sales CRM</span>
-                <span className={v.g?.crm?.chev}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m9 6 6 6-6 6" />
-                  </svg>
-                </span>
-              </button>
-              {v.g?.crm?.open ? (<>
-                <div className="kids">
-                  {__list(v.g?.crm?.items).map((it, $index) => (<React.Fragment key={$index}>
-                      <button className={it?.cls} type="button" onClick={it?.pick} aria-current={it?.current}>{it?.label}{it?.hasBadge ? (<>
-  <span className={it?.badgeCls} aria-label={it?.badgeLabel}>{it?.badge}</span>
-</>) : null}</button>
-                    </React.Fragment>))}
-                </div>
-              </>) : null}
-              <button className={v.g?.operations?.hcls} type="button" onClick={v.g?.operations?.toggle} title="Operations" aria-expanded={v.g?.operations?.expanded}>
-                <span className="navic">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                    <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
-                  </svg>
-                </span>
-                <span className="navtxt">Operations</span>
-                <span className={v.g?.operations?.chev}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m9 6 6 6-6 6" />
-                  </svg>
-                </span>
-              </button>
-              {v.g?.operations?.open ? (<>
-                <div className="kids">
-                  {__list(v.g?.operations?.items).map((it, $index) => (<React.Fragment key={$index}>
-                      <button className={it?.cls} type="button" onClick={it?.pick} aria-current={it?.current}>{it?.label}{it?.hasBadge ? (<>
-  <span className={it?.badgeCls} aria-label={it?.badgeLabel}>{it?.badge}</span>
-</>) : null}</button>
-                    </React.Fragment>))}
-                </div>
-              </>) : null}
-              <button className={v.g?.system?.hcls} type="button" onClick={v.g?.system?.toggle} title="System" aria-expanded={v.g?.system?.expanded}>
-                <span className="navic">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="4" y="11" width="16" height="10" rx="2" />
-                    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                  </svg>
-                </span>
-                <span className="navtxt">System</span>
-                <span className={v.g?.system?.chev}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m9 6 6 6-6 6" />
-                  </svg>
-                </span>
-              </button>
-              {v.g?.system?.open ? (<>
-                <div className="kids">
-                  {__list(v.g?.system?.items).map((it, $index) => (<React.Fragment key={$index}>
-                      <button className={it?.cls} type="button" onClick={it?.pick} aria-current={it?.current}>{it?.label}{it?.hasBadge ? (<>
-  <span className={it?.badgeCls} aria-label={it?.badgeLabel}>{it?.badge}</span>
-</>) : null}</button>
-                    </React.Fragment>))}
-                </div>
-              </>) : null}
-            </nav>
-            <__Link href="/ops-centre" className="statuscard" title="1 open incident" style={{ display: "block", color: "inherit", textDecoration: "none" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ flex: "none", width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#ff9800", boxShadow: "0 0 0 3px rgba(255,152,0,.2)" }} />
-                <span className="statustxt" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>1 open incident</span>
-                <span className="num statustxt" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>99.96%</span>
-              </div>
-              <div className="statustxt ell" style={{ marginTop: "4px", fontSize: "var(--text-xs)", color: "var(--sidebody)" }}>Steadfast webhooks delayed · 38 stores</div>
-            </__Link>
-            <div className="me">
-              <span style={{ position: "relative", display: "inline-flex", flex: "none" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-xl)", background: "linear-gradient(145deg,#2eaee4,#003087)", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>FA</span>
-                <span style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "11px", height: "11px", borderRadius: "var(--radius-full)", background: "#10b981", border: "2px solid var(--side)" }} />
-              </span>
-              <div className="metxt" style={{ minWidth: "0" }}>
-                <div className="ell" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>Farhana Akter</div>
-                <div className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Support lead · 2FA on</div>
-              </div>
-              <__Link href="/staff-roles" className="tb mebtn" aria-label="Account and roles" style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--sidemuted)" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 21a8 8 0 0 1 16 0" />
-                </svg>
-              </__Link>
-            </div>
-          </aside>
-          <header className="topbar">
-            <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", minWidth: "230px" }}>
-              <span className="crumbic">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-                </svg>
-              </span>
-              <span style={{ color: "var(--muted)" }}>{v.crumbGroup}</span>
-              <span style={{ color: "var(--muted)" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m9 6 6 6-6 6" />
-                </svg>
-              </span>
-              <span style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>{v.crumbPage}</span>
-            </nav>
-            <button className="searchbtn" type="button" onClick={v.openPalette} aria-haspopup="dialog"><span style={{ display: "inline-flex" }}>
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </svg>
-</span>Search stores, phones, invoices, leads<span className="kbd">Ctrl K</span></button>
-            {" "}
-            <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "8px", height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "var(--okbg)", color: "var(--okt)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-lg)", background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,.18)" }} />Production</span>
-            {" "}
-            <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)", padding: "0 4px" }}>Sun 20 Sep · 14:32</span>
-            {" "}
-            <span style={{ width: "1px", height: "24px", background: "var(--line)" }} />
-            {" "}
-            <button className="tb" type="button" aria-label="Notifications, 3 unread" style={{ position: "relative" }}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                <path d="M10 21h4" />
-              </svg>
-              <span style={{ position: "absolute", top: "8px", right: "9px", width: "8px", height: "8px", borderRadius: "var(--radius-lg)", background: "#ff5724", border: "2px solid var(--surface)" }} />
-            </button>
-            {" "}
-            <button className="tb" type="button" onClick={v.toggleTheme} aria-label={v.themeLabel}>
-              {v.dark ? (<>
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-                </svg>
-              </>) : null}
-              {v.light ? (<>
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
-                </svg>
-              </>) : null}
-            </button>
-            {" "}
-            <button className="tb" type="button" aria-label="Help and runbooks">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
-              </svg>
-            </button>
-          </header>
+          <ConsoleSide group="" item="" toggle={v.toggleSide} label={v.sideLabel} dark={v.dark} />
+          <ConsoleTop group="" page="Overview" crumb="Console" theme={{ dark: v.dark, toggle: v.toggleTheme, label: v.themeLabel }} />
           <main className="mainarea" style={{ position: "absolute", left: "272px", right: "0", top: "64px", bottom: "0", padding: "24px 28px 28px", display: "flex", flexDirection: "column", gap: "18px", overflow: "hidden" }}>
-            {v.isOverview ? (<>
+            <>
               <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px" }}>
                 <div>
                   <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>Overview</h1>
-                  <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>All 62 stores · refreshed 2 min ago</p>
+                  <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>{v.sub}</p>
                 </div>
                 <div className="seg" role="group" aria-label="Period">
                   {__list(v.ranges).map((r, $index) => (<React.Fragment key={$index}>
@@ -589,7 +262,7 @@ export default class ConsoleShellScreen extends Component {
                 <section className="panel" aria-labelledby="na" style={{ overflow: "hidden" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px 12px" }}>
                     <h2 id="na" style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Needs attention today</h2>
-                    <a className="rowlink" href="#">All 9 in Health and risk →</a>
+                    <__Link className="rowlink" href="/health-risk">All {v.attentionCount} in Health and risk →</__Link>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", gap: "12px", padding: "0 20px 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                     <span>Store</span>
@@ -598,66 +271,20 @@ export default class ConsoleShellScreen extends Component {
                     <span>Owner</span>
                     <span style={{ textAlign: "right" }}>Next step</span>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 20px", borderTop: "1px solid var(--line)" }}>
-                    <div style={{ minWidth: "0" }}>
-                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Dhaka Gadget Hub</div>
-                      <div className="mono" style={{ color: "var(--muted)" }}>tenant 0031</div>
+                  {v.attention.length ? v.attention.map((a) => (
+                    <div key={a.tid} style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 20px", borderTop: "1px solid var(--line)" }}>
+                      <div style={{ minWidth: "0" }}>
+                        <__Link href={"/merchant-detail?id=" + a.tid} style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>{a.n}</__Link>
+                        <div className="mono" style={{ color: "var(--muted)" }}>tenant {a.tid}</div>
+                      </div>
+                      <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>{a.reason}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: a.tone === "err" ? "var(--errt)" : "var(--warnt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
+                        {a.tone === "err" ? <rect x="4" y="4" width="12" height="12" fill="#ff5724" transform="rotate(45 10 10)" /> : <path d="M10,2 L18,17 L2,17 Z" fill="#ff9800" />}
+                      </svg>{a.band}</div>
+                      <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>{a.am}</div>
+                      <__Link className="rowlink" href={a.href} style={{ textAlign: "right" }}>{a.next}</__Link>
                     </div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Invoice unpaid · courier failing</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--errt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
-  <rect x="4" y="4" width="12" height="12" fill="#ff5724" transform="rotate(45 10 10)" />
-</svg>At risk</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Farhana A.</div>
-                    <a className="rowlink" href="#" style={{ textAlign: "right" }}>Call today →</a>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 20px", borderTop: "1px solid var(--line)" }}>
-                    <div style={{ minWidth: "0" }}>
-                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Bindu Beauty</div>
-                      <div className="mono" style={{ color: "var(--muted)" }}>tenant 0044</div>
-                    </div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Read-only · no login 9 days</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--errt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
-  <rect x="4" y="4" width="12" height="12" fill="#ff5724" transform="rotate(45 10 10)" />
-</svg>At risk</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Rakib H.</div>
-                    <a className="rowlink" href="#" style={{ textAlign: "right" }}>Call today →</a>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 20px", borderTop: "1px solid var(--line)" }}>
-                    <div style={{ minWidth: "0" }}>
-                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Nodi Organic</div>
-                      <div className="mono" style={{ color: "var(--muted)" }}>tenant 0058</div>
-                    </div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Setup stalled · no orders 6 days</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--warnt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
-  <path d="M10,2 L18,17 L2,17 Z" fill="#ff9800" />
-</svg>Watch</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Unassigned</div>
-                    <a className="rowlink" href="#" style={{ textAlign: "right" }}>Assign →</a>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 20px", borderTop: "1px solid var(--line)" }}>
-                    <div style={{ minWidth: "0" }}>
-                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Shonali Crafts</div>
-                      <div className="mono" style={{ color: "var(--muted)" }}>tenant 0017</div>
-                    </div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>82% of order limit</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--warnt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
-  <path d="M10,2 L18,17 L2,17 Z" fill="#ff9800" />
-</svg>Watch</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Tania S.</div>
-                    <a className="rowlink" href="#" style={{ textAlign: "right" }}>Offer upgrade →</a>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 20px", borderTop: "1px solid var(--line)" }}>
-                    <div style={{ minWidth: "0" }}>
-                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Kolpo Books</div>
-                      <div className="mono" style={{ color: "var(--muted)" }}>tenant 0061</div>
-                    </div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Trial day 12 · domain not verified</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--warnt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
-  <path d="M10,2 L18,17 L2,17 Z" fill="#ff9800" />
-</svg>Watch</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Tania S.</div>
-                    <a className="rowlink" href="#" style={{ textAlign: "right" }}>Send guide →</a>
-                  </div>
+                  )) : <div style={{ padding: "16px 20px", borderTop: "1px solid var(--line)", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Nothing needs anyone today.</div>}
                 </section>
                 <section className="panel" aria-labelledby="pl" style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "16px 20px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -750,93 +377,9 @@ export default class ConsoleShellScreen extends Component {
                   </div>
                 </section>
               </div>
-            </>) : null}
-            {v.notOverview ? (<>
-              <div>
-                <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>{v.crumbPage}</h1>
-                <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>{v.cur?.desc}</p>
-              </div>
-              <div className="panel" style={{ flexGrow: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", textAlign: "center", border: "2px dashed var(--line)", boxShadow: "none", background: "transparent" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "56px", height: "56px", borderRadius: "var(--radius-xl)", background: "var(--surface)", color: "var(--primary)", boxShadow: "var(--shadow)" }}>
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" />
-                    <path d="m3 7 9 5 9-5M12 12v10" />
-                  </svg>
-                </span>
-                {v.cur?.noBoard ? (<>
-                  <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Designed in step {v.cur?.step} · {v.cur?.stepName}</div>
-                  <div style={{ maxWidth: "460px", fontSize: "var(--text-sm-plus)", lineHeight: "1.6", color: "var(--body)" }}>This slot in the shell is reserved for the {v.crumbPage} screen. The shell, search, tenant context bar and states around it are final.</div>
-                  <button className="btn btng" type="button" onClick={v.pickOverview}>Back to Overview</button>
-                </>) : null}
-                {v.cur?.hasBoard ? (<>
-                  <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Built · full screen board</div>
-                  <div style={{ maxWidth: "460px", fontSize: "var(--text-sm-plus)", lineHeight: "1.6", color: "var(--body)" }}>The {v.crumbPage} screen is built as its own board, with the same shell. Open it to see and click through it.</div>
-                  <__A className="btn btnp" href={v.cur?.href}>Open {v.crumbPage}</__A>
-                </>) : null}
-              </div>
-            </>) : null}
+            </>
           </main>
-          {v.palette ? (<>
-            <div style={{ position: "absolute", inset: "0", background: "var(--scrim)" }} />
-            <div role="dialog" aria-modal="true" aria-label="Search the console" style={{ position: "absolute", left: "50%", top: "80px", width: "680px", marginLeft: "-204px", borderRadius: "var(--radius-xl)", background: "var(--surface)", boxShadow: "0 24px 60px -16px rgba(0,0,0,.45)", overflow: "hidden" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", height: "60px", padding: "0 16px 0 20px", borderBottom: "1px solid var(--line)" }}>
-                <span style={{ display: "inline-flex", color: "var(--muted)" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m20 20-3.5-3.5" />
-                  </svg>
-                </span>
-                <label style={{ flexGrow: "1" }}>
-                  <span style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0 0 0 0)" }}>Search</span>
-                  <input type="search" defaultValue="dhaka" style={{ width: "100%", height: "44px", border: "0", outline: "0", background: "transparent", font: "inherit", fontSize: "var(--text-base)", color: "var(--ink)" }} />
-                </label>
-                <button className="btn btng" type="button" onClick={v.closePalette} style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Esc</button>
-              </div>
-              <div style={{ padding: "10px 10px 6px" }}>
-                <div style={{ padding: "6px 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Stores</div>
-                <button className="pr on" type="button">
-                  <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
-                    <path d="M10,2 L18,17 L2,17 Z" fill="#ff9800" />
-                  </svg>
-                  <span style={{ fontWeight: "var(--weight-medium)" }}>Dhaka Gadget Hub</span>
-                  <span className="mono" style={{ color: "var(--muted)" }}>tenant 0031 · dhakagadgethub.com.bd</span>
-                  <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--warnt)" }}>Grace · day 3</span>
-                </button>
-                {" "}
-                <button className="pr" type="button">
-                  <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
-                    <circle cx="10" cy="10" r="7" fill="#10b981" />
-                  </svg>
-                  <span style={{ fontWeight: "var(--weight-medium)" }}>Dhaka Shoe Corner</span>
-                  <span className="mono" style={{ color: "var(--muted)" }}>tenant 0009 · dhakashoe.gridcommerce.com.bd</span>
-                  <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--okt)" }}>Active</span>
-                </button>
-                <div style={{ padding: "10px 12px 6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Invoices and payments</div>
-                <button className="pr" type="button">
-                  <span style={{ display: "inline-flex", color: "var(--muted)" }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="2" y="5" width="20" height="14" rx="2" />
-                      <path d="M2 10h20M6 15h4" />
-                    </svg>
-                  </span>
-                  <span className="mono" style={{ color: "var(--ink)" }}>INV-2026-0912</span>
-                  <span style={{ color: "var(--muted)", fontSize: "var(--text-xs-plus)" }}>Dhaka Gadget Hub · ৳2,500 · unpaid since 17 Sep</span>
-                </button>
-                <div style={{ padding: "10px 12px 6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Actions</div>
-                <button className="pr" type="button"><span style={{ display: "inline-flex", color: "var(--muted)" }}>
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-    <path d="M10 21h4" />
-  </svg>
-</span>Compose a notice to Dhaka stores</button>
-              </div>
-              <div style={{ display: "flex", gap: "18px", padding: "12px 20px", borderTop: "1px solid var(--line)", fontSize: "var(--text-xs)", color: "var(--muted)" }}>
-                <span><span className="kbd" style={{ margin: "0 4px 0 0" }}>↑↓</span>move</span>
-                <span><span className="kbd" style={{ margin: "0 4px 0 0" }}>Enter</span>open</span>
-                <span>Opens without animation: it is used many times a day.</span>
-              </div>
-            </div>
-          </>) : null}
+          
         </div>
       </div>
     );

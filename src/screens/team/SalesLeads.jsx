@@ -15,6 +15,7 @@ import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { USERS, roleOf } from '@/lib/team';
 import { STAGES, OPEN_STAGES, SOURCES, KINDS, LOG_KINDS, LOST_REASONS, STAGE_WEIGHT, stageOf, saveLead, logActivity, moveStage, removeLead, followState } from '@/lib/leads';
 import { saveTask } from '@/lib/tasks';
+import { hasModule } from '@/lib/edition';
 import { TeamPage, useMe, useLeads, UserAvatar, userName, rowGo } from './teamShared';
 
 const money = (n) => formatBDT(Math.round(n || 0));
@@ -319,6 +320,7 @@ function LeadDialog({ lead, me, onMove, onClose }) {
           <div className="tm-bar__g">
             <a className="gc-btn gc-btn--sm gc-btn--neutral" href={'tel:' + lead.phone.replace(/\D/g, '')}><Icon name="phone" width="14" height="14" aria-hidden="true" /> {lead.phone}</a>
             <a className="gc-btn gc-btn--sm gc-btn--neutral" href={waOf(lead.phone)} target="_blank" rel="noreferrer"><Icon name="message-circle" width="14" height="14" aria-hidden="true" /> WhatsApp</a>
+            {hasModule('comms') ? <Link className="gc-btn gc-btn--sm gc-btn--neutral" href={'/meetings?new=1&lead=' + encodeURIComponent(lead.id)}><Icon name="video" width="14" height="14" aria-hidden="true" /> Schedule meeting</Link> : null}
             {lead.customer ? <Link className="gc-btn gc-btn--sm gc-btn--neutral" href="/all-customers"><Icon name="user-check" width="14" height="14" aria-hidden="true" /> Customer</Link> : null}
           </div>
           <div>

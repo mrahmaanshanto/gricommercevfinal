@@ -130,7 +130,7 @@ export default class MMoreScreen extends Component {
               <span className="av" style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "linear-gradient(145deg,#2eaee4,#003087)", color: "#fff" }}>MR</span>
               <span style={{ flex: "1", minWidth: "0" }}>
                 <span style={{ display: "block", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>Mehedi Rahman</span>
-                <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Store owner · GridShop</span>
+                <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Store owner · Dazzle Shop</span>
               </span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="m9 18 6-6-6-6" />
@@ -222,7 +222,7 @@ export default class MMoreScreen extends Component {
                 </span>
                 <span className="m">
                   <span className="t" style={{ display: "block", fontWeight: "var(--weight-medium)" }}>View store</span>
-                  <span className="s" style={{ display: "block" }}>gridshop.com.bd</span>
+                  <span className="s" style={{ display: "block" }}>dazzleshop.com.bd</span>
                 </span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="m9 18 6-6-6-6" />

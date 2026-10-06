@@ -10,6 +10,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { wholesaleOn } from '@/lib/edition';
 import { Icon } from '@/runtime/dc';
 import { navigate } from '@/runtime/routes';
 import { toast, confirmDialog } from '@/runtime/ui';
@@ -35,7 +36,7 @@ import { getCustomers, findCustomer, saveCustomerOnce, ADDED_FROM } from '@/lib/
 import { checkOrder } from '@/lib/restrictions';
 
 
-const CUST_TYPES = ['Online', 'Retail', 'Wholesale'];   // how a customer buys; one, two or all three
+const CUST_TYPES = ['Online', 'Retail', 'Wholesale'].filter((t) => t !== 'Wholesale' || wholesaleOn());   // how a customer buys; one, two or all three
 
 const CUSTOMERS = [
   { id: 'c1', name: 'Nusrat Jahan', phone: '01553-336655', orders: 4, address: 'House 14, Road 7, Sector 4, Uttara, Dhaka 1230', zone: 'dhaka' },
@@ -239,7 +240,7 @@ export default function NewOrder() {
     const phone = cleanPhone(newCust.phone);
     if (!newCust.name.trim()) errs.name = 'Enter the customer’s name.';
     if (!PHONE.test(phone)) errs.phone = 'Enter a mobile number like 01712345678.';
-    if (!newCust.types.length) errs.types = 'Choose at least one: Online, Retail or Wholesale.';
+    if (!newCust.types.length) errs.types = wholesaleOn() ? 'Choose at least one: Online, Retail or Wholesale.' : 'Choose at least one: Online or Retail.';
     if (Object.keys(errs).length) { setNewCust((c) => ({ ...c, errors: errs })); return; }
     // saved in the customer book; a number that is already there is not added twice
     const known = findCustomer(getCustomers(), phone);
@@ -356,7 +357,49 @@ export default function NewOrder() {
 
               <div className="ix-record no-rec">
                 <div className="ix-main">
-                  {/* 1. Products */}
+                  {/* 1. Customer: first, so a phone number brings up the courier history */}
+                  <section className="ix-card no-card--cust" aria-labelledby="no-customer">
+                    <header className="ix-card__head">
+                      <h2 id="no-customer">Customer</h2>
+                      {customer ? <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Remove customer from this order" onClick={() => setCustomer(null)}><Icon name="x" width="16" height="16" /></button> : null}
+                    </header>
+                    <div className="ix-card__body">
+                      {customer ? (
+                        <div className="no-cust">
+                          <div><span className="no-name">{customer.name}</span><span className="no-meta">{customer.orders ? `${customer.orders} order${customer.orders > 1 ? 's' : ''}` : 'New customer'}</span></div>
+                          <div><h3>Contact</h3>{customer.phone}<CourierHistory phone={customer.phone} /></div>
+                          <div><h3>Delivery address</h3>{customer.address || 'No address yet'}</div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="no-search">
+                            <Icon name="search" width="16" height="16" aria-hidden="true" />
+                            <input ref={customerRef} autoFocus className="gc-input" type="search" placeholder="Search by name or phone" aria-label="Search or create a customer" aria-invalid={errors.customer ? 'true' : undefined} aria-describedby={errors.customer ? 'no-cust-err' : undefined} value={custQuery} onChange={(e) => setCustQuery(e.target.value)} onFocus={() => setCustFocus(true)} onBlur={() => setTimeout(() => setCustFocus(false), 150)} />
+                            {custFocus && (
+                              <div className="no-pop" role="listbox" aria-label="Customers">
+                                <button type="button" role="option" aria-selected="false" className="no-opt" onMouseDown={(e) => e.preventDefault()} onClick={openNewCustomer}>
+                                  <span className="no-thumb" aria-hidden="true"><Icon name="plus" width="16" height="16" /></span>
+                                  <span className="no-opt__main"><span className="no-name">Create a new customer</span></span>
+                                </button>
+                                {custMatches.length === 0 ? <p className="no-meta" style={{ padding: 'var(--space-2) var(--space-3)' }}>No customer matches “{custQuery}”.</p> : null}
+                                {custMatches.map((c) => (
+                                  <button key={c.id} type="button" role="option" aria-selected="false" className="no-opt" onMouseDown={(e) => e.preventDefault()} onClick={() => pickCustomer(c)}>
+                                    <span className="no-thumb" aria-hidden="true">{initials(c.name)}</span>
+                                    <span className="no-opt__main"><span className="no-name">{c.name}</span><span className="no-meta">{c.phone}</span></span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {errors.customer ? <p id="no-cust-err" className="no-err" role="alert">{errors.customer}</p> : null}
+                          {/* always on hand, whether or not a search was made or found anyone */}
+                          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral gc-btn--block" style={{ marginTop: 'var(--space-3)' }} onClick={openNewCustomer}><Icon name="user-plus" width="16" height="16" aria-hidden="true" />Add customer</button>
+                        </>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* 2. Products */}
                   <section className="ix-card no-card--products" aria-labelledby="no-products">
                     <header className="ix-card__head"><h2 id="no-products">Products</h2></header>
                     <div className="ix-card__body">
@@ -460,47 +503,6 @@ export default function NewOrder() {
                 </div>
 
                 <div className="ix-side">
-                  {/* 2. Customer */}
-                  <section className="ix-card no-card--cust" aria-labelledby="no-customer">
-                    <header className="ix-card__head">
-                      <h2 id="no-customer">Customer</h2>
-                      {customer ? <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Remove customer from this order" onClick={() => setCustomer(null)}><Icon name="x" width="16" height="16" /></button> : null}
-                    </header>
-                    <div className="ix-card__body">
-                      {customer ? (
-                        <div className="no-cust">
-                          <div><span className="no-name">{customer.name}</span><span className="no-meta">{customer.orders ? `${customer.orders} order${customer.orders > 1 ? 's' : ''}` : 'New customer'}</span></div>
-                          <div><h3>Contact</h3>{customer.phone}<CourierHistory phone={customer.phone} /></div>
-                          <div><h3>Delivery address</h3>{customer.address || 'No address yet'}</div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="no-search">
-                            <Icon name="search" width="16" height="16" aria-hidden="true" />
-                            <input ref={customerRef} className="gc-input" type="search" placeholder="Search by name or phone" aria-label="Search or create a customer" aria-invalid={errors.customer ? 'true' : undefined} aria-describedby={errors.customer ? 'no-cust-err' : undefined} value={custQuery} onChange={(e) => setCustQuery(e.target.value)} onFocus={() => setCustFocus(true)} onBlur={() => setTimeout(() => setCustFocus(false), 150)} />
-                            {custFocus && (
-                              <div className="no-pop" role="listbox" aria-label="Customers">
-                                <button type="button" role="option" aria-selected="false" className="no-opt" onMouseDown={(e) => e.preventDefault()} onClick={openNewCustomer}>
-                                  <span className="no-thumb" aria-hidden="true"><Icon name="plus" width="16" height="16" /></span>
-                                  <span className="no-opt__main"><span className="no-name">Create a new customer</span></span>
-                                </button>
-                                {custMatches.length === 0 ? <p className="no-meta" style={{ padding: 'var(--space-2) var(--space-3)' }}>No customer matches “{custQuery}”.</p> : null}
-                                {custMatches.map((c) => (
-                                  <button key={c.id} type="button" role="option" aria-selected="false" className="no-opt" onMouseDown={(e) => e.preventDefault()} onClick={() => pickCustomer(c)}>
-                                    <span className="no-thumb" aria-hidden="true">{initials(c.name)}</span>
-                                    <span className="no-opt__main"><span className="no-name">{c.name}</span><span className="no-meta">{c.phone}</span></span>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          {errors.customer ? <p id="no-cust-err" className="no-err" role="alert">{errors.customer}</p> : null}
-                          {/* always on hand, whether or not a search was made or found anyone */}
-                          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral gc-btn--block" style={{ marginTop: 'var(--space-3)' }} onClick={openNewCustomer}><Icon name="user-plus" width="16" height="16" aria-hidden="true" />Add customer</button>
-                        </>
-                      )}
-                    </div>
-                  </section>
 
                   {/* Status */}
                   <section className="ix-card no-card--status" aria-labelledby="no-status-h">
@@ -620,8 +622,8 @@ export default function NewOrder() {
             <p className="gc-modal__text" style={{ margin: 0 }}>Send this link to the customer. They enter their name, phone number and address, choose how to pay and submit. The order then appears in Orders as <b>Pending</b>.</p>
             <div className="no-link-box"><span>{link.url}</span><a className="gc-btn gc-btn--sm gc-btn--neutral" href={link.url} target="_blank" rel="noreferrer">Open</a></div>
             <div className="no-row">
-              <a className="gc-btn gc-btn--sm gc-btn--neutral" href={`https://wa.me/?text=${encodeURIComponent('Complete your GridShop order here: ' + link.url)}`} target="_blank" rel="noreferrer"><Icon name="message-circle" width="16" height="16" aria-hidden="true" />Share on WhatsApp</a>
-              <a className="gc-btn gc-btn--sm gc-btn--neutral" href={`sms:?&body=${encodeURIComponent('Complete your GridShop order here: ' + link.url)}`}><Icon name="message-square-text" width="16" height="16" aria-hidden="true" />Send by SMS</a>
+              <a className="gc-btn gc-btn--sm gc-btn--neutral" href={`https://wa.me/?text=${encodeURIComponent('Complete your Dazzle Shop order here: ' + link.url)}`} target="_blank" rel="noreferrer"><Icon name="message-circle" width="16" height="16" aria-hidden="true" />Share on WhatsApp</a>
+              <a className="gc-btn gc-btn--sm gc-btn--neutral" href={`sms:?&body=${encodeURIComponent('Complete your Dazzle Shop order here: ' + link.url)}`}><Icon name="message-square-text" width="16" height="16" aria-hidden="true" />Send by SMS</a>
             </div>
             <p className="no-meta">{items} item{items > 1 ? 's' : ''} · {formatBDT(subtotal - discountValue)} before delivery{vat ? ' and VAT' : ''}. Unpaid until the customer submits.</p>
           </>

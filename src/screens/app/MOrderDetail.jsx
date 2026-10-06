@@ -188,7 +188,7 @@ export default class MOrderDetailScreen extends Component {
               <div className="row" style={{ minHeight: "56px", padding: "9px 16px" }}>
                 <span className="av" style={{ width: "40px", height: "40px", background: "#fff4e0", color: "#003087" }}>S</span>
                 <span className="m">
-                  <span className="t ell" style={{ display: "block", fontWeight: "var(--weight-medium)" }}>Sunscreen SPF 50 · 50ml</span>
+                  <span className="t ell" style={{ display: "block", fontWeight: "var(--weight-medium)" }}>Anker 20W USB-C Charger</span>
                   <span className="s">×1</span>
                 </span>
                 <span className="num" style={{ fontWeight: "var(--weight-medium)" }}>৳940</span>
@@ -196,7 +196,7 @@ export default class MOrderDetailScreen extends Component {
               <div className="row" style={{ minHeight: "56px", padding: "9px 16px" }}>
                 <span className="av" style={{ width: "40px", height: "40px", background: "#fff4e0", color: "#003087" }}>R</span>
                 <span className="m">
-                  <span className="t ell" style={{ display: "block", fontWeight: "var(--weight-medium)" }}>Rice Water Cleanser 150ml</span>
+                  <span className="t ell" style={{ display: "block", fontWeight: "var(--weight-medium)" }}>Magnetic Wireless Charger 15W</span>
                   <span className="s">×1</span>
                 </span>
                 <span className="num" style={{ fontWeight: "var(--weight-medium)" }}>৳670</span>
@@ -204,7 +204,7 @@ export default class MOrderDetailScreen extends Component {
               <div className="row" style={{ minHeight: "56px", padding: "9px 16px" }}>
                 <span className="av" style={{ width: "40px", height: "40px", background: "#fff4e0", color: "#003087" }}>A</span>
                 <span className="m">
-                  <span className="t ell" style={{ display: "block", fontWeight: "var(--weight-medium)" }}>Aloe Soothing Gel 300ml</span>
+                  <span className="t ell" style={{ display: "block", fontWeight: "var(--weight-medium)" }}>Micro-USB Cable 1m</span>
                   <span className="s">×1</span>
                 </span>
                 <span className="num" style={{ fontWeight: "var(--weight-medium)" }}>৳520</span>

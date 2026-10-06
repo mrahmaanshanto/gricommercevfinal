@@ -10,7 +10,7 @@ export const BRANDS_EVENT = 'gc:brands';
 export const BRAND_NAME_MAX = 60;
 export const BRAND_DESC_MAX = 500;
 
-const SEED = ['Samsung', 'Apple', 'Xiaomi', 'ASUS', 'SoundMax', 'Beauty of Joseon', 'Nature Republic', 'GridShop', 'Chashi', 'Walton']
+const SEED = ['Samsung', 'Apple', 'Xiaomi', 'Realme', 'Symphony', 'Nokia', 'Anker', 'Baseus', 'Spigen', 'SoundMax', 'Dazzle Shop']
   .map((name, i) => ({ id: 'b-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name, description: '', image: '', at: Date.UTC(2026, 8, 1) + i }));
 /** The demo brands (also what the server renders before the browser list is read). */
 export const DEMO_BRANDS = SEED;

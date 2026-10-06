@@ -15,12 +15,12 @@ export const MODULES = {
   core: {
     label: 'Core', desc: 'Dashboard, team tasks and chat, customers and leads, settings',
     nav: ['home', 'my-dash', 'tasks', 'team-chat', 'customers', 'leads', 'cust-settings', 'connections', 'settings', 'set-store', 'set-billing', 'set-help'],
-    routes: ['/connect', '/grid-ai', '/set-profile', '/set-privacy', '/settings-history', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-storage', '/set-media', '/set-chrome', '/set-rail', '/set-topbar', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
+    routes: ['/connect', '/grid-ai', '/set-profile', '/set-privacy', '/settings-history', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-storage', '/set-media', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
   },
   catalog: {
     label: 'Products, stock & purchases', desc: 'Products, stock, direct purchases, suppliers and their dues, damaged and expired stock, warranty',
-    nav: ['stock-activity', 'products', 'products-all', 'products-add', 'products-cats', 'products-brands', 'products-setup', 'products-media', 'stock-list', 'po-buy', 'po-suppliers', 'stock-more', 'stock-expiry', 'stock-labels', 'stock-wpol', 'stock-wclaims'],
-    routes: ['/bulk-edit', '/add-product-tabs', '/supplier-detail', '/supplier-return', '/buy-goods', '/stock-setup'],
+    nav: ['stock-activity', 'products', 'products-all', 'products-add', 'products-cats', 'products-brands', 'products-setup', 'products-media', 'products-catalogue', 'stock-list', 'po-buy', 'po-suppliers', 'stock-more', 'stock-expiry', 'stock-labels', 'stock-wpol', 'stock-wclaims'],
+    routes: ['/bulk-edit', '/supplier-detail', '/supplier-return', '/buy-goods', '/stock-setup'],
   },
   places: {
     label: 'Warehouses & branches', desc: 'Many stock places, racks and bins, transfers, adjustments, counts and stock holds',
@@ -34,8 +34,8 @@ export const MODULES = {
   },
   money: {
     label: 'Money', desc: 'Cash, bank and wallets, dues, payouts, income and expenses, bills to pay, VAT',
-    nav: ['acc-home', 'acc-money', 'acc-dues', 'acc-settle', 'acc-spend', 'acc-liab', 'acc-setup', 'acc-payments', 'acc-approvals', 'acc-match'],
-    routes: ['/account-reports', '/chart-of-accounts', '/journals', '/sales-profit', '/vat'],
+    nav: ['acc-home', 'acc-money', 'acc-dues', 'sales-invoices', 'acc-settle', 'acc-spend', 'acc-liab', 'acc-setup', 'acc-payments', 'acc-approvals', 'acc-match'],
+    routes: ['/account-reports', '/chart-of-accounts', '/journals', '/sales-profit', '/vat', '/sales-invoice'],
   },
   reports: {
     label: 'Reports', desc: 'Every report, the daily summary and scheduled reports',
@@ -49,12 +49,12 @@ export const MODULES = {
   },
   commerce: {
     label: 'Orders & returns', desc: 'All orders, returns and exchanges, payment settings',
-    nav: ['orders', 'orders-all', 'sales-return', 'pay-setup', 'orders-work', 'orders-settings'],
-    routes: ['/order-detail', '/return-history', '/set-payments', '/set-notifications', '/order-settings', '/order-work'],
+    nav: ['orders', 'orders-all', 'sales-return', 'pay-setup'],
+    routes: ['/order-detail', '/return-history', '/set-payments'],
   },
   marketing: {
     label: 'Offers & loyalty', desc: 'Offers, coupons, loyalty points, wallets and referrals',
-    nav: ['promo-offers', 'promo-home', 'promo-coupons', 'loyalty', 'loy-home', 'loy-members', 'loy-products', 'loy-wallet', 'loy-referrals'],
+    nav: ['promo-offers', 'promo-home', 'promo-coupons', 'loyalty', 'loy-home', 'loy-members', 'loy-products', 'loy-wallet', 'loy-referrals', 'ch-gbp'],
     routes: ['/member-detail', '/new-coupon'],
   },
   pos: {
@@ -62,25 +62,26 @@ export const MODULES = {
     nav: ['pos-register', 'pos-counters'],
     routes: ['/new-sale', '/sales-book', '/return-exchange', '/pos-active', '/pos-close', '/pos-idle', '/pos-keypad', '/pos-offline', '/pos-open', '/pos-pay', '/pos-return', '/pos-sales'],
   },
+  // switched off for now (WHOLESALE below): the module stays defined so it can come back with one change
   wholesale: {
-    label: 'Wholesale', desc: 'Wholesale orders, invoices on credit, deliveries in parts, price lists',
-    nav: ['orders-wholesale', 'sales-invoices', 'products-catalogue'],
-    routes: ['/sales-invoice', '/wholesale-customer', '/wholesale-invoices', '/wholesale-invoice-edit'],
+    label: 'Wholesale', desc: 'Wholesale orders, deliveries in parts, price lists',
+    nav: ['orders-wholesale'],
+    routes: ['/wholesale-customer', '/wholesale-invoices', '/wholesale-invoice-edit'],
   },
   online: {
     label: 'Online', desc: 'Online orders and couriers, the online store, blog, flash sales, cart recovery and ads tracking',
-    nav: ['orders-rto', 'orders-courier', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'rec-offers', 'rec-audiences', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'storefront', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
-    routes: ['/ad-accounts', '/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-seo', '/set-domains', '/checkout', '/offer-detail', '/offers', '/order-link'],
+    nav: ['orders-rto', 'orders-courier', 'orders-work', 'orders-settings', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'rec-offers', 'rec-audiences', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'storefront', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
+    routes: ['/order-settings', '/order-work', '/set-notifications', '/ad-accounts', '/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-seo', '/set-domains', '/checkout', '/offer-detail', '/offers', '/order-link'],
   },
   channels: {
     label: 'Sales channels', desc: 'Product sync to the Meta catalog, Google Merchant Center, WooCommerce and Shopify; Google Business Profile',
-    nav: ['ch-home', 'ch-meta', 'ch-gmc', 'ch-woo', 'ch-shopify', 'ch-gbp', 'ch-issues', 'ch-settings'],
+    nav: ['ch-home', 'ch-meta', 'ch-gmc', 'ch-woo', 'ch-shopify', 'ch-issues', 'ch-settings'],
     routes: ['/connect-channel', '/woo-sync'],
   },
   comms: {
     label: 'Communication', desc: 'Inbox for Facebook, Instagram, WhatsApp and more, calls, AI calls, support tickets, social posts',
-    nav: ['inbox', 'inbox-comments', 'inbox-mentions', 'calls', 'comm-ai', 'tickets', 'social', 'comm-cal', 'comm-new', 'set-wallet', 'msg-campaigns'],
-    routes: ['/social-connections', '/auto-call-settings', '/team-report', '/set-ai', '/set-rules', '/set-usage'],
+    nav: ['inbox', 'inbox-comments', 'inbox-mentions', 'calls', 'comm-ai', 'ai-knowledge', 'ai-behaviour', 'tickets', 'social', 'comm-cal', 'comm-new', 'set-wallet', 'msg-campaigns', 'meetings'],
+    routes: ['/meetings', '/social-connections', '/auto-call-settings', '/team-report', '/set-ai', '/set-rules', '/set-usage'],
   },
   automation: {
     label: 'Automation', desc: 'Rules, the workflow builder and workflow settings',
@@ -90,15 +91,21 @@ export const MODULES = {
 };
 
 const BACK_OFFICE = ['core', 'catalog', 'money', 'reports', 'hr', 'commerce', 'marketing'];
+// Wholesale is switched off for now (Oct 2026, docs/wholesale-audit.md): no edition has the module or the channel.
+// Set WHOLESALE = true to bring it back (pages, fields, filters and reports follow hasModule('wholesale')).
+export const WHOLESALE = false;
+const W = WHOLESALE ? ['wholesale'] : [];
+const WC = WHOLESALE ? ['Wholesale'] : [];
 // a shop with a store or a warehouse network: many stock places and purchase orders (stockSetup.js)
 const STORE = ['places', 'purchasing'];
 export const EDITIONS = {
-  full: { name: 'GridCommerce', short: 'All modules', modules: Object.keys(MODULES), channels: ['Online', 'Retail', 'Wholesale'] },
-  'retail-wholesale': { name: 'GridCommerce Retail + Wholesale', short: 'Retail + Wholesale', modules: [...BACK_OFFICE, ...STORE, 'pos', 'wholesale', 'channels'], channels: ['Retail', 'Wholesale'] },
+  full: { name: 'GridCommerce', short: 'All modules', modules: Object.keys(MODULES).filter((k) => k !== 'wholesale' || WHOLESALE), channels: ['Online', 'Retail', ...WC] },
+  // the id stays 'retail-wholesale' (sites, links and saved previews use it); the shop sees "Retail"
+  'retail-wholesale': { name: WHOLESALE ? 'GridCommerce Retail + Wholesale' : 'GridCommerce Retail', short: WHOLESALE ? 'Retail + Wholesale' : 'Retail', modules: [...BACK_OFFICE, ...STORE, 'pos', ...W], channels: ['Retail', ...WC] },   // a shop: no online selling, no product sync to online channels
   // an online-only shop: one stock place, direct purchases, no holds (an approved order takes its stock out at once,
   // it may go below zero), purchase and sale prices only
   online: { name: 'GridCommerce Online', short: 'Online', modules: [...BACK_OFFICE, 'online', 'channels', 'comms', 'automation'], channels: ['Online'], noHolds: true },
-  'retail-online': { name: 'GridCommerce Retail + Wholesale + Online', short: 'Retail + Wholesale + Online', modules: [...BACK_OFFICE, ...STORE, 'pos', 'wholesale', 'online', 'channels', 'comms', 'automation'], channels: ['Retail', 'Wholesale', 'Online'] },
+  'retail-online': { name: WHOLESALE ? 'GridCommerce Retail + Wholesale + Online' : 'GridCommerce Retail + Online', short: WHOLESALE ? 'Retail + Wholesale + Online' : 'Retail + Online', modules: [...BACK_OFFICE, ...STORE, 'pos', ...W, 'online', 'channels', 'comms', 'automation'], channels: ['Retail', ...WC, 'Online'] },
   comms: { name: 'GridCommerce Connect', short: 'Communication & CRM', modules: ['core', 'comms', 'automation', 'pos'], channels: ['Retail'] },
 };
 export const EDITION_IDS = Object.keys(EDITIONS);
@@ -137,16 +144,19 @@ const ALL_ITEMS = NAV.flatMap((g) => g.items.flatMap((it) => [it, ...(it.childre
 const OWNED = new Set(Object.values(MODULES).flatMap((m) => m.routes));
 
 export const hasModule = (key, ed = currentEditionId()) => EDITIONS[ed].modules.includes(key);
+/** Is wholesale on in this edition? (Off everywhere for now.) */
+export const wholesaleOn = (ed) => hasModule('wholesale', ed);
 /** Is a menu item (by id, old ids too) part of the edition? */
 export function inEditionNav(id, ed = currentEditionId()) {
-  if (ed === 'full') return true;
+  // the full product has everything, except wholesale while it is switched off
+  if (ed === 'full') return WHOLESALE || !(MODULES.wholesale.nav.includes(id) || MODULES.wholesale.nav.includes(NAV_ALIAS[id]));
   const s = navSet(ed);
   return s.has(id) || s.has(NAV_ALIAS[id]);
 }
 /** Is a page part of the edition? Pages no module claims (reference pages, the phone app, the console) always are. */
 export function routeInEdition(path, ed = currentEditionId()) {
-  if (ed === 'full') return true;
   const p = (path || '/').replace(/\/$/, '') || '/';
+  if (ed === 'full') return WHOLESALE || !(MODULES.wholesale.routes.includes(p) || ALL_ITEMS.some((it) => pathOf(it) === p && MODULES.wholesale.nav.includes(it.id)));
   if (routeSet(ed).has(p)) return true;
   const items = ALL_ITEMS.filter((it) => pathOf(it) === p);
   if (items.length) return items.some((it) => inEditionNav(it.id, ed));
@@ -154,7 +164,7 @@ export function routeInEdition(path, ed = currentEditionId()) {
 }
 /** The menu with everything outside the edition removed (empty groups dropped). */
 export function navForEdition(nav, ed = currentEditionId()) {
-  if (ed === 'full') return nav;
+  if (ed === 'full' && WHOLESALE) return nav;
   return nav.map((g) => ({
     ...g,
     items: g.items.map((it) => {

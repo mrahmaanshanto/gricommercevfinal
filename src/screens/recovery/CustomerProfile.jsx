@@ -23,14 +23,14 @@ import { isAllowed } from '@/lib/consent';
 // success feedback is the shared toast (src/runtime/ui.js)
 function toast(self, m, bad) { uiToast(m, bad ? { tone: 'error' } : undefined); }
 var TL = [
-  { tag: 'VIEW', k: 'view', what: 'Looked at Vitamin C Serum (4th time)', sub: 'Stayed 2 min · came from a Facebook post', when: 'Today, 11:20 AM' },
-  { tag: 'CART', k: 'cart', what: 'Left 3 items in her cart', sub: 'Sunscreen SPF 50, Lip Balm, Cotton Face Towel · ৳3,240', when: 'Today, 10:45 AM' },
+  { tag: 'VIEW', k: 'view', what: 'Looked at Redmi Note 13 (4th time)', sub: 'Stayed 2 min · came from a Facebook post', when: 'Today, 11:20 AM' },
+  { tag: 'CART', k: 'cart', what: 'Left 3 items in her cart', sub: 'Anker 20W Charger, Ring Holder, Tempered Glass · ৳3,240', when: 'Today, 10:45 AM' },
   { tag: 'MSG', k: 'msg', what: 'Cart reminder sent on WhatsApp', sub: 'Reminder 1 · no discount · opened', when: 'Today, 11:45 AM' },
   { tag: 'ORD', k: 'order', what: 'Order #GC-10471 delivered', sub: '৳4,860 · paid by bKash · 180 points earned', when: '12 Sep 2026' },
   { tag: 'TIX', k: 'ticket', what: 'Asked about delivery time', sub: 'Support ticket #T-2210 · solved in 14 min', when: '10 Sep 2026' },
-  { tag: 'RET', k: 'ret', what: 'Returned Aloe Vera Gel', sub: 'Reason: wrong size · refund ৳650', when: '28 Aug 2026' },
+  { tag: 'RET', k: 'ret', what: 'Returned Foldable Phone Stand', sub: 'Reason: wrong model · refund ৳650', when: '28 Aug 2026' },
   { tag: 'ORD', k: 'order', what: 'Order #GC-10311 delivered', sub: '৳6,120 · cash on delivery', when: '22 Aug 2026' },
-  { tag: 'NEW', k: 'first', what: 'First visit and sign-up', sub: 'From Facebook ad “Eid skin care” · phone number added at checkout', when: '2 Mar 2026' }
+  { tag: 'NEW', k: 'first', what: 'First visit and sign-up', sub: 'From Facebook ad “Eid phone offers” · phone number added at checkout', when: '2 Mar 2026' }
 ];
 var TC = { view: 'eye', cart: 'shopping-cart', msg: 'message-circle', order: 'package-check', ticket: 'life-buoy', ret: 'undo-2', first: 'user-plus' };
 var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -50,18 +50,18 @@ class Component extends DCLogic {
       isTl: tab === 'tl', isLooked: tab === 'looked', isSearch: tab === 'search',
       tl: TL.map(function (e) { return { tag: e.tag, what: e.what, sub: e.sub, when: e.when, icon: TC[e.k] }; }),
       looked: [
-        { name: 'Vitamin C Serum 30ml', sub: 'Viewed 4 times · last today', price: '৳1,450', tag: 'Hot', tone: 'warning' },
-        { name: 'Hyaluronic Toner 150ml', sub: 'Viewed 2 times · last 16 Sep', price: '৳990', tag: 'Warm', tone: 'info' },
-        { name: 'Night Repair Cream 50g', sub: 'Viewed once · 14 Sep', price: '৳1,690', tag: 'Cold', tone: 'neutral' },
-        { name: 'Cotton Kurti · Blue · M', sub: 'Viewed 3 times · added then removed', price: '৳1,290', tag: 'Hot', tone: 'warning' }
+        { name: 'Redmi Note 13 8/256GB', sub: 'Viewed 4 times · last today', price: '৳26,999', tag: 'Hot', tone: 'warning' },
+        { name: 'Type-C Wired Earphones', sub: 'Viewed 2 times · last 16 Sep', price: '৳990', tag: 'Warm', tone: 'info' },
+        { name: 'Galaxy Buds FE', sub: 'Viewed once · 14 Sep', price: '৳1,690', tag: 'Cold', tone: 'neutral' },
+        { name: 'Magnetic Wireless Charger 15W', sub: 'Viewed 3 times · added then removed', price: '৳1,290', tag: 'Hot', tone: 'warning' }
       ],
       searches: [
-        { q: 'vitamin c serum', res: '12 found' }, { q: 'sunscreen for oily skin', res: '8 found' }, { q: 'korean snail mucin', res: 'Nothing found' }, { q: 'সানস্ক্রিন', res: '6 found' }, { q: 'retinol cream', res: 'Nothing found' }
+        { q: 'redmi note 13', res: '12 found' }, { q: 'phone under 20000', res: '8 found' }, { q: 'pixel 8', res: 'Nothing found' }, { q: 'সানস্ক্রিন', res: '6 found' }, { q: 'retinol cream', res: 'Nothing found' }
       ].map(function (q) { q.none = /Nothing/.test(q.res); return q; }),
-      wish: [{ name: 'Night Repair Cream 50g', price: '৳1,690' }, { name: 'Travel Pouch Set', price: '৳650' }],
+      wish: [{ name: 'Galaxy Buds FE', price: '৳1,690' }, { name: 'Travel Pouch Set', price: '৳650' }],
       notSent: !s.sent, sent: !!s.sent,
       c: s.c || null, sig: s.sig ? s.sig.signals : null,
-      sendOffer: function () { if (s.c && !isAllowed(s.c, 'whatsapp', 'marketing')) { toast(self, 'She has not agreed to WhatsApp offers.', true); return; } self.setState({ sent: true }); toast(self, 'Handed to Communications: a one-time 10% code for Vitamin C Serum on WhatsApp.'); },
+      sendOffer: function () { if (s.c && !isAllowed(s.c, 'whatsapp', 'marketing')) { toast(self, 'She has not agreed to WhatsApp offers.', true); return; } self.setState({ sent: true }); toast(self, 'Handed to Communications: a one-time 10% code for Redmi Note 13 on WhatsApp.'); },
       call: function () { toast(self, 'Calling 01552-3X1-907 …'); }
     });
   }
@@ -129,7 +129,7 @@ export default class CustomerProfileScreen extends Component {
                     <section className="ix-card ix-card--pad" aria-label="Suggested offer">
                       <div className="cp-offer">
                         <__Icon name="eye" width="18" height="18" aria-hidden="true" />
-                        <div><b>Looked at Vitamin C Serum 4 times but didn’t buy <InfoTip text="A small offer on it often works. It goes to her WhatsApp with a one-time code." /></b></div>
+                        <div><b>Looked at Redmi Note 13 4 times but didn’t buy <InfoTip text="A small offer on it often works. It goes to her WhatsApp with a one-time code." /></b></div>
                         {v.notSent ? <button type="button" className="ix-btn ix-btn--primary" onClick={v.sendOffer}>Send 10% off</button> : <__StatusBadge tone="success">Sent · ends in 3 days</__StatusBadge>}
                       </div>
                     </section>
@@ -182,7 +182,7 @@ export default class CustomerProfileScreen extends Component {
                       <header className="ix-card__head"><h2 id="cp-about">About her</h2></header>
                       <div className="ix-card__body">
                         <KV rows={[
-                          ['First came from', 'Facebook ad · “Eid skin care” · Analytics'],
+                          ['First came from', 'Facebook ad · “Eid phone offers” · Analytics'],
                           ['Last visit from', 'Google search · today · Tracking'],
                           ['Area', 'Mirpur, Dhaka · from her address'],
                           ['Likes messages by', 'WhatsApp · a preference, not consent'],

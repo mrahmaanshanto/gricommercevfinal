@@ -126,7 +126,7 @@ export const SEGMENT_TEMPLATES = [
 // ---- saved segments ---------------------------------------------------------------------------------------------
 const ssr = () => typeof window === 'undefined';
 const SEED = [
-  { id: 'SEG-1001', name: 'High-value lapsed skin care buyers', def: { join: 'and', rules: [{ field: 'spent', op: 'gte', value: 20000 }, { field: 'lastOrder', op: 'gte', value: 14 }, { field: 'consent.whatsapp', op: 'is', value: 'in' }, { field: 'status', op: 'is', value: 'Active' }] }, members: [], by: 'Tania', createdAt: new Date(2026, 8, 2).getTime() },
+  { id: 'SEG-1001', name: 'High-value lapsed phone buyers', def: { join: 'and', rules: [{ field: 'spent', op: 'gte', value: 20000 }, { field: 'lastOrder', op: 'gte', value: 14 }, { field: 'consent.whatsapp', op: 'is', value: 'in' }, { field: 'status', op: 'is', value: 'Active' }] }, members: [], by: 'Tania', createdAt: new Date(2026, 8, 2).getTime() },
   { id: 'SEG-1002', name: 'Dhaka repeat buyers', def: { join: 'and', rules: [{ field: 'city', op: 'has', value: 'Dhaka' }, { field: 'orders', op: 'gte', value: 2 }] }, members: [], by: 'Karim', createdAt: new Date(2026, 8, 10).getTime() },
 ];
 function read() { if (ssr()) return SEED; try { const v = JSON.parse(window.localStorage.getItem(SEGMENTS_KEY)); return Array.isArray(v) ? v : SEED; } catch { return SEED; } }

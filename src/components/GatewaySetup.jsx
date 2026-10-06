@@ -20,6 +20,7 @@ import { toast } from '@/runtime/ui';
 import { Dialog } from '@/components/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { accountBy } from '@/lib/ledger';
+import { hasModule } from '@/lib/edition';
 import { saveGateway, getKeys, partnerBy, getAllPartners, holdingOf, WEEKDAYS, DEFAULT_WEEKEND, COURIER_RATES, ruleText, feeText, historyOf, dayKey, clockNow, fromKey } from '@/lib/settlements';
 import { formatDate } from '@/lib/format';
 import { currentUser } from '@/lib/team';
@@ -180,7 +181,7 @@ export function GatewaySetup({ partner, provider, onClose }) {
           <>
             <p className="gs-q">Which one are you setting up?</p>
             <div className="gs-pick">
-              {PROVIDERS.map((x) => {
+              {PROVIDERS.filter((x) => hasModule('online') || x.id === 'card' || x.id === 'other').map((x) => {
                 const has = taken.has(x.id);
                 return <button key={x.id} type="button" onClick={() => pick(x)} aria-pressed="false">{x.brand ? <BrandLogo brand={x.brand} size={32} decorative /> : <span style={{ display: 'grid', placeItems: 'center', width: 32, height: 32, borderRadius: 'var(--radius-lg)', background: 'var(--surface-subtle)' }}><Icon name="plus" width="16" height="16" aria-hidden="true" /></span>}<span>{x.id === 'other' ? 'Another one' : x.short}<small>{has ? 'Set up · add another' : x.kind === 'Courier' ? 'Courier' : x.id === 'card' ? 'Card machine' : 'Gateway'}</small></span></button>;
               })}
@@ -304,7 +305,7 @@ export function GatewaySetup({ partner, provider, onClose }) {
             <ul className="gs-build">
               {direct ? <li>{f.newAcc ? <>A new {f.accType === 'Mobile' ? 'mobile wallet' : 'bank'} account “{f.accName}”. </> : null}Payments through {f.short || f.name} go straight into {f.newAcc ? 'it' : (accountBy(f.account) || {}).name}.</li> : <>
                 <li>{editing && partnerBy(partner.id) && !f.newAcc ? 'The holding account' : 'A holding account'} “{holdingName}”: {courier ? 'delivered COD' : 'online payments'} wait here until they are settled.</li>
-                <li>{f.how === 'manual' ? `A “Withdraw” button on Settlements and a reminder at the evening check.` : `Expected payouts on Settlements, ${preview.toLowerCase()}, into ${(accountBy(f.to) || {}).name}.`}</li>
+                <li>{f.how === 'manual' ? `A “Withdraw” button on Payouts and a reminder at the evening check.` : `Expected payouts on Payouts, ${preview.toLowerCase()}, into ${(accountBy(f.to) || {}).name}.`}</li>
                 <li>Fees and delivery charges recorded on each payout, and shown in Reports › Partner fees.</li>
               </>}
             </ul>
@@ -323,7 +324,7 @@ export function GatewaySetup({ partner, provider, onClose }) {
  * settlement rule, the account and whether its keys are in. Settings › Payment Gateway and
  * Accounts › Setup show it; every row opens the wizard.
  */
-export function GatewayList({ title = 'Settlement & accounts', intro = 'For each gateway and courier: does the money come straight to you, or is it settled later, and how. New ones are connected in Connections; their accounts are made for you.' }) {
+export function GatewayList({ title = 'Settlement & accounts', intro = 'For each payment partner: does the money come straight to you, or is it settled later, and how. New ones are connected in Connections; their accounts are made for you.' }) {
   const tick = useBooks();
   const [open, setOpen] = useState(null);   // { partner } | { add: true }
   const list = tick ? getAllPartners() : [];

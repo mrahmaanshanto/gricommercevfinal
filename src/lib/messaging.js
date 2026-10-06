@@ -86,7 +86,7 @@ export function saveTemplate(input, by = 'Shanto') {
 export const templateVersions = (id) => { const t = templateBy(id); return t ? [{ v: t.version, at: t.at, by: t.by, body: t.body, subject: t.subject, current: true }, ...(t.versions || [])] : []; };
 
 /** The values every template can use, plus the send's own. */
-export const baseVars = () => ({ store_name: MERCHANT.name, support_phone: MERCHANT.phone, link: 'https://gridshop.com.bd' });
+export const baseVars = () => ({ store_name: MERCHANT.name, support_phone: MERCHANT.phone, link: 'https://dazzleshop.com.bd' });
 export const fill = (text, vars) => String(text || '').replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
 const smsParts = (text) => { const t = String(text || ''); const per = /[^\x00-\x7F৳]/.test(t.replace(/৳/g, '')) ? 70 : 160; return Math.max(1, Math.ceil(t.length / per)); };
 const priceOf = (key) => (SERVICES.find((s) => s.key === key) || { price: 0 }).price;
@@ -214,12 +214,12 @@ function demoRows(t) {
   const m = (min) => t - min * 60000;
   const R = (id, min, source, event, cls, channel, to, address, text, status, more = {}) => ({ id, at: m(min), source, event, cls, channel, to, address, text, status, cost: status === 'Suppressed' ? 0 : costOf(channel, text), demo: true, ...more });
   return [
-    R('MSG-D01', 35, 'Recovery', 'Cart reminder · step 2', 'Marketing', 'whatsapp', 'Nusrat Jahan', '01553336655', 'Hi Nusrat, your cart is waiting. Finish your order: https://gridshop.com.bd/cart/88', 'Read', { templateId: 'T-CART-WA', templateVersion: 4, readAt: m(31) }),
-    R('MSG-D02', 80, 'Loyalty', 'Store credit added', 'Service', 'sms', 'Rakibul Hasan', '01819072332', 'GridShop: ৳750 store credit added. Balance: ৳1,250.', 'Delivered', { templateId: 'T-CREDIT', templateVersion: 1 }),
+    R('MSG-D01', 35, 'Recovery', 'Cart reminder · step 2', 'Marketing', 'whatsapp', 'Nusrat Jahan', '01553336655', 'Hi Nusrat, your cart is waiting. Finish your order: https://dazzleshop.com.bd/cart/88', 'Read', { templateId: 'T-CART-WA', templateVersion: 4, readAt: m(31) }),
+    R('MSG-D02', 80, 'Loyalty', 'Store credit added', 'Service', 'sms', 'Rakibul Hasan', '01819072332', 'Dazzle Shop: ৳750 store credit added. Balance: ৳1,250.', 'Delivered', { templateId: 'T-CREDIT', templateVersion: 1 }),
     R('MSG-D03', 140, 'Recovery', 'Cart reminder · step 1', 'Marketing', 'whatsapp', 'Rakib Uddin', '01677220945', 'Hi Rakib, your cart is waiting.', 'Suppressed', { reason: 'Marked as spam', block: 'suppressed', templateId: 'T-CART-WA' }),
-    R('MSG-D04', 300, 'Loyalty', 'Points expiring', 'Marketing', 'sms', 'Tanvir Ahmed', '01914622045', 'GridShop: 120 points expire on 31 Oct. Use them on your next order.', 'Delivered', { templateId: 'T-POINTS-EXP' }),
-    R('MSG-D05', 620, 'Reports', 'Daily sales summary', 'Service', 'email', 'Shanto', 'owner@gridshop.com.bd', 'Daily sales summary for yesterday is ready.', 'Read', { internal: true, readAt: m(600), templateId: 'T-REPORT-EMAIL' }),
-    R('MSG-D06', 1500, 'Calls', 'Payment follow-up', 'Service', 'sms', 'Jamal Telecom', '01819447210', 'GridShop: ৳24,600 is due for invoice INV-0042. Pay: https://gridshop.com.bd/pay/INV-0042', 'Delivered', { templateId: 'T-PAY-REMIND' }),
+    R('MSG-D04', 300, 'Loyalty', 'Points expiring', 'Marketing', 'sms', 'Tanvir Ahmed', '01914622045', 'Dazzle Shop: 120 points expire on 31 Oct. Use them on your next order.', 'Delivered', { templateId: 'T-POINTS-EXP' }),
+    R('MSG-D05', 620, 'Reports', 'Daily sales summary', 'Service', 'email', 'Shanto', 'owner@dazzleshop.com.bd', 'Daily sales summary for yesterday is ready.', 'Read', { internal: true, readAt: m(600), templateId: 'T-REPORT-EMAIL' }),
+    R('MSG-D06', 1500, 'Calls', 'Payment follow-up', 'Service', 'sms', 'Jamal Telecom', '01819447210', 'Dazzle Shop: ৳24,600 is due for invoice INV-0042. Pay: https://dazzleshop.com.bd/pay/INV-0042', 'Delivered', { templateId: 'T-PAY-REMIND' }),
   ];
 }
 // the order messages (notifications.js) in the shape of this log

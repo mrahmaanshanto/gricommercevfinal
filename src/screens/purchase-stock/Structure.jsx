@@ -75,7 +75,7 @@ export default class StructureScreen extends Component {
           <div>
             <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-caps)", color: "var(--accent-text)" }}>{"GRIDCOMMERCE · PURCHASE & STOCK"}</div>
             <h1 style={{ margin: "12px 0 0", fontSize: "var(--text-4xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>How buying and stock will work</h1>
-            <p style={{ margin: "12px 0 0", maxWidth: "760px", fontSize: "var(--text-base)", lineHeight: "26px", color: "#475569" }}>Rebuilt from the GridShop dashboard for shop owners who don’t use computers much: fewer pages, plain words, and a scanner instead of a keyboard.</p>
+            <p style={{ margin: "12px 0 0", maxWidth: "760px", fontSize: "var(--text-base)", lineHeight: "26px", color: "#475569" }}>Rebuilt from the Dazzle Shop dashboard for shop owners who don’t use computers much: fewer pages, plain words, and a scanner instead of a keyboard.</p>
           </div>
           <section style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: "14px" }}>
@@ -87,7 +87,7 @@ export default class StructureScreen extends Component {
             </div>
             <div style={{ display: "flex", gap: "16px", alignItems: "stretch" }}>
               <div style={{ width: "250px", flexShrink: "0", padding: "20px", borderRadius: "var(--radius-xl)", border: "1px dashed #cbd5e1", background: "#f1f5f9" }}>
-                <div style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#475569" }}>Today in GridShop</div>
+                <div style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#475569" }}>Today in Dazzle Shop</div>
                 <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginBottom: "10px" }}>One menu, 9 pages mixed together</div>
                 <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "30px", color: "#475569", borderTop: "1px solid #e2e8f0" }}>Purchase order</div>
                 <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "30px", color: "#475569", borderTop: "1px solid #e2e8f0" }}>Product Stock</div>

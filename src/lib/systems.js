@@ -6,13 +6,13 @@
 import { LOCKED, currentEditionId, previewEdition } from './edition';
 
 export const SYSTEMS = [
-  { ed: 'retail-wholesale', url: 'https://gricommerce-retail-wholesale.netlify.app', icon: 'store', blurb: 'Shops, counters and wholesale' },
+  { ed: 'retail-wholesale', url: 'https://gricommerce-retail-wholesale.netlify.app', icon: 'store', blurb: 'Shops, counters and stock' },
   { ed: 'online', url: 'https://gricommerce-online.netlify.app', icon: 'shopping-bag', blurb: 'Online orders and couriers' },
-  { ed: 'retail-online', url: 'https://gricommerce-retail-online.netlify.app', icon: 'layers', blurb: 'Shops, wholesale and online together' },
+  { ed: 'retail-online', url: 'https://gricommerce-retail-online.netlify.app', icon: 'layers', blurb: 'Shops and online together' },
 ];
 export const systemBy = (ed) => SYSTEMS.find((s) => s.ed === ed) || null;
 
-/** The system email / phone sign-in opens: the site's own (or the previewed edition), else ?system=, else Retail + Wholesale + Online. */
+/** The system email / phone sign-in opens: the site's own (or the previewed edition), else ?system=, else Retail + Online. */
 export function defaultSystem() {
   if (systemBy(currentEditionId())) return currentEditionId();
   try { const q = new URLSearchParams(window.location.search).get('system'); if (systemBy(q)) return q; } catch { /* ignore */ }

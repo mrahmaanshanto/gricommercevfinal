@@ -6,8 +6,10 @@
 //                               the advance is paid, the order is approved and the rest becomes the COD amount
 //   preparing (Approved)        prepOf / updatePrep: courier, address and amounts checked, slip printed,
 //                               packed, slip attached → markReady (Ready for courier)
-//   courier                     sendToCourier: the courier's API accepts the parcel → In transit (tracking ID,
+//   courier                     sendToCourier: the courier's API accepts the parcel → Sent to courier (tracking ID,
 //                               COD locked, charge, tracking link) · trackingOf: the courier's scans
+//   digital orders              isDigitalOrder: every item is a download or a licence key, so the order skips
+//                               packing and the courier · sendDigital: the link or key is sent → Delivered
 //   courier updates (webhooks)  courierWebhook: out for delivery · delivered · delivery failed · return started;
 //                               the same update twice does nothing · syncCourier moves parcels sent from this
 //                               browser along with the clock
@@ -19,6 +21,8 @@ import { notify } from './notifications';
 import { postEntry, accountForMethod } from './ledger';
 import { courierPartner, courierChargeOf, clockNow } from './settlements';
 import { formatBDT } from './format';
+import { allProducts } from './products';
+import { productBy } from './stock';
 
 const HOUR = 60 * 60 * 1000;
 const AUTO_CALL_MS = 6000;   // an automatic call answers in a few seconds in the demo
@@ -32,6 +36,25 @@ export function setLinePhoto(o, index, dataUrl) {
   if (dataUrl) photos[index] = dataUrl; else delete photos[index];
   patchOrder(o, { photos });
   logOrder(o.id, dataUrl ? 'image-plus' : 'image-minus', dataUrl ? 'Photo added' : 'Photo removed', (o.lines[index] || {}).name || '');
+}
+
+// ---- digital orders ------------------------------------------------------------------------------------------
+const DIGITAL = ['digital', 'licence'];
+/** Every item is a download or a licence key (product format): no packing, no courier. Mixed orders ship. */
+export function isDigitalOrder(o, list = allProducts()) {
+  const lines = (o && o.lines) || [];
+  return lines.length > 0 && lines.every((l) => {
+    const row = productBy(l.sku || l.name);
+    const p = (row && row.productId && list.find((x) => x.id === row.productId)) || list.find((x) => x.name === l.name);
+    return !!p && DIGITAL.includes(p.format);
+  });
+}
+/** The download link or licence key was sent: an approved digital order is delivered. Returns false otherwise. */
+export function sendDigital(o, by = 'Staff') {
+  if (!o || o.statusKey !== 'approved' || !isDigitalOrder(o)) return false;
+  logOrder(o.id, 'send', 'Download link or key sent', by);
+  deliverOrder(o, by);
+  return true;
 }
 
 // ---- new order ---------------------------------------------------------------------------------------------
@@ -135,7 +158,7 @@ export function markReady(o) {
 }
 
 // ---- courier -----------------------------------------------------------------------------------------------------
-/** Book the parcel with the courier (its API checks phone and address). In transit when it is accepted. */
+/** Book the parcel with the courier (its API checks phone and address). Sent to courier when it is accepted. */
 export function sendToCourier(o) {
   // booked once: a second press (or a retry after a slow answer) returns the parcel already booked
   if (o.sentAt && o.consignment && o.consignment !== '—') return { ok: true, id: o.consignment, courier: o.courier, duplicate: true };
@@ -147,10 +170,10 @@ export function sendToCourier(o) {
   const at = clockNow();
   const id = PREFIX[courier] + '-' + (4400000 + (hash(o.id + courier + at) % 5599999));
   const cod = Math.max(0, (o.amount || 0) - (o.paid || 0));
-  const trackingUrl = 'https://gridshop.com.bd/track/' + id;
+  const trackingUrl = 'https://dazzleshop.com.bd/track/' + id;
   const sent = { courier, consignment: id, codAmount: cod, codLocked: at, courierCharge: courierCharge(courier, o.zone), trackingUrl, sentAt: at, hooks: [] };
   patchOrder(o, sent);
-  setOrderStatus(o, 'In transit');
+  setOrderStatus(o, 'Sent to courier');
   logOrder(o.id, 'truck', 'Sent to courier', `${courier} · ${id} · COD ${formatBDT(cod)}`);
   notify({ ...o, ...sent }, 'in-transit');
   return { ok: true, id, courier };

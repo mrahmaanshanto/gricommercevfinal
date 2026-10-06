@@ -16,7 +16,7 @@ import { toast } from '@/runtime/ui';
 import { Dialog, EmptyState } from '@/components/ui';
 import { MetricStrip, IndexTabs, SearchField, Pager, LearnMore } from '@/components/ui/IndexKit';
 import { OWN_ACCOUNTS, HOLDING_ACCOUNTS, accountBy, getEntries, balanceOf, postEntry, transferBetween, KIND_LABEL } from '@/lib/ledger';
-import { clockNow, dayKey, startOfDay } from '@/lib/settlements';
+import { clockNow, dayKey, startOfDay, partnerInEdition, partnerBy } from '@/lib/settlements';
 import { needsApproval, submit, limitText } from '@/lib/approvals';
 import { AccPage, AccountSelect, useBooks, useMe, money, signed, shortDate, accName } from './accShared';
 
@@ -93,7 +93,7 @@ export default function Money() {
     const entries = getEntries();
     const own = OWN_ACCOUNTS();
     const bal = Object.fromEntries(own.map((a) => [a.id, balanceOf(a.id, entries)]));
-    const held = HOLDING_ACCOUNTS().reduce((s, a) => s + balanceOf(a.id, entries), 0);
+    const held = HOLDING_ACCOUNTS().filter((a) => !a.partner || partnerInEdition(partnerBy(a.partner))).reduce((s, a) => s + balanceOf(a.id, entries), 0);
     return { entries: entries.filter((e) => own.some((a) => a.id === e.account)), own, bal, held };
   }, [tick]);
 
@@ -181,7 +181,7 @@ export default function Money() {
         { label: 'Balance', value: money(scopeBalance), sub: scopeName },
         { label: filtered ? 'In (filtered)' : 'Money in', value: money(inScope) },
         { label: filtered ? 'Out (filtered)' : 'Money out', value: money(outScope) },
-        { label: 'With partners', value: money(d.held), sub: 'Gateways and couriers', href: '/settlements' },
+        { label: 'With partners', value: money(d.held), sub: 'Payment partners', href: '/settlements' },
       ]} />
 
       <section className="ix-card" aria-label={scopeName}>

@@ -49,9 +49,9 @@ export const SAMPLE_EVENTS = {
     { id: 's1', label: 'Order #136801 delivered · Nusrat Jahan', data: { order_id: '#136801', customer: P('Nusrat Jahan', '01553336655'), total: 2000 } },
     { id: 's2', label: 'Order #136790 delivered · Rakib Uddin', data: { order_id: '#136790', customer: P('Rakib Uddin', '01677220945'), total: 3520 } },
   ],
-  'stock.low': [{ id: 's1', label: 'Sunscreen at Dhanmondi: 4 left (alert 10)', data: { sku: 'SK-SUN-50', place: 'Dhanmondi branch', available: 4, alert: 10 } }],
+  'stock.low': [{ id: 's1', label: 'Anker 20W charger at Dhanmondi: 4 left (alert 10)', data: { sku: 'AC-CHG-20', place: 'Dhanmondi branch', available: 4, alert: 10 } }],
   'customer.returned': [{ id: 's1', label: 'Karim Saheb · 2nd return', data: { customer: P('Karim Saheb', '01718445120'), returns: 2 } }, { id: 's2', label: 'Sadia Afrin · 1st return', data: { customer: P('Sadia Afrin', '01966330012'), returns: 1 } }],
-  'blog.published': [{ id: 's1', label: '“Eid skin care tips”', data: { title: 'Eid skin care tips' } }],
+  'blog.published': [{ id: 's1', label: '“Eid phone buying tips”', data: { title: 'Eid phone buying tips' } }],
   'order.placed': [
     { id: 's1', label: '#ORD-0929-007 · ৳12,400 COD · new customer', data: { order_id: '#ORD-0929-007', customer: P('Imran Hossain', '01819554120'), total: 12400, payment: 'COD', newCustomer: true } },
     { id: 's2', label: '#ORD-0929-012 · ৳4,800 bKash', data: { order_id: '#ORD-0929-012', customer: P('Tanvir Ahmed', '01914622045'), total: 4800, payment: 'bKash', newCustomer: false } },

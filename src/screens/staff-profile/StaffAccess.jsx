@@ -115,9 +115,8 @@ class Component extends DCLogic {
       resetAll: () => Object.keys(ov).forEach(k => onReset(k)),
       scopes: [
         ['dhanmondi', L('Dhanmondi branch', 'ধানমন্ডি শাখা'), L('POS Dhanmondi-1 · primary', 'POS ধানমন্ডি-১ · প্রধান'), true],
-        ['uttara', L('Uttara branch', 'উত্তরা শাখা'), L('POS Uttara-1, Uttara-2', 'POS উত্তরা-১, উত্তরা-২'), false],
-        ['ctg', L('Chattogram branch', 'চট্টগ্রাম শাখা'), L('POS Agrabad-1', 'POS আগ্রাবাদ-১'), false],
-        ['wh', L('Tejgaon warehouse', 'তেজগাঁও গুদাম'), L('Stock transfers and packing', 'স্টক ট্রান্সফার ও প্যাকিং'), false]
+        ['mirpur', L('Mirpur branch', 'মিরপুর শাখা'), L('POS Mirpur-1', 'POS মিরপুর-১'), false],
+        ['wh', L('Central Warehouse', 'সেন্ট্রাল ওয়্যারহাউস'), L('Stock transfers and packing', 'স্টক ট্রান্সফার ও প্যাকিং'), false]
       ].map(([key, label, meta, on]) => ({
         label, meta, sel: on, unsel: !on,
         act: () => onChange('scope:' + key, label + ' · ' + (on ? L('removed from scope', 'বাদ') : L('added to scope', 'যোগ')), L('Branch scope changed', 'শাখার পরিধি বদলেছে'))

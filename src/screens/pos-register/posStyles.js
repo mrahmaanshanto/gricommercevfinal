@@ -409,5 +409,17 @@ a.pos-ic{color:var(--text-muted)}
 .pos-acctable td.is-off{color:var(--text-warning)}
 .pos-acctable .pos-in{width:140px;height:36px}
 @media (max-width:640px){.pos-hw__state{flex:1}.pos-sync__sn{width:100%}.pos-acctable .pos-in{width:100px}}
+/* after a sale: the two print buttons share a row, New sale takes the full row below; the send-receipt row keeps its field and Send together */
+.pos-payactions--done{flex-wrap:wrap}
+.pos-payactions--done .pos-greybtn{flex:1 1 0;min-width:0;padding:0 var(--space-3)}
+.pos-payactions--done .pos-donebtn{flex:1 1 100%}
+.pos-paycol .pos-acct #pos-send-to{flex:1 1 140px}
+/* the receipt printing: it rises out of the printer's slot (the top edge) in small line-feed steps */
+.pos-printslot{position:relative;overflow:hidden;border-top:3px solid var(--slate-300,var(--border-field));border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding-top:2px}
+.pos-printslot.is-printing .pos-receipt{animation:pos-print 1.9s steps(22,end) both}
+@keyframes pos-print{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.pos-printing{position:absolute;z-index:1;top:8px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:var(--radius-full);background:var(--surface-card);box-shadow:var(--shadow-card,0 1px 3px rgba(15,23,42,.12));font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);animation:pos-print-label 2.3s ease both}
+@keyframes pos-print-label{0%,85%{opacity:1}100%{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.pos-printslot.is-printing .pos-receipt,.pos-printing{animation:none}.pos-printing{display:none}}
 @media (prefers-reduced-motion:reduce){.pos-cart,.pos-switch,.pos-switch i{transition:none}.pos-scan input{animation:none}}
 `;

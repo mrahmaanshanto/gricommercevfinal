@@ -13,7 +13,7 @@ import { isStatusSellable } from '@/lib/sellable';
 import { getReplies, upsertReply, deleteReply, channelName, samePhone, previewOf, lastAny, ago } from '@/lib/inbox';
 import { SearchBox, Avatar } from './parts';
 
-const CAT_ICON = { Grocery: 'wheat', Clothing: 'shirt', 'Skin care': 'sparkles', Electronics: 'headphones', Home: 'house' };
+const CAT_ICON = { Phones: 'smartphone', Accessories: 'cable', Audio: 'headphones', Wearables: 'watch', 'Power banks': 'battery-charging' };
 export const catIcon = (cat) => CAT_ICON[cat] || 'package';
 
 // ---- saved replies ------------------------------------------------------------------------------
@@ -148,7 +148,7 @@ export function PaymentDialog({ open, onClose, onSend, orders }) {
             </label>
           ))}
         </div>
-        <div><label className="gc-label" htmlFor="pl-note">Message with the link</label><input id="pl-note" className="gc-input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="Optional, for example: advance for 2 sarees" /></div>
+        <div><label className="gc-label" htmlFor="pl-note">Message with the link</label><input id="pl-note" className="gc-input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="Optional, for example: advance for 2 phones" /></div>
         <p className="gc-help" style={{ margin: 0 }}>The link works for 24 hours. The payment shows on the order once the customer pays.</p>
         <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid"><Icon name="link" width="18" height="18" aria-hidden="true" />Send link</button></div>
       </form>

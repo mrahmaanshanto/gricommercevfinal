@@ -44,7 +44,7 @@ const H = (stage, when, by, note = '') => ({ stage, at: when, by, note });
 const SEED = [
   { id: 'RF-0016', ref: '#136737', customer: 'Rakib Uddin', phone: '01677-220945', amount: 450, method: 'bKash', account: 'bkash', reason: 'Delivery charge back · late delivery', source: 'Order', requestedAt: at(10, 1, 11, 20), by: 'farhana', byName: 'Farhana Yasmin', stage: 'sent', tries: 1, providerRef: 'BK9R2T6M1Q', seed: true,
     history: [H('approved', at(10, 1, 11, 20), 'Farhana Yasmin', 'Under the refund limit'), H('sent', at(10, 1, 11, 45), 'Farhana Yasmin', 'bKash TrxID BK9R2T6M1Q')] },
-  { id: 'RF-0015', ref: 'INV-0226', customer: 'New Madina Telecom', phone: '01845-667302', amount: 4200, method: 'Bank transfer', account: 'brac', reason: 'Four sunscreen packs returned', source: 'Return', requestedAt: at(10, 1, 10, 5), by: 'rakib', byName: 'Rakib Hasan', stage: 'requested', tries: 0, approval: 'AP-R015', seed: true,
+  { id: 'RF-0015', ref: 'INV-0226', customer: 'New Madina Telecom', phone: '01845-667302', amount: 4200, method: 'Bank transfer', account: 'brac', reason: 'Four chargers returned', source: 'Return', requestedAt: at(10, 1, 10, 5), by: 'rakib', byName: 'Rakib Hasan', stage: 'requested', tries: 0, approval: 'AP-R015', seed: true,
     history: [H('requested', at(10, 1, 10, 5), 'Rakib Hasan', 'Over the ৳3,000 refund limit')] },
   { id: 'RF-0014', ref: '#136742', customer: 'Farhana Islam', phone: '01744-556677', amount: 2950, method: 'Card', account: 'brac', reason: 'Returned · wrong address', source: 'Return', requestedAt: at(9, 30, 15, 30), by: 'farhana', byName: 'Farhana Yasmin', stage: 'approved', tries: 0, seed: true,
     history: [H('approved', at(9, 30, 15, 30), 'Farhana Yasmin', 'Under the refund limit')] },

@@ -37,9 +37,14 @@ import { opportunitiesOf, OPP_STATES, OPP_TYPES, RECOVERY_EVENT } from '@/lib/re
 import { canSeeDeviceData } from '@/lib/crmAccess';
 import { forgetDerived } from '@/lib/crmPrivacy';
 import { currentUser } from '@/lib/team';
+import { wholesaleOn, hasModule } from '@/lib/edition';
 import { ManagerPin } from '@/components/ManagerPin';
 import { FORM_CSS, Switch, Steps } from '@/screens/loyalty-promo/loyShared';
 import CustomerEditDialog from './CustomerEditDialog';
+import CustomerInvoices from './CustomerInvoices';
+import CustomerWarranty from './CustomerWarranty';
+import { getInvoices } from '@/lib/invoices';
+import { meetingsWith, providerOf as meetingHow } from '@/lib/meetings';
 
 // ---- demo data of the demo customer (Nusrat Jahan, C-10482) ----
 
@@ -54,14 +59,14 @@ const isoDay = (t) => { const d = new Date(t); return d.getFullYear() + '-' + St
 const fromIso = (s, end) => { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d, end ? 23 : 0, end ? 59 : 0).getTime(); };
 
 const ORDERS = [
-  ['#GC-10471', '12 Sep 2026', 'Sunscreen SPF 50, Toner +1', 'bKash', 4860, 'Delivered'],
-  ['#GC-10402', '2 Sep 2026', 'Vitamin C Serum', 'bKash', 1450, 'Delivered'],
+  ['#GC-10471', '12 Sep 2026', 'Anker 20W Charger, Earphones +1', 'bKash', 4860, 'Delivered'],
+  ['#GC-10402', '2 Sep 2026', 'Liquid Silicone Case', 'bKash', 1450, 'Delivered'],
   ['#GC-10355', '26 Aug 2026', 'Night Repair Cream', 'Cash on delivery', 1690, 'Cancelled'],
-  ['#GC-10311', '22 Aug 2026', 'Kurti, Lip Balm +3', 'Cash on delivery', 6120, 'Delivered'],
-  ['#GC-10207', '14 Aug 2026', 'Aloe Vera Gel', 'Nagad', 650, 'Returned'],
-  ['#GC-10150', '3 Aug 2026', 'Rice Water Cleanser +2', 'Card', 3240, 'Delivered'],
+  ['#GC-10311', '22 Aug 2026', 'Magnetic Charger, Ring Holder +3', 'Cash on delivery', 6120, 'Delivered'],
+  ['#GC-10207', '14 Aug 2026', 'Foldable Phone Stand', 'Nagad', 650, 'Returned'],
+  ['#GC-10150', '3 Aug 2026', 'Tempered Glass 9H +2', 'Card', 3240, 'Delivered'],
   ['#GC-10044', '20 Jul 2026', 'Cotton Face Towel ×3', 'bKash', 1180, 'Delivered'],
-  ['#GC-09870', '28 Jun 2026', 'Sunscreen SPF 50 ×2', 'Wallet', 2500, 'Delivered'],
+  ['#GC-09870', '28 Jun 2026', 'Anker 20W Charger ×2', 'Wallet', 2500, 'Delivered'],
 ];
 const OTONE = { Delivered: 'success', Cancelled: 'error', Returned: 'warning' };
 const demoTimeline = () => [
@@ -69,12 +74,12 @@ const demoTimeline = () => [
   { icon: 'message-circle', what: 'Cart reminder sent on WhatsApp', sub: 'Opened', at: todayAt(11, 45) },
   { icon: 'package-check', what: 'Order #GC-10471 delivered', sub: '৳4,860 · bKash · 180 points earned', at: dayAt(2026, 9, 12) },
   { icon: 'life-buoy', what: 'Ticket #T-2210 solved', sub: 'Asked about delivery time · 14 min', at: dayAt(2026, 9, 10) },
-  { icon: 'ticket-percent', what: 'Got coupon SKIN15', sub: 'From “Bought sunscreen, try toner”', at: dayAt(2026, 9, 8) },
-  { icon: 'undo-2', what: 'Returned Aloe Vera Gel', sub: 'Wrong size · refund ৳650 to wallet', at: dayAt(2026, 8, 28) },
+  { icon: 'ticket-percent', what: 'Got coupon CASE15', sub: 'From “Bought a phone, add a case”', at: dayAt(2026, 9, 8) },
+  { icon: 'undo-2', what: 'Returned Foldable Phone Stand', sub: 'Wrong model · refund ৳650 to wallet', at: dayAt(2026, 8, 28) },
 ];
 const COUP = [
-  ['NUS7Q2', '10% off Vitamin C Serum', 'Smart offer · Looked but didn’t buy', '19 Sep 2026', 'Unused', 'Ends 22 Sep'],
-  ['SKIN15', '15% off skin care', 'Offers page', '8 Sep 2026', 'Used', 'On #GC-10471 · saved ৳726'],
+  ['NUS7Q2', '10% off Redmi Note 13', 'Smart offer · Looked but didn’t buy', '19 Sep 2026', 'Unused', 'Ends 22 Sep'],
+  ['CASE15', '15% off accessories', 'Offers page', '8 Sep 2026', 'Used', 'On #GC-10471 · saved ৳726'],
   ['EID300', '৳300 off on ৳2,000+', 'Checkout', '20 Aug 2026', 'Used', 'On #GC-10311'],
   ['NUSWB5', '5% off', 'Smart offer · Win them back', '1 Aug 2026', 'Expired', 'Not used'],
   ['FIRST20', '20% off first order', 'Sign-up', '2 Mar 2026', 'Used', 'On #GC-10150'],
@@ -82,8 +87,8 @@ const COUP = [
 ];
 const CTONE = { Used: 'success', Unused: 'info', Expired: 'neutral' };
 const HIST = [
-  ['WhatsApp', 'Today 11:45 AM', 'Automatic · cart reminder', 'Read', 'Hi Nusrat, you left something in your cart at GridShop. Finish your order here: gridshop.com.bd/c/8K2Q'],
-  ['SMS', '19 Sep 9:10 AM', 'Smart offer', 'Delivered', 'Hi Nusrat, still thinking about Vitamin C Serum? 10% off with code NUS7Q2, till 22 Sep.'],
+  ['WhatsApp', 'Today 11:45 AM', 'Automatic · cart reminder', 'Read', 'Hi Nusrat, you left something in your cart at Dazzle Shop. Finish your order here: dazzleshop.com.bd/c/8K2Q'],
+  ['SMS', '19 Sep 9:10 AM', 'Smart offer', 'Delivered', 'Hi Nusrat, still thinking about Redmi Note 13? 10% off with code NUS7Q2, till 22 Sep.'],
   ['Email', '12 Sep 6:02 PM', 'Automatic · order', 'Opened', 'Your order #GC-10471 is delivered. You earned 180 points.'],
   ['SMS', '10 Sep 3:20 PM', 'Tania (support)', 'Delivered', 'দুঃখিত দেরির জন্য। আপনার জন্য ৳১০০ ছাড়: SORRY100'],
 ];
@@ -99,14 +104,18 @@ const ADDR0 = [
   { id: 'a3', label: 'Sister’s house', line: 'Flat 3B, Chandrima Tower, Agrabad C/A, Chattogram 4100', who: 'Nasrin Jahan', phone: '01819-4X2-770', used: 'used in 1 order' },
 ];
 const NOTES0 = [{ t: 'Prefers delivery after 6:00 PM. Call before sending.', by: 'Tania · 10 Sep 2026' }, { t: 'Buys for her sister too — good for bundle offers.', by: 'Shanto · 22 Aug 2026' }];
-const TICKETS = [{ no: '#T-2210', title: 'When will my order arrive?', sub: 'WhatsApp · 10 Sep · solved by Tania in 14 min', st: 'Solved', tone: 'success' }, { no: '#T-2104', title: 'Wrong size Aloe Vera Gel', sub: 'Phone · 26 Aug · return approved', st: 'Solved', tone: 'success' }, { no: '#T-2318', title: 'Can I change the delivery address?', sub: 'Messenger · today · waiting for reply', st: 'Open', tone: 'warning' }];
-const FAVS = [['Night Repair Cream 50g', '৳1,690', 'Price dropped ৳200', 'ly-in'], ['Vitamin C Serum 30ml', '৳1,450', '', ''], ['Travel Pouch Set', '৳650', 'Back in stock', 'ly-in'], ['Silk Scarf · Blue', '৳890', 'Low stock', 'ix-warn']];
-const SEARCHES = [['vitamin c serum', 'Today', '12 found'], ['sunscreen for oily skin', '16 Sep', '8 found'], ['korean snail mucin', '14 Sep', 'Nothing found'], ['সানস্ক্রিন', '10 Sep', '6 found'], ['retinol cream', '2 Sep', 'Nothing found'], ['eid kurti', '20 Aug', '24 found']];
-const VIEWED = [['Vitamin C Serum 30ml', '4 times in 7 days', 'last today'], ['Cotton Kurti · Blue · M', '3 times in 7 days', 'last 1 Oct'], ['Hyaluronic Toner 150ml', '2 times in 30 days', 'last 16 Sep'], ['Night Repair Cream 50g', '1 time in 30 days', 'last 14 Sep']];
+const TICKETS = [{ no: '#T-2210', title: 'When will my order arrive?', sub: 'WhatsApp · 10 Sep · solved by Tania in 14 min', st: 'Solved', tone: 'success' }, { no: '#T-2104', title: 'Wrong model phone stand', sub: 'Phone · 26 Aug · return approved', st: 'Solved', tone: 'success' }, { no: '#T-2318', title: 'Can I change the delivery address?', sub: 'Messenger · today · waiting for reply', st: 'Open', tone: 'warning' }];
+const FAVS = [['iPhone 15 128GB', '৳1,19,999', 'Price dropped ৳3,000', 'ly-in'], ['Redmi Note 13 8/256GB', '৳26,999', '', ''], ['Redmi Buds 5', '৳3,650', 'Back in stock', 'ly-in'], ['Xiaomi Smart Band 8', '৳3,450', 'Low stock', 'ix-warn']];
+const SEARCHES = [['redmi note 13', 'Today', '12 found'], ['phone under 20000', '16 Sep', '8 found'], ['pixel 8', '14 Sep', 'Nothing found'], ['আইফোন', '10 Sep', '6 found'], ['oneplus nord', '2 Sep', 'Nothing found'], ['eid offer phone', '20 Aug', '24 found']];
+const VIEWED = [['Redmi Note 13 8/256GB', '4 times in 7 days', 'last today'], ['Liquid Silicone Case · Navy / iPhone 15', '3 times in 7 days', 'last 1 Oct'], ['Type-C Wired Earphones', '2 times in 30 days', 'last 16 Sep'], ['iPhone 15 128GB', '1 time in 30 days', 'last 14 Sep']];
 const BARS = [['Oct', 0], ['Nov', 1200], ['Dec', 3400], ['Jan', 0], ['Feb', 2100], ['Mar', 5200], ['Apr', 4100], ['May', 6800], ['Jun', 2500], ['Jul', 4600], ['Aug', 11850], ['Sep', 6310]];
 
-const AREAS = [['overview', 'Overview'], ['orders', 'Orders & commerce'], ['insights', 'Insights'], ['activity', 'Activity & communication'], ['details', 'Details & addresses'], ['controls', 'Controls']];
-const TAGS = ['VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up', 'Prefers call'];
+// the areas a profile shows: the main things about one customer. Insights (signals, segments) and Controls (consent,
+// restrictions, devices, privacy) are kept in the code but not shown; their actions are in the header's More menu.
+const AREAS = [['overview', 'Overview'], ['orders', 'Orders'], ['invoices', 'Invoices'], ['activity', 'Messages & activity'], ['details', 'Details']];
+// wholesale (type, price list, profile) shows only while it is on (edition.js › WHOLESALE; off for now)
+const WS = wholesaleOn();
+const TAGS = ['VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up', 'Prefers call'].filter((t) => t !== 'Wholesale' || WS);
 const ALABELS = ['Home', 'Office', 'Family', 'Shop', 'Branch', 'Other'];
 const STAFF = ['Tania', 'Karim', 'Shanto', 'Rupa'];
 const PREFERRED = ['WhatsApp', 'Phone', 'SMS', 'Email'];
@@ -268,8 +277,17 @@ export default function CustomerCRMScreen() {
     consentHistory(c.id).forEach((h) => { if (h.at) tl.push({ icon: 'shield-check', what: (h.channel === 'ads' ? 'Ad audiences' : channelLabel(h.channel)) + ': ' + (CONSENT_STATES[h.to] || h.to), sub: (h.source || '') + (h.by ? ' · ' + h.by : ''), at: h.at }); });
     restr.forEach((r) => { tl.push({ icon: 'ban', what: 'Restriction added: ' + restrictionText(r), sub: r.reason + ' · ' + r.by, at: r.createdAt }); if (r.liftedAt) tl.push({ icon: 'circle-check', what: 'Restriction lifted: ' + restrictionText(r), sub: (r.liftReason || '') + ' · ' + r.liftedBy, at: r.liftedAt }); });
     if (c.statusNote && c.statusNote.at) tl.push({ icon: 'user-cog', what: 'Account ' + c.status.toLowerCase(), sub: (c.statusNote.reason || '') + ' · ' + c.statusNote.by, at: c.statusNote.at });
+    // meetings with this customer (Customers › Meetings)
+    const myPh = [...c.phones.map((p) => p.value), c.bookPhone, c.digits].filter(Boolean);
+    const seenM = new Set();
+    if (hasModule('comms')) myPh.forEach((p) => meetingsWith({ phone: p }).forEach((mt) => { if (seenM.has(mt.id)) return; seenM.add(mt.id); tl.push({ icon: 'video', what: 'Meeting · ' + mt.title, sub: meetingHow(mt.provider).label + ' · ' + mt.host + (mt.note ? ' · ' + mt.note : ''), at: mt.at }); }));
     tl.sort((a, b) => b.at - a.at);
-    return { orders, sig, consent, restr, opps, segs, member, contacts, coRow, dupes, tl };
+    // invoices made out to any of this customer's numbers that still have money due (the Invoices area's count)
+    const digitsOf = (p) => String(p || '').replace(/[^0-9]/g, '').replace(/^88/, '');
+    const myPhones = [...c.phones.map((p) => p.value), c.bookPhone, c.digits, c.phone].filter(Boolean);
+    const mine = new Set(myPhones.map(digitsOf));
+    const unpaid = getInvoices().filter((r) => r.due > 0 && mine.has(digitsOf(r.customer && r.customer.phone))).length;
+    return { orders, sig, consent, restr, opps, segs, member, contacts, coRow, dupes, tl, unpaid, myPhones };
   }, [c, demo, company, allOrders, rows]);
 
   // ---- not found / loading ----
@@ -298,11 +316,10 @@ export default function CustomerCRMScreen() {
   const active = D.restr.filter((r) => restrictionState(r) === 'active' || restrictionState(r) === 'scheduled');
   const past = D.restr.filter((r) => !active.includes(r));
   const consentOk = CONSENT_CHANNELS.filter((ch) => D.consent[ch.k].state === 'in').map((ch) => ch.label);
-  const historySig = D.sig.signals.history;
   const deviceOk = canSeeDeviceData();
   const fieldDefs = getFieldDefs().filter((d) => fieldVisible(d, role));
   const fieldVals = getFieldValues(c.id);
-  const whole = (c.types || []).indexOf('Wholesale') >= 0;
+  const whole = WS && (c.types || []).indexOf('Wholesale') >= 0;
   const pts = demo ? ui.pts : D.member ? D.member.points : 0;
   const level = demo ? 'Gold' : D.member && D.member.tierObj ? D.member.tierObj.name : c.level;
   const verified = c.phones.find((p) => p.primary) || c.phones[0];
@@ -414,7 +431,7 @@ export default function CustomerCRMScreen() {
     if (!/^01[3-9]\d{8}$/.test(d)) { setErr('Enter an 11-digit Bangladeshi mobile number.'); return; }
     const other = resolveCustomer(d);
     if (other) { setErr(other.name + ' already has this number. Link them above.'); return; }
-    const row = addCustomer({ name: f.name.trim(), phone: d, address: '', types: c.types && c.types.length ? c.types : ['Wholesale'], creditLimit: 0, signup: fmtD(Date.now()), src: 'Contact of ' + c.name });
+    const row = addCustomer({ name: f.name.trim(), phone: d, address: '', types: c.types && c.types.length ? c.types : [WS ? 'Wholesale' : 'Retail'], creditLimit: 0, signup: fmtD(Date.now()), src: 'Contact of ' + c.name });
     linkContact(row.id, c.id, f.role || 'Buyer', f.loc || ''); close(); bump(); uiToast(f.name.trim() + ' added as a contact.');
   };
   const saveLink = () => { if (!f.company) { setErr('Choose a company.'); return; } linkContact(c.id, f.company, f.role, f.loc); close(); bump(); uiToast(first + ' is linked to ' + ((rows.find((x) => x.id === f.company) || {}).name || 'the company') + '.'); };
@@ -431,7 +448,7 @@ export default function CustomerCRMScreen() {
   // ---- header ----
   const badges = <>{company ? <__StatusBadge tone="info" icon="building-2">Company</__StatusBadge> : <__StatusBadge tone={level === 'Gold' ? 'warning' : level === 'Platinum' ? 'primary' : 'neutral'} icon="crown">{level}</__StatusBadge>}<__StatusBadge tone={STATUS_TONE[c.status] || 'neutral'}>{c.status}</__StatusBadge></>;
   const meta = [c.id, company ? 'Company' : 'Person', c.signup && c.signup !== '—' ? 'Customer since ' + c.signup : '', c.area, c.owner ? 'Looked after by ' + c.owner : ''].filter(Boolean).join(' · ');
-  const tabs = AREAS.map(([k, l]) => ({ key: k, id: 'crm-area-' + k, label: l, on: k === tab, onClick: () => setTab(k), count: k === 'orders' && D.orders.length ? D.orders.length : k === 'controls' && active.length ? active.length : undefined }));
+  const tabs = AREAS.map(([k, l]) => ({ key: k, id: 'crm-area-' + k, label: l, on: k === tab, onClick: () => setTab(k), count: k === 'orders' && D.orders.length ? D.orders.length : k === 'invoices' && D.unpaid ? D.unpaid : k === 'controls' && active.length ? active.length : undefined }));
 
   // ---- areas ----
   const ordersCard = (limit) => {
@@ -463,7 +480,7 @@ export default function CustomerCRMScreen() {
     );
   };
   const nba = (() => {
-    if (demo) return { title: 'Send 10% off Vitamin C Serum', why: 'She viewed it 4 times in 7 days (Tracking) and left a ৳3,240 cart today (Recovery). Advice only: the offer comes from Promotions.', ch: 'whatsapp', act: 'Send on WhatsApp' };
+    if (demo) return { title: 'Send 10% off Redmi Note 13', why: 'She viewed it 4 times in 7 days (Tracking) and left a ৳3,240 cart today (Recovery). Advice only: the offer comes from Promotions.', ch: 'whatsapp', act: 'Send on WhatsApp' };
     if (openCart) return { title: 'Remind ' + first + ' about the ' + bdt(openCart.value) + ' ' + OPP_TYPES[openCart.type].toLowerCase(), why: 'Left ' + fmtDT(openCart.leftAt) + ' (Recovery · ' + OPP_STATES[openCart.state].label + ').', href: '/abandoned-carts', act: 'Open in Abandoned carts' };
     const ch = D.sig.signals.churn;
     if (ch.value === 'At risk' || ch.value === 'Watch') return { title: 'Win ' + first + ' back', why: ch.explanation + ' (' + ch.model + ').', href: '/coupons', act: 'Pick an offer' };
@@ -473,21 +490,13 @@ export default function CustomerCRMScreen() {
   })();
   const nbaGo = () => {
     if (nba.href) { navigate(nba.href); return; }
-    if (demo) { const why = whyNotAllowed(c, 'whatsapp', 'marketing'); if (why) { uiToast(why, { tone: 'error' }); return; } set({ nba: 'sent' }); uiToast('Handed to Communications: 10% off Vitamin C Serum on WhatsApp.'); return; }
+    if (demo) { const why = whyNotAllowed(c, 'whatsapp', 'marketing'); if (why) { uiToast(why, { tone: 'error' }); return; } set({ nba: 'sent' }); uiToast('Handed to Communications: 10% off Redmi Note 13 on WhatsApp.'); return; }
     set({ mch: nba.ch }); goMessage();
   };
 
   const overview = (<>
-    {nba ? (
-      <section className="ix-card ix-card--pad" aria-label="Next best action">
-        <div className="crm-nba">
-          <__Icon name="sparkles" width="18" height="18" aria-hidden="true" />
-          <div><b>{nba.title} <InfoTip text={nba.why} /></b><span className="crm-sub">Next best action · suggestion</span></div>
-          {!ui.nba ? <span className="crm-nba__acts"><button type="button" className="ix-btn ix-btn--sm" onClick={() => set({ nba: 'skip' })}>Not now</button><button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={nbaGo}>{nba.act}</button></span>
-            : <__StatusBadge tone={ui.nba === 'sent' ? 'success' : 'neutral'}>{ui.nba === 'sent' ? 'Sent to Communications' : 'Skipped for 7 days'}</__StatusBadge>}
-        </div>
-      </section>
-    ) : null}
+    {D.orders.length ? ordersCard(3) : null}
+    <CustomerWarranty phones={D.myPhones} name={c.name} limit={3} />
     <Card id="crm-recent" title="Recent activity" action={<Plain onClick={() => setTab('activity')}>View all</Plain>}>{timeline(5)}</Card>
     {company ? (
       <Card id="crm-co-sum" title={'Locations · ' + c.locations.length + ' · Contacts · ' + D.contacts.length} action={<Plain onClick={() => setTab('details')}>Manage</Plain>}>
@@ -511,26 +520,25 @@ export default function CustomerCRMScreen() {
             <h3 className="crm-set-h">Order outcomes · 14 orders · 86% delivered</h3>
             {[['Delivered', 12, 'var(--success)'], ['Returned', 1, 'var(--warning)'], ['Cancelled', 1, 'var(--error)']].map((d) => <div key={d[0]} className="crm-meter"><div><span>{d[0]}</span><b>{d[1]}</b></div><span className="gc-progress"><span className="gc-progress__fill" style={{ display: 'block', width: Math.round(d[1] / 14 * 100) + '%', background: d[2] }} /></span></div>)}
             <h3 className="crm-set-h">What she buys · by money spent</h3>
-            {[['Skin care', 36400], ['Clothing', 13100], ['Personal care', 6200], ['Grocery', 2500]].map((x) => <div key={x[0]} className="crm-meter"><div><span>{x[0]}</span><b>{bdt(x[1])}</b></div><span className="gc-progress"><span className="gc-progress__fill" style={{ display: 'block', width: Math.round(x[1] / 36400 * 100) + '%' }} /></span></div>)}
+            {[['Phones', 36400], ['Accessories', 13100], ['Audio', 6200], ['Power banks', 2500]].map((x) => <div key={x[0]} className="crm-meter"><div><span>{x[0]}</span><b>{bdt(x[1])}</b></div><span className="gc-progress"><span className="gc-progress__fill" style={{ display: 'block', width: Math.round(x[1] / 36400 * 100) + '%' }} /></span></div>)}
           </div>
         </div>
       </details>
     ) : null}
   </>);
   const overviewSide = (
-    <Card id="crm-facts" title="Customer facts">
+    <Card id="crm-facts" title="Good to know">
       <KV rows={[
         ['Likes messages by', c.preferred || '—'],
         ['Marketing consent', consentOk.length ? consentOk.join(', ') : 'None on file'],
         ['Restrictions', active.length ? active.map(restrictionText).join(', ') : 'None'],
-        ['Order history', historySig.value],
-        ['Duplicate check', D.dupes.length ? <__Link href="/all-customers?view=dupes">{D.dupes.length} possible: {D.dupes.map((x) => x.name + ' (' + x.id + ')').join(', ')}</__Link> : 'No strong match'],
       ]} />
     </Card>
   );
 
   const commerce = (<>
     {ordersCard(5)}
+    <CustomerWarranty phones={D.myPhones} name={c.name} />
     <Card id="crm-pay" title="Payments">
       <dl className="ix-sum">
         <dt>Total spent</dt><dd>{bdt(figs.spent)}</dd>
@@ -562,7 +570,7 @@ export default function CustomerCRMScreen() {
     </Card>
   ) : company || whole ? (
     <Card id="crm-terms" title="Account terms">
-      <KV rows={[['Price list', c.tier ? 'Wholesale ' + c.tier : '—'], ['Payment terms', c.terms || '—'], ['Credit limit', c.creditLimit ? bdt(c.creditLimit) : 'No limit'], ['Owed now', bdt(c.due)]]} />
+      <KV rows={[...(WS ? [['Price list', c.tier ? 'Wholesale ' + c.tier : '—']] : []), ['Payment terms', c.terms || '—'], ['Credit limit', c.creditLimit ? bdt(c.creditLimit) : 'No limit'], ['Owed now', bdt(c.due)]]} />
       {whole && !company ? <__Link href={'/wholesale-customer?phone=' + (c.bookPhone || c.digits) + (c.demoId ? '&demo=' + c.demoId : '')}>Wholesale profile</__Link> : null}
     </Card>
   ) : null;
@@ -658,9 +666,6 @@ export default function CustomerCRMScreen() {
       <span><Plain onClick={() => open('phone', { value: '', label: 'Mobile', verified: false, primary: false })} dialog>Add phone</Plain></span>
       <p className="crm-set-h">Emails</p>{pointList('emails')}
       <span><Plain onClick={() => open('email', { value: '', label: 'Personal', verified: false, primary: false })} dialog>Add email</Plain></span>
-    </Card>
-    <Card id="crm-ext" title="Outside IDs" action={<Plain onClick={() => open('ext', { source: 'woo', value: '' })} dialog>Add ID</Plain>}>
-      {c.externalIds.length ? <ul className="crm-list">{c.externalIds.map((x, i) => <li key={i}><div><b className="ly-fig">{x.value}</b><span className="crm-sub">{EXTERNAL_SOURCES[x.source] || x.source}</span></div><Plain onClick={() => { removeExternalId(c.id, i); bump(); }}>Remove</Plain></li>)}</ul> : <p className="ly-help">No outside IDs. Imports match on these first, then phone, then email.</p>}
     </Card>
     <section className="ix-card crm-card" aria-labelledby="crm-addr">
       <header className="ix-card__head"><h2 id="crm-addr">Addresses · {addrs.length}</h2><Plain onClick={() => open('addr', { label: 'Other', line: '', who: c.name, phone: c.phone, def: false })} dialog>Add address</Plain></header>
@@ -760,7 +765,7 @@ export default function CustomerCRMScreen() {
     </Card>
   </>);
 
-  const area = { overview: [overview, overviewSide], orders: [commerce, commerceSide], insights: [insights, insightsSide], activity: [activity, null], details: [details, detailsSide], controls: [controls, controlsSide] }[tab];
+  const area = { overview: [overview, overviewSide], orders: [commerce, commerceSide], invoices: [<CustomerInvoices key="inv" phones={D.myPhones} name={c.name} onChange={bump} />, null], insights: [insights, insightsSide], activity: [activity, null], details: [details, detailsSide], controls: [controls, controlsSide] }[tab];
   const custCard = (
     <Card id="crm-who" title={company ? 'Company' : 'Customer'} action={<Plain onClick={openEdit} dialog>Edit</Plain>}>
       <KV rows={[
@@ -791,6 +796,7 @@ export default function CustomerCRMScreen() {
         secondary={[{ label: 'Edit', onClick: openEdit }, { label: 'Call', onClick: call }]}
         more={[
           whole && !company ? { label: 'Wholesale profile', href: '/wholesale-customer?phone=' + (c.bookPhone || c.digits) + (c.demoId ? '&demo=' + c.demoId : '') } : null,
+          hasModule('comms') && { label: 'Schedule meeting', href: '/meetings?new=1&customer=' + encodeURIComponent(c.bookPhone || c.phone || (c.phones[0] || {}).value || '') },
           { label: 'Merge customer', href: '/all-customers?view=dupes' },
           company ? { label: 'Add contact', onClick: () => { setTab('details'); open('contact', { q: '', role: 'Buyer', loc: (c.locations[0] || {}).id || '' }); } } : { label: 'Add to a company', onClick: () => open('link', { company: '', role: 'Buyer', loc: '' }) },
           { label: 'Custom fields', onClick: () => setTab('details') },
@@ -805,8 +811,7 @@ export default function CustomerCRMScreen() {
         { label: 'Lifetime value', value: bdt(figs.spent), sub: c.signup && c.signup !== '—' ? 'since ' + c.signup : undefined },
         { label: 'Orders', value: figs.orders.toLocaleString('en-IN'), sub: c.returns ? c.returns + ' returned' : undefined },
         { label: 'Average order', value: bdt(figs.aov) },
-        { label: 'Order history', value: historySig.value, sub: historySig.model },
-        company || whole ? { label: 'Due', value: bdt(c.due), sub: c.creditLimit ? 'limit ' + bdt(c.creditLimit) : undefined } : { label: 'Loyalty points', value: pts.toLocaleString('en-IN') },
+        company || whole || c.due > 0 ? { label: 'Due', value: bdt(c.due), sub: c.creditLimit ? 'limit ' + bdt(c.creditLimit) : undefined } : { label: 'Loyalty points', value: pts.toLocaleString('en-IN') },
       ]} />
 
       <section className="ix-card crm-areas" aria-label="Customer areas"><div className="ix-bar"><IndexTabs tabs={tabs} label="Customer areas" /></div></section>
@@ -910,7 +915,7 @@ export default function CustomerCRMScreen() {
             <p className="gc-help gc-help--error" style={{ margin: 0 }}>They will not be able to log in or place orders. Open orders stay as they are. To stop only cash on delivery, add a restriction instead.</p>
           </>) : null}
           {m === 'coupon' ? (<>
-            <Field id="crm-c-coupon" label="Coupon"><select id="crm-c-coupon" className="gc-input gc-select"><option>Make a one-time code just for her</option><option>EID300 — ৳300 off on ৳2,000+</option><option>SKIN15 — 15% off skin care</option><option>GOLD500 — ৳500 off on ৳5,000+</option></select></Field>
+            <Field id="crm-c-coupon" label="Coupon"><select id="crm-c-coupon" className="gc-input gc-select"><option>Make a one-time code just for her</option><option>EID300 — ৳300 off on ৳2,000+</option><option>CASE15 — 15% off accessories</option><option>GOLD500 — ৳500 off on ৳5,000+</option></select></Field>
             <div className="ly-two">
               <Field id="crm-c-disc" label="Discount"><select id="crm-c-disc" className="gc-input gc-select"><option>10% off, up to ৳300</option><option>৳100 off</option><option>৳200 off</option><option>Free delivery</option></select></Field>
               <Field id="crm-c-valid" label="Works for"><select id="crm-c-valid" className="gc-input gc-select"><option>7 days</option><option>3 days</option><option>14 days</option><option>30 days</option></select></Field>

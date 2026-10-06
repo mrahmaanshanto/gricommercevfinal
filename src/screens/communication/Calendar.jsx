@@ -18,16 +18,16 @@ import { clockNow } from '@/lib/settlements';
 
 // key, name, short, (colour: unused, the channel icon brings its own), auto?, account, status, supports, note
 const PLAT = [
-  ['fb', 'Facebook Page', 'FB', '', true, 'GridShop', 'ok', 'Text, photos, videos, links', 'Posts go out at the scheduled minute.'],
-  ['ig', 'Instagram', 'IG', '', true, '@gridshop.bd', 'ok', 'Photos, carousels, Reels', 'Needs a photo or video. Business account linked to the Facebook Page.'],
+  ['fb', 'Facebook Page', 'FB', '', true, 'Dazzle Shop', 'ok', 'Text, photos, videos, links', 'Posts go out at the scheduled minute.'],
+  ['ig', 'Instagram', 'IG', '', true, '@dazzleshop.bd', 'ok', 'Photos, carousels, Reels', 'Needs a photo or video. Business account linked to the Facebook Page.'],
   ['wa', 'WhatsApp broadcast', 'WA', '', true, '+880 1711-482093', 'ok', 'Template message with photo', 'Goes only to customers who opted in. ৳1.10 per message from the wallet.'],
-  ['tt', 'TikTok', 'TT', '', true, '@gridshop', 'renew', 'Videos, photo posts', 'Access expires in 3 days. Reconnect to keep posting.'],
-  ['yt', 'YouTube', 'YT', '', true, 'GridShop BD', 'ok', 'Videos and Shorts', 'Needs a video.'],
-  ['x', 'X', 'X', '', true, '@gridshopbd', 'off', 'Text up to 280 characters, photos', 'How many posts a month depends on the X API plan.'],
+  ['tt', 'TikTok', 'TT', '', true, '@dazzleshop', 'renew', 'Videos, photo posts', 'Access expires in 3 days. Reconnect to keep posting.'],
+  ['yt', 'YouTube', 'YT', '', true, 'Dazzle Shop', 'ok', 'Videos and Shorts', 'Needs a video.'],
+  ['x', 'X', 'X', '', true, '@dazzleshopbd', 'off', 'Text up to 280 characters, photos', 'How many posts a month depends on the X API plan.'],
   ['pin', 'Pinterest', 'PIN', '', true, 'Not connected', 'off', 'Pins with photo and link', 'Each pin needs a photo and a link.'],
-  ['wac', 'WhatsApp Channel', 'WAC', '', false, 'GridShop Offers', 'manual', 'Reminder with the text ready to copy', 'WhatsApp has no posting API for channels, so a reminder is sent to post by hand.'],
+  ['wac', 'WhatsApp Channel', 'WAC', '', false, 'Dazzle Shop Offers', 'manual', 'Reminder with the text ready to copy', 'WhatsApp has no posting API for channels, so a reminder is sent to post by hand.'],
   ['fbg', 'Facebook groups', 'FBG', '', false, '3 groups', 'manual', 'Reminder with the text ready to copy', 'Meta closed group posting by API in 2024, so a reminder is sent to post by hand.'],
-  ['li', 'LinkedIn page', 'IN', '', true, 'GridShop Ltd', 'ok', 'Text, photos, links', 'Company page only, not personal profiles.']
+  ['li', 'LinkedIn page', 'IN', '', true, 'Dazzle Shop Ltd', 'ok', 'Text, photos, links', 'Company page only, not personal profiles.']
 ];
 // platform key -> ChannelIcon channel
 const CH = { fb: 'facebook', ig: 'instagram', wa: 'whatsapp', tt: 'tiktok', yt: 'youtube', x: 'x', pin: 'pinterest', wac: 'whatsapp', fbg: 'facebook', li: 'linkedin' };
@@ -40,7 +40,7 @@ const POSTS = [
   ['a', 2026, 9, 1, 20, 'Puja offer: 10% off chargers', ['fb', 'ig', 'wa', 'tt', 'wac'], 'sched'], ['b', 2026, 9, 3, 20, 'Case drop test video', ['tt', 'yt', 'ig'], 'sched'],
   ['c', 2026, 9, 5, 10, 'PUJA10 reminder', ['wa'], 'sched'], ['d', 2026, 9, 8, 10, 'Blog: Puja offers', ['fb', 'li'], 'sched'], ['e', 2026, 9, 8, 19, 'Offer post for the channel', ['wac'], 'remind'],
   ['f', 2026, 9, 10, 18, 'Share in Dhaka gadget groups', ['fbg'], 'remind'], ['h', 2026, 9, 15, 20, 'Reel: 3 ways to protect a phone', ['ig', 'tt', 'yt'], 'sched'],
-  ['j', 2026, 9, 20, 21, 'Offer ends tonight', ['fb', 'wa', 'wac', 'fbg'], 'sched'], ['k', 2026, 9, 22, 20, 'Uttara branch opening soon', ['fb', 'ig', 'li'], 'sched'],
+  ['j', 2026, 9, 20, 21, 'Offer ends tonight', ['fb', 'wa', 'wac', 'fbg'], 'sched'], ['k', 2026, 9, 22, 20, 'iPhone 16 pre-order opens', ['fb', 'ig', 'li'], 'sched'],
   ['m', 2026, 9, 28, 20, 'Weekend deal preview', ['fb', 'ig', 'tt'], 'sched'], ['n', 2026, 9, 30, 19, 'Month-end best sellers', ['fb', 'ig', 'li'], 'sched']
 ];
 const DRAFTS = [['g', 'New MagSafe cases', ['ig', 'pin', 'fb'], 'Photo ready · no date', 12, 21], ['i', 'Last days of PUJA10', ['fb', 'ig', 'wa', 'x'], 'Needs X connected', 18, 11], ['l', 'Customer reviews roundup', ['fb', 'ig'], 'Text only', 25, 20]];

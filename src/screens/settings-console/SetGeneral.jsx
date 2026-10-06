@@ -26,9 +26,9 @@ const TIN = (x) => (/^\d{12}$/.test(x) ? '' : 'A TIN has 12 digits.');
 class Component extends __SettingsLogic {
   formId = "general";
   fields = {
-    store_name: {l: "Store name", d: "GridShop", req: true},
-    copyright_line: {l: "Copyright line", d: "© 2026 GridShop. All rights reserved. Trade licence 1043/FEN-2021.", req: true, k: "area"},
-    footer_about: {l: "Footer about", check: (x) => (x.length > 400 ? "Keep the footer text to 400 characters or fewer. It is " + x.length + " now." : ""), d: "GridShop is a multi-warehouse commerce platform for Bangladeshi retailers — one catalogue, one stock ledger and one register across every branch. Shop online or visit us in Feni, Gulshan and Chattogram.", k: "area"},
+    store_name: {l: "Store name", d: "Dazzle Shop", req: true},
+    copyright_line: {l: "Copyright line", d: "© 2026 Dazzle Shop. All rights reserved. Trade licence 1043/FEN-2021.", req: true, k: "area"},
+    footer_about: {l: "Footer about", check: (x) => (x.length > 400 ? "Keep the footer text to 400 characters or fewer. It is " + x.length + " now." : ""), d: "Dazzle Shop sells official smartphones, accessories and repairs in Dhaka. Shop online or visit our Dhanmondi and Mirpur branches.", k: "area"},
     currency: {l: "Currency", d: "Bangladeshi Taka — ৳ (BDT)", req: true, risky: RISKY.currency},
     default_country: {l: "Default country", d: "Bangladesh", req: true, risky: RISKY.country},
     timezone: {l: "Timezone", d: "(UTC+06:00) Asia/Dhaka", req: true, risky: RISKY.timezone},
@@ -38,20 +38,20 @@ class Component extends __SettingsLogic {
     support_phone: {l: "Support phone", d: "+8801811843300", req: true, k: "tel"},
     support_email: {l: "Support email", d: "info@bugbuild.com", req: true, k: "email"},
     working_hours_text: {l: "Working hours text", d: "Sat–Thu, 10:00 AM – 8:00 PM"},
-    store_address: {l: "Store address", d: "4th floor, Feni Center, Feni-3900, Bangladesh", req: true},
+    store_address: {l: "Store address", d: "House 42, Road 27, Dhanmondi, Dhaka 1209", req: true},
     support_line_hours: {l: "Support line hours", d: "09:00", k: "time"},
     support_line_hours_to: {l: "Support line hours (to)", d: "22:00", k: "time"},
     service_window: {l: "Service window", d: "10:00", k: "time"},
     service_window_to: {l: "Service window (to)", d: "20:00", k: "time"},
     brand_color: {l: "Brand colour", d: "#003087", req: true, check: HEX},
     brand_accent: {l: "Accent colour", d: "#009cde", check: HEX},
-    legal_name: {l: "Legal name", d: "GridShop Trading Ltd.", req: true},
+    legal_name: {l: "Legal name", d: "Dazzle Shop Ltd.", req: true},
     business_type: {l: "Business type", d: "Private limited company", req: true},
     trade_licence: {l: "Trade licence", d: MERCHANT.licence},
     bin: {l: "BIN (VAT registration)", d: MERCHANT.bin, check: BIN},
     tin: {l: "TIN", d: "", check: TIN},
     registered_address: {l: "Registered address", d: MERCHANT.address, req: true},
-    billing_name: {l: "Billing name", d: "GridShop Trading Ltd.", req: true},
+    billing_name: {l: "Billing name", d: "Dazzle Shop Ltd.", req: true},
     billing_address: {l: "Billing address", d: MERCHANT.address, req: true},
     billing_tax_id: {l: "Tax ID on bills", d: MERCHANT.bin},
     billing_email: {l: "Invoice email", d: MERCHANT.email, req: true, k: "email"},
@@ -234,14 +234,14 @@ export default class SetGeneralScreen extends Component {
                       <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px", padding: "16px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
                           <span style={{ display: "grid", placeItems: "center", height: "74px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "repeating-linear-gradient(135deg,#f8fafc 0 6px,#f1f5f9 6px 12px)" }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}><span style={{ display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-md)", background: "#003087", fontSize: "var(--text-xs)", color: "#fff" }}>S</span>GridShop</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}><span style={{ display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-md)", background: "#003087", fontSize: "var(--text-xs)", color: "#fff" }}>S</span>Dazzle Shop</span>
                           </span>
                           <span style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Light theme logo</span>
                           <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>SVG or PNG · 320×80</span>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
                           <span style={{ display: "grid", placeItems: "center", height: "74px", border: "1px solid #26334d", borderRadius: "var(--radius-lg)", background: "#192132" }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#66c4eb" }}><span style={{ display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-md)", background: "#009cde", fontSize: "var(--text-xs)", color: "#0b1524" }}>S</span>GridShop</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#66c4eb" }}><span style={{ display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-md)", background: "#009cde", fontSize: "var(--text-xs)", color: "#0b1524" }}>S</span>Dazzle Shop</span>
                           </span>
                           <span style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Dark theme logo</span>
                           <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>SVG or PNG · 320×80</span>
@@ -272,7 +272,7 @@ export default class SetGeneralScreen extends Component {
                         <Fld f={v.f} n="brand_color" help="Buttons, links and the invoice header."><input type="color" className="sg-swatch" aria-label="Pick the brand colour" value={/^#[0-9a-f]{6}$/i.test(v.f.get("brand_color", "")) ? v.f.get("brand_color", "") : "#003087"} onChange={v.f.on("brand_color")} /></Fld>
                         <Fld f={v.f} n="brand_accent" help="Highlights and badges in the store."><input type="color" className="sg-swatch" aria-label="Pick the accent colour" value={/^#[0-9a-f]{6}$/i.test(v.f.get("brand_accent", "")) ? v.f.get("brand_accent", "") : "#009cde"} onChange={v.f.on("brand_accent")} /></Fld>
                       </div>
-                      <div className="sg-brand" aria-hidden="true">Preview<b style={{ background: v.f.get("brand_color", "#003087") }}>{v.f.get("store_name", "GridShop")}</b><b style={{ background: v.f.get("brand_accent", "#009cde") }}>New</b></div>
+                      <div className="sg-brand" aria-hidden="true">Preview<b style={{ background: v.f.get("brand_color", "#003087") }}>{v.f.get("store_name", "Dazzle Shop")}</b><b style={{ background: v.f.get("brand_accent", "#009cde") }}>New</b></div>
                     </section>
                     <section id="support" className="ix-card set-card">
                       <div className="set-head set-head--top">
@@ -343,7 +343,7 @@ export default class SetGeneralScreen extends Component {
                           <span id={v.f.id("map_embed") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Google Maps → Share → <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>Embed a map</b> → copy the whole <span style={{ fontFamily: "var(--font-data)" }}>{"<iframe>"}</span>. Pasted code is sanitised before it is stored.</span>
                           <div className="set-box" style={{ border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "9px 11px", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", lineHeight: "18px", color: "#334155", wordBreak: "break-all" }}><__In f={v.f} n="map_embed" labelled desc rows={5} spellCheck={false} /></div>
                           <__Err f={v.f} n="map_embed" />
-                          {v.mapOk ? (<span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--text-success)" }}><__Icon name="circle-check" strokeWidth="1.75" width="13" height="13" />Valid embed · resolves to Feni Center, Feni</span>) : null}
+                          {v.mapOk ? (<span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--text-success)" }}><__Icon name="circle-check" strokeWidth="1.75" width="13" height="13" />Valid embed · resolves to Road 27, Dhanmondi</span>) : null}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
                           <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Preview</span>

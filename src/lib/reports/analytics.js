@@ -55,7 +55,7 @@ export function platformFacts({ from, to }) {
       const k = PLATFORM_OF_CHANNEL[c.channel];
       if (!k) return;
       const x = out[k];
-      if (placed) { x.placed += c.share; if (t.approved || ['Approved', 'Ready for courier', 'In transit', 'Delivered', 'Returned'].includes(o.status)) x.confirmed += c.share; if (firsts.has(o.id)) x.newCustomers += c.share; }
+      if (placed) { x.placed += c.share; if (t.approved || ['Approved', 'Ready for courier', 'Sent to courier', 'In transit', 'Delivered', 'Returned'].includes(o.status)) x.confirmed += c.share; if (firsts.has(o.id)) x.newCustomers += c.share; }
       if (del) { const oc = orderCost(o); x.delivered += c.share; x.deliveredSales += c.share * (o.subtotal || 0); x.cogs += c.share * oc.cost; x.variable += c.share * variable(o); }
       if (back) { x.returned += c.share; x.rtoCost += c.share * (COURIER[o.zone] || 110) * 1.5; }
     });

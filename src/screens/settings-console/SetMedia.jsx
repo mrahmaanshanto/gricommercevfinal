@@ -21,8 +21,8 @@ class Component extends __SettingsLogic {
   target = '';
   limits = { light: 500, dark: 500, favicon: 100, fallback: 500, payment: 500, delivery: 500, verified: 100, licences: 500 };
   fields = {
-    asset_light: {l: "Light theme logo", d: "gridshop-logo-light.svg · 24KB"},
-    asset_dark: {l: "Dark theme logo", d: "gridshop-logo-dark.svg · 25KB"},
+    asset_light: {l: "Light theme logo", d: "dazzleshop-logo-light.svg · 24KB"},
+    asset_dark: {l: "Dark theme logo", d: "dazzleshop-logo-dark.svg · 25KB"},
     asset_favicon: {l: "Favicon", d: "favicon-64.png · 6KB"},
     asset_fallback: {l: "Fallback image", d: ""},
     asset_payment: {l: "Payment gateway image", d: "payments-strip.png · 184KB"},
@@ -120,7 +120,7 @@ export default class SetMediaScreen extends Component {
                       <div className="gc-cols-4 set-tiles" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", padding: "16px" }}>
                         <div style={{ display: "flex", flexDirection: "column", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", overflow: "hidden" }}>
                           <div className={v.dark ? "gc-on-dark" : undefined} style={{ height: "104px", display: "grid", placeItems: "center", borderBottom: "1px solid #e2e8f0", background: v.dark ? "#192132" : "#f1f5f9" }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}><span style={{ display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-md)", background: "#003087", fontSize: "var(--text-xs)", color: "#fff" }}>S</span>GridShop</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}><span style={{ display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-md)", background: "#003087", fontSize: "var(--text-xs)", color: "#fff" }}>S</span>Dazzle Shop</span>
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "11px 12px" }}>
                             <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>
@@ -136,7 +136,7 @@ export default class SetMediaScreen extends Component {
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", overflow: "hidden" }}>
                           <div className={v.dark ? "gc-on-dark" : undefined} style={{ height: "104px", display: "grid", placeItems: "center", borderBottom: "1px solid #e2e8f0", background: v.dark ? "#192132" : "#f1f5f9" }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: v.dark ? "#66c4eb" : "#003087" }}><span style={{ display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-md)", background: "var(--accent-fill)", fontSize: "var(--text-xs)", color: "#fff" }}>S</span>GridShop</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: v.dark ? "#66c4eb" : "#003087" }}><span style={{ display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-md)", background: "var(--accent-fill)", fontSize: "var(--text-xs)", color: "#fff" }}>S</span>Dazzle Shop</span>
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "11px 12px" }}>
                             <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>

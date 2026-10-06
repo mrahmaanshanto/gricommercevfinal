@@ -7,7 +7,7 @@
 //              any version can be viewed and restored (restoring saves it as a new version).
 //   Edit locks openEdit(id, user) marks the product as open by that user (a heartbeat every 30 s while the form is
 //              open); editorsOf(id, me) lists other people who have it open now. The demo also shows a colleague on
-//              the Hyaluronic Toner page. A save also checks the version the form was opened at (staleSince): if
+//              the Type-C Wired Earphones page. A save also checks the version the form was opened at (staleSince): if
 //              someone saved after that, the form asks before overwriting.
 //   Approvals  a price change of more than priceLimit() % (default 20) needs a manager: approved on the spot with the
 //              manager PIN, or saved as a request (requestPrice) that waits on the product page.
@@ -71,8 +71,8 @@ export function recordVersion(rec, { by, note } = {}) {
 function currentName() { try { return currentUser().name; } catch { return 'Staff'; } }
 
 // ---- edit locks ----------------------------------------------------------------------------------------------
-// The demo colleague: Jannatul (content) has Hyaluronic Toner open, unless you are Jannatul or you took it over.
-const DEMO_OPEN = { 'p-toner-150': { id: 'jannatul', name: DEMO_BY } };
+// The demo colleague: Jannatul (content) has Type-C Wired Earphones open, unless you are Jannatul or you took it over.
+const DEMO_OPEN = { 'p-earphones-tc': { id: 'jannatul', name: DEMO_BY } };
 const TAKEN = 'gc.products.lockTaken';
 /** Mark a product as open in the form by `user` ({ id, name }). Call again every 30 s while it stays open. */
 export function openEdit(productId, user, tab) {

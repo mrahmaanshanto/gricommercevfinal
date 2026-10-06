@@ -33,7 +33,8 @@ export const GROUPS = [
   { k: 'all', label: 'All' },
   { k: 'adjust', label: 'Adjustments', kinds: ['adjust', 'count', 'write-off', 'writeoff', 'damaged'] },
   { k: 'move', label: 'Transfers', kinds: ['transfer', 'custody out', 'custody back'] },
-  { k: 'in', label: 'Received', kinds: ['receive', 'opening', 'repaired', 'assemble', 'disassemble', 'supplier return'] },
+  { k: 'in', label: 'Received', kinds: ['receive', 'opening', 'repaired', 'assemble', 'disassemble'] },
+  { k: 'out', label: 'Sent back', kinds: ['supplier return'] },
   { k: 'sale', label: 'Sales & returns', kinds: ['sale', 'delivery', 'return', 'rto', 'exchange'] },
   { k: 'hold', label: 'Holds', kinds: ['hold', 'release'] },
 ];

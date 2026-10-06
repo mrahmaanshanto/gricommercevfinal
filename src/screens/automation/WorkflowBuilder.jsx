@@ -35,7 +35,7 @@ var START = [
 var EDGES = [['n1', 'n2', ''], ['n2', 'n3', 'true'], ['n2', 'n7', 'false'], ['n3', 'n4', ''], ['n4', 'n5', ''], ['n5', 'n6', ''], ['n6', 'n8', 'true'], ['n6', 'n9', 'false'], ['n7', 'n10', '']];
 var CAT = [['Triggers', [['trig', 'Order placed', 'A new order from any channel'], ['trig', 'Order status changed', 'Any move between statuses'], ['trig', 'AI call finished', 'With the call result'], ['trig', 'Parcel delivered', 'From the courier'], ['trig', 'Stock is low', 'Below the alert level'], ['trig', 'On a schedule', 'Every day, week or month']]],
   ['GridCommerce', [['hold', 'Hold order', 'Pause the order'], ['ok', 'Change order status', 'Move it to any status'], ['truck', 'Book courier', 'Pathao, Steadfast, RedX, Carrybee'], ['tag', 'Tag customer', 'Add or remove a tag'], ['bell', 'Notify staff', 'In the app and by SMS']]],
-  ['Messages', [['wa', 'WhatsApp message', 'Approved template'], ['sms', 'SMS', 'Masking name GridShop'], ['call', 'AI call', 'Bangla or English']]],
+  ['Messages', [['wa', 'WhatsApp message', 'Approved template'], ['sms', 'SMS', 'Masking name Dazzle Shop'], ['call', 'AI call', 'Bangla or English']]],
   ['Flow', [['if', 'IF', 'Split into true and false'], ['split', 'Switch', 'Split by value into many paths'], ['wait', 'Wait', 'For a time or an event']]]];
 var TEST_PATH = ['n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n9'];
 var OUT = { n1: '{ "order": "#ORD-0929-007", "total": 12400,\n  "payment": "COD", "zone": "Outside Dhaka" }', n2: 'true → 1 item', n3: '{ "status": "On hold" }', n4: '{ "whatsapp": "delivered", "to": "01819-554120" }', n5: 'Resumed after 30 minutes', n6: 'false → 1 item (no bKash payment)', n9: '{ "result": "AI confirmed", "advance": "promised by 6:00 PM" }' };

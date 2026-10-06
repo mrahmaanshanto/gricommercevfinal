@@ -12,7 +12,7 @@ import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { reportBy, reportInEdition } from '@/lib/reports/catalogue';
 import { routeInEdition, hasModule, currentEditionId, LOCKED, EDITION_EVENT } from '@/lib/edition';
 import { periodOf, fmt } from '@/lib/reports/period';
-import { ORDER_STATUSES } from '@/lib/orderStatus';
+import { ORDER_TABS, orderStatus } from '@/lib/orderStatus';
 import { getPosts } from '@/lib/blog';
 import { USERS, roleOf, userBy } from '@/lib/team';
 import { setStatus, dueState, dayKeyOf, priorityOf, isMine, teamBy } from '@/lib/tasks';
@@ -338,7 +338,7 @@ function TeamTasks({ tasks, team, today }) {
 function OrderPipe() {
   return (
     <Block title="Orders by status" href="/merchant-orders" link="Orders">
-      <div className="md-pipe">{ORDER_STATUSES.map((s) => <Link key={s.key} href={`/merchant-orders?status=${s.key}`}><span className="tm-sub">{s.label}</span><b>{s.count}</b></Link>)}</div>
+      <div className="md-pipe">{ORDER_TABS.map((s) => <Link key={s.key} href={`/merchant-orders?status=${s.key}`}><span className="tm-sub">{s.label}</span><b>{s.keys.reduce((n, k) => n + ((orderStatus(k) || {}).count || 0), 0)}</b></Link>)}</div>
     </Block>
   );
 }

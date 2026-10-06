@@ -20,10 +20,10 @@ function val(e) { return e && e.target ? e.target.value : e; }
 /** Feedback as the app's toast; a problem is shown as an error. */
 function say(m, bad) { uiToast(m, bad ? { tone: 'error' } : undefined); }
 
-var FIELDS = { url: ['https://gridshop.com.bd', /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}\/?$/i, 'Use the full address starting with https://', 'Store found'],
+var FIELDS = { url: ['https://dazzleshop.com.bd', /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}\/?$/i, 'Use the full address starting with https://', 'Store found'],
   ck: ['ck_4f81c0a2e9d7b36158ac04f2d9e1b7c63a50f8e2', /^ck_[a-f0-9]{40}$/, 'Starts with ck_ followed by 40 characters.', 'Read/Write key'],
   cs: ['cs_9a3e71bd02c84f6e5d1a7b39c0e2f8d4b6a15c73', /^cs_[a-f0-9]{40}$/, 'Starts with cs_ followed by 40 characters.', 'Saved encrypted'],
-  wpu: ['gridshop-admin', /^[\w.@-]{3,60}$/, 'The WordPress login name of an administrator or editor.', 'Editor access or higher'],
+  wpu: ['dazzleshop-admin', /^[\w.@-]{3,60}$/, 'The WordPress login name of an administrator or editor.', 'Editor access or higher'],
   ap: ['Hq2V k8Pz 3mWt Lr9X c4Bn 7yGs', /^([A-Za-z0-9]{4} ){5}[A-Za-z0-9]{4}$/, 'Six groups of 4 letters or numbers, with spaces.', 'Saved encrypted'] };
 var WHAT = [['Products', 'Variants, prices, stock, images', 'Instant', '412', '2 min ago'], ['Orders', 'Status, items, notes, customer', 'Instant', '1,284', '6 min ago'], ['Blog posts', 'Title, content, categories, SEO', 'Every 5 min', '36', '1 h ago'], ['Pages', 'About, policies, landing text', 'Every 5 min', '9', '3 days ago'], ['Customers', 'Name, phone, addresses', 'Instant', '3,902', '14 min ago'], ['Categories', 'Product and blog categories', 'Instant', '28', 'yesterday'], ['Coupons', 'Codes, amounts, limits', 'Instant', '11', '2 days ago']];
 var MAP = [['New', 'processing', 'New order arrives here as New'], ['Confirmed, Packed', 'processing', 'No change'], ['With courier, In transit', 'processing', 'No change'], ['On hold', 'on-hold', 'Becomes On hold'], ['Delivered', 'completed', 'Becomes Delivered'], ['Cancelled', 'cancelled', 'Becomes Cancelled'], ['Returned', 'refunded', 'Becomes Returned']];
@@ -51,7 +51,7 @@ class Component extends DCLogic {
     var live = tested && allOk;
     return assign(v, {
       live: live,
-      headline: live ? 'gridshop.com.bd is in sync · ' + nOn + ' of 7 data types on' : 'Check the API keys and test the connection',
+      headline: live ? 'dazzleshop.com.bd is in sync · ' + nOn + ' of 7 data types on' : 'Check the API keys and test the connection',
       flow: FLOW.map(function (x, i) { return { n: i + 1, t: x[0], d: x[1], done: i < 2 || live }; }),
       testConn: function () {
         if (!wooOk) { say('Check the store address and the WooCommerce key and secret.', true); return; }

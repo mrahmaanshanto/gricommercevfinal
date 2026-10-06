@@ -34,16 +34,16 @@ export const SUPPLIERS = [
   S('tli', 'Techland Imports', '01819-234567', 'Wholesaler · Moulvibazar', 'Cables, chargers', 940000, 30, 'Jashim Uddin (owner)', '42 Moulvibazar, Chawkbazar, Dhaka-1211', 2021),
   S('mm', 'Mobile Mart', '01711-908070', 'Patuatuli', 'Cases, cleaning kits', 420000, 15, 'Rubel Mia', '18 Patuatuli Road, Dhaka-1100', 2023),
   S('ee', 'Eastern Electronics', '01730-112233', 'Motijheel', 'Car mounts, grips', 365000, 15, 'Farhana Kabir', '9 Dilkusha C/A, Motijheel, Dhaka', 2022),
-  S('kf', 'Kazi Farms dealer', '01912-445566', 'Kazi Farms', 'Batteries', 88000, 7, 'Selim Reza', 'Kazi Farms depot, Mohakhali, Dhaka', 2024),
+  S('kf', 'Kazi Power Solutions', '01912-445566', 'Battery dealer', 'Batteries, power banks', 88000, 7, 'Selim Reza', 'Mohakhali DOHS, Dhaka', 2024),
   S('pc', 'PowerCell Traders', '01555-667788', 'Battery dealer', 'Cables, SIM tools', 290000, 14, 'Abdul Mannan', '27 Nawabpur Road, Dhaka', 2023),
   S('pr', 'PackRight Supplies', '01670-889900', 'Tejgaon', 'Packaging, pouches', 145000, 14, 'Shirin Akter', 'Plot 51, Tejgaon I/A, Dhaka', 2024),
   S('ct', 'CleanTech Supplies', '01799-334455', 'Cleaning · Gulshan', 'Cleaning kits', 160000, 14, 'Mahbub Alam', 'Road 90, Gulshan-2, Dhaka', 2024),
   S('rw', 'Rahim Wholesale', '01822-778899', 'Local wholesaler · Mirpur 1', 'Mixed accessories', 110000, 7, 'Abdur Rahim', 'Shah Ali Market, Mirpur 1, Dhaka', 2023),
-  S('rt', 'Rahman Traders', '01711-223344', 'Wholesaler · Chawkbazar', 'Skin care, towels', 310000, 30, 'Habibur Rahman', '7 Chawkbazar Road, Dhaka-1211', 2020),
-  S('nfh', 'Nabil Fashion House', '01914-556677', 'Clothing maker · Narayanganj', 'Shirts, jeans, T-shirts', 290000, 30, 'Nabil Chowdhury', 'BSCIC Industrial Area, Narayanganj', 2022),
-  S('dbi', 'Dhaka Beauty Imports', '01552-889900', 'Importer · Banani', 'Skin care', 180000, 15, 'Sharmin Nahar', 'Road 11, Banani, Dhaka', 2023),
+  S('rt', 'Rahman Telecom', '01711-223344', 'Phone distributor · Bashundhara City', 'Samsung and Xiaomi phones', 310000, 30, 'Habibur Rahman', '7 Chawkbazar Road, Dhaka-1211', 2020),
+  S('nfh', 'Nabil Mobile House', '01914-556677', 'Phone importer · Motalib Plaza', 'iPhones, Realme phones', 290000, 30, 'Nabil Chowdhury', 'Motalib Plaza, Hatirpool, Dhaka', 2022),
+  S('dbi', 'Dhaka Audio Imports', '01552-889900', 'Importer · Banani', 'Earbuds, earphones', 180000, 15, 'Sharmin Nahar', 'Road 11, Banani, Dhaka', 2023),
   S('cpc', 'Chattogram Packaging Co.', '01819-667700', 'Packaging · Chattogram', 'Shipping boxes, tape', 64000, 15, 'Rashed Karim', 'Agrabad C/A, Chattogram', 2024),
-  S('mim', 'Mim Enterprise', '01716-334455', 'Local wholesaler · Mirpur 10', 'Home and kitchen', 41300, 14, 'Mim Akter', 'Section 10, Mirpur, Dhaka', 2025),
+  S('mim', 'Mim Enterprise', '01716-334455', 'Local wholesaler · Mirpur 10', 'Cases and covers', 41300, 14, 'Mim Akter', 'Section 10, Mirpur, Dhaka', 2025),
 ];
 
 // ---- demo bills and payments
@@ -54,15 +54,15 @@ const P = (supplier, at, amount, method, account, by, ref, alloc) => ({ supplier
 // item lines of the demo bills: { sku, name, qty, cost }, adding up to the bill's amount exactly.
 // A bill for a demo purchase order carries that order's lines.
 const BL = (sku, name, qty, cost) => ({ sku, name, qty, cost });
-const EAR = (q, c) => BL('EL-EAR-PRO', 'Wireless Earbuds Pro', q, c);
-const PHN = (q, c) => BL('EL-PHN-128', 'Budget Android Phone 6/128', q, c);
-const BTL = (q, c) => BL('HM-BTL-750', 'Steel Water Bottle 750ml', q, c);
+const EAR = (q, c) => BL('AU-EAR-PRO', 'Wireless Earbuds Pro', q, c);
+const PHN = (q, c) => BL('PH-RLM-N50', 'Realme Note 50 6/128GB', q, c);
+const BTL = (q, c) => BL('AC-STD-FLD', 'Foldable Phone Stand', q, c);
 const BOX = (q, c) => BL('', 'Shipping box · Medium', q, c);
 const TAPE = (q, c) => BL('', 'Packing tape 2 inch', q, c);
-const SHA = (q, c) => BL('SK-SHA-340', 'Daily Care Shampoo 340ml', q, c);
-const SOY = (q, c) => BL('GR-SOY-2', 'Soybean Cooking Oil 2L', q, c);
-const ATTA = (q, c) => BL('GR-ATTA-2', 'Atta Wheat Flour 2kg', q, c);
-const DAL = (q, c) => BL('GR-DAL-1', 'Chickpeas Boot Dal 1kg', q, c);
+const SHA = (q, c) => BL('AC-CBL-LTG', 'Lightning Cable 1m', q, c);
+const SOY = (q, c) => BL('AC-GLS-9H', 'Tempered Glass 9H', q, c);
+const LENS = (q, c) => BL('AC-LNS-PR', 'Camera Lens Protector', q, c);
+const KIT = (q, c) => BL('AC-CLN-KIT', 'Screen Cleaning Kit', q, c);
 const poLines = (no) => ((DEMO_POS.find((p) => p.no === no) || {}).lines || []).map((l) => BL(l.sku, l.name, l.qty, l.cost));
 const SEED_LINES = {
   'DGH-58011': [EAR(4, 2500)], 'DGH-58102': [PHN(1, 10520), EAR(11, 2680)], 'DGH-58190': [EAR(1, 2650), PHN(2, 11175)],
@@ -70,11 +70,11 @@ const SEED_LINES = {
   'TLI-1098': [PHN(1, 10560), EAR(16, 2590)], 'TLI-1127': [EAR(2, 2680), PHN(3, 10880)],
   'MM-8990': [BTL(20, 500)], 'MM-9031': [BTL(15, 460), EAR(5, 2620)], 'MM-9058': [BTL(17, 500)],
   'EE-44702': [EAR(4, 2500)], 'EE-44781': [EAR(3, 2600), BTL(16, 450)], 'EE-44820': [EAR(4, 2640), BTL(14, 460)],
-  'KF-5490': [BL('GR-RICE-5', 'Premium Miniket Rice 5kg', 2, 640), DAL(28, 115)], 'KF-5521': [DAL(20, 115), ATTA(7, 100)],
+  'KF-5490': [BL('AC-CBL-100', 'Baseus USB-C Cable 100W 1m', 2, 640), KIT(28, 115)], 'KF-5521': [KIT(20, 115), LENS(7, 100)],
   'PC-2174': [EAR(2, 2555), BTL(2, 445)], 'PC-2210': [EAR(2, 2630), BTL(28, 455)],
   'PR-3265': [BOX(30, 18), TAPE(172, 55)], 'PR-3302': [BOX(8, 19), TAPE(33, 56)],
   'CT-7702': [SHA(14, 295), BTL(2, 435)], 'CT-7765': [SHA(20, 295), BTL(8, 450)],
-  'RW-112': [SOY(6, 275), BTL(10, 455)], 'RW-118': [SOY(5, 280), ATTA(26, 100)],
+  'RW-112': [SOY(6, 275), BTL(10, 455)], 'RW-118': [SOY(5, 280), LENS(26, 100)],
   'RT-4410': poLines('PO-2608-0015'), 'NFH-2231-A': poLines('PO-2609-0020'), 'DBI-7702': poLines('PO-2609-0019'), 'MIM-0817': poLines('PO-2608-0017'),
 };
 /** A demo bill saved before it had item lines gets them (nothing else changes). */
@@ -123,8 +123,13 @@ const withStatus = (b) => ({ ...b, status: statusFor(b) });
 function seedDb() {
   const bills = SEED_BILLS.map((b) => withSeedLines({ ...b }));
   SEED_PAYMENTS.forEach((p) => Object.entries(p.alloc).forEach(([no, amt]) => { const b = bills.find((x) => x.no === no); if (b) b.paid += amt; }));
-  return { suppliers: [], bills: bills.map(withStatus), payments: SEED_PAYMENTS.slice(), credits: [], returns: [] };
+  return { suppliers: [], bills: bills.map(withStatus), payments: SEED_PAYMENTS.slice(), credits: [], returns: SEED_RETURNS.map((r) => ({ ...r })) };
 }
+// demo: two Realme phones from Techland went back with dead screens; Techland is sending two new ones
+const SEED_RETURNS = [
+  { no: 'SR-0001', supplier: 'tli', lines: [{ name: 'Realme Note 50 6/128GB', sku: 'PH-RLM-N50', qty: 2, cost: 10880, bill: 'TLI-1127' }], reason: 'Damaged', how: 'send', settle: 'replace', from: 'Central Warehouse',
+    note: 'Screens dead out of the box', by: 'Rakib Hasan', at: d(30, 9), credit: '', value: 21760, replacement: { status: 'waiting' }, seed: true },
+];
 
 // suppliers added on the old Suppliers page come along
 function fromOld(db) {
@@ -266,28 +271,62 @@ export function addCredit(c) {
 }
 
 /**
- * Record goods sent back to a supplier and the credit note for their value.
- * { supplier (id or name), lines: [{ holdId, name, sku, qty, cost, po }], reason, how, note, by }. Returns { ret, credit }.
+ * Record goods sent back to a supplier.
+ * { supplier (id or name), lines: [{ holdId?, name, sku, qty, cost, po?, bill? }], reason, how, settle, from, note, by }.
+ * settle 'credit' (default): a credit note for their value comes off what the shop owes the supplier.
+ * settle 'replace': the supplier sends the same items again; nothing is credited and the return waits until the
+ * replacement is received (receiveReplacement). Returns { ret, credit }.
  */
 export function addSupplierReturn(r) {
   const sup = findSupplier(r.supplier) || ensureSupplier(r.supplier);
   const value = r.lines.reduce((a, l) => a + l.qty * l.cost, 0);
   const pos = [...new Set(r.lines.map((l) => l.po).filter(Boolean))];
+  const settle = r.settle === 'replace' ? 'replace' : 'credit';
   const db0 = read();
   const no = nextNo(db0.returns, 'SR-');
-  const credit = value ? addCredit({ supplier: sup.id, amount: value, ret: no, po: pos.join(', '), lines: r.lines, note: r.reason }) : null;
+  const credit = value && settle === 'credit' ? addCredit({ supplier: sup.id, amount: value, ret: no, po: pos.join(', '), lines: r.lines, note: r.reason }) : null;
   const db = read();
-  const ret = { no, supplier: sup.id, lines: r.lines, reason: r.reason, how: r.how, note: r.note || '', by: r.by || 'Staff', at: Date.now(), credit: credit ? credit.no : '', value };
+  const ret = {
+    no, supplier: sup.id, lines: r.lines, reason: r.reason, how: r.how, settle, from: r.from || '', note: r.note || '', by: r.by || 'Staff', at: Date.now(), credit: credit ? credit.no : '', value,
+    ...(settle === 'replace' ? { replacement: { status: 'waiting' } } : {}),
+  };
   db.returns = [ret, ...db.returns];
   write(db);
   return { ret, credit };
 }
+
+/** Mark a return's replacement as received ({ place, by }). The caller books the stock in. Returns the return. */
+export function receiveReplacement(no, { place, by } = {}) {
+  const db = read();
+  const ret = db.returns.find((x) => x.no === no);
+  if (!ret || !ret.replacement || ret.replacement.status === 'received') return ret || null;
+  ret.replacement = { status: 'received', at: Date.now(), place: place || '', by: by || 'Staff' };
+  write(db);
+  return ret;
+}
+/** How a return was settled, in words. */
+export const settleText = (r) => (r.settle === 'replace' ? (r.replacement && r.replacement.status === 'received' ? 'Replacement received' : 'Replacement waiting') : r.credit ? 'Credit note ' + r.credit : 'Credit');
 
 // ---- per supplier
 export const billsOf = (id, db = getDb()) => db.bills.filter((b) => b.supplier === id);
 export const paymentsOf = (id, db = getDb()) => db.payments.filter((p) => p.supplier === id);
 export const creditsOf = (id, db = getDb()) => db.credits.filter((c) => c.supplier === id);
 export const returnsOf = (id, db = getDb()) => db.returns.filter((r) => r.supplier === id);
+/**
+ * Everything bought from a supplier (the item lines of their bills), one row per product:
+ * { key, sku, name, bought, returned, left, cost (latest price paid), bills: [no] }. `bill` keeps it to one bill.
+ */
+export function boughtFrom(id, db = getDb(), bill = '') {
+  const rows = new Map();
+  billsOf(id, db).filter((b) => !bill || b.no === bill).sort((a, b) => a.at - b.at).forEach((b) => (b.lines || []).forEach((l) => {
+    const key = l.sku || l.name;
+    const r = rows.get(key) || { key, sku: l.sku || '', name: l.name, bought: 0, returned: 0, cost: 0, bills: [] };
+    r.bought += l.qty; r.cost = l.cost; if (!r.bills.includes(b.no)) r.bills.push(b.no);
+    rows.set(key, r);
+  }));
+  returnsOf(id, db).forEach((ret) => ret.lines.forEach((l) => { const r = rows.get(l.sku || l.name); if (r) r.returned += l.qty; }));
+  return [...rows.values()].map((r) => ({ ...r, left: Math.max(0, r.bought - r.returned) }));
+}
 
 /** What the shop owes a supplier now. */
 export function payableOf(id, db = getDb()) {

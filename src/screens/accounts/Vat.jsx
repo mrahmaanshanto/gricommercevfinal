@@ -22,7 +22,7 @@ const pct = (r) => String(r) + '%';
 // month: key, name, share of September's sales, VAT paid on purchases, paid note, last date to pay
 const MON = [['jul', 'July', 1162800 / 1286400, 28900, 'Paid · 14 Aug', '15 Aug'], ['aug', 'August', 1244100 / 1286400, 30100, 'Paid · 13 Sep', '15 Sep'], ['sep', 'September', 1, 31240, '', '15 Oct']];
 // category: key, name, default rate, VAT included in the price, September sales
-const CATS = [['rice', 'Cables & chargers', 0, true, 482000], ['oil', 'Cases & covers', 5, true, 246500], ['soap', 'Screen care', 7.5, true, 158400], ['snack', 'Audio', 5, true, 112300], ['drink', 'Power banks', 5, true, 64900], ['cloth', 'Clothing', 7.5, false, 134300], ['elec', 'Electronics', 15, false, 88000]];
+const CATS = [['rice', 'Cables & chargers', 0, true, 482000], ['oil', 'Cases & covers', 5, true, 246500], ['soap', 'Screen care', 7.5, true, 158400], ['snack', 'Audio', 5, true, 112300], ['drink', 'Power banks', 5, true, 64900], ['cloth', 'Wearables', 7.5, false, 134300], ['elec', 'Phones', 15, false, 88000]];
 const RATES = [0, 5, 7.5, 15];
 // the sample memo on the VAT invoice: item, qty, price, VAT rate
 const ITEMS = [['20W USB-C fast charger', 1, 890, 5], ['Lightning cable 1 m', 2, 135, 0], ['Micro-USB cable 1 m', 2, 145, 0], ['Screen cleaning wipes', 4, 65, 7.5], ['Shockproof case A15', 2, 180, 7.5], ['Cleaning spray 100 ml', 1, 240, 7.5], ['Cable protector pack', 4, 35, 5]];
@@ -214,7 +214,7 @@ export default function Vat() {
         <p className="gc-help" style={{ margin: '0 0 var(--space-3)' }}>Memo #1042 · Rafiq Mia · today 10:42 AM</p>
         <div className="vt-rcpt">
           <div className="vt-rcpt__c"><small>Mushak-6.3</small><b>Tax invoice</b></div>
-          <div className="vt-rcpt__c vt-rcpt__shop"><b>GridShop</b><small>House 12, Road 3, Mirpur-10, Dhaka</small><small className="vt-fig">BIN: 000123456-0101</small></div>
+          <div className="vt-rcpt__c vt-rcpt__shop"><b>Dazzle Shop</b><small>House 12, Road 3, Mirpur-10, Dhaka</small><small className="vt-fig">BIN: 000123456-0101</small></div>
           <dl className="vt-rcpt__facts">
             <dt>Invoice no.</dt><dd className="vt-fig">#1042</dd>
             <dt>Date & time</dt><dd className="vt-fig">29/09/2026, 10:42 AM</dd>

@@ -20,7 +20,7 @@ function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 function seg(self, opts, cur, key, i) { return opts.map(function (o) { var on = o[0] === cur; return { k: o[0], l: o[1 + i], on: on, pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
 function sw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
 function toast(self, m) { __toast(m); }
-var T = {"shop": ["রহমান স্টোর", "GridShop"], "h": ["বারকোড লেবেল প্রিন্ট", "Print barcode labels"], "hsub": ["কোন মালে লেবেল লাগবে বাছুন, কয়টা লাগবে দিন, তারপর প্রিন্ট করুন।", "Pick the items, set how many labels, then print."], "toProducts": ["প্রোডাক্ট তালিকা", "Product list"], "s1": ["১. আইটেম", "1. Items"], "byStock": ["স্টক অনুযায়ী", "Match stock"], "find": ["প্রোডাক্ট খুঁজুন", "Find a product"], "inStock": ["স্টকে", "In stock"], "noCode": ["যে প্রোডাক্টের বারকোড নেই: ৫টা", "Products without a barcode: 5"], "makeCode": ["বানিয়ে দিন", "Make them"], "madeCode": ["৫টা প্রোডাক্টের বারকোড বানানো হলো। এখন ওদের লেবেলও প্রিন্ট করা যাবে।", "Barcodes made for 5 products. You can print their labels now."], "less": ["কমান", "Less"], "more": ["বাড়ান", "More"], "s2": ["২. লেআউট", "2. Layout"], "size": ["লেবেলের মাপ", "Label size"], "showOn": ["লেবেলে যা থাকবে", "Show on label"], "oShop": ["দোকানের নাম", "Shop name"], "oName": ["প্রোডাক্টের নাম", "Product name"], "oPrice": ["দাম", "Price"], "oMrp": ["এমআরপি", "MRP"], "printer": ["প্রিন্টার", "Printer"], "s3": ["৩. প্রিন্ট", "3. Print"], "mrp": ["এমআরপি", "MRP"], "totalLbl": ["মোট লেবেল", "Total labels"], "pageTitle": ["বারকোড লেবেল", "Barcode labels"]};
+var T = {"shop": ["রহমান স্টোর", "Dazzle Shop"], "h": ["বারকোড লেবেল প্রিন্ট", "Print barcode labels"], "hsub": ["কোন মালে লেবেল লাগবে বাছুন, কয়টা লাগবে দিন, তারপর প্রিন্ট করুন।", "Pick the items, set how many labels, then print."], "toProducts": ["প্রোডাক্ট তালিকা", "Product list"], "s1": ["১. আইটেম", "1. Items"], "byStock": ["স্টক অনুযায়ী", "Match stock"], "find": ["প্রোডাক্ট খুঁজুন", "Find a product"], "inStock": ["স্টকে", "In stock"], "noCode": ["যে প্রোডাক্টের বারকোড নেই: ৫টা", "Products without a barcode: 5"], "makeCode": ["বানিয়ে দিন", "Make them"], "madeCode": ["৫টা প্রোডাক্টের বারকোড বানানো হলো। এখন ওদের লেবেলও প্রিন্ট করা যাবে।", "Barcodes made for 5 products. You can print their labels now."], "less": ["কমান", "Less"], "more": ["বাড়ান", "More"], "s2": ["২. লেআউট", "2. Layout"], "size": ["লেবেলের মাপ", "Label size"], "showOn": ["লেবেলে যা থাকবে", "Show on label"], "oShop": ["দোকানের নাম", "Shop name"], "oName": ["প্রোডাক্টের নাম", "Product name"], "oPrice": ["দাম", "Price"], "oMrp": ["এমআরপি", "MRP"], "printer": ["প্রিন্টার", "Printer"], "s3": ["৩. প্রিন্ট", "3. Print"], "mrp": ["এমআরপি", "MRP"], "totalLbl": ["মোট লেবেল", "Total labels"], "pageTitle": ["বারকোড লেবেল", "Barcode labels"]};
 
 class Component extends DCLogic {
   renderVals() {
@@ -31,15 +31,15 @@ class Component extends DCLogic {
     var EAN = ['3211', '2221', '2122', '1411', '1132', '1231', '1114', '1312', '1213', '3112'];
     // id, bn, en, ini, swatch, code, stock, sell, mrp, defaultQty, tile
     var IT = [
-      ['v1', 'পোলো টি-শার্ট · M নেভি', 'Polo T-shirt · M Navy', 'প', '#1e3a6e', '8941230551007', 8, 550, 600, 8],
-      ['v2', 'পোলো টি-শার্ট · M কালো', 'Polo T-shirt · M Black', 'প', '#111827', '8941230551014', 6, 550, 600, 6],
-      ['v3', 'পোলো টি-শার্ট · L নেভি', 'Polo T-shirt · L Navy', 'প', '#1e3a6e', '8941230551021', 10, 550, 600, 10],
-      ['v4', 'পোলো টি-শার্ট · L কালো', 'Polo T-shirt · L Black', 'প', '#111827', '8941230551038', 7, 550, 600, 7],
-      ['v5', 'পোলো টি-শার্ট · XL নেভি', 'Polo T-shirt · XL Navy', 'প', '#1e3a6e', '8941230551045', 4, 550, 600, 4],
-      ['v6', 'পোলো টি-শার্ট · XL কালো', 'Polo T-shirt · XL Black', 'প', '#111827', '8941230551052', 3, 550, 600, 3],
-      ['p9', 'লাক্স সাবান ১০০ গ্রাম', 'Screen cleaning wipes', 'ল', '', '8941100504108', 55, 65, 70, 10],
-      ['p4', 'চিনি ১ কেজি', 'Lightning cable 1 m', 'চ', '', '8941100503118', 64, 135, 140, 0],
-      ['p8', 'মসুর ডাল ১ কেজি', 'Micro-USB cable 1 m', 'ম', '', '8941100503217', 40, 145, 150, 0]
+      ['v1', 'সিলিকন কেস · M নেভি', 'Silicone case · A55 Navy', 'প', '#1e3a6e', '8941230551007', 8, 550, 600, 8],
+      ['v2', 'সিলিকন কেস · M কালো', 'Silicone case · A55 Black', 'প', '#111827', '8941230551014', 6, 550, 600, 6],
+      ['v3', 'সিলিকন কেস · L নেভি', 'Silicone case · A35 Navy', 'প', '#1e3a6e', '8941230551021', 10, 550, 600, 10],
+      ['v4', 'সিলিকন কেস · L কালো', 'Silicone case · A35 Black', 'প', '#111827', '8941230551038', 7, 550, 600, 7],
+      ['v5', 'সিলিকন কেস · XL নেভি', 'Silicone case · A15 Navy', 'প', '#1e3a6e', '8941230551045', 4, 550, 600, 4],
+      ['v6', 'সিলিকন কেস · XL কালো', 'Silicone case · A15 Black', 'প', '#111827', '8941230551052', 3, 550, 600, 3],
+      ['p9', 'স্ক্রিন ক্লিনিং ওয়াইপস', 'Screen cleaning wipes', 'ল', '', '8941100504108', 55, 65, 70, 10],
+      ['p4', 'লাইটনিং ক্যাবল ১ মি.', 'Lightning cable 1 m', 'চ', '', '8941100503118', 64, 135, 140, 0],
+      ['p8', 'মাইক্রো-USB ক্যাবল ১ মি.', 'Micro-USB cable 1 m', 'ম', '', '8941100503217', 40, 145, 150, 0]
     ];
     var SIZES = {
       s38: { cols: 3, gap: 10, h: 120, pad: 8, rad: 8, g: 3, f1: 10.5, f2: 12.5, barH: 34, f3: 10, f4: 15, mod: 1, sheetBg: '#eef2f6', per: 9 },

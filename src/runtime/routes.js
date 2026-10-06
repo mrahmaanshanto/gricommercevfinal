@@ -44,7 +44,9 @@ const DEV_ROUTES = {
 
 // Product screens whose address is not the kebab of their name.
 const NAMED_ROUTES = {
-  "WooCommerce": "/woocommerce"
+  "WooCommerce": "/woocommerce",
+  // Grid AI pages live under /ai-… (their names alone are too general)
+  "Knowledge": "/ai-knowledge", "Behaviour": "/ai-behaviour",
 };
 
 /** Maps a design link to its app route. Anything else is returned unchanged. */

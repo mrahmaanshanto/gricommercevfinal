@@ -20,10 +20,10 @@ class Component extends __SettingsLogic {
     path_style_endpoint: {l: "Path-style endpoint", d: false},
     driver: {l: "Storage driver", d: "S3-compatible"},
     access_key_id: {l: "Access key ID", d: "DO00••••••••••P9RT", req: true},
-    bucket: {l: "Bucket", d: "gridshop-media-bd", req: true},
+    bucket: {l: "Bucket", d: "dazzleshop-media-bd", req: true},
     region: {l: "Region", d: "blr1", req: true},
-    endpoint: {l: "Endpoint", d: "gridshop-media-bd.blr1.digitaloceanspaces.com/", req: true, check: (x) => (/^https:\/\/[^\s/]+$/.test(x) ? "" : (/^https?:\/\//.test(x) ? "" : "Add https:// at the start. ") + (/\/$/.test(x) ? "Remove the slash at the end. " : "") + "It should look like https://blr1.digitaloceanspaces.com")},
-    public_url_cdn_base: {l: "Public URL / CDN base", d: "https://cdn.gridshop.com.bd", req: true, k: "url"},
+    endpoint: {l: "Endpoint", d: "dazzleshop-media-bd.blr1.digitaloceanspaces.com/", req: true, check: (x) => (/^https:\/\/[^\s/]+$/.test(x) ? "" : (/^https?:\/\//.test(x) ? "" : "Add https:// at the start. ") + (/\/$/.test(x) ? "Remove the slash at the end. " : "") + "It should look like https://blr1.digitaloceanspaces.com")},
+    public_url_cdn_base: {l: "Public URL / CDN base", d: "https://cdn.dazzleshop.com.bd", req: true, k: "url"},
   };
   renderVals() {
     const f = this.f;
@@ -239,7 +239,7 @@ export default class SetStorageScreen extends Component {
                           <span style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b", paddingBottom: "6px" }}>What to check, in order</span>
                           <span style={{ display: "flex", gap: "9px", padding: "3px 0", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}><b style={{ flex: "none", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>1.</b>The endpoint above is malformed — fix that first and test again.</span>
                           <span style={{ display: "flex", gap: "9px", padding: "3px 0", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}><b style={{ flex: "none", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>2.</b>Access key and secret must come from the same key pair; a rotated secret invalidates the old one.</span>
-                          <span style={{ display: "flex", gap: "9px", padding: "3px 0", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}><b style={{ flex: "none", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>3.</b>Bucket gridshop-media-bd must live in region blr1.</span>
+                          <span style={{ display: "flex", gap: "9px", padding: "3px 0", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}><b style={{ flex: "none", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>3.</b>Bucket dazzleshop-media-bd must live in region blr1.</span>
                           <span style={{ display: "flex", gap: "9px", padding: "3px 0", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}><b style={{ flex: "none", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>4.</b>Server clock skew over 15 minutes also produces this error.</span>
                           <span style={{ display: "block", paddingTop: "6px", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>request-id 8f2c41ab-91d0-4e6f · 7 Sep 2026 16:11:38 +06</span>
                         </span>

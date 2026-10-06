@@ -15,6 +15,7 @@ import { RecordHeader, MetricStrip, KV } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { MERCHANT } from '@/lib/merchant';
 import { getCustomers, findCustomer, tierOf, phoneDigits } from '@/lib/customers';
+import { wholesaleOn } from '@/lib/edition';
 import { getInvoices, paymentLog, creditOf, creditLog, CREDIT_METHOD } from '@/lib/invoices';
 import { getReturns } from '@/lib/returns';
 
@@ -128,7 +129,7 @@ export default function CustomerStatement() {
     </>, 'Statement');
   }
 
-  const tier = tierOf(cust);
+  const tier = wholesaleOn() ? tierOf(cust) : null;
   const returns = data.returns.filter((r) => r.customer === name);
   const all = ledgerOf(invoices, returns, data.credits);
   // running balance over everything; the date range picks which rows are shown
@@ -147,7 +148,7 @@ export default function CustomerStatement() {
   const paid = r2(invoices.reduce((a, r) => a + paymentLog(r).filter((p) => !p.void && p.method !== CREDIT_METHOD).reduce((s, p) => s + p.amount + (p.extra || 0), 0), 0));
   const due = r2(invoices.reduce((a, r) => a + Math.max(0, r.due), 0));
   const limit = (cust && cust.creditLimit) || 0;
-  const back = cust && cust.types && cust.types.includes('Wholesale') ? '/wholesale-customer?phone=' + phone : '/all-customers';
+  const back = wholesaleOn() && cust && cust.types && cust.types.includes('Wholesale') ? '/wholesale-customer?phone=' + phone : '/customer-crm?phone=' + phone;
   const address = (cust && cust.address) || 'Not on file';
 
   const cells = (x) => (
@@ -210,7 +211,7 @@ export default function CustomerStatement() {
               ['Customer', name],
               ['Mobile', phone],
               ['Address', address],
-              ['Price list', tier ? `${tier.label} · ${tier.off}% below retail` : 'Retail prices'],
+              ...(wholesaleOn() ? [['Price list', tier ? `${tier.label} · ${tier.off}% below retail` : 'Retail prices']] : []),
               ['Credit limit', limit ? `${formatBDT(limit)} · ${formatBDT(Math.max(0, limit - due))} left` : 'No credit limit'],
             ]} />
           </div>

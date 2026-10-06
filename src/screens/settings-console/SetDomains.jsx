@@ -38,7 +38,7 @@ const STATE = { pending: ['Records not checked', 'neutral'], verifying: ['Checki
 const SSL = { none: null, provisioning: ['SSL being issued', 'info'], active: ['SSL active', 'success'], error: ['SSL failed', 'error'] };
 
 export default class SetDomains extends DCLogic {
-  constructor(p) { super(p); this.state = { list: [], sub: 'gridshop', add: null, edit: null, open: '' }; }
+  constructor(p) { super(p); this.state = { list: [], sub: 'dazzleshop', add: null, edit: null, open: '' }; }
   componentDidMount() {
     this.read = () => this.setState({ list: getDomains(), sub: subdomainOf() });
     this.read();
@@ -126,14 +126,14 @@ export default class SetDomains extends DCLogic {
                 ) : null}
               </React.Fragment>
             );
-          }) : <p className="sd-empty">No custom domain yet. Connect one you own, like gridshop.com.bd.</p>}
+          }) : <p className="sd-empty">No custom domain yet. Connect one you own, like dazzleshop.com.bd.</p>}
         </section>
 
         <Dialog open={!!add} title="Connect domain" onClose={() => this.setState({ add: null })}
           footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => this.setState({ add: null })}>Cancel</button><button type="button" className="gc-btn gc-btn--solid" onClick={this.doAdd}>Next</button></>}>
           {add ? (
             <div className="sd-form">
-              <label className="sd-lbl">Domain<input className="gc-input" value={add.host} data-autofocus placeholder="gridshop.com.bd" onChange={(e) => this.setState({ add: { host: e.target.value, err: '' } })} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); this.doAdd(); } }} /></label>
+              <label className="sd-lbl">Domain<input className="gc-input" value={add.host} data-autofocus placeholder="dazzleshop.com.bd" onChange={(e) => this.setState({ add: { host: e.target.value, err: '' } })} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); this.doAdd(); } }} /></label>
               {add.err ? <p className="sd-err" role="alert">{add.err}</p> : null}
             </div>
           ) : null}

@@ -67,7 +67,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `SetChrome.jsx`; `set-help--keep` keeps a line that prevents an error). The Netlify badge (`#nl-badge-frame`) gets
   space reserved at the bottom (`--host-badge` rules at the end of design-system.css) so it never covers a save bar.
 - Editions (`src/lib/edition.js`): the product is sold as editions, each its own site built with `NEXT_PUBLIC_EDITION`
-  = `retail-wholesale` | `online` | `retail-online` (Retail + Wholesale + Online) | `comms` (GridCommerce Connect:
+  = `retail-wholesale` (shown as **Retail**) | `online` | `retail-online` (Retail + Online) | `comms` (GridCommerce Connect:
   communication, CRM, POS, automation).
   Unset = the full product, where `?edition=<id>` previews an edition (Settings › Subscription & billing has a switcher).
   `MODULES` maps each module to its menu ids and the pages outside the menu it owns; every menu id belongs to exactly one
@@ -79,7 +79,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   transfers, adjustments, counts, holds) and `purchasing` (purchase orders, receiving, requests); the Online edition has
   only `catalog`.
 - Sign-in: `/` opens `/merchant-sign-in`, which asks "Choose your system" (`components/SystemPicker.jsx`, `lib/systems.js`:
-  Retail + Wholesale, Online, Retail + Wholesale + Online — each its own site; on the full site it previews the edition).
+  Retail, Online, Retail + Online — each its own site; on the full site it previews the edition).
   For now (demo) tapping a system signs in at once and opens its dashboard; email / phone sign-in still works below it.
   Team profiles (owner/CEO, HR, warehouse, shop …) are switched in Settings › Profile type (`/set-profile`) and the account menu.
 - One inventory, two shapes (`src/lib/stockSetup.js`, Settings › Stock setup `/stock-setup`): `mode` one place (Online
@@ -104,7 +104,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `GatewaySetup` (prop `provider`) on the Connections page; devices and tools go to their page. Every other "Connect"
   button points here (old Social accounts, Ad accounts and WordPress sync menu items are aliases of it / the WooCommerce
   channel; `/social-connections` redirects; the ad-accounts screen is `/ad-accounts`). New outside service → add it to `APPS`.
-- Sales channels (an area; module `channels` in retail-wholesale, online, retail-online): product sync to Meta
+- Sales channels (an area; module `channels` in online and retail-online): product sync to Meta
   Commerce, Google Merchant Center, WooCommerce and Shopify. UI only — `src/lib/channels.js` simulates syncs (progress
   follows the clock: connecting → syncing → success / partly synced / processing / failed; `?sync=failed` makes the next one
   fail), product statuses from the real product list (`channelProducts`, `PRODUCT_CHS`), plain-word problems with the fix
@@ -170,7 +170,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   opens the GridAI panel and asks), the day's to-do as pills, then Sales · last 7 days and Best sellers. The old
   design screen `MerchantOverview.jsx` stays as reference. The top bar crumb is the page's area.
   The Online edition has its own Home, `OnlineHome.jsx`, laid out like Home (figures: Sales, Orders, Visitors,
-  Conversion, Money in hand; greeting with Ask GridAI and to-do pills; Sales · last 30 days and Latest orders); the
+  Conversion, Money in hand; greeting with Ask GridAI and the Needs you list; Sales · last 30 days and Latest orders, then
+  the same Home widgets as the full Home without its Latest orders, `HomeWidgets skip={['latest-orders']}`); the
   Connect edition's `CommsHome.jsx` follows the same pattern. Charts are drawn
   with `components/charts/DashCharts.jsx` (ColumnChart with an optional line, Sparkline, Donut, StackBar, HBars,
   Legend: hover and arrow-key tooltips, a hidden table per chart, bars rise once on first show). Chart colours are
@@ -217,8 +218,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
     column Title/descriptions (rich text, `RichText.jsx`, HTML in `long`) → Media → Classification (main category +
     subcategories `subcats`, template) → Specifications (per-product layout `specLayout`, shop template untouched) →
     Pricing → Product model (format, selling mode `sell`, sellability `sellability`: catalogue-only isn't sellable) →
-    Variants (+ Variant editor drawer) → one-line cards with drawers (identifiers/units `invMode`, shipping, SEO,
-    relationships); side column Status · Publishing · Organization · Product data · Google listing readiness · Warranty ·
+    Variants (+ Variant editor drawer) → one-line cards with drawers (identifiers/units `invMode`, shipping, SEO;
+    relationships are hidden, `SHOW_RELATIONS` in AddProduct.jsx); side column Status · Publishing · Organization · Product data · Google listing readiness · Warranty ·
     Activity. Shared parts in `AddProductParts.jsx`; new products start as Draft.
   - **Barcodes.** "Make one" makes an in-store EAN-13 (starts with 2, `barcodeType: 'internal'`). Google Merchant
     treats it as no GTIN (`channels.js`).
@@ -235,10 +236,88 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - POS: `/pos` (`src/screens/pos-register/Pos.jsx`) is the one register; `/pos-manage` (`PosManage.jsx`) is its
   back office (counters, employees and shifts, cash pickups, settings). Both read and write
   `src/lib/posStore.js` (browser storage). Register shortcuts are listed in `SHORTCUTS` in `Pos.jsx` (F1 on screen).
-- Sales has no separate wholesale module. A wholesale customer (`src/lib/customers.js`, with a price list set
-  when the customer is added) is chosen in New sale (`/pos`): the prices load on their own and the sale can be
-  completed as an unpaid invoice. `/sales-invoices` (`src/screens/sales/SalesInvoices.jsx`, `src/lib/invoices.js`)
-  lists invoices as Unpaid or Paid; recording the payment completes the sale and its order.
+- **Wholesale is switched off (Oct 2026)**: `WHOLESALE = false` in `src/lib/edition.js` removes the `wholesale` module and
+  the Wholesale channel from every edition; screens check `wholesaleOn()` (Quotes, price lists, MOQ, Wholesale views,
+  types, filters, columns, demo wholesale invoices and returns). `docs/wholesale-audit.md` lists every item; setting the
+  switch to true brings it back. Invoices stay (module `money`): `/sales-invoices` (`src/screens/sales/SalesInvoices.jsx`,
+  `src/lib/invoices.js`) lists sales on due as Unpaid / Partly paid / Paid; recording the payment completes the sale and
+  its order. The credit limit is for every customer.
+- **Retail edition = counter selling only (Oct 2026)**: no `online` / `channels` module. Screens check
+  `hasModule('online')` after mount: Orders (`MerchantOrders.jsx`) shows All / Payment due / Completed / Cancelled /
+  Returned with a "Payment due" figure, and Create order opens `/pos`; Add product hides the long description, Shipping,
+  Search engine listing, Publishing and Google listing readiness; `settlements.js › partnerInEdition` drops couriers and
+  online checkout gateways (card machine and own partners stay); Payment setup hides Online gateways and exchange rates;
+  Daily summary, Home's order summary and the top bar's notifications show counter sales only. Order work, Order
+  settings and Order notifications belong to the `online` module; Google Business to `marketing`.
+- **Demo shop = Dazzle Shop (Oct 2026)**: a mobile phone shop (phones, accessories, audio, wearables, power banks,
+  repairs) with one warehouse (Central Warehouse) and two branches (Dhanmondi, Mirpur) plus the Returns & damaged bay.
+  Products `products.js`, the catalogue `stock.js › CATALOG`, categories (Categories page, product form `CATS`,
+  `productTemplates.js › CAT_SEED`), brands, suppliers, the money history (`ledgerSeed.js`), chats, reviews, leads and
+  offers all follow it. Old place names map in `locations.js › OLD`. The root layout clears browser data saved under an
+  older demo once (`DEMO_DATA` in `app/layout.jsx`; bump it when the demo data changes shape). The platform console's
+  other stores keep their own names.
+- **Invoices: accept, then pay** (`invoices.js`): an unpaid invoice is accepted by staff (`acceptInvoice`, `stageOf`:
+  To accept → Accepted → Paid) before a payment is recorded; editing it (`reviseInvoice(…, reason)`) makes a revision that
+  must be accepted again (`revisionsOf`, `invoiceChanges`). The customer page has an **Invoices** area
+  (`customers-crm/CustomerInvoices.jsx`: owed, overdue, credit; To accept · To pay · Paid; side panel to accept and pay).
+  The customer page shows five areas (Overview · Orders · Invoices · Messages & activity · Details); its Insights and
+  Controls areas stay in the code, hidden, with their actions in the header's More menu;
+  `/sales-invoices` has a To accept tab; `/sales-invoice` gates Receive payment behind Accept.
+- **Selling on due** (`lib/creditRules.js`, Customer settings › Credit & dues `/customer-settings#credit`): off by
+  default; default credit limit, days to pay (sets the invoice's `dueAt`), phone needed, manager PIN over the limit or
+  refuse. The POS "Due" tender and Require full payment follow it (`checkDue`).
+- **Supplier returns** (`/supplier-return`, `supplierBills.js`): return anything bought from a supplier (`boughtFrom`:
+  bought less returned, per bill) or damaged delivery items; settle by credit note (`settle: 'credit'`) or replacement
+  (`'replace'`, waits until `receiveReplacement`, stock comes back in at the chosen place). `?supplier=`/`?bill=` opens it.
+- **Online place**: Central Warehouse (Settings › Stock setup `homeId`) is shown as "Online orders ship from here" and
+  can't be switched off while it is; orders hold stock there (`locations.onlinePlace()`).
+- **Meetings** (`/meetings`, Customers › Meetings; `lib/meetings.js`; module `comms`, so Online, Retail + Online and
+  Connect have it, Retail does not): Zoom / Google Meet (Connections group
+  Meetings) / phone / at the shop; booking makes the link and sends the invite (`messaging.send`), a reminder an hour
+  before; staff reminders and "add a note" in the bell (`components/MeetingAlerts.jsx`, `window.__gcMeet`); after the
+  meeting a note, outcome and next follow-up (logged on the lead). Schedule meeting on the lead and customer pages;
+  Home to-do "Write meeting notes" (all three Homes: Home, Online Home, Connect Home); live count in the menu.
+- **Order page for counter sales**: no steps, holds, shipping, courier or visit cards; it shows **Sold by** (the POS
+  sale's cashier, or the order's `soldBy`), each item's **IMEI / serial** (serials.js, by sale id) and its **warranty**
+  with the end date (`lib/warranty.js` › `coverOf`: the product's own setting, else its category's default when flagged).
+  The customer profile has a **Warranty** card (Overview: 3 covered items; Orders area: all) from
+  `lib/customerWarranty.js` › `warrantyItems(phone)`: every delivered online order and counter sale with a warranty, days
+  left (cover starts at delivery / the sale), IMEI, where to claim; "Log service" (`requestService`) shows on the order page.
+- **Receipts and invoices** (`lib/receipts.js`, `components/SaleInvoice.jsx`): after a POS sale the receipt panel has
+  Send receipt (SMS / email, number prefilled; each send logged, a failed one says so) and Print invoice (A4 with the
+  letterhead, IMEI and warranty per item, Sold by). The order page has Resend receipt and Print invoice; the orders list
+  has a Send receipts bulk action (SMS to every selected order with a number).
+- **Return & exchange payments** (`ReturnExchange.jsx`): when the customer pays extra, the payment box takes one or
+  several parts (split payment: method, amount, bKash / Nagad transaction ID or card slip, cash received and change);
+  each part posts to its own account in Money (`part 1 of 2 …`, transaction ID as `txn`, claimed once via paymentRefs);
+  what is left can stay as due on a POS sale when selling on due is on. A bKash / Nagad refund asks which number it goes to.
+- **POS receipt printing**: the receipt rises out of the printer slot in line-feed steps with a "Printing…" tag after a
+  printed sale and on Print again (`posStyles.js › pos-print`; off with reduced motion).
+- **Setup checklists** (`lib/moduleSetup.js` + `components/ModuleSetup.jsx`): each area's main page shows "Set up …"
+  steps that tick themselves from the libs, then folds to one line; Hide keeps it away (`gc.setup.hidden`).
+- **UX fixes, pass 1 + 2 (Nayeem's "Grid Commerce UX Fixes", Oct 2026)**:
+  - Routes: `/add-product-tabs`, `/set-chrome`, `/set-rail`, `/set-topbar` and 29 old Accounts / staff-tab / wholesale /
+    social pages are gone; their addresses forward in `next.config.mjs › MOVED`. SetChrome / SetRail / SetTopbar stay as
+    components.
+  - Orders: the courier status is **Sent to courier** (key `shipped`; saved "In transit" still resolves). The Orders tabs
+    are `orderStatus.js › ORDER_TABS` (On hold = On hold + Pending, Processing = Processing + Approved + Ready for courier,
+    Sent to courier, Delivered, Returned, Cancelled; `tabKeys(tab)`); Retail keeps its own tabs. A **digital order** (every
+    item's product format is digital or licence, `orderFlow.js › isDigitalOrder`) skips Ready for courier and Sent to
+    courier: approved → "Send the download or key" → `sendDigital` → Delivered.
+  - Create order: Customer comes first (search focused). Order page: the Verify card has the phone, Call, WhatsApp and SMS
+    (the Customer card points there while the order is new); on phones the steps fold to one "Step n of n" line.
+  - Home (all three Homes): a **Needs you** button with the count in the top row next to Create and Export
+    (`ActionPills variant="button"`), opening the full list with snooze / dismiss. A side panel was tried and removed: it
+    squeezed the dashboard.
+  - Sign-in: an edition site shows no system choice, only "Open the <edition> demo" (one tap signs in; any email and
+    password work too); the full site's picker reads "Demo: preview a system".
+  - Payouts: the page is called Payouts everywhere (address stays `/settlements`); with both couriers and gateways it
+    opens on **Courier COD** with a Gateway payouts switch and a link to Courier statement.
+  - Settings list (`SetRail.jsx`): a **Business setup** group (Orders, Products & catalog, Customers, Sales channels,
+    Auto-call, Communications, Staff & HR, Accounts, POS counters); items with no page or outside the edition are hidden.
+  - Top bar account menu: the store name from Settings › General and the real branch count. Page titles carry no
+    "G2 ·" / "G3 ·". The icon rail (POS, narrow windows) shows a short name under each icon and a tooltip. Product
+    channel switches say On / Off and keep their colour when locked.
 - Shared operations data (front end, localStorage): `src/lib/locations.js` is the one list of places (every
   place dropdown reads it); `src/lib/stock.js` is the catalogue with on hand / held / available / in transit
   (`stockAt`) and stock moves (`addMove`); `src/lib/stockHolds.js` holds; `src/lib/orders.js` orders;
@@ -291,6 +370,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `/sales-leads` leads & follow-ups (`lib/leads.js`; `/leads` is taken by the platform console).
 - Responsive rules for the platform console frame (`.cs`) and fixed design boards (`data-board`, zoomed to fit) are in
   `src/styles/console-responsive.css`. `?quiet=1` stops the evening payout check from opening by itself (tests, screenshots).
+- Platform console (GridCommerce's own back office, `src/screens/console`, Oct 2026 sprint 1): the design boards' look is
+  kept; the data and rules are `src/lib/platform/` (front end only, `gc.platform.db`): `seed.js` (62 demo stores around the
+  first visit; bump `DATA_VERSION` when the seed changes), `store.js` (`db()`, `now()`, `commit`, `attach(this)` in a screen's
+  componentDidMount; server render = the design moment, so no hydration gaps; `?staff=<id>` switches the demo staff member,
+  `?reset=1` restarts the demo), `billing.js` (bills 7 days before the billing day; grace 1–7 days, read-only 8–14,
+  suspended 15+; owners pay from the panel or staff record payments, transaction IDs once; optional auto-charge with
+  retries; adjustments with a second approver above ৳500; credit carried over), `plans.js` (plan versions: draft → second
+  approver → live on a date), `views.js` / `merchant.js` (what each screen shows), `shops.js` (provisioning, notes, reset
+  link). Every console screen draws its sidebar and top bar with `ConsoleFrame.jsx` (live badges, staff, clock, Ctrl K
+  search); shared bits in `consoleParts.jsx`. Live so far: Overview, Merchants, Merchant page, Provisioning, Provision a
+  store, Plans, plan form, Subscriptions, Invoices, Collections, Adjustments, adjustment form; the other boards are static.
 - Reference pages (UI kit, flows, site map, storyboards) are under `/dev/…`. They and the POS /
   settings screen switchers only show in a production build when `NEXT_PUBLIC_SHOW_STORYBOARD=true`.
 - New features from Nayeem's briefs (Oct 2026; built in a parallel run, rules in `docs/new-features-run.md`). The skipped
@@ -332,5 +422,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   ways; `/dev/proposal/doc` is `docs/proposal-vs-build.md` with the briefs' sections linked. `?p=a,b` / `?p=off` pins one
   tab. The top bar (or a corner badge on pages without it) says "Proposal: N on". Switches only work while developing or
   with `NEXT_PUBLIC_SHOW_STORYBOARD=true`. An experiment checks its key at the narrowest point, then sets `built: true`.
+- Netlify prerenders every page on a UTC server. Anything that depends on today's date or time (today's figures,
+  sparklines by day, "Prepared" dates, a date picker's `max`) is worked out after mount, or the page fails to hydrate in
+  Dhaka time. Test with `TZ=UTC npx next dev` (a copy of the repo) and a page-by-page load.
 - `npm run check:screens` fails when a screen brings back a literal the tokens replace.
 - Check changes with `npm run build` (prerenders every route) and by loading the screen.

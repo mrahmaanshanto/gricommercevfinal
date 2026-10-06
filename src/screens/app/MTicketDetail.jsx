@@ -249,7 +249,7 @@ export default class MTicketDetailScreen extends Component {
                     <b style={{ fontWeight: "var(--weight-medium)" }}>You replied on Facebook</b>
                     <span className="num" style={{ color: "var(--muted)" }}>11:09</span>
                   </div>
-                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", color: "var(--body)", marginTop: "2px" }}>Done, we added the second sunscreen. New total ৳3,390.</div>
+                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", color: "var(--body)", marginTop: "2px" }}>Done, we added the second charger. New total ৳3,390.</div>
                 </div>
               </div>
             </div>

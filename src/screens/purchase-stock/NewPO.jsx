@@ -32,15 +32,15 @@ function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var 
 var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
 var CATALOG = [
-  { name: 'Aloe Vera Soothing Gel 300ml', code: '8941100500112', cost: 320, vat: 15 },
-  { name: 'Sunscreen SPF 50 · 50ml', code: '8941100500235', cost: 540, vat: 15 },
-  { name: 'Rice Water Cleanser 150ml', code: '8941100500341', cost: 410, vat: 15 },
+  { name: 'Phone Ring Holder', code: '8941100500112', cost: 320, vat: 15 },
+  { name: 'Anker 20W USB-C Charger', code: '8941100500235', cost: 540, vat: 15 },
+  { name: 'Magnetic Wireless Charger 15W', code: '8941100500341', cost: 410, vat: 15 },
   { name: 'Cotton Face Towel (pack of 3)', code: '8941100500457', cost: 180, vat: 7.5 },
-  { name: 'Lip Balm Strawberry 4g', code: '8941100500563', cost: 95, vat: 15 }
+  { name: 'SIM Ejector Pin Pack', code: '8941100500563', cost: 95, vat: 15 }
 ];
 var TERMS = [{ d: 0, label: 'Cash now' }, { d: 3, label: '3 days' }, { d: 7, label: '7 days' }, { d: 10, label: '10 days' }, { d: 14, label: '14 days' }, { d: 15, label: '15 days' }, { d: 30, label: '30 days' }, { d: 45, label: '45 days' }];
 // the last order from each supplier among the demo purchase orders (Purchase orders shows them)
-var DEMO_LAST = { 'Rahman Traders': ['PO-2609-0024', '18 Sep 2026'], 'Dhaka Beauty Imports': ['PO-2609-0023', '17 Sep 2026'], 'Chattogram Packaging Co.': ['PO-2609-0022', '16 Sep 2026'], 'Nabil Fashion House': ['PO-2609-0020', '12 Sep 2026'], 'Mim Enterprise': ['PO-2608-0017', '20 Aug 2026'] };
+var DEMO_LAST = { 'Rahman Telecom': ['PO-2609-0024', '18 Sep 2026'], 'Dhaka Audio Imports': ['PO-2609-0023', '17 Sep 2026'], 'Chattogram Packaging Co.': ['PO-2609-0022', '16 Sep 2026'], 'Nabil Mobile House': ['PO-2609-0020', '12 Sep 2026'], 'Mim Enterprise': ['PO-2608-0017', '20 Aug 2026'] };
 var FIRST_DAY = new Date(2026, 8, 18).getTime();   // first render, before the browser's date is read
 var DAY = 864e5;
 var BLANK = { lines: [], ship: 0, customs: 0, courier: 0, split: 'value', toast: '', flash: null, date: '', inv: '', note: '', errs: {}, saved: null, fileGone: true };
@@ -52,7 +52,7 @@ class Component extends DCLogic {
       lines: s.lines || [{ i: 0, qty: 60 }, { i: 1, qty: 48 }, { i: 2, qty: 40 }],
       ship: s.ship != null ? s.ship : 1500, customs: s.customs != null ? s.customs : 0, courier: s.courier != null ? s.courier : 600,
       split: s.split || 'value', term: s.term != null ? s.term : 30, next: s.next || 3, toast: s.toast || '', flash: s.flash,
-      sup: s.sup != null ? s.sup : 'Rahman Traders', date: s.date != null ? s.date : fmtDate(new Date(today + 7 * DAY)), errs: s.errs || {},
+      sup: s.sup != null ? s.sup : 'Rahman Telecom', date: s.date != null ? s.date : fmtDate(new Date(today + 7 * DAY)), errs: s.errs || {},
       place: s.place || 'Central Warehouse', sups: s.sups || SUPPLIERS, pos: s.pos || [], today: today,
       inv: s.inv || '', note: s.note || '', saved: s.saved || null, fileGone: !!s.fileGone
     };

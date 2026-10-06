@@ -5,7 +5,7 @@ export const VAT_KEY = 'gc.vat';
 // the rates the VAT screen starts from, by its category key
 const DEFAULT_RATES = { rice: 0, oil: 5, soap: 7.5, snack: 5, drink: 5, cloth: 7.5, elec: 15 };
 // which VAT category a POS product category is taxed as
-const POS_CATEGORY = { Grocery: 'oil', Clothing: 'cloth', 'Skin care': 'soap', Electronics: 'elec', Home: 'drink' };
+const POS_CATEGORY = { Phones: 'elec', Accessories: 'elec', Audio: 'elec', Wearables: 'elec', 'Power banks': 'elec' };
 
 export function loadVat() {
   try { return { rates: {}, notReg: false, ...(JSON.parse(window.localStorage.getItem(VAT_KEY)) || {}) }; } catch { return { rates: {}, notReg: false }; }

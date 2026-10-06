@@ -6,6 +6,7 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { LOCKED, currentEditionId } from '@/lib/edition';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -20,10 +21,19 @@ var CATS = [
   { k: 'fashion', label: 'Fashion & clothing', slide: 0 }, { k: 'beauty', label: 'Beauty & skincare', slide: 2 }, { k: 'elec', label: 'Phones & electronics', slide: 1 },
   { k: 'food', label: 'Food & grocery', slide: 3 }, { k: 'home', label: 'Home & living', slide: 3 }, { k: 'other', label: 'Something else', slide: 4 }
 ];
-var WHERE = ['Facebook page', 'Instagram', 'WhatsApp', 'Physical shop', 'Marketplace', 'Not selling yet'];
+// The Retail site asks about shops and counters, not pages and couriers (Online, Retail + Online, Connect and the full
+// site keep the online questions). LOCKED and the edition are fixed at build time, so server and browser agree.
+var RETAIL = LOCKED && currentEditionId() === 'retail-wholesale';
+if (RETAIL) SLIDES = [
+  { ...SLIDES[1], quote: 'Every phone’s IMEI is scanned at the counter. The receipt shows the warranty, and the stock is right in both branches.' },
+  { ...SLIDES[3], quote: 'Stock comes in at the warehouse and goes to the branches by transfer. We know where each piece is.' },
+  SLIDES[4],
+];
+var RETAIL_SLIDE = { fashion: 2, beauty: 2, elec: 0, food: 1, home: 1, other: 2 };
+var WHERE = RETAIL ? ['One shop', '2–3 branches', '4 or more branches', 'A warehouse too'] : ['Facebook page', 'Instagram', 'WhatsApp', 'Physical shop', 'Marketplace', 'Not selling yet'];
 var SIZE = ['Just starting', 'Under 100', '100–500', '500–2,000', '2,000+'];
-var PAY = ['Cash on delivery', 'bKash', 'Nagad', 'Card'];
-var NAMES = ['Create account', 'Verify number', 'Your business', 'How you sell', 'Shop link'];
+var PAY = RETAIL ? ['Cash', 'Card', 'bKash', 'Nagad'] : ['Cash on delivery', 'bKash', 'Nagad', 'Card'];
+var NAMES = ['Create account', 'Verify number', 'Your business', 'How you sell', RETAIL ? 'Shop address' : 'Shop link'];
 var PHONE_RE = /^1[3-9]\d{8}$/;
 function __Err({ id, msg }) { return msg ? <p id={id} className="err" role="alert">{msg}</p> : null; }
 class Component extends DCLogic {
@@ -44,7 +54,7 @@ class Component extends DCLogic {
     var step = s.step || 1, slide = s.slide || 0, gen = s.gen || 0;
     var name = s.name != null ? s.name : 'Nusrat Jahan', phone = s.phone != null ? s.phone : '1712345678', biz = s.biz != null ? s.biz : '';
     var pw = s.pw || '', errs = s.errs || {};
-    var code = s.code || '', cat = s.cat || '', where = s.where || ['Facebook page'], size = s.size || '', pay = s.pay || ['Cash on delivery', 'bKash'];
+    var code = s.code || '', cat = s.cat || '', where = s.where || [WHERE[0]], size = s.size || '', pay = s.pay || [PAY[0], 'bKash'];
     var set = function (p) { self.setState(p); };
     var toggleIn = function (arr, v) { var a = arr.slice(); var i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else a.push(v); return a; };
     var first = (name || 'there').split(' ')[0];
@@ -54,9 +64,14 @@ class Component extends DCLogic {
     var advance = function () { set({ step: step + 1, dir: 'fwd', errs: {} }); };
     var catObj = CATS.filter(function (c) { return c.k === cat; })[0];
     var todo = [{ title: 'Add your first product', sub: 'Snap a photo, set a price and stock. Scan the barcode if it has one.', time: '2 min' }];
-    if (where.indexOf('Facebook page') >= 0 || where.indexOf('Instagram') >= 0) todo.push({ title: 'Connect your Facebook and Instagram', sub: 'Messages and comments become orders in one inbox.', time: '1 min' });
-    if (pay.indexOf('Cash on delivery') >= 0) todo.push({ title: 'Set delivery charges and courier', sub: 'Inside Dhaka, outside Dhaka, and COD fee.', time: '2 min' });
-    if (pay.indexOf('bKash') >= 0 || pay.indexOf('Nagad') >= 0) todo.push({ title: 'Connect bKash / Nagad payments', sub: 'Customers pay online, money comes to your account.', time: '3 min' });
+    if (RETAIL) {
+      todo.push({ title: 'Open your counter', sub: 'Register the counter and its cash drawer, then make the first sale.', time: '2 min' });
+      if (where.indexOf('One shop') < 0 || where.length > 1) todo.push({ title: 'Add your branches and warehouse', sub: 'Each place keeps its own stock; move it with transfers.', time: '2 min' });
+      if (pay.indexOf('Card') >= 0 || pay.indexOf('bKash') >= 0 || pay.indexOf('Nagad') >= 0) todo.push({ title: 'Connect your card machine and bKash / Nagad', sub: 'Payments at the counter go to the right account.', time: '3 min' });
+    }
+    if (!RETAIL && where.indexOf('Facebook page') >= 0 || where.indexOf('Instagram') >= 0) todo.push({ title: 'Connect your Facebook and Instagram', sub: 'Messages and comments become orders in one inbox.', time: '1 min' });
+    if (!RETAIL && pay.indexOf('Cash on delivery') >= 0) todo.push({ title: 'Set delivery charges and courier', sub: 'Inside Dhaka, outside Dhaka, and COD fee.', time: '2 min' });
+    if (!RETAIL && (pay.indexOf('bKash') >= 0 || pay.indexOf('Nagad') >= 0)) todo.push({ title: 'Connect bKash / Nagad payments', sub: 'Customers pay online, money comes to your account.', time: '3 min' });
     var active = Math.min(code.length, 5);
     return {
       s1: step === 1, s2: step === 2, s3: step === 3, s4: step === 4, s5: step === 5, s6: step === 6,
@@ -81,7 +96,7 @@ class Component extends DCLogic {
           if (!biz.trim()) bad('biz', 'su-biz', 'Enter your business name.');
           if (!cat) bad('cat', 'ob-cat-0', 'Pick what you sell.');
         }
-        if (step === 5 && slug.length < 3) bad('slug', 'su-slug', 'Use at least 3 letters or numbers for your shop link.');
+        if (step === 5 && slug.length < 3) bad('slug', 'su-slug', RETAIL ? 'Use at least 3 letters or numbers for your shop address.' : 'Use at least 3 letters or numbers for your shop link.');
         if (order.length) { set({ errs: found }); focusId(order[0]); return; }
         advance();
       },
@@ -99,7 +114,7 @@ class Component extends DCLogic {
       first: first, biz: biz, setBiz: function (e) { set({ biz: e.target.value, errs: clear('biz') }); },
       bizOr: biz || (first + '’s shop'),
       cats: CATS.map(function (c, i) { var on = c.k === cat; return { id: 'ob-cat-' + i, label: c.label, is_fashion: c.k === 'fashion', is_beauty: c.k === 'beauty', is_elec: c.k === 'elec', is_food: c.k === 'food', is_home: c.k === 'home', is_other: c.k === 'other', on: on, cls: on ? 'opt on' : 'opt', tint: on ? '#003087' : '#e0f3fb', fg: on ? '#ffffff' : '#0089c3',
-        pick: function () { set({ cat: c.k, errs: clear('cat') }); self.go(c.slide); } }; }),
+        pick: function () { set({ cat: c.k, errs: clear('cat') }); self.go(RETAIL ? RETAIL_SLIDE[c.k] : c.slide); } }; }),
       where: WHERE.map(function (w) { var on = where.indexOf(w) >= 0; return { label: w, on: on, cls: on ? 'pick on' : 'pick', pick: function () { set({ where: toggleIn(where, w) }); } }; }),
       size: SIZE.map(function (w) { var on = w === size; return { label: w, on: on, cls: on ? 'pick on' : 'pick', pick: function () { set({ size: w }); } }; }),
       pay: PAY.map(function (w) { var on = pay.indexOf(w) >= 0; return { label: w, on: on, cls: on ? 'pick on' : 'pick', pick: function () { set({ pay: toggleIn(pay, w) }); } }; }),
@@ -486,11 +501,11 @@ export default class MerchantOnboardingScreen extends Component {
               {v.s4 ? (<>
                 <div className={v.anim} style={{ display: "flex", flexDirection: "column", gap: "26px" }}>
                   <div>
-                    <h1 id="ob-title" tabIndex={-1} className="ob-h1" style={{ margin: "0", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>How do you sell today?</h1>
-                    <p style={{ margin: "10px 0 0", fontSize: "var(--text-sm-plus)", lineHeight: "24px", color: "#475569" }}>Pick all that fit. We’ll connect these first.</p>
+                    <h1 id="ob-title" tabIndex={-1} className="ob-h1" style={{ margin: "0", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>{RETAIL ? 'How does your shop work?' : 'How do you sell today?'}</h1>
+                    <p style={{ margin: "10px 0 0", fontSize: "var(--text-sm-plus)", lineHeight: "24px", color: "#475569" }}>{RETAIL ? 'Pick all that fit. We’ll set these up first.' : 'Pick all that fit. We’ll connect these first.'}</p>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    <span className="lbl" id="ob-g0" style={{ fontSize: "var(--text-sm)", color: "#0f172a", fontWeight: "var(--weight-medium)" }}>Where do customers find you?</span>
+                    <span className="lbl" id="ob-g0" style={{ fontSize: "var(--text-sm)", color: "#0f172a", fontWeight: "var(--weight-medium)" }}>{RETAIL ? 'Your shops' : 'Where do customers find you?'}</span>
                     <div role="group" aria-labelledby="ob-g0" style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {__list(v.where).map((x, $index) => (<React.Fragment key={$index}>
                           <button type="button" className={x?.cls} aria-pressed={x?.on} onClick={x?.pick}>{x?.label}</button>
@@ -498,7 +513,7 @@ export default class MerchantOnboardingScreen extends Component {
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    <span className="lbl" id="ob-g1" style={{ fontSize: "var(--text-sm)", color: "#0f172a", fontWeight: "var(--weight-medium)" }}>Orders in a month</span>
+                    <span className="lbl" id="ob-g1" style={{ fontSize: "var(--text-sm)", color: "#0f172a", fontWeight: "var(--weight-medium)" }}>{RETAIL ? 'Sales in a month' : 'Orders in a month'}</span>
                     <div role="group" aria-labelledby="ob-g1" style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {__list(v.size).map((x, $index) => (<React.Fragment key={$index}>
                           <button type="button" className={x?.cls} aria-pressed={x?.on} onClick={x?.pick}>{x?.label}</button>
@@ -518,11 +533,11 @@ export default class MerchantOnboardingScreen extends Component {
               {v.s5 ? (<>
                 <div className={v.anim} style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
                   <div>
-                    <h1 id="ob-title" tabIndex={-1} className="ob-h1" style={{ margin: "0", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Pick your shop link</h1>
-                    <p style={{ margin: "10px 0 0", fontSize: "var(--text-sm-plus)", lineHeight: "24px", color: "#475569" }}>This is where customers will order from. You can connect your own domain later.</p>
+                    <h1 id="ob-title" tabIndex={-1} className="ob-h1" style={{ margin: "0", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>{RETAIL ? 'Pick your shop address' : 'Pick your shop link'}</h1>
+                    <p style={{ margin: "10px 0 0", fontSize: "var(--text-sm-plus)", lineHeight: "24px", color: "#475569" }}>{RETAIL ? 'Your team signs in here, and receipts link to it. You can use your own domain later.' : 'This is where customers will order from. You can connect your own domain later.'}</p>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <label className="lbl" htmlFor="su-slug">Shop link <span className="req" aria-hidden="true">*</span></label>
+                    <label className="lbl" htmlFor="su-slug">{RETAIL ? 'Shop address' : 'Shop link'} <span className="req" aria-hidden="true">*</span></label>
                     <div className="ob-slug" data-invalid={v.err?.slug ? "true" : undefined}>
                       <input id="su-slug" type="text" autoCapitalize="none" spellCheck={false} value={v.slug} onChange={v.setSlug} aria-required="true" aria-invalid={!!v.err?.slug} aria-describedby={v.err?.slug ? "su-slug-err" : undefined} />
                       <span>.[your-platform-domain]</span>
@@ -558,7 +573,7 @@ export default class MerchantOnboardingScreen extends Component {
                         <div style={{ height: "70px", borderRadius: "var(--radius-lg)", background: "#e0f3fb" }} />
                       </div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                        <span style={{ height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>Order now</span>
+                        <span style={{ height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>{RETAIL ? 'View receipt' : 'Order now'}</span>
                         <span style={{ height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "#f1f5f9", color: "#334155", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>{v.payLine}</span>
                       </div>
                     </div>

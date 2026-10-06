@@ -1,6 +1,6 @@
 'use client';
 // OrderDetail — one order in full, opened from Orders (/order-detail?id=<order no>): the steps (New order →
-// Verification → Approved → Ready for courier → In transit → Delivered), the next step's card (verify by call,
+// Verification → Approved → Ready for courier → Sent to courier → Delivered), the next step's card (verify by call,
 // approve / take advance + approve / cancel, prepare the parcel, send to courier, courier updates), courier
 // tracking, the order's messages (notifications.js), items, stock held, activity.
 // Laid out like Shopify's order page (IndexKit RecordHeader + ix-record): on the left the work — the steps with the
@@ -36,6 +36,7 @@ import {
 import {
   verifyOf, startAutoCall, settleAutoCall, recordCall, CALL_RESULTS, callResultLabel, requestAdvance, receiveAdvance, ADVANCE_METHODS,
   COURIERS, courierCharge, prepOf, prepDone, updatePrep, markReady, sendToCourier, trackingOf, courierWebhook, syncCourier, HOOK_LABEL, setLinePhoto,
+  isDigitalOrder, sendDigital,
 } from '@/lib/orderFlow';
 import { notificationLog, retryNotification, NOTIFY_EVENT } from '@/lib/notifications';
 import { clockNow } from '@/lib/settlements';
@@ -47,6 +48,12 @@ import { canEdit, whyNoEdit, editRequestOf, versionOf } from '@/lib/orderEdit';
 import { customStatusOf, customStatusesFor, setCustomStatus, completionOf } from '@/lib/orderRules';
 import { AddProofDialog, ReviewProofDialog } from '@/screens/merchant-orders/ProofDialogs';
 import OrderEditDialog from '@/screens/merchant-orders/OrderEditDialog';
+import { onlinePlace } from '@/lib/locations';
+import { allProducts } from '@/lib/products';
+import { sendReceipt, receiptsSent } from '@/lib/receipts';
+import { SaleInvoice, invoiceFromOrder, printInvoice } from '@/components/SaleInvoice';
+import { coverOf } from '@/lib/warranty';
+import { productOfLine as productOf, saleOfOrder, serialsOfLine, coverStart, claimsFor } from '@/lib/customerWarranty';
 
 const DEFAULT_ID = '#136779';   // what opens when a link carries no order number
 const CANCEL_REASONS = ['Customer cancelled', 'No answer', 'Fake order', 'Out of stock', 'Duplicate order', 'Other'];
@@ -101,6 +108,12 @@ const CSS = `
 .od-tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 4px 0 10px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-body)}
 .od-tag button{display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:var(--radius-full);background:none;color:var(--text-muted);cursor:pointer}
 .od-linkbtn{border:0;background:none;padding:0;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--primary);cursor:pointer}
+/* phones: the steps fold to one line; the Verify card carries the phone and the contact buttons */
+.od-stepline{display:none;width:100%;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-subtle);font:inherit;font-size:var(--text-sm);color:var(--text-body);cursor:pointer;text-align:left}
+.od-stepline b{color:var(--text-heading);font-weight:var(--weight-semibold)}
+.od-contact--verify{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);margin:0}
+.od-contact--verify .ix-btn{flex:0 0 auto}
+.od-contact--verify .od-id{margin-right:4px}
 .od-steps{display:grid;grid-template-columns:repeat(var(--steps),minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none}
 .od-step{position:relative;min-width:0;text-align:center}
 .od-step__dot{position:relative;z-index:1;width:24px;height:24px;margin:0 auto;border-radius:var(--radius-full);display:grid;place-items:center;background:var(--surface-subtle);color:var(--text-muted);border:1.5px solid transparent}
@@ -168,6 +181,8 @@ const CSS = `
 .od-visit{display:flex;flex-direction:column;gap:var(--space-3)}
 .od-visit h3{margin:0 0 4px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
 @media (max-width:767px){
+.od-stepline{display:flex}
+.od-steps:not(.is-open){display:none}
 .od-steps{grid-template-columns:minmax(0,1fr);gap:0}
 .od-step{display:grid;grid-template-columns:24px minmax(0,1fr);column-gap:12px;text-align:left;padding-bottom:14px}
 .od-step:last-child{padding-bottom:0}
@@ -217,6 +232,7 @@ export default function OrderDetail() {
   const holdPlaces = usePlaceList('stock');   // live places after mount (built-in list first)
   const [holdOpen, setHoldOpen] = useState(false);     // hold stock for an order approved without a hold
   const [dlg, setDlg] = useState(null);                // 'approve' | 'advance' | 'cancel' | 'call'
+  const [stepsOpen, setStepsOpen] = useState(false);   // phones: the steps fold to one line
   const [adv, setAdv] = useState({ amount: '', method: 'bkash online' });
   const [cancel, setCancel] = useState({ reason: CANCEL_REASONS[0], tell: true });
   const [call, setCall] = useState({ result: 'confirmed', note: '' });
@@ -224,7 +240,9 @@ export default function OrderDetail() {
   const [blocked, setBlocked] = useState(false);
   const [tracking, setTracking] = useState(false);
   const [comment, setComment] = useState(null);        // text of the comment being written, null when closed
-  const [tags, setTags] = useState(['call-first']);
+  const [resend, setResend] = useState(null);     // { via, to } — sending the receipt again
+  const invoiceRef = React.useRef(null);         // the A4 invoice paper
+  const [tagEdit, setTagEdit] = useState(null);   // tags typed on this page, before they are read back from the order
   const [tagText, setTagText] = useState('');
   const slipRef = React.useRef(null);
   const fileRef = React.useRef(null);
@@ -236,6 +254,7 @@ export default function OrderDetail() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     setId(p.get('id') || DEFAULT_ID);
+    setPlace(onlinePlace());   // online orders hold their stock where they ship from (Settings › Stock setup)
     // Return to the list view the user came from (tab, filters, page). Only same-site list URLs are accepted.
     const from = p.get('from');
     if (from && /^\/merchant-orders(\?|$)/.test(from)) setBack(from);
@@ -301,6 +320,26 @@ export default function OrderDetail() {
   const returnRef = o.invoiceId || o.id;
   const rto = o.statusKey === 'returned' && !isCounterSale(o) ? rtoState(o) : null;
   const counter = isCounterSale(o) || o.isInvoice;
+  // a download or licence-key order skips packing and the courier (orderFlow.js › isDigitalOrder)
+  const digital = !counter && isDigitalOrder(o);
+  const steps = digital ? STEPS.filter((k) => k !== 'ready' && k !== 'shipped') : STEPS;
+  // the POS sale behind a counter order: who sold it, the IMEI / serial numbers sold, each item's warranty
+  // (lib/customerWarranty.js) and any warranty service logged for it on the customer's profile
+  const sale = counter ? saleOfOrder(o) : null;
+  const soldBy = (sale && sale.cashier) || o.soldBy || '';
+  const unitsOf = (l) => serialsOfLine(o, l, sale);
+  const productList = allProducts();
+  const productOfLine = (l) => productOf(l, productList);
+  const wStart = coverStart(o);
+  const claims = claimsFor(o.id);
+  const invDoc = invoiceFromOrder(o, sale);
+  const doResend = (e) => {
+    e.preventDefault();
+    const to = resend.to.trim();
+    if (!to) { toast(resend.via === 'sms' ? 'Type the mobile number' : 'Type the email address', { tone: 'error' }); return; }
+    const r = sendReceipt(invDoc, { via: resend.via, to });
+    if (r.ok) { setResend(null); toast(`Receipt sent again by ${resend.via === 'sms' ? 'SMS' : 'email'} to ${to}`); } else toast(`Not sent: ${r.reason || r.status}`, { tone: 'error' });
+  };
   const prep = prepOf(o);
   const track = trackingOf(o);
   const msgs = counter ? [] : notificationLog(o);
@@ -329,7 +368,7 @@ export default function OrderDetail() {
     delivered: o.statusKey === 'delivered',
     completed: completion.done,
   };
-  const nextStep = offPath ? null : STEPS.find((k) => !reached[k]) || null;
+  const nextStep = offPath ? null : steps.find((k) => !reached[k]) || null;
   const t = o.times || {};
   const when = (x) => (x ? formatTime(x) + ', ' + formatDate(x) : '');
   const stepNote = {
@@ -423,6 +462,7 @@ export default function OrderDetail() {
     setPrep({ slipPrinted: true });
   };
   const ready2 = () => { markReady(o); refresh(); toast('Ready for courier'); };
+  const sentDigital = () => { if (sendDigital(o)) { refresh(); toast('Sent · ' + o.id + ' is delivered'); } };
   const send = () => {
     const r = sendToCourier(o);
     refresh();
@@ -452,6 +492,9 @@ export default function OrderDetail() {
   };
   const openEdit = () => { const why = whyNoEdit(o); if (why) { toast(why, { tone: 'info' }); return; } setEditDlg('edit'); };
   const setSub = (e) => { setCustomStatus(o, e.target.value); refresh(); toast(e.target.value ? 'Sub-status set' : 'Sub-status cleared'); };
+  // the order's own tags, saved with the order (orders.js › patchOrder)
+  const tags = tagEdit || o.tags || [];
+  const setTags = (next) => { setTagEdit(next); patchOrder(o, { tags: next }); };
   const addTag = () => { const x = tagText.trim(); if (x && !tags.includes(x)) setTags([...tags, x]); setTagText(''); };
 
   // ---- photos on order items ---------------------------------------------------------------------------
@@ -501,6 +544,14 @@ export default function OrderDetail() {
     title: v && v.state === 'confirmed' ? 'Approve order' : 'Verify order',
     sub: o.advance && o.advance.state === 'requested' ? `Advance ${formatBDT(o.advance.amount)} requested` : status.hint,
     body: (<>
+      {digitsOf(o.phone).length >= 10 ? (
+        <div className="od-contact od-contact--verify">
+          <span className="od-id od-strong">{o.phone}</span>
+          <a className="ix-btn ix-btn--sm" href={'tel:' + digitsOf(o.phone)}><Icon name="phone" width="16" height="16" aria-hidden="true" />Call</a>
+          <a className="ix-btn ix-btn--sm" href={'https://wa.me/88' + digitsOf(o.phone)} target="_blank" rel="noreferrer">WhatsApp</a>
+          <a className="ix-btn ix-btn--sm" href={'sms:' + digitsOf(o.phone)}>SMS</a>
+        </div>
+      ) : null}
       {verifyLine}
       {recordLine}
       <div className="od-acts">
@@ -512,6 +563,13 @@ export default function OrderDetail() {
         <button type="button" className={'gc-btn ' + (toReview ? 'gc-btn--neutral' : 'gc-btn--solid')} onClick={() => setDlg('approve')}><Icon name="check" width="16" height="16" aria-hidden="true" /> Approve</button>
         {o.payment !== 'Paid' ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDlg('advance')}><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /> Take advance + approve</button> : null}
       </div>
+    </>),
+  };
+  else if (o.statusKey === 'approved' && digital) step = {
+    title: 'Send the download or key', sub: 'No parcel: send the link or licence key to the customer.',
+    body: (<>
+      <p className="od-line"><Icon name="mail" width="16" height="16" aria-hidden="true" /><span>{o.customer} · {o.phone}</span></p>
+      <div className="od-acts"><button type="button" className="gc-btn gc-btn--solid" onClick={sentDigital}><Icon name="send" width="16" height="16" aria-hidden="true" /> Mark as sent</button></div>
     </>),
   };
   else if (o.statusKey === 'approved') step = {
@@ -537,7 +595,7 @@ export default function OrderDetail() {
     </>),
   };
   else if (o.statusKey === 'shipped') step = {
-    title: 'In transit', sub: `${o.courier} · ${o.consignment}`, link: o.trackingUrl ? <a className="od-linkbtn" href={o.trackingUrl} target="_blank" rel="noreferrer">Track</a> : null,
+    title: 'Sent to courier', sub: `${o.courier} · ${o.consignment}`, link: o.trackingUrl ? <a className="od-linkbtn" href={o.trackingUrl} target="_blank" rel="noreferrer">Track</a> : null,
     body: (
       <div className="od-demo">
         <p>Courier updates (demo)</p>
@@ -551,7 +609,7 @@ export default function OrderDetail() {
   else if (o.statusKey === 'delivered') step = {
     title: completion.done ? 'Completed' : 'Delivered', sub: when(t.delivered),
     body: (<>
-      {o.codCollected ? <p className="od-line"><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /><b>{formatBDT(o.codCollected)}</b><span>COD with {o.courier} · settlement pending</span><Link href="/settlements" className="od-linkbtn">Settlements</Link></p> : null}
+      {o.codCollected ? <p className="od-line"><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /><b>{formatBDT(o.codCollected)}</b><span>COD with {o.courier} · payout pending</span><Link href="/settlements" className="od-linkbtn">Payouts</Link></p> : null}
       <p className="od-line"><Icon name={completion.done ? 'badge-check' : 'hourglass'} width="16" height="16" aria-hidden="true" style={{ color: completion.done ? 'var(--text-success)' : 'var(--text-muted)' }} /><span>{completion.text}</span>{!completion.done && completion.wait === 'return window' ? <Link href="/order-settings" className="od-linkbtn">Return window</Link> : null}</p>
     </>),
   };
@@ -587,7 +645,7 @@ export default function OrderDetail() {
               <StatusBadge tone={pay[0]} icon={pay[1]}>{o.payment === 'Partial' ? 'Partly paid' : o.payment}</StatusBadge>
               {dups.length ? <StatusBadge tone="warning" icon="copy">Possible duplicate</StatusBadge> : blocked ? <StatusBadge tone="error" icon="ban">Customer blocked</StatusBadge> : null}
             </>}
-            secondary={[{ label: 'Return', href: '/return-exchange?ref=' + encodeURIComponent(returnRef) }, { label: 'Print invoice', onClick: () => toast('Invoice for order ' + o.id + ' sent to the printer', { tone: 'info' }) }]}
+            secondary={[{ label: 'Resend receipt', onClick: () => setResend({ via: 'sms', to: digitsOf(o.phone).length >= 10 ? o.phone : '' }) }, { label: 'Print invoice', onClick: () => printInvoice(invoiceRef.current, invDoc) }, { label: 'Return', href: '/return-exchange?ref=' + encodeURIComponent(returnRef) }]}
             more={[
               { label: 'Print POS receipt', onClick: () => toast('POS receipt for order ' + o.id + ' sent to the printer', { tone: 'info' }) },
               !counter ? { label: 'Edit order', onClick: () => openEdit() } : null,
@@ -626,11 +684,16 @@ export default function OrderDetail() {
 
           <div className="ix-record">
             <div className="ix-main">
-              <section className="ix-card od-card" aria-labelledby="od-next">
+              {/* a counter sale is finished at the counter: no verify / courier steps (the header badges say where it stands) */}
+              {!counter ? <section className="ix-card od-card" aria-labelledby="od-next">
                 <header className="ix-card__head"><div><h2 id="od-next">{step.title}</h2>{step.sub ? <p className="od-head-sub">{step.sub}</p> : null}</div>{step.link || null}</header>
                 <div className="ix-card__body od-body">
-                  <ol className="od-steps" aria-label="Order progress" style={{ '--steps': STEPS.length }}>
-                    {STEPS.map((key) => {
+                  <button type="button" className="od-stepline" aria-expanded={stepsOpen} onClick={() => setStepsOpen(!stepsOpen)}>
+                    <span>Step {nextStep ? steps.indexOf(nextStep) + 1 : steps.length} of {steps.length} · <b>{nextStep ? stepLabel(nextStep) : 'Completed'}</b></span>
+                    <Icon name={stepsOpen ? 'chevron-up' : 'chevron-down'} width="16" height="16" aria-hidden="true" />
+                  </button>
+                  <ol className={'od-steps' + (stepsOpen ? ' is-open' : '')} aria-label="Order progress" style={{ '--steps': steps.length }}>
+                    {steps.map((key) => {
                       const state = reached[key] ? 'done' : key === nextStep ? 'current' : 'todo';
                       const icon = { new: 'shopping-bag', verified: 'phone', approved: 'circle-check', ready: 'package', shipped: 'truck', delivered: 'package-check', completed: 'badge-check' }[key];
                       return (
@@ -644,7 +707,7 @@ export default function OrderDetail() {
                   </ol>
                   {step.body ? <><hr className="od-hr" />{step.body}</> : null}
                 </div>
-              </section>
+              </section> : null}
 
               <section className="ix-card od-card" aria-labelledby="od-items">
                 <header className="ix-card__head">
@@ -654,7 +717,7 @@ export default function OrderDetail() {
                 <div className="gc-table-wrap">
                   <table className="gc-table gc-table--compact">
                     <thead><tr><th scope="col">Item</th><th scope="col" className="od-num">Qty</th><th scope="col" className="od-num">Unit price</th><th scope="col" className="od-num">Amount</th></tr></thead>
-                    <tbody>{o.lines.map((l, i) => { const p = productBy(l.name); const ph = photos[i]; return <tr key={l.name + i}><td className="od-strong"><div className="od-item"><button type="button" className={'od-thumb' + (ph ? ' has-photo' : '')} onClick={() => (ph ? setViewPhoto(i) : pickPhoto(i))} aria-label={(ph ? 'View photo: ' : 'Add photo: ') + l.name} title={ph ? 'View photo' : 'Add photo'}>{ph ? <img src={ph} alt="" /> : <Icon name="image-plus" width="16" height="16" aria-hidden="true" />}</button><span>{l.name}<span className="od-sub">{[l.variant || (p && p.variant), p && p.sku].filter(Boolean).join(' · ') || 'Custom item'}</span></span></div></td><td className="od-num">{l.qty}</td><td className="od-num">{formatBDT(l.price)}</td><td className="od-num od-strong">{formatBDT(l.price * l.qty)}</td></tr>; })}</tbody>
+                    <tbody>{o.lines.map((l, i) => { const p = productBy(l.name); const ph = photos[i]; return <tr key={l.name + i}><td className="od-strong"><div className="od-item"><button type="button" className={'od-thumb' + (ph ? ' has-photo' : '')} onClick={() => (ph ? setViewPhoto(i) : pickPhoto(i))} aria-label={(ph ? 'View photo: ' : 'Add photo: ') + l.name} title={ph ? 'View photo' : 'Add photo'}>{ph ? <img src={ph} alt="" /> : <Icon name="image-plus" width="16" height="16" aria-hidden="true" />}</button><span>{l.name}<span className="od-sub">{[l.variant || (p && p.variant), p && p.sku].filter(Boolean).join(' · ') || 'Custom item'}</span>{(() => { const sn = unitsOf(l); return sn.length ? <span className="od-sub od-id">{(sn.every((x) => /^\d{15}$/.test(x)) ? 'IMEI ' : 'Serial ') + sn.join(', ')}</span> : null; })()}{(() => { const w = coverOf(productOfLine(l), wStart); const c = claims.find((x) => x.item === l.name); return w ? <><span className="od-sub">Warranty: {w.label} · until {formatDate(w.until)}</span>{c ? <span className="od-sub" style={{ color: 'var(--text-warning)' }}>Service asked {formatDate(c.at)}: {c.problem}</span> : null}</> : null; })()}</span></div></td><td className="od-num">{l.qty}</td><td className="od-num">{formatBDT(l.price)}</td><td className="od-num od-strong">{formatBDT(l.price * l.qty)}</td></tr>; })}</tbody>
                   </table>
                 </div>
               </section>
@@ -701,7 +764,7 @@ export default function OrderDetail() {
                 </section>
               ) : null}
 
-              <section className="ix-card od-card" aria-labelledby="od-holds">
+              {!counter || places.length ? <section className="ix-card od-card" aria-labelledby="od-holds">
                 <header className="ix-card__head">
                   <div><h2 id="od-holds">{holds2 ? 'Stock held for this order' : 'Stock'}</h2><p className="od-head-sub">{!holds2 ? (o.stockOut ? `${o.units} pcs taken from ${o.stockOut.place}` : isNew ? 'Taken out when approved' : 'Not taken out') : open.length ? `${units(open)} pcs on hold at ${heldAt}` : 'Nothing is on hold right now'}</p></div>
                   {holds2 && !open.length && ['approved', 'ready'].includes(o.statusKey) && !counter ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setHoldOpen(true)}><Icon name="lock" width="16" height="16" aria-hidden="true" />Hold stock</button>
@@ -729,7 +792,7 @@ export default function OrderDetail() {
                     ))}
                   </div>
                 ) : <div className="ix-card__body" style={{ paddingTop: 0 }} />}
-              </section>
+              </section> : null}
 
               {!counter ? (
                 <section className="ix-card od-card" aria-labelledby="od-msgs">
@@ -772,7 +835,7 @@ export default function OrderDetail() {
               <section className="ix-card" aria-labelledby="od-notes">
                 <header className="ix-card__head"><h2 id="od-notes">Notes</h2></header>
                 <div className="ix-card__body od-body" style={{ gap: 'var(--space-3)' }}>
-                  <div><label className="gc-label" htmlFor="od-note">Order note</label><textarea id="od-note" key={'note-' + o.id} className="gc-input" rows="2" placeholder="Visible to courier and on the invoice" defaultValue={o.note || ''} onBlur={(e) => saveNote('note', e.target.value)} /></div>
+                  <div><label className="gc-label" htmlFor="od-note">Order note</label><textarea id="od-note" key={'note-' + o.id} className="gc-input" rows="2" placeholder={counter ? 'Printed on the invoice' : 'Visible to courier and on the invoice'} defaultValue={o.note || ''} onBlur={(e) => saveNote('note', e.target.value)} /></div>
                   <div><label className="gc-label" htmlFor="od-inote">Internal note</label><textarea id="od-inote" key={'inote-' + o.id} className="gc-input" rows="2" placeholder="Only staff can read this" defaultValue={o.internalNote || ''} onBlur={(e) => saveNote('internalNote', e.target.value)} /></div>
                 </div>
               </section>
@@ -781,23 +844,23 @@ export default function OrderDetail() {
                 <header className="ix-card__head"><h2 id="od-cust">Customer</h2>{blocked ? <StatusBadge tone="error" icon="ban">Blocked</StatusBadge> : null}</header>
                 <div className="ix-card__body">
                   <span className="od-strong" style={{ display: 'block' }}>{o.customer}</span>
-                  <span className="od-sub">{samePhone.length > 1 ? `${samePhone.length} orders from this number` : 'First order from this number'}</span>
-                  <div className="od-section">
+                  {digitsOf(o.phone).length >= 10 ? <span className="od-sub">{samePhone.length > 1 ? `${samePhone.length} orders from this number` : 'First order from this number'}</span> : null}
+                  {!counter || digitsOf(o.phone).length >= 10 ? <div className="od-section">
                     <h3>Contact</h3>
                     <p className="od-id">{o.phone}</p>
-                    {digitsOf(o.phone).length >= 10 ? (
+                    {digitsOf(o.phone).length >= 10 ? (isNew && !counter ? <p className="od-sub">Call or message from the Verify card.</p> :
                       <div className="od-contact">
                         <a className="ix-btn ix-btn--sm" href={'tel:' + digitsOf(o.phone)}>Call</a>
                         <a className="ix-btn ix-btn--sm" href={'https://wa.me/88' + digitsOf(o.phone)} target="_blank" rel="noreferrer">WhatsApp</a>
                         <a className="ix-btn ix-btn--sm" href={'sms:' + digitsOf(o.phone)}>SMS</a>
                       </div>
                     ) : <p className="od-sub">No mobile number on this order.</p>}
-                  </div>
-                  <div className="od-section">
+                  </div> : null}
+                  {!counter || o.address ? <div className="od-section">
                     <h3>Shipping address</h3>
                     <p>{o.address || (counter ? 'Counter sale · no delivery' : 'No address on this order')}</p>
                     {o.zone ? <p className="od-sub">{o.zone}</p> : null}
-                  </div>
+                  </div> : null}
                 </div>
               </section>
 
@@ -827,10 +890,11 @@ export default function OrderDetail() {
                 <div className="ix-card__body od-body" style={{ gap: 'var(--space-3)' }}>
                   <KV rows={[
                     ['Order no.', <span key="id" className="od-id">{o.id}</span>],
-                    [o.invoiceKind || 'Invoice', o.invoiceId ? <Link key="inv" href={invoiceHref(o.invoiceId)} className="od-id">{o.invoiceId}</Link> : 'Not made yet'],
+                    counter && !o.invoiceId ? null : [o.invoiceKind || 'Invoice', o.invoiceId ? <Link key="inv" href={invoiceHref(o.invoiceId)} className="od-id">{o.invoiceId}</Link> : 'Not made yet'],
+                    soldBy ? ['Sold by', soldBy] : null,
                     ['Channel', o.channel],
-                    ['Courier', <span key="c">{o.courier}{o.consignment !== '—' ? <span className="od-sub od-id">{o.consignment}</span> : null}</span>],
-                    ['Stock', open.length ? `Held at ${heldAt}` : 'Not held'],
+                    !counter ? ['Courier', <span key="c">{o.courier}{o.consignment !== '—' ? <span className="od-sub od-id">{o.consignment}</span> : null}</span>] : null,
+                    !counter || open.length ? ['Stock', open.length ? `Held at ${heldAt}` : 'Not held'] : o.stockOut ? ['Stock', `Taken from ${o.stockOut.place}`] : null,
                     !counter ? ['Version', lastEdit ? `${version} · ${(o.edits || []).length} ${(o.edits || []).length === 1 ? 'edit' : 'edits'}` : '1'] : null,
                     o.statusKey === 'delivered' ? ['Completed', completion.done ? formatDate(completion.at) : completion.text] : null,
                   ]} />
@@ -860,7 +924,7 @@ export default function OrderDetail() {
                 </div>
               </section>
 
-              <section className="ix-card" aria-labelledby="od-visit">
+              {!counter ? <section className="ix-card" aria-labelledby="od-visit">
                 <header className="ix-card__head"><h2 id="od-visit">Visit details</h2><button type="button" className="od-linkbtn" aria-expanded={tracking} onClick={() => setTracking(!tracking)}>{tracking ? 'Hide' : 'Show'}</button></header>
                 <div className="ix-card__body" style={tracking ? undefined : { paddingTop: 0 }}>
                   {tracking ? (counter ? <p className="od-sub" style={{ margin: 0 }}>Counter sale · no storefront session.</p> : (
@@ -871,7 +935,7 @@ export default function OrderDetail() {
                     </div>
                   )) : null}
                 </div>
-              </section>
+              </section> : null}
             </aside>
           </div>
         </div>
@@ -958,6 +1022,18 @@ export default function OrderDetail() {
       <AddProofDialog open={proofDlg === 'add'} order={o} onClose={() => setProofDlg(null)} onDone={() => { setProofDlg(null); refresh(); }} />
       <ReviewProofDialog open={!!proofDlg && proofDlg !== 'add'} order={o} proof={proofDlg && proofDlg !== 'add' ? proofDlg : null} onClose={() => setProofDlg(null)} onDone={() => { setProofDlg(null); refresh(); }} />
       <OrderEditDialog open={!!editDlg && canEdit(o)} order={o} request={editDlg === 'request' ? editReq : null} onClose={() => setEditDlg(null)} onDone={() => { setEditDlg(null); refresh(); }} />
+
+      <SaleInvoice doc={invDoc} innerRef={invoiceRef} />
+      <Dialog open={!!resend} title={'Resend receipt · ' + o.id} onClose={() => setResend(null)} width={440}>
+        {resend ? (
+          <form onSubmit={doResend} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <div className="ix-chips" role="group" aria-label="Send by">{[['sms', 'SMS'], ['email', 'Email']].map(([k, l]) => <button key={k} type="button" className="ix-chip" aria-pressed={resend.via === k} onClick={() => setResend({ via: k, to: k === 'sms' && digitsOf(o.phone).length >= 10 ? o.phone : '' })}>{l}</button>)}</div>
+            <div><label className="gc-label" htmlFor="od-resend-to">{resend.via === 'sms' ? 'Mobile number' : 'Email'}</label><input id="od-resend-to" className="gc-input" data-autofocus type={resend.via === 'sms' ? 'tel' : 'email'} placeholder={resend.via === 'sms' ? '01XXXXXXXXX' : 'name@example.com'} value={resend.to} onChange={(e) => setResend({ ...resend, to: e.target.value })} /></div>
+            {(() => { const sent = receiptsSent(o.id).concat(sale ? receiptsSent(sale.id) : []); return sent.length ? <p className="od-sub" style={{ margin: 0 }}>Sent before: {sent.slice(0, 3).map((x) => `${x.via === 'sms' ? 'SMS' : 'email'} to ${x.to}, ${formatDate(x.at)}`).join(' · ')}</p> : null; })()}
+            <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setResend(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid"><Icon name="send" width="16" height="16" aria-hidden="true" /> Send receipt</button></div>
+          </form>
+        ) : null}
+      </Dialog>
 
       <Dialog open={comment != null} title="Add a comment" onClose={() => setComment(null)} width={440}>
         <form onSubmit={saveComment} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

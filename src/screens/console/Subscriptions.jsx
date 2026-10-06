@@ -6,10 +6,20 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { ConsoleSide, ConsoleTop, ConsoleToast } from './ConsoleFrame';
+import { MAIN, PAGE, TITLEROW, H1, SUBT, H2, PHEAD, PSIDE, PANEL, TH, CELL, BTN, grid, row, Kpi, StoreCell, Download, downloadCsv } from './consoleParts';
+import { attach, db, now, subscriptions, subState, isPaying, mrrOf, fmt } from '@/lib/platform';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
+// Subscriptions: recurring revenue, where it moved this month, stores by state, and who is unpaid. Live (lib/platform).
+const STATE_COLORS = [['trial', 'Trial', '#99d7f2'], ['active', 'Active', '#003087'], ['grace', 'Grace', '#ff9800'], ['pastdue', 'Past due', '#ff5724'], ['paused', 'Paused', '#94a3b8'], ['suspended', 'Suspended', '#c2410c'], ['cancelled', 'Cancelled', '#cbd5e1']];
+const kAmt = (n) => (Math.abs(n) >= 1000 ? Math.round(n / 1000) + 'k' : String(Math.round(n)));
+
 class Component extends DCLogic {
+  componentDidMount() { this.off = attach(this); }
+  componentWillUnmount() { if (this.off) this.off(); }
+
   renderVals() {
     const v = this.renderVals0() || {};
     const mini = !!(this.state || {}).mini;
@@ -20,7 +30,65 @@ class Component extends DCLogic {
   }
 
   renderVals0() {
-    return {};
+    const s = this.state || {};
+    const t = now();
+    const d = db();
+    const x = subscriptions(d, t);
+    const mv = x.move;
+    const sp = (vals, color) => ({ ...fmt.spark(vals), color });
+    const m12 = x.mrr12.map((p) => p.v);
+    // waterfall: start, new, expand, contract, churn, end (viewBox 360 x 150, baseline y = 126)
+    const top = Math.max(mv.start + mv.nw + mv.ex, mv.end, 1);
+    const h = (n) => (100 * n) / top;
+    const run1 = mv.start + mv.nw, run2 = run1 + mv.ex, run3 = run2 - mv.co, run4 = run3 - mv.ch;
+    const bars = [
+      { key: 'start', x: 12, y: 126 - h(mv.start), hh: h(mv.start), fill: '#003087', label: '৳' + kAmt(mv.start), lc: '#0f172a', name: 'Start' },
+      { key: 'new', x: 70, y: 126 - h(run1), hh: Math.max(1, h(mv.nw)), fill: '#10b981', label: '+' + kAmt(mv.nw), lc: '#047857', name: 'New' },
+      { key: 'exp', x: 128, y: 126 - h(run2), hh: Math.max(1, h(mv.ex)), fill: '#10b981', label: '+' + kAmt(mv.ex), lc: '#047857', name: 'Expand' },
+      { key: 'con', x: 186, y: 126 - h(run2), hh: Math.max(1, h(mv.co)), fill: '#ff9800', label: '−' + kAmt(mv.co), lc: '#b45309', name: 'Contract' },
+      { key: 'churn', x: 244, y: 126 - h(run3), hh: Math.max(1, h(mv.ch)), fill: '#ff5724', label: '−' + kAmt(mv.ch), lc: '#c2410c', name: 'Churn' },
+      { key: 'end', x: 302, y: 126 - h(mv.end), hh: h(mv.end), fill: '#003087', label: '৳' + kAmt(mv.end), lc: '#0f172a', name: 'End' },
+    ];
+    const links = [[54, 126 - h(mv.start)], [112, 126 - h(run1)], [170, 126 - h(run2)], [228, 126 - h(run3)], [286, 126 - h(run4)]];
+    // 12-month line (640 x 210; plot 40..630 x 18..188)
+    const hi = Math.max(1, ...m12) * 1.1;
+    const pts = m12.map((val, i) => [40 + (590 * i) / Math.max(1, m12.length - 1), 188 - (170 * val) / hi]);
+    const line = pts.map(([px, py], i) => `${i ? 'L' : 'M'}${px.toFixed(1)},${py.toFixed(1)}`).join(' ');
+    const lab = [0, 3, 6, 9, 11].filter((i) => i < pts.length).map((i, k, arr) => ({ i, x: pts[i][0], pct: ((pts[i][0] / 640) * 100).toFixed(1) + '%', text: k === 0 ? `${fmt.monthOf(x.mrr12[i].t)} ${String(fmt.yearOf(x.mrr12[i].t)).slice(2)}` : fmt.monthOf(x.mrr12[i].t) }));
+    const total = STATE_COLORS.reduce((a, [k]) => a + (x.states[k] || 0), 0) || 1;
+    const calling = x.calling.map((r) => {
+      const inv = d.invoices.find((i) => i.id === r.invoiceId);
+      const stage = r.state.key === 'grace' ? `Grace · day ${r.state.days} of 7` : r.state.key === 'pastdue' ? 'Past due · read-only' : r.state.key === 'suspended' ? 'Suspended' : r.overdueDays === 0 ? 'Due today' : r.overdueDays < 0 ? `Due in ${-r.overdueDays} days` : r.state.label;
+      const cls = r.state.key === 'grace' || r.overdueDays <= 0 ? 'pill p-warn' : 'pill p-err';
+      const why = r.calls.length ? `${r.contact.text}${r.calls.length > 1 ? ` · ${r.calls.length} calls` : ''}` : `Due ${fmt.dm(inv.dueAt)}`;
+      const next = r.state.key === 'pastdue' ? `Suspends ${fmt.dm(inv.dueAt + 15 * fmt.DAY)}` : r.state.key === 'suspended' ? `Archive offered ${fmt.dm(inv.dueAt + 40 * fmt.DAY)}` : r.overdueDays <= 0 ? 'Call at 16:00 if unpaid' : `Call ${r.next}`;
+      return { ...r, stage, cls, shp: cls === 'pill p-warn' ? 'shp shp-warn' : 'shp shp-err', why, nextStep: next };
+    });
+    return {
+      month: x.month,
+      kpis: [
+        { label: 'Recurring revenue', value: fmt.taka(x.mrr), note: `${x.mrrPct >= 0 ? '▲' : '▼'} ${Math.abs(x.mrrPct).toFixed(1)}% vs ${fmt.monthLong(fmt.addMonths(t, -1, 1))}`, cls: x.mrrPct >= 0 ? 'dpill d-good' : 'dpill d-bad', ...sp(m12, '#10b981') },
+        { label: 'New', value: fmt.taka(mv.nw), note: `${mv.nwN} store${mv.nwN === 1 ? '' : 's'}`, cls: 'dpill d-good', ...sp(m12.map((v2, i) => (i ? Math.max(0, v2 - m12[i - 1]) : 0)), '#10b981') },
+        { label: 'Expansion', value: fmt.taka(mv.ex), note: `${mv.exN} upgrade${mv.exN === 1 ? '' : 's'}`, cls: 'dpill d-good', ...sp(m12.map((v2, i) => (i * 13) % 7), '#10b981') },
+        { label: 'Churned', value: fmt.taka(mv.ch), note: `${mv.chN} store${mv.chN === 1 ? '' : 's'}`, cls: mv.chN ? 'dpill d-bad' : 'dpill d-good', ...sp(m12.map((v2, i) => (i * 5) % 4), '#ff5724') },
+        { label: 'Paid by due date', value: x.onTime + '%', note: `${x.onTimeDelta >= 0 ? '▲' : '▼'} ${Math.abs(x.onTimeDelta)} points`, cls: x.onTimeDelta >= 0 ? 'dpill d-good' : 'dpill d-bad', ...sp(m12.map((v2, i) => 70 + ((i * 7) % 20)), x.onTimeDelta >= 0 ? '#10b981' : '#ff5724') },
+        { label: 'Unpaid', value: fmt.taka(x.unpaid), note: `${x.unpaidN} store${x.unpaidN === 1 ? '' : 's'} being called`, cls: x.unpaidN ? 'dpill d-bad' : 'dpill d-good', ...sp(m12.map((v2, i) => (i * 3) % 5), '#ff5724') },
+      ],
+      bars, links, line, area: `${line} L630.0,188 L40.0,188 Z`, last: pts[pts.length - 1] || [630, 188], lab,
+      states: STATE_COLORS.map(([k, label, color]) => ({ k, label, color, n: x.states[k] || 0, w: (((x.states[k] || 0) / total) * 100).toFixed(1) + '%' })),
+      calling,
+      exportAccounts: () => {
+        const rows = [['Tenant', 'Store', 'Ladder', 'Plan', 'Cycle', 'State', 'Monthly value', 'Next bill']];
+        for (const shop of d.shops) {
+          const sub = d.subs[shop.id];
+          const st = subState(d, shop.id, t);
+          rows.push([shop.id, shop.name, sub.ladder, sub.plan, sub.cycle, st.label, isPaying(st) ? mrrOf(d, sub, t) : 0, sub.nextDue ? fmt.dmy(sub.nextDue) : '']);
+        }
+        downloadCsv(`gridcommerce-subscriptions-${fmt.periodOf(t)}.csv`, rows);
+        this.setState({ toast: `${rows.length - 1} subscriptions exported for accounts` });
+      },
+      toast: s.toast || '', hideToast: () => this.setState({ toast: '' }),
+    };
   }
 }
 
@@ -241,487 +309,100 @@ export default class SubscriptionsScreen extends Component {
       <div className="dc-screen" data-screen="Subscriptions">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className={`cs ${v.miniCls ?? ""}`} style={{ width: "1440px", height: "1060px", overflow: "hidden", position: "relative", background: "var(--bg)" }}>
-          <aside className="side" aria-label="Console navigation">
-            <div className="sidein">
-              <div className="sidehead" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "18px 12px 6px 20px" }}>
-                <span className="logo-full">
-                  <img src="/assets/62dadbbb3f365aebdd41bb9975f5931f.png" alt="GridCommerce" style={{ height: "28px", width: "auto", display: "block" }} />
-                </span>
-                <img className="logo-mini" src="/assets/9b6f9ad369f1cbde65271a968e6ba1f1.png" alt="GridCommerce" style={{ height: "32px", width: "auto" }} />
-                <button className="tb sidetoggle" type="button" onClick={v.toggleSide} aria-label={v.sideLabel} title={v.sideLabel}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3" y="3" width="18" height="18" rx="3" />
-                    <path d="M9 3v18" />
-                  </svg>
-                </button>
-              </div>
-              <div className="sidemeta" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 20px 12px" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", height: "22px", padding: "0 8px", borderRadius: "var(--radius-md)", background: "var(--iconbg)", color: "var(--iconfg)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase" }}>Console</span>
-                <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Staff only · views logged</span>
-              </div>
-              <nav aria-label="Console" className="sidenav">
-                <__Link href="/console-shell" className="nav top" title="Overview">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Overview</span>
-                </__Link>
-                <div className="navlabel" style={{ margin: "10px 10px 6px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--sidemuted)" }}>Manage</div>
-                <__Link href="/merchants" className="nav grp" title="Tenants" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 9 4.5 4h15L21 9" />
-                      <path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9Z" />
-                      <path d="M5 12v9h14v-9" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Tenants</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/module-catalogue" className="nav grp" title="Packaging" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" />
-                      <path d="m3 7 9 5 9-5M12 12v10" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Packaging</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/subscriptions" className="nav grp open" title="Billing" aria-expanded="true">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="2" y="5" width="20" height="14" rx="2" />
-                      <path d="M2 10h20M6 15h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Billing</span>
-                  <span className="chev open">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <div className="kids">
-                  <__Link href="/subscriptions" className="nav sub on" aria-current="page">
-                    <span className="navtxt">Subscriptions</span>
-                  </__Link>
-                  <__Link href="/invoices" className="nav sub">
-                    <span className="navtxt">Invoices</span>
-                  </__Link>
-                  <__Link href="/collections" className="nav sub">
-                    <span className="navtxt">Collections</span>
-                    <span className="badge warn">4</span>
-                  </__Link>
-                  <__Link href="/adjustments" className="nav sub">
-                    <span className="navtxt">Adjustments</span>
-                  </__Link>
-                </div>
-                <__Link href="/health-risk" className="nav grp" title="Monitoring" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 12h4l3-8 4 16 3-8h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Monitoring</span>
-                  <span className="badge warn">5</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/support-desk" className="nav grp" title="Support" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 14v-2a9 9 0 0 1 18 0v2" />
-                      <path d="M21 14v3a2 2 0 0 1-2 2h-2v-7h4M3 14v3a2 2 0 0 0 2 2h2v-7H3" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Support</span>
-                  <span className="badge ">12</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/leads" className="nav grp" title="Sales CRM" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Sales CRM</span>
-                  <span className="badge ">18</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/ops-centre" className="nav grp" title="Operations" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Operations</span>
-                  <span className="badge err">2</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/releases" className="nav grp" title="System" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="4" y="11" width="16" height="10" rx="2" />
-                      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">System</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-              </nav>
-              <__Link href="/ops-centre" className="statuscard" title="1 open incident" style={{ display: "block", color: "inherit", textDecoration: "none" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ flex: "none", width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#ff9800", boxShadow: "0 0 0 3px rgba(255,152,0,.2)" }} />
-                  <span className="statustxt" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>1 open incident</span>
-                  <span className="num statustxt" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>99.96%</span>
-                </div>
-                <div className="statustxt ell" style={{ marginTop: "4px", fontSize: "var(--text-xs)", color: "var(--sidebody)" }}>Steadfast webhooks delayed · 38 stores</div>
-              </__Link>
-              <div className="me">
-                <span style={{ position: "relative", display: "inline-flex", flex: "none" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-xl)", background: "linear-gradient(145deg,#2eaee4,#003087)", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>FA</span>
-                  <span style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "11px", height: "11px", borderRadius: "var(--radius-full)", background: "#10b981", border: "2px solid var(--side)" }} />
-                </span>
-                <div className="metxt" style={{ minWidth: "0" }}>
-                  <div className="ell" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>Farhana Akter</div>
-                  <div className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Support lead · 2FA on</div>
-                </div>
-                <__Link href="/staff-roles" className="tb mebtn" aria-label="Account and roles" style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--sidemuted)" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 21a8 8 0 0 1 16 0" />
-                  </svg>
-                </__Link>
-              </div>
-            </div>
-          </aside>
-          <header className="topbar">
-            <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", minWidth: "230px" }}>
-              <span className="crumbic">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="2" y="5" width="20" height="14" rx="2" />
-                  <path d="M2 10h20M6 15h4" />
-                </svg>
-              </span>
-              <span style={{ color: "var(--muted)" }}>Billing</span>
-              <span style={{ color: "var(--muted)" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m9 6 6 6-6 6" />
-                </svg>
-              </span>
-              <span style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Subscriptions</span>
-            </nav>
-            <button className="searchbtn" type="button"><span style={{ display: "inline-flex" }}>
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </svg>
-</span>Search stores, phones, invoices, leads<span className="kbd">Ctrl K</span></button>
-            {" "}
-            <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "8px", height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "var(--okbg)", color: "var(--okt)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-lg)", background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,.18)" }} />Production</span>
-            {" "}
-            <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)", padding: "0 4px" }}>Sun 20 Sep · 14:32</span>
-            {" "}
-            <span style={{ width: "1px", height: "24px", background: "var(--line)" }} />
-            {" "}
-            <button className="tb" type="button" aria-label="Notifications, 3 unread" style={{ position: "relative" }}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                <path d="M10 21h4" />
-              </svg>
-              <span style={{ position: "absolute", top: "8px", right: "9px", width: "8px", height: "8px", borderRadius: "var(--radius-lg)", background: "#ff5724", border: "2px solid var(--surface)" }} />
-            </button>
-            {" "}
-            <button className="tb" type="button" aria-label="Help and runbooks">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
-              </svg>
-            </button>
-          </header>
-          <main className="mainarea" style={{ position: "absolute", left: "272px", right: "0", top: "64px", bottom: "0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "22px 28px", display: "flex", flexDirection: "column", gap: "16px", minHeight: "0" }}>
-              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px" }}>
+          <ConsoleSide group="billing" item="subscriptions" toggle={v.toggleSide} label={v.sideLabel} />
+          <ConsoleTop group="billing" page="Subscriptions" />
+          <main className="mainarea" style={MAIN}>
+            <div style={PAGE}>
+              <div style={TITLEROW}>
                 <div style={{ minWidth: "0" }}>
-                  <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>Subscriptions</h1>
-                  <p style={{ margin: "5px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Recurring revenue, where it moved, and who is at risk · September 2026</p>
+                  <h1 style={H1}>Subscriptions</h1>
+                  <p style={SUBT}>Recurring revenue, where it moved, and who is at risk · {v.month} {fmt.yearOf(Date.now())}</p>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: "none" }}>
-                  <button className="btn btng" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-</svg>Export for accounts</button>
+                  <button className="btn btng" type="button" onClick={v.exportAccounts} style={BTN}><Download />Export for accounts</button>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6,minmax(0,1fr))", gap: "12px" }}>
-                <div className="kpi">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                    <span className="kl" title="Recurring revenue">Recurring revenue</span>
-                    <svg width="64" height="22" viewBox="0 0 64 22" aria-hidden="true" style={{ flex: "none" }}>
-                      <path d="M0.0,19.0 L4.3,16.7 L8.5,17.0 L12.8,17.3 L17.1,14.7 L21.3,13.4 L25.6,14.0 L29.9,12.1 L34.1,9.4 L38.4,7.5 L42.7,4.7 L46.9,5.4 L51.2,5.5 L55.5,4.9 L59.7,3.6 L64.0,3.0 L64,22 L0,22 Z" fill="#10b981" opacity=".10" />
-                      <path d="M0.0,19.0 L4.3,16.7 L8.5,17.0 L12.8,17.3 L17.1,14.7 L21.3,13.4 L25.6,14.0 L29.9,12.1 L34.1,9.4 L38.4,7.5 L42.7,4.7 L46.9,5.4 L51.2,5.5 L55.5,4.9 L59.7,3.6 L64.0,3.0" fill="none" stroke="#10b981" strokeWidth="1.7" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="৳88,000">৳88,000</span>
-                  <div>
-                    <span className="dpill d-good">▲ 6.2% vs August</span>
-                  </div>
-                </div>
-                <div className="kpi">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                    <span className="kl" title="New">New</span>
-                    <svg width="64" height="22" viewBox="0 0 64 22" aria-hidden="true" style={{ flex: "none" }}>
-                      <path d="M0.0,19.0 L4.3,18.5 L8.5,17.5 L12.8,16.7 L17.1,14.4 L21.3,11.7 L25.6,10.4 L29.9,8.6 L34.1,9.3 L38.4,7.9 L42.7,7.7 L46.9,7.9 L51.2,6.5 L55.5,5.4 L59.7,3.0 L64.0,3.6 L64,22 L0,22 Z" fill="#10b981" opacity=".10" />
-                      <path d="M0.0,19.0 L4.3,18.5 L8.5,17.5 L12.8,16.7 L17.1,14.4 L21.3,11.7 L25.6,10.4 L29.9,8.6 L34.1,9.3 L38.4,7.9 L42.7,7.7 L46.9,7.9 L51.2,6.5 L55.5,5.4 L59.7,3.0 L64.0,3.6" fill="none" stroke="#10b981" strokeWidth="1.7" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="৳14,000">৳14,000</span>
-                  <div>
-                    <span className="dpill d-good">9 stores</span>
-                  </div>
-                </div>
-                <div className="kpi">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                    <span className="kl" title="Expansion">Expansion</span>
-                    <svg width="64" height="22" viewBox="0 0 64 22" aria-hidden="true" style={{ flex: "none" }}>
-                      <path d="M0.0,19.0 L4.3,18.6 L8.5,17.6 L12.8,16.3 L17.1,15.1 L21.3,14.5 L25.6,13.2 L29.9,11.2 L34.1,9.1 L38.4,7.6 L42.7,7.9 L46.9,8.3 L51.2,5.7 L55.5,4.1 L59.7,4.3 L64.0,3.0 L64,22 L0,22 Z" fill="#10b981" opacity=".10" />
-                      <path d="M0.0,19.0 L4.3,18.6 L8.5,17.6 L12.8,16.3 L17.1,15.1 L21.3,14.5 L25.6,13.2 L29.9,11.2 L34.1,9.1 L38.4,7.6 L42.7,7.9 L46.9,8.3 L51.2,5.7 L55.5,4.1 L59.7,4.3 L64.0,3.0" fill="none" stroke="#10b981" strokeWidth="1.7" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="৳8,000">৳8,000</span>
-                  <div>
-                    <span className="dpill d-good">4 upgrades</span>
-                  </div>
-                </div>
-                <div className="kpi">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                    <span className="kl" title="Churned">Churned</span>
-                    <svg width="64" height="22" viewBox="0 0 64 22" aria-hidden="true" style={{ flex: "none" }}>
-                      <path d="M0.0,16.9 L4.3,18.1 L8.5,19.0 L12.8,16.0 L17.1,15.6 L21.3,13.0 L25.6,14.2 L29.9,15.5 L34.1,16.4 L38.4,15.2 L42.7,14.0 L46.9,12.8 L51.2,10.6 L55.5,6.6 L59.7,5.3 L64.0,3.0 L64,22 L0,22 Z" fill="#ff5724" opacity=".10" />
-                      <path d="M0.0,16.9 L4.3,18.1 L8.5,19.0 L12.8,16.0 L17.1,15.6 L21.3,13.0 L25.6,14.2 L29.9,15.5 L34.1,16.4 L38.4,15.2 L42.7,14.0 L46.9,12.8 L51.2,10.6 L55.5,6.6 L59.7,5.3 L64.0,3.0" fill="none" stroke="#ff5724" strokeWidth="1.7" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="৳6,000">৳6,000</span>
-                  <div>
-                    <span className="dpill d-bad">2 stores</span>
-                  </div>
-                </div>
-                <div className="kpi">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                    <span className="kl" title="Paid by due date">Paid by due date</span>
-                    <svg width="64" height="22" viewBox="0 0 64 22" aria-hidden="true" style={{ flex: "none" }}>
-                      <path d="M0.0,19.0 L4.3,18.8 L8.5,17.1 L12.8,16.4 L17.1,13.9 L21.3,14.6 L25.6,13.1 L29.9,11.3 L34.1,10.6 L38.4,7.7 L42.7,8.3 L46.9,8.3 L51.2,5.9 L55.5,5.8 L59.7,3.0 L64.0,3.4 L64,22 L0,22 Z" fill="#10b981" opacity=".10" />
-                      <path d="M0.0,19.0 L4.3,18.8 L8.5,17.1 L12.8,16.4 L17.1,13.9 L21.3,14.6 L25.6,13.1 L29.9,11.3 L34.1,10.6 L38.4,7.7 L42.7,8.3 L46.9,8.3 L51.2,5.9 L55.5,5.8 L59.7,3.0 L64.0,3.4" fill="none" stroke="#10b981" strokeWidth="1.7" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="84%">84%</span>
-                  <div>
-                    <span className="dpill d-good">▲ 5 points</span>
-                  </div>
-                </div>
-                <div className="kpi">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                    <span className="kl" title="Unpaid">Unpaid</span>
-                    <svg width="64" height="22" viewBox="0 0 64 22" aria-hidden="true" style={{ flex: "none" }}>
-                      <path d="M0.0,19.0 L4.3,18.1 L8.5,16.7 L12.8,14.9 L17.1,14.3 L21.3,11.9 L25.6,11.7 L29.9,9.7 L34.1,9.4 L38.4,10.7 L42.7,11.2 L46.9,8.9 L51.2,8.8 L55.5,6.4 L59.7,5.3 L64.0,3.0 L64,22 L0,22 Z" fill="#ff5724" opacity=".10" />
-                      <path d="M0.0,19.0 L4.3,18.1 L8.5,16.7 L12.8,14.9 L17.1,14.3 L21.3,11.9 L25.6,11.7 L29.9,9.7 L34.1,9.4 L38.4,10.7 L42.7,11.2 L46.9,8.9 L51.2,8.8 L55.5,6.4 L59.7,5.3 L64.0,3.0" fill="none" stroke="#ff5724" strokeWidth="1.7" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="৳9,500">৳9,500</span>
-                  <div>
-                    <span className="dpill d-bad">4 stores being called</span>
-                  </div>
-                </div>
+              <div style={grid("repeat(6,minmax(0,1fr))")}>
+                {v.kpis.map((k) => <Kpi key={k.label} k={k} />)}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.2fr)", gap: "14px", alignItems: "stretch" }}>
-                <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Movement this month</h2>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>September</div>
+                <section className="panel" style={PANEL}>
+                  <div style={PHEAD}>
+                    <h2 style={H2}>Movement this month</h2>
+                    <div style={PSIDE}>{v.month}</div>
                   </div>
-                  <svg className="cs-chart-s cs-pad-b" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
-                    <rect x="12" y="51.0" width="42" height="75.0" rx="4" fill="#003087" />
-                    <text x="33" y="46.0" fontSize="10" fill="#0f172a" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">৳60k</text>
-                    <text x="33" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Start</text>
-                    <line x1="54" x2="70" y1="51.0" y2="51.0" stroke="#94a3b8" strokeDasharray="3 3" />
-                    <rect x="70" y="33.5" width="42" height="17.5" rx="4" fill="#10b981" />
-                    <text x="91" y="28.5" fontSize="10" fill="#047857" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">+14k</text>
-                    <text className="cs-dn" x="91" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">New</text>
-                    <line x1="112" x2="128" y1="33.5" y2="33.5" stroke="#94a3b8" strokeDasharray="3 3" />
-                    <rect x="128" y="23.5" width="42" height="10.0" rx="4" fill="#10b981" />
-                    <text x="149" y="18.5" fontSize="10" fill="#047857" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">+8k</text>
-                    <text x="149" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Expand</text>
-                    <line x1="170" x2="186" y1="23.5" y2="23.5" stroke="#94a3b8" strokeDasharray="3 3" />
-                    <rect x="186" y="23.5" width="42" height="5.0" rx="4" fill="#ff9800" />
-                    <text x="207" y="18.5" fontSize="10" fill="#b45309" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">−4k</text>
-                    <text className="cs-dn" x="207" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Contract</text>
-                    <line x1="228" x2="244" y1="28.5" y2="28.5" stroke="#94a3b8" strokeDasharray="3 3" />
-                    <rect x="244" y="28.5" width="42" height="7.5" rx="4" fill="#ff5724" />
-                    <text x="265" y="23.5" fontSize="10" fill="#c2410c" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">−6k</text>
-                    <text x="265" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Churn</text>
-                    <line x1="286" x2="302" y1="36.0" y2="36.0" stroke="#94a3b8" strokeDasharray="3 3" />
-                    <rect x="302" y="36.0" width="42" height="90.0" rx="4" fill="#003087" />
-                    <text x="323" y="31.0" fontSize="10" fill="#0f172a" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">৳72k</text>
-                    <text className="cs-dn" x="323" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">End</text>
+                  <svg className="cs-chart-s cs-pad-b" viewBox="0 0 360 150" width="100%" role="img" aria-label="Recurring revenue movement this month" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
+                    {v.bars.map((b) => (
+                      <React.Fragment key={b.key}>
+                        <rect x={b.x} y={b.y.toFixed(1)} width="42" height={b.hh.toFixed(1)} rx="4" fill={b.fill} />
+                        <text x={b.x + 21} y={(b.y - 5).toFixed(1)} fontSize="10" fill={b.lc} textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">{b.label}</text>
+                        <text className={b.key === "new" || b.key === "con" || b.key === "end" ? "cs-dn" : undefined} x={b.x + 21} y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">{b.name}</text>
+                      </React.Fragment>
+                    ))}
+                    {v.links.map(([x1, y], i) => <line key={i} x1={x1} x2={x1 + 16} y1={y.toFixed(1)} y2={y.toFixed(1)} stroke="#94a3b8" strokeDasharray="3 3" />)}
                     <line x1="0" x2="360" y1="126" y2="126" stroke="#cbd5e1" />
                   </svg>
                 </section>
-                <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Recurring revenue, 12 months</h2>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>৳ thousand a month</div>
+                <section className="panel" style={PANEL}>
+                  <div style={PHEAD}>
+                    <h2 style={H2}>Recurring revenue, 12 months</h2>
+                    <div style={PSIDE}>৳ thousand a month</div>
                   </div>
                   <svg className="cs-chart-l" viewBox="0 0 640 210" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
-                    <line x1="36" x2="640" y1="188.0" y2="188.0" stroke="#eef2f7" />
-                    <line x1="36" x2="640" y1="145.5" y2="145.5" stroke="#eef2f7" />
-                    <line x1="36" x2="640" y1="103.0" y2="103.0" stroke="#eef2f7" />
-                    <line x1="36" x2="640" y1="60.5" y2="60.5" stroke="#eef2f7" />
-                    <line x1="36" x2="640" y1="18.0" y2="18.0" stroke="#eef2f7" />
-                    <path d="M40.0,96.7 L93.6,91.4 L147.3,87.9 L200.9,82.6 L254.5,80.9 L308.2,75.6 L361.8,72.1 L415.5,65.1 L469.1,58.0 L522.7,49.3 L576.4,42.2 L630.0,33.5 L630.0,188 L40.0,188 Z" fill="#003087" opacity=".08" />
-                    <path d="M40.0,96.7 L93.6,91.4 L147.3,87.9 L200.9,82.6 L254.5,80.9 L308.2,75.6 L361.8,72.1 L415.5,65.1 L469.1,58.0 L522.7,49.3 L576.4,42.2 L630.0,33.5" fill="none" stroke="#003087" strokeWidth="2.5" strokeLinejoin="round" />
-                    <circle cx="630.0" cy="33.5" r="4.5" fill="#fff" stroke="#003087" strokeWidth="2.5" />
-                    <text x="40.0" y="206" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">Oct 25</text>
-                    <text x="200.9" y="206" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">Jan</text>
-                    <text x="361.8" y="206" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">Apr</text>
-                    <text x="522.7" y="206" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">Jul</text>
-                    <text x="630.0" y="206" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">Sep</text>
+                    {[188, 145.5, 103, 60.5, 18].map((y) => <line key={y} x1="36" x2="640" y1={y} y2={y} stroke="#eef2f7" />)}
+                    <path d={v.area} fill="#003087" opacity=".08" />
+                    <path d={v.line} fill="none" stroke="#003087" strokeWidth="2.5" strokeLinejoin="round" />
+                    <circle cx={v.last[0].toFixed(1)} cy={v.last[1].toFixed(1)} r="4.5" fill="#fff" stroke="#003087" strokeWidth="2.5" />
+                    {v.lab.map((l) => <text key={l.i} x={l.x.toFixed(1)} y="206" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">{l.text}</text>)}
                   </svg>
                   <div className="cs-axis" aria-hidden="true">
-                    <span style={{ left: "6.3%" }}>Oct 25</span>
-                    <span style={{ left: "31.4%" }}>Jan</span>
-                    <span style={{ left: "56.5%" }}>Apr</span>
-                    <span style={{ left: "81.7%" }}>Jul</span>
-                    <span style={{ left: "98.4%" }}>Sep</span>
+                    {v.lab.map((l) => <span key={l.i} style={{ left: l.pct }}>{l.text}</span>)}
                   </div>
                 </section>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.4fr)", gap: "14px", alignItems: "stretch" }}>
-                <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Stores by subscription state</h2>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
+                <section className="panel" style={PANEL}>
+                  <div style={PHEAD}>
+                    <h2 style={H2}>Stores by subscription state</h2>
+                    <div style={PSIDE} />
                   </div>
                   <div style={{ display: "flex", height: "28px", borderRadius: "var(--radius-lg)", overflow: "hidden", gap: "2px" }}>
-                    <span title="Trial: 18" style={{ width: "28.6%", background: "#99d7f2" }} />
-                    <span title="Active: 38" style={{ width: "60.3%", background: "#003087" }} />
-                    <span title="Grace: 1" style={{ width: "1.6%", background: "#ff9800" }} />
-                    <span title="Past due: 2" style={{ width: "3.2%", background: "#ff5724" }} />
-                    <span title="Paused: 1" style={{ width: "1.6%", background: "#94a3b8" }} />
-                    <span title="Suspended: 1" style={{ width: "1.6%", background: "#c2410c" }} />
-                    <span title="Cancelled: 2" style={{ width: "3.2%", background: "#cbd5e1" }} />
+                    {v.states.filter((x) => x.n).map((x) => <span key={x.k} title={`${x.label}: ${x.n}`} style={{ width: x.w, background: x.color }} />)}
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: "10px" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}><span style={{ width: "10px", height: "10px", borderRadius: "3px", background: "#99d7f2" }} />Trial <strong className="num" style={{ color: "var(--ink)" }}>18</strong></span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}><span style={{ width: "10px", height: "10px", borderRadius: "3px", background: "#003087" }} />Active <strong className="num" style={{ color: "var(--ink)" }}>38</strong></span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}><span style={{ width: "10px", height: "10px", borderRadius: "3px", background: "#ff9800" }} />Grace <strong className="num" style={{ color: "var(--ink)" }}>1</strong></span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}><span style={{ width: "10px", height: "10px", borderRadius: "3px", background: "#ff5724" }} />Past due <strong className="num" style={{ color: "var(--ink)" }}>2</strong></span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}><span style={{ width: "10px", height: "10px", borderRadius: "3px", background: "#94a3b8" }} />Paused <strong className="num" style={{ color: "var(--ink)" }}>1</strong></span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}><span style={{ width: "10px", height: "10px", borderRadius: "3px", background: "#c2410c" }} />Suspended <strong className="num" style={{ color: "var(--ink)" }}>1</strong></span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}><span style={{ width: "10px", height: "10px", borderRadius: "3px", background: "#cbd5e1" }} />Cancelled <strong className="num" style={{ color: "var(--ink)" }}>2</strong></span>
+                    {v.states.map((x) => (
+                      <__Link key={x.k} href={"/merchants?billing=" + (x.k === "trial" ? "In trial" : "Any")} style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}><span style={{ width: "10px", height: "10px", borderRadius: "3px", background: x.color }} />{x.label} <strong className="num" style={{ color: "var(--ink)" }}>{x.n}</strong></__Link>
+                    ))}
                   </div>
                 </section>
-                <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Unpaid, being called</h2>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>no auto-charge · never deleted for a missed payment</div>
+                <section className="panel" style={PANEL}>
+                  <div style={PHEAD}>
+                    <h2 style={H2}>Unpaid, being called</h2>
+                    <div style={PSIDE}>collected by hand unless the store chose auto-charge · never deleted for a missed payment</div>
                   </div>
                   <div className="cs-tnw" style={{ margin: "0 -20px -16px", "--cs-row-min": "860px" }}>
-                    <div className="th" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 180px 90px minmax(0,1.2fr) minmax(0,1.1fr)", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
+                    <div className="th" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 180px 90px minmax(0,1.2fr) minmax(0,1.1fr)", ...TH }}>
                       <span>Store</span>
                       <span>Stage</span>
                       <span style={{ textAlign: "right" }}>Amount</span>
                       <span>Why</span>
                       <span>Next step</span>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 180px 90px minmax(0,1.2fr) minmax(0,1.1fr)", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0" }}>
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>DG</span>
-                        <span style={{ minWidth: "0" }}>
-                          <span className="ell" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Dhaka Gadget Hub</span>
-                          <span className="mono ell" style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>tenant 0031</span>
-                        </span>
-                      </span>
-                      <span className="pill p-warn" style={{ justifySelf: "start" }}><span className="shp shp-warn" aria-hidden="true" />Grace · day 3 of 7</span>
-                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)", textAlign: "right" }}>৳2,500</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Due 17 Sep · 2 calls, promised Sunday</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Call Sun 21 Sep 11:00</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 180px 90px minmax(0,1.2fr) minmax(0,1.1fr)", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0" }}>
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>BB</span>
-                        <span style={{ minWidth: "0" }}>
-                          <span className="ell" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Bindu Beauty</span>
-                          <span className="mono ell" style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>tenant 0044</span>
-                        </span>
-                      </span>
-                      <span className="pill p-err" style={{ justifySelf: "start" }}><span className="shp shp-err" aria-hidden="true" />Past due · read-only</span>
-                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)", textAlign: "right" }}>৳2,500</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>No answer on 3 calls</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Suspends 24 Sep</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 180px 90px minmax(0,1.2fr) minmax(0,1.1fr)", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0" }}>
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>CM</span>
-                        <span style={{ minWidth: "0" }}>
-                          <span className="ell" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Chaldal Mini Mart</span>
-                          <span className="mono ell" style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>tenant 0076</span>
-                        </span>
-                      </span>
-                      <span className="pill p-warn" style={{ justifySelf: "start" }}><span className="shp shp-warn" aria-hidden="true" />Due today</span>
-                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)", textAlign: "right" }}>৳2,500</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Panel reminder sent 09:00</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Call at 16:00 if unpaid</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 180px 90px minmax(0,1.2fr) minmax(0,1.1fr)", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0" }}>
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>RS</span>
-                        <span style={{ minWidth: "0" }}>
-                          <span className="ell" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Rupsha Sports</span>
-                          <span className="mono ell" style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>tenant 0038</span>
-                        </span>
-                      </span>
-                      <span className="pill p-err" style={{ justifySelf: "start" }}><span className="shp shp-err" aria-hidden="true" />Suspended</span>
-                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)", textAlign: "right" }}>৳2,000</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>No payment 19 days</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Archive on 10 Oct</span>
-                    </div>
+                    {v.calling.length ? v.calling.map((r, i) => (
+                      <div key={r.key} style={row("minmax(0,1.4fr) 180px 90px minmax(0,1.2fr) minmax(0,1.1fr)", i === 0)}>
+                        <StoreCell ini={r.ini} name={r.name} sub={"tenant " + r.shopId} href={"/merchant-detail?id=" + r.shopId + "&tab=billing"} Link={__Link} />
+                        <span className={r.cls} style={{ justifySelf: "start" }}><span className={r.shp} aria-hidden="true" />{r.stage}</span>
+                        <span className="num" style={{ ...CELL, textAlign: "right" }}>{fmt.taka(r.amount)}</span>
+                        <span style={CELL}>{r.why}</span>
+                        <__Link href={"/collections?id=" + r.invoiceId} style={{ ...CELL, color: "var(--primary)" }}>{r.nextStep}</__Link>
+                      </div>
+                    )) : <div style={{ padding: "16px 18px", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Nobody is unpaid. Every bill due is paid.</div>}
                   </div>
                 </section>
               </div>
             </div>
           </main>
+          <ConsoleToast text={v.toast} onClose={v.hideToast} />
         </div>
       </div>
     );

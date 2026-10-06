@@ -15,6 +15,7 @@ import { StatusBadge as __StatusBadge } from '@/components/ui';
 import { ShopHeader, MetricStrip } from '@/components/ui/IndexKit';
 import { listOffers, setOfferStatus, PROMO_EVENT } from '@/lib/promotions';
 import { clockNow } from '@/lib/settlements';
+import { ModuleSetup } from '@/components/ModuleSetup';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -25,7 +26,7 @@ var B = [
   { name: 'Weekend Mega Sale', k: 'flash', from: 18, to: 20, st: 'live' },
   { name: 'FIRST20 — 20% off', k: 'coupon', from: 1, to: 30, st: 'live' },
   { name: 'Free delivery ৳1,500+', k: 'coupon', from: 8, to: 14, st: 'ended' },
-  { name: 'Skin care week', k: 'flash', from: 22, to: 28, st: 'soon' },
+  { name: 'Audio week', k: 'flash', from: 22, to: 28, st: 'soon' },
   { name: 'PUJA10 — 10% off', k: 'coupon', from: 25, to: 29, st: 'soon' }
 ];
 var DAYMS = 864e5;
@@ -137,6 +138,7 @@ export default class PromoScreen extends Component {
                   more={[{ label: 'Coupons', href: '/coupons' }, { label: 'Flash sales', href: '/flash-sales' }]}
                   primary={{ label: 'Create offer', href: '/new-coupon' }} />
 
+                <ModuleSetup area="area-marketing" />
                 <MetricStrip label="This month" items={[
                   { label: 'Sales from offers', value: '৳3,12,400', sub: 'this month' },
                   { label: 'Discount given', value: '৳28,950', sub: '9.3% of offer sales' },

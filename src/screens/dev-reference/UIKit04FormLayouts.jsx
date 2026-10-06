@@ -214,7 +214,7 @@ export default class UIKit04FormLayoutsScreen extends Component {
                   <div style={{ maxWidth: "440px", display: "flex", flexDirection: "column", gap: "14px" }}>
                     <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                       <span className="lbl">Supplier name <span style={{ color: "#e11d48" }}>*</span></span>
-                      <input className="inp" defaultValue="Rahman Traders" placeholder="" aria-label="Rahman Traders" />
+                      <input className="inp" defaultValue="Rahman Telecom" placeholder="" aria-label="Rahman Telecom" />
                     </label>
                     <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                       <span className="lbl">Phone <span style={{ color: "#e11d48" }}>*</span></span>

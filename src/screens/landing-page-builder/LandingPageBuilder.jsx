@@ -223,10 +223,10 @@ export default class LandingPageBuilderScreen extends Component {
                         </span>
                         <span style={{ flex: "none", display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "#e9eef5", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#475569" }}>1 page</span>
                       </button>
-                      <button type="button" className="mg-row dc-h21" aria-pressed="false" onClick={v.pickOther("Jamdani saree")} style={{ display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: "10px 12px", cursor: "pointer" }}>
+                      <button type="button" className="mg-row dc-h21" aria-pressed="false" onClick={v.pickOther("Redmi Note 13")} style={{ display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: "10px 12px", cursor: "pointer" }}>
                         <span style={{ flex: "none", width: "44px", height: "44px", borderRadius: "var(--radius-xl)", background: "rgba(255,152,0,.12)", color: "#a15f00", display: "grid", placeItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>JS</span>
                         <span style={{ flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Jamdani saree</span>
+                          <span style={{ display: "block", margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Redmi Note 13</span>
                           <span style={{ display: "block", margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>৳4,750 · 6 variants · 11 in stock</span>
                         </span>
                         <span style={{ flex: "none", display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "rgba(255,152,0,.12)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#a15f00" }}>Low stock</span>

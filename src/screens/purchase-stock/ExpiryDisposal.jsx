@@ -25,8 +25,8 @@ function num(x) { return +(String(x).replace(/[^\d.]/g, '').replace(/^$/, '0')) 
 var DP = [
   ['oil', '20W USB-C fast charger', 820, 'pcs', 3],
   ['egg', 'Wired earphones 3.5 mm', 130, 'dozen', 20],
-  ['rice', 'Power bank 20,000 mAh', 1780, 'boxes', 18],
-  ['atta', 'Car charger dual USB', 110, 'packs', 30],
+  ['rice', 'Power bank 20,000 mAh', 1780, 'pieces', 18],
+  ['atta', 'Car charger dual USB', 110, 'pieces', 30],
   ['bisc', 'Tempered glass 2-pack', 50, 'packs', 72],
   ['lux', 'Screen cleaning wipes', 54, 'pcs', 55],
   ['blender', 'Blender', 2400, 'pcs', 4]

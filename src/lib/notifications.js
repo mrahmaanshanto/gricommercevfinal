@@ -29,9 +29,9 @@ export const VARIABLES = [
   ['customer_name', 'Customer name', 'Nusrat Jahan'], ['order_id', 'Order number', '#136829'], ['order_total', 'Order total', '৳2,000'],
   ['paid_amount', 'Paid so far', '৳500'], ['advance_amount', 'Advance asked or paid', '৳500'], ['remaining_amount', 'Still to pay', '৳1,500'],
   ['cod_amount', 'Cash to collect on delivery', '৳1,500'], ['courier_name', 'Courier', 'Pathao'], ['tracking_id', 'Tracking ID', 'PT-4480127'],
-  ['tracking_url', 'Tracking link', 'https://gridshop.com.bd/track/PT-4480127'], ['payment_link', 'Payment link', 'https://gridshop.com.bd/pay/136829'],
+  ['tracking_url', 'Tracking link', 'https://dazzleshop.com.bd/track/PT-4480127'], ['payment_link', 'Payment link', 'https://dazzleshop.com.bd/pay/136829'],
   ['cancel_reason', 'Why it was cancelled', 'Customer asked to cancel'], ['reject_reason', 'Why the payment was rejected', 'The transaction ID did not match'],
-  ['quote_link', 'Quotation link', 'https://gridshop.com.bd/quote/Q-1042'], ['store_name', 'Shop name', MERCHANT.name], ['support_phone', 'Support phone', MERCHANT.phone],
+  ['quote_link', 'Quotation link', 'https://dazzleshop.com.bd/quote/Q-1042'], ['store_name', 'Shop name', MERCHANT.name], ['support_phone', 'Support phone', MERCHANT.phone],
 ];
 
 // group · key · label · when it fires · customer on · merchant on · SMS · email text
@@ -68,7 +68,7 @@ export const EVENTS = [
   E('Courier', 'ready', 'Ready for courier', 'Parcel packed', false, false,
     '{{store_name}}: Order {{order_id}} is packed and ready to ship.',
     'Order {{order_id}} packed', 'Hi {{customer_name}},\n\nYour order {{order_id}} is packed and ready to ship.\n\n{{store_name}}', 'Usually internal'),
-  E('Courier', 'in-transit', 'In transit', 'Sent to courier', true, false,
+  E('Courier', 'in-transit', 'Sent to courier', 'Handed to the courier', true, false,
     '{{store_name}}: Order {{order_id}} shipped via {{courier_name}}. Track: {{tracking_url}}',
     'Order {{order_id}} is on the way', 'Hi {{customer_name}},\n\nYour order {{order_id}} is on the way.\nCourier: {{courier_name}}\nTracking ID: {{tracking_id}}\n{{tracking_url}}\n\n{{store_name}}'),
   E('Delivery', 'out-for-delivery', 'Out for delivery', 'Courier out for delivery', true, false,
@@ -118,8 +118,8 @@ const MERCHANT_SMS = {
 
 // ---- settings --------------------------------------------------------------------------------------------
 const defaults = () => ({
-  senderName: MERCHANT.name, emailFrom: MERCHANT.name, replyTo: 'support@gridshop.com.bd',
-  adminPhone: '01700-000000', adminEmail: 'orders@gridshop.com.bd',
+  senderName: MERCHANT.name, emailFrom: MERCHANT.name, replyTo: 'support@dazzleshop.com.bd',
+  adminPhone: '01700-000000', adminEmail: 'orders@dazzleshop.com.bd',
   events: Object.fromEntries(EVENTS.map((e) => [e.key, { sms: e.customer || e.merchant, email: e.customer || e.merchant, customer: e.customer, merchant: e.merchant, smsText: e.sms, subject: e.subject, body: e.body, merchantText: MERCHANT_SMS[e.key] || '' }])),
 });
 export function getNotifySettings() {
@@ -142,9 +142,9 @@ export function varsOf(o, extra = {}) {
     advance_amount: money(extra.advance != null ? extra.advance : (o.advance && o.advance.amount) || 0),
     remaining_amount: money(extra.remaining != null ? extra.remaining : remaining), cod_amount: money(o.codAmount != null ? o.codAmount : remaining),
     courier_name: (o.courier && o.courier !== 'Not assigned' ? o.courier : extra.courier) || 'the courier', tracking_id: id || '—',
-    tracking_url: o.trackingUrl || (id ? 'https://gridshop.com.bd/track/' + id : ''), payment_link: 'https://gridshop.com.bd/pay/' + String(o.id).replace('#', ''),
+    tracking_url: o.trackingUrl || (id ? 'https://dazzleshop.com.bd/track/' + id : ''), payment_link: 'https://dazzleshop.com.bd/pay/' + String(o.id).replace('#', ''),
     cancel_reason: extra.reason ? `${extra.reason}.` : '', reject_reason: extra.rejectReason || extra.reason ? `${extra.rejectReason || extra.reason}.` : '',
-    quote_link: extra.quoteLink || 'https://gridshop.com.bd/quote/' + String(o.id).replace('#', ''), store_name: MERCHANT.name, support_phone: MERCHANT.phone,
+    quote_link: extra.quoteLink || 'https://dazzleshop.com.bd/quote/' + String(o.id).replace('#', ''), store_name: MERCHANT.name, support_phone: MERCHANT.phone,
     ...(extra.vars || {}),
   };
 }

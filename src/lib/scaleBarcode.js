@@ -17,7 +17,7 @@ import { allProducts } from './products';   // read at run time only
 
 const KEY = 'gc.pos.weighed';
 /** sku → PLU on the scale (products with unit kg and a PLU or scale code are added on their own). */
-const SEED = { 'GR-MSR-1': '00102', 'GR-BEEF': '00205' };
+const SEED = { 'AC-LYD-01': '00102', 'SV-RPR-PORT': '00205' };
 const isKg = (c) => ['kg', 'g'].includes(String((c && c.unit) || '').toLowerCase());
 
 const read = () => { try { return { ...SEED, ...(JSON.parse(window.localStorage.getItem(KEY)) || {}) }; } catch { return { ...SEED }; } };

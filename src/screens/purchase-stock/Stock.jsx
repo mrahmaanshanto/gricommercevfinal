@@ -27,6 +27,7 @@ import { fmtQty, packsOf } from '@/lib/units';
 import { resolveScan } from '@/lib/identifiers';
 import { toast as __toast } from '@/runtime/ui';
 import { currentUser } from '@/lib/team';
+import { ModuleSetup } from '@/components/ModuleSetup';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -38,10 +39,10 @@ var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov',
 // Reorder level and cost are this screen's demo data. Bins come from Racks & bins (src/lib/racks.js binsFor).
 // Places are the live list (getStockPlaces) after mount, the built-in list on the first render.
 var INFO = {
-  'GR-RICE-5': [60, 'G-1', 612], 'GR-DAL-1': [40, 'G-2', 130], 'GR-SOY-2': [30, 'G-3', 331], 'GR-MUS-1': [20, 'G-3', 262], 'GR-ATTA-2': [40, 'G-4', 118, true],
-  'CL-TEE-BM': [20, 'C-3', 436.2], 'CL-LEG-CL': [10, 'C-4', 980], 'CL-SNK-42': [8, 'C-6', 2150], 'CL-JNS-32': [15, 'C-5', 748],
-  'SK-SHA-340': [30, 'A-5', 290], 'SK-SUN-50': [24, 'A-2', 561.6, true], 'SK-TON-150': [20, 'A-3', 455],
-  'EL-PHN-128': [6, 'E-1', 11800], 'EL-EAR-PRO': [10, 'E-2', 2210], 'HM-BTL-750': [30, 'H-2', 310], 'HM-RCK-18': [5, 'H-4', 2050]
+  'AC-CBL-100': [60, 'G-1', 612], 'AC-CLN-KIT': [40, 'G-2', 130], 'AC-GLS-9H': [30, 'G-3', 331], 'AC-OTG-C': [20, 'G-3', 262], 'AC-LNS-PR': [40, 'G-4', 118, true],
+  'AC-CSE-A55': [20, 'C-3', 436.2], 'AC-CHG-25': [10, 'C-4', 980], 'WR-BND-08': [8, 'C-6', 2150], 'AC-HLD-CAR': [15, 'C-5', 748],
+  'AC-CBL-LTG': [30, 'A-5', 290], 'AC-CHG-20': [24, 'A-2', 561.6, true], 'AU-EAR-TC': [20, 'A-3', 455],
+  'PH-RLM-N50': [6, 'E-1', 11800], 'AU-EAR-PRO': [10, 'E-2', 2210], 'AC-STD-FLD': [30, 'H-2', 310], 'PB-ANK-10K': [5, 'H-4', 2050]
 };
 function info(p) { var i = INFO[p.sku] || [10, '—', unitValue(p)]; return { re: i[0], rack: i[1], cost: i[2], exp: !!i[3] }; }
 function setQuery(key, value) { if (typeof window === 'undefined') return; var u = new URL(window.location.href); if (value) u.searchParams.set(key, value); else u.searchParams.delete(key); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); }
@@ -209,6 +210,7 @@ export default class StockScreen extends Component {
                   primary={v.one ? { label: 'New purchase', href: '/buy-goods' } : { label: 'Stock adjustments', href: '/stock-adjustments' }} />
                 <StockSetupBanner />
 
+                <ModuleSetup area="area-inventory" />
                 <MetricStrip label={'Stock at ' + (v.place || 'all places')}
                   lead={v.one
                     ? <span className="st-place"><__Icon name="store" width="16" height="16" aria-hidden="true" />{v.kPlaces}</span>

@@ -137,7 +137,7 @@ export default class MProductEditScreen extends Component {
             <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>
               <span className="av" style={{ width: "84px", height: "84px", borderRadius: "var(--radius-xl)", background: "#fff4e0", color: "#003087", fontSize: "var(--text-3xl)" }}>S</span>
               <div style={{ minWidth: "0" }}>
-                <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", lineHeight: "22px" }}>Sunscreen SPF 50 · 50ml</div>
+                <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", lineHeight: "22px" }}>Anker 20W USB-C Charger</div>
                 <div className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: "4px" }}>8941100500235</div>
                 <a href="#" style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginTop: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--brand)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" />

@@ -241,7 +241,7 @@ export default class MInboxScreen extends Component {
                   </span>
                   {" "}
                   <span style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
-                    <span className="ell" style={{ flex: "1", fontSize: "var(--text-sm)", color: "var(--ink)", fontWeight: "var(--weight-medium)" }}>Is the sunscreen original? Need 2 pcs</span>
+                    <span className="ell" style={{ flex: "1", fontSize: "var(--text-sm)", color: "var(--ink)", fontWeight: "var(--weight-medium)" }}>Is the charger original? Need 2 pcs</span>
                     <span className="cnt nav" style={{ flex: "none" }}>2</span>
                   </span>
                   {" "}

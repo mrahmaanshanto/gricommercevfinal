@@ -16,11 +16,11 @@ import __SetTopbar from '@/screens/settings-console/SetTopbar';
 class Component extends __SettingsLogic {
   formId = "seo";
   fields = {
-    seo_title: {l: "SEO title", d: "GridShop · Online & in-store in Bangladesh", req: true},
-    meta_description: {l: "Meta description", d: "Shop electronics, home and grocery from GridShop’s Feni, Gulshan and Chattogram stores. Cash on delivery, bKash and Nagad accepted nationwide.", k: "area"},
-    keywords: {l: "Keywords", d: "online shop bangladesh, bkash payment, feni electronics, grocery delivery"},
-    author_name: {l: "Author name", d: "GridShop Editorial"},
-    og_title: {l: "OG title", d: "GridShop"},
+    seo_title: {l: "SEO title", d: "Dazzle Shop · Online & in-store in Bangladesh", req: true},
+    meta_description: {l: "Meta description", d: "Shop official smartphones and accessories from Dazzle Shop’s Dhanmondi and Mirpur stores. Cash on delivery, bKash and Nagad accepted nationwide.", k: "area"},
+    keywords: {l: "Keywords", d: "mobile shop bangladesh, bkash payment, iphone price bd, phone accessories"},
+    author_name: {l: "Author name", d: "Dazzle Shop Editorial"},
+    og_title: {l: "OG title", d: "Dazzle Shop"},
     og_description: {l: "OG description", d: "Order online, pay with bKash, collect in store or get it delivered nationwide.", k: "area"},
     google_analytics_id: {l: "Google Analytics ID", d: "G-4XQ7L2M9BD", check: (x) => (/^G-[A-Z0-9]{6,12}$/.test(x) ? "" : "A Google Analytics ID starts with G- followed by letters and digits, like G-4XQ7L2M9BD.")},
     facebook_pixel_id: {l: "Facebook Pixel ID", d: "418902337715640", k: "int", check: (x) => (x.length < 15 || x.length > 16 ? "A Facebook Pixel ID has 15 or 16 digits. This one has " + x.length + "." : "")},
@@ -167,8 +167,8 @@ export default class SetSeoScreen extends Component {
                             <span style={{ display: "flex", alignItems: "center", gap: "7px", paddingBottom: "6px" }}>
                               <span style={{ display: "grid", placeItems: "center", width: "20px", height: "20px", borderRadius: "var(--radius-full)", background: "#003087", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#fff" }}>S</span>
                               <span style={{ display: "block" }}>
-                                <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "17px", color: "#334155" }}>GridShop</span>
-                                <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "15px", color: "var(--text-muted)" }}>gridshop.com.bd</span>
+                                <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "17px", color: "#334155" }}>Dazzle Shop</span>
+                                <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "15px", color: "var(--text-muted)" }}>dazzleshop.com.bd</span>
                               </span>
                             </span>
                             <span style={{ display: "block", fontSize: "var(--text-sm-plus)", lineHeight: "20px", color: "#1a3fa8", paddingBottom: "3px" }}>{v.clip("seo_title", 60)}</span>
@@ -251,7 +251,7 @@ export default class SetSeoScreen extends Component {
                               <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)" }}>og image · 1200×630</span>
                             </span>
                             <span style={{ display: "block", borderTop: "1px solid #e2e8f0", background: "#f8fafc", padding: "10px 12px" }}>
-                              <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>gridshop.com.bd</span>
+                              <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>dazzleshop.com.bd</span>
                               <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.clip("og_title", 40)}</span>
                               <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{v.clip("og_description", 110)}</span>
                             </span>

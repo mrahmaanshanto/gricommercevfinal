@@ -17,6 +17,9 @@ import { ChannelLogo, StatusTag, FixSheet, CH_CSS } from '@/screens/channels/chS
 
 const CSS = `
 .pc-rows{display:flex;flex-direction:column}
+.pc-sw{display:inline-flex;align-items:center;gap:var(--space-2)}
+.pc-onoff{min-width:22px;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted);text-align:right}
+.pc-onoff.is-on{color:var(--text-success)}
 .pc-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px var(--space-3);padding:var(--space-3) 0;border-top:1px solid var(--border-subtle)}
 .pc-row:first-child{border-top:0;padding-top:0}
 .pc-row__name{display:flex;flex-direction:column;min-width:0}
@@ -49,8 +52,13 @@ export default function ProductChannels({ draft }) {
 
   const c = getChannels();
   const rows = key ? productChannels(key) : { meta: null, gmc: null };
-  const sw = (on, label, onClick, disabled) => (
-    <button type="button" className="gc-switch" role="switch" aria-checked={!!on} aria-label={label} onClick={onClick} disabled={disabled} style={disabled ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}><span className="gc-switch__knob" /></button>
+  // a switch that can't change yet keeps its real colour (a faded "on" read as "off") and says On / Off next to it;
+  // tapping it says why it is locked
+  const sw = (on, label, onClick, disabled, why = 'Save the product first') => (
+    <span className="pc-sw">
+      <span className={'pc-onoff' + (on ? ' is-on' : '')}>{on ? 'On' : 'Off'}</span>
+      <button type="button" className="gc-switch" role="switch" aria-checked={!!on} aria-label={label} onClick={disabled ? () => toast(why) : onClick} aria-disabled={disabled || undefined} style={disabled ? { cursor: 'not-allowed' } : undefined}><span className="gc-switch__knob" /></button>
+    </span>
   );
   const channelRow = (ch, label, sub) => {
     const conn = c.conn[ch];
@@ -86,7 +94,7 @@ export default function ProductChannels({ draft }) {
     else if (on && r.st !== 'processing') act = <Link href={channelBy(ch).page + '?q=' + encodeURIComponent(r.sku || r.name)} className="gc-btn gc-btn--xs gc-btn--flat">View</Link>;
     return (
       <div className="pc-row" key={ch}>
-        <ChannelLogo ch={ch} size={32} />{name}{sw(on, label, toggle, r.draft)}
+        <ChannelLogo ch={ch} size={32} />{name}{sw(on, label, toggle, r.draft, 'Make the product active to publish it')}
         <span className="pc-row__status">
           <StatusTag st={r.st} />
           {issue ? <span className="pc-hint">{issue.title}</span> : r.st === 'unpublished' && r.why ? <span className="pc-hint">{r.why}</span> : null}
@@ -107,7 +115,7 @@ export default function ProductChannels({ draft }) {
         {hasModule('online') ? (
           <div className="pc-row">
             <span className="pc-icon"><Icon name="globe" width="16" height="16" aria-hidden="true" /></span>
-            <span className="pc-row__name"><b>Online store</b><small>gridshop.com.bd</small></span>
+            <span className="pc-row__name"><b>Online store</b><small>dazzleshop.com.bd</small></span>
             {sw(local.online && !draft, 'Online store', () => { if (draft) { toast('Make the product active to publish it'); return; } setLocal({ ...local, online: !local.online }); }, false)}
             <span className="pc-row__status">{draft ? <StatusBadge tone="neutral" icon="minus">Not published</StatusBadge> : local.online ? <StatusBadge tone="success" icon="check">Published</StatusBadge> : <StatusBadge tone="neutral" icon="minus">Hidden</StatusBadge>}{draft ? <span className="pc-hint">Draft</span> : null}</span>
           </div>

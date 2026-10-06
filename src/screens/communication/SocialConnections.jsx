@@ -34,16 +34,16 @@ function val(e) { return e && e.target ? e.target.value : e; }
 
 // key, name, short, color, auto?, account, status, supports, note
 var PLAT = [
-  ['fb', 'Facebook Page', 'FB', '#1d4ed8', true, 'GridShop', 'ok', 'Text, photos, videos, links', 'Posts go out at the scheduled minute.'],
-  ['ig', 'Instagram', 'IG', '#be185d', true, '@gridshop.bd', 'ok', 'Photos, carousels, Reels', 'Needs a photo or video. Business account linked to the Facebook Page.'],
+  ['fb', 'Facebook Page', 'FB', '#1d4ed8', true, 'Dazzle Shop', 'ok', 'Text, photos, videos, links', 'Posts go out at the scheduled minute.'],
+  ['ig', 'Instagram', 'IG', '#be185d', true, '@dazzleshop.bd', 'ok', 'Photos, carousels, Reels', 'Needs a photo or video. Business account linked to the Facebook Page.'],
   ['wa', 'WhatsApp broadcast', 'WA', '#15803d', true, '+880 1711-482093', 'ok', 'Template message with photo', 'Goes only to customers who opted in. ৳1.10 per message from the wallet.'],
-  ['tt', 'TikTok', 'TT', '#0f172a', true, '@gridshop', 'renew', 'Videos, photo posts', 'Access expires in 3 days. Reconnect to keep posting.'],
-  ['yt', 'YouTube', 'YT', '#b91c1c', true, 'GridShop BD', 'ok', 'Videos and Shorts', 'Needs a video.'],
-  ['x', 'X', 'X', '#334155', true, '@gridshopbd', 'off', 'Text up to 280 characters, photos', 'How many posts a month depends on the X API plan.'],
+  ['tt', 'TikTok', 'TT', '#0f172a', true, '@dazzleshop', 'renew', 'Videos, photo posts', 'Access expires in 3 days. Reconnect to keep posting.'],
+  ['yt', 'YouTube', 'YT', '#b91c1c', true, 'Dazzle Shop', 'ok', 'Videos and Shorts', 'Needs a video.'],
+  ['x', 'X', 'X', '#334155', true, '@dazzleshopbd', 'off', 'Text up to 280 characters, photos', 'How many posts a month depends on the X API plan.'],
   ['pin', 'Pinterest', 'PIN', '#9f1239', true, 'Not connected', 'off', 'Pins with photo and link', 'Each pin needs a photo and a link.'],
-  ['wac', 'WhatsApp Channel', 'WAC', '#166534', false, 'GridShop Offers', 'manual', 'Reminder with the text ready to copy', 'WhatsApp has no posting API for channels, so a reminder is sent to post by hand.'],
+  ['wac', 'WhatsApp Channel', 'WAC', '#166534', false, 'Dazzle Shop Offers', 'manual', 'Reminder with the text ready to copy', 'WhatsApp has no posting API for channels, so a reminder is sent to post by hand.'],
   ['fbg', 'Facebook groups', 'FBG', '#1e40af', false, '3 groups', 'manual', 'Reminder with the text ready to copy', 'Meta closed group posting by API in 2024, so a reminder is sent to post by hand.'],
-  ['li', 'LinkedIn page', 'IN', '#075985', true, 'GridShop Ltd', 'ok', 'Text, photos, links', 'Company page only, not personal profiles.']
+  ['li', 'LinkedIn page', 'IN', '#075985', true, 'Dazzle Shop Ltd', 'ok', 'Text, photos, links', 'Company page only, not personal profiles.']
 ];
 var PST = { ok: ['Connected', '#e7f8f1', '#047857'], renew: ['Reconnect soon', '#fff4e0', '#a14f06'], off: ['Not connected', '#f1f5f9', '#475569'], manual: ['Reminder only', 'rgba(0,48,135,.08)', '#003087'] };
 var CH = { fb: 'facebook', ig: 'instagram', wa: 'whatsapp', tt: 'tiktok', yt: 'youtube', x: 'x', pin: 'pinterest', wac: 'whatsapp', fbg: 'facebook', li: 'linkedin' };

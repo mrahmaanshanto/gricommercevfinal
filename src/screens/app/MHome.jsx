@@ -127,7 +127,7 @@ export default class MHomeScreen extends Component {
               <__Link href="/m-more" style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0", flex: "1" }}>
                 <span className="av" style={{ width: "40px", height: "40px", borderRadius: "var(--radius-xl)", background: "linear-gradient(145deg,#2eaee4,#003087)", color: "#fff", fontSize: "var(--text-sm)" }}>GS</span>
                 <span style={{ minWidth: "0" }}>
-                  <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)" }}>GridShop</span>
+                  <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)" }}>Dazzle Shop</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Dhanmondi branch <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="m6 9 6 6 6-6" />
 </svg></span>
@@ -226,7 +226,7 @@ export default class MHomeScreen extends Component {
                 </span>
                 <span className="m">
                   <span className="t ell" style={{ display: "block" }}>5 products low on stock</span>
-                  <span className="s ell" style={{ display: "block" }}>Sunscreen SPF 50 has 4 left</span>
+                  <span className="s ell" style={{ display: "block" }}>Anker 20W charger has 4 left</span>
                 </span>
                 <span className="pill p-err">5</span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

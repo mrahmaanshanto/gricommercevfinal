@@ -18,7 +18,7 @@ export const CUSTODY_STATUS = { out: ['With vendor', 'warning'], back: ['Back in
 export const CUSTODY_REASONS = ['Warranty repair', 'Inspection', 'Replacement claim', 'Service', 'Other'];
 const at = (d, h) => new Date(2026, 8, d, h || 10).getTime();
 const SEED = [
-  { id: 'EXT-0001', sku: 'PH-5GP-256-SV', name: '5G Smartphone Pro 256GB · Silver / 256 GB', qty: 1, back: 0, place: 'Gulshan-1 branch', party: 'Samsung service centre, Mirpur 10', rma: 'SSC-77812',
+  { id: 'EXT-0001', sku: 'PH-5GP-256-SV', name: '5G Smartphone Pro 256GB · Silver / 256 GB', qty: 1, back: 0, place: 'Mirpur branch', party: 'Samsung service centre, Mirpur 10', rma: 'SSC-77812',
     serials: [luhn('35678910451236')], reason: 'Warranty repair', sentAt: at(24, 15), expectedAt: at(8 + 30, 12), status: 'out', note: 'Screen flicker · customer claim WC-0018', by: 'Tareq Aziz', seed: true },
 ];
 

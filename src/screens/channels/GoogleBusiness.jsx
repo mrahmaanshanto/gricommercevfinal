@@ -490,7 +490,7 @@ function BusinessInfo({ locs, loc, setLoc }) {
 
 // ---- Posts --------------------------------------------------------------------------------------------------
 const POST_TABS = [['published', 'Published'], ['draft', 'Drafts'], ['scheduled', 'Scheduled']];
-const BLANK_POST = { st: 'draft', text: '', cta: 'order', link: 'https://gridshop.com.bd', tone: '#e7efff', icon: 'store', locs: 'all' };
+const BLANK_POST = { st: 'draft', text: '', cta: 'order', link: 'https://dazzleshop.com.bd', tone: '#e7efff', icon: 'store', locs: 'all' };
 function Posts({ now, locs }) {
   const [f, setF] = useState('published');
   const [edit, setEdit] = useState(null);
@@ -577,7 +577,7 @@ function PostEditor({ post, onClose, onSaved }) {
         <div>
           <span className="gc-label">Preview</span>
           <div className="gb-prev" aria-label="How the post looks on Google">
-            <div className="gb-prev__head"><ChannelLogo ch="gbp" size={28} /><span><b>GridShop</b><br />{when === 'now' ? 'Just now' : 'Scheduled'}</span></div>
+            <div className="gb-prev__head"><ChannelLogo ch="gbp" size={28} /><span><b>Dazzle Shop</b><br />{when === 'now' ? 'Just now' : 'Scheduled'}</span></div>
             <div className="gb-post__img" style={{ background: v.img ? undefined : v.tone }}>{v.img ? <img src={v.img} alt="" /> : <Icon name={v.icon || 'image'} width="32" height="32" aria-hidden="true" />}</div>
             <div className="gb-post__body"><p className="gb-post__text" style={{ WebkitLineClamp: 6 }}>{v.text || 'Your text shows here.'}</p>{v.cta ? <span className="gb-cta">{ctaLabel}</span> : null}</div>
           </div>

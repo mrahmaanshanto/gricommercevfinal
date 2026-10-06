@@ -18,12 +18,12 @@ import { getLocale, setLocale } from '@/runtime/ui';
 // what the brand panel promises follows the site's edition (src/lib/edition.js)
 var EDITION_COPY = {
   'retail-wholesale': {
-    en: { heroSubSignin: 'Run your shops and your wholesale book in one place — counters, stock, credit and cash.', fStore: 'POS at every counter', fStoreSub: 'Sell fast, even offline.', fOrders: 'Wholesale on credit', fOrdersSub: 'Price lists, invoices and dues.', fPay: 'Stock in every branch', fPaySub: 'Transfers, counts and purchase.', fStats: 'Money and profit', fStatsSub: 'Cash, bank and dues, daily.' },
-    bn: { heroSubSignin: 'দোকান আর Wholesale এক জায়গায় — Counter, Stock, বাকি আর Cash।', fStore: 'প্রতি Counter-এ POS', fStoreSub: 'দ্রুত বিক্রি, Internet ছাড়াও।', fOrders: 'বাকিতে Wholesale', fOrdersSub: 'দামের তালিকা, Invoice আর Due।', fPay: 'প্রতি Branch-এর Stock', fPaySub: 'Transfer, গণনা আর কেনা।', fStats: 'টাকা আর লাভ', fStatsSub: 'Cash, Bank আর Due, প্রতিদিন।' },
+    en: { eyebrowSignin: 'SHOP, POS & STOCK PLATFORM', heroSubSignin: 'Run your shops in one place — counters, stock, customer dues and cash.', fStore: 'POS at every counter', fStoreSub: 'Sell fast, even offline.', fOrders: 'Customer dues', fOrdersSub: 'Invoices and payments due.', fPay: 'Stock in every branch', fPaySub: 'Transfers, counts and purchase.', fStats: 'Money and profit', fStatsSub: 'Cash, bank and dues, daily.' },
+    bn: { eyebrowSignin: 'দোকান, POS ও Stock প্ল্যাটফর্ম', heroSubSignin: 'আপনার দোকান এক জায়গায় — Counter, Stock, Customer-এর বাকি আর Cash।', fStore: 'প্রতি Counter-এ POS', fStoreSub: 'দ্রুত বিক্রি, Internet ছাড়াও।', fOrders: 'Customer-এর বাকি', fOrdersSub: 'Invoice আর বাকি টাকা।', fPay: 'প্রতি Branch-এর Stock', fPaySub: 'Transfer, গণনা আর কেনা।', fStats: 'টাকা আর লাভ', fStatsSub: 'Cash, Bank আর Due, প্রতিদিন।' },
   },
   'retail-online': {
-    en: { heroSubSignin: 'Your shops, wholesale and online store on one stock — counters, invoices, orders and couriers.' },
-    bn: { heroSubSignin: 'দোকান, Wholesale আর Online store এক Stock-এ — Counter, Invoice, Order আর Courier।' },
+    en: { heroSubSignin: 'Your shops and online store on one stock — counters, invoices, orders and couriers.' },
+    bn: { heroSubSignin: 'দোকান আর Online store এক Stock-এ — Counter, Invoice, Order আর Courier।' },
   },
   comms: {
     en: { eyebrowSignin: 'COMMUNICATION & CRM', heroSubSignin: 'Every chat, call and customer in one place — and a counter to sell from.', fStore: 'One inbox', fStoreSub: 'Facebook, Instagram, WhatsApp, more.', fOrders: 'Calls and AI calls', fOrdersSub: 'Never miss a customer.', fPay: 'Customers and leads', fPaySub: 'Follow-ups that don’t slip.', fStats: 'POS and automation', fStatsSub: 'Sell at the counter, automate the rest.' },
@@ -389,6 +389,7 @@ export default class MerchantSignInScreen extends Component {
                   <div>
                     <h1 style={__sx(`margin: 0; font-size: var(--text-3xl); line-height: 40px; font-weight: var(--weight-semibold); letter-spacing: ${v.track ?? ""}; color: #0f172a;`)}>{v.t?.welcome}</h1>
                   </div>
+                  {/* the full site previews a system; an edition site already knows its system and offers one demo button (S2-12) */}
                   {v.system ? <SystemPicker busy={v.systemBusy} onPick={v.pickSystem} /> : null}
                   <button type="button" className="gc-btn gc-outline" style={{ marginTop: "28px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}><span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>G</span>{v.t?.google}</button>
                   <div style={{ marginTop: "20px", display: "flex", alignItems: "center", gap: "14px" }}>

@@ -1,12 +1,18 @@
 'use client';
 // CustomerEditDialog — edit one customer: name, mobile, address, how they buy (Online / Retail /
-// Wholesale, any mix), the wholesale price list and the credit limit. Used by All customers, the
+// Wholesale, any mix; Wholesale only while it is on), the wholesale price list and the credit limit. Used by All customers, the
 // customer profile and the wholesale customer profile. The caller saves the values.
 
 import React, { useEffect, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { Dialog } from '@/components/ui';
-import { PRICE_TIERS, CUSTOMER_TYPES } from '@/lib/customers';
+import { PRICE_TIERS, CUSTOMER_TYPES as ALL_TYPES } from '@/lib/customers';
+import { wholesaleOn } from '@/lib/edition';
+
+// wholesale (type, price list) only while it is on (edition.js; off for now). The credit limit is for every customer:
+// it caps what they may owe (retail dues: Settings › Customers › Credit & dues).
+const WS = wholesaleOn();
+const CUSTOMER_TYPES = ALL_TYPES.filter((t) => t !== 'Wholesale' || WS);
 import { formatBDT } from '@/lib/format';
 
 const compact = (x) => String(x || '').replace(/[\s\-().]/g, '').toLowerCase();
@@ -48,7 +54,7 @@ export default function CustomerEditDialog({ open, customer, phoneLocked, phoneT
   }, [open, customer]);
 
   if (!open || !f) return null;
-  const whole = f.types.indexOf('Wholesale') >= 0;
+  const whole = WS && f.types.indexOf('Wholesale') >= 0;
   const set = (k, v) => { setF({ ...f, [k]: v }); if (errs[k]) { const e = { ...errs }; delete e[k]; setErrs(e); } };
   const toggle = (t) => set('types', CUSTOMER_TYPES.filter((x) => (x === t ? f.types.indexOf(x) < 0 : f.types.indexOf(x) >= 0)));
 
@@ -66,16 +72,16 @@ export default function CustomerEditDialog({ open, customer, phoneLocked, phoneT
       else if (phoneTaken && phoneTaken(d)) er.phone = 'Another customer already has this mobile number.';
       else phone = d.slice(0, 5) + '-' + d.slice(5, 8) + '-' + d.slice(8);
     }
-    if (!f.types.length) er.types = 'Choose at least one: Online, Retail or Wholesale.';
+    if (!f.types.length) er.types = WS ? 'Choose at least one: Online, Retail or Wholesale.' : 'Choose at least one: Online or Retail.';
     const credit = f.credit.trim() === '' ? 0 : Number(f.credit);
-    if (whole && (!Number.isFinite(credit) || credit < 0)) er.credit = 'Enter 0 or more. 0 means no limit.';
+    if (!Number.isFinite(credit) || credit < 0) er.credit = whole ? 'Enter 0 or more. 0 means no limit.' : 'Enter 0 or more. 0 uses the shop’s default limit.';
     const first = ['name', 'phone', 'types', 'credit'].find((k) => er[k]);
     if (first) {
       setErrs(er);
       setTimeout(() => { const el = document.getElementById(first === 'types' ? 'ce-type-Online' : 'ce-' + first); if (el) el.focus(); }, 0);
       return;
     }
-    onSave({ name, phone, address: f.address.trim(), types: f.types, tier: whole ? f.tier : undefined, creditLimit: whole ? Math.round(credit) : 0 });
+    onSave({ name, phone, address: f.address.trim(), types: f.types, tier: whole ? f.tier : undefined, creditLimit: Math.round(credit) });
   };
 
   return (
@@ -107,21 +113,19 @@ export default function CustomerEditDialog({ open, customer, phoneLocked, phoneT
           </div>
           {errs.types ? <Err id="ce-type-err" text={errs.types} /> : <p id="ce-type-help" className="gc-help">Pick every way this customer buys from you.</p>}
         </fieldset>
-        {whole ? (
-          <div className="ce-pair">
-            <div className="ce-field">
+        <div className="ce-pair">
+            {whole ? <div className="ce-field">
               <label className="gc-label" htmlFor="ce-tier">Wholesale price list</label>
               <select id="ce-tier" className="gc-input gc-select" value={f.tier} onChange={(e) => set('tier', e.target.value)}>
                 {Object.keys(PRICE_TIERS).map((k) => (<option key={k} value={k}>{PRICE_TIERS[k].label} · {PRICE_TIERS[k].off}% off</option>))}
               </select>
-            </div>
+            </div> : null}
             <div className="ce-field">
               <label className="gc-label" htmlFor="ce-credit">Credit limit</label>
               <div className="ce-money"><span aria-hidden="true">৳</span><input id="ce-credit" type="number" min="0" step="1000" inputMode="numeric" className={errs.credit ? 'gc-input gc-input--error' : 'gc-input'} value={f.credit} onChange={(e) => set('credit', e.target.value)} placeholder="0" aria-invalid={errs.credit ? 'true' : 'false'} aria-describedby={errs.credit ? 'ce-credit-err' : 'ce-credit-help'} /></div>
-              {errs.credit ? <Err id="ce-credit-err" text={errs.credit} /> : <p id="ce-credit-help" className="gc-help">{Number(f.credit) > 0 ? 'Can owe up to ' + formatBDT(Number(f.credit)) + '.' : '0 means no limit.'}</p>}
+              {errs.credit ? <Err id="ce-credit-err" text={errs.credit} /> : <p id="ce-credit-help" className="gc-help">{Number(f.credit) > 0 ? 'Can owe up to ' + formatBDT(Number(f.credit)) + '.' : whole ? '0 means no limit.' : '0 uses the shop’s default limit.'}</p>}
             </div>
           </div>
-        ) : null}
       </form>
     </Dialog>
   );

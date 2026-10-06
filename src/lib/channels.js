@@ -119,11 +119,11 @@ function seed(now) {
     v: 2,
     seededAt: now,
     conn: {
-      meta: { business: 'GridShop BD', catalog: 'GridShop · Main catalog', catalogId: '1048227199340', account: 'Mehedi Hasan', at: now - 52 * DAY, lastSync: now - 12 * MIN, auto: true, what: { products: true, inventory: true, prices: true, images: true } },
-      gmc: { account: 'GridShop BD', merchantId: '5123498722', website: 'gridshop.com.bd', at: now - 40 * DAY, lastSync: now - 35 * MIN, auto: true, what: { products: true, inventory: true, prices: true, images: true } },
-      woo: { store: 'gridshop-bd.com', account: 'GridShop BD', version: 'WooCommerce 9.3', at: now - 75 * DAY, lastSync: now - 20 * MIN, auto: true, what: { products: true, inventory: true, prices: true, images: true, orders: true } },
+      meta: { business: 'Dazzle Shop', catalog: 'Dazzle Shop · Main catalog', catalogId: '1048227199340', account: 'Mehedi Hasan', at: now - 52 * DAY, lastSync: now - 12 * MIN, auto: true, what: { products: true, inventory: true, prices: true, images: true } },
+      gmc: { account: 'Dazzle Shop', merchantId: '5123498722', website: 'dazzleshop.com.bd', at: now - 40 * DAY, lastSync: now - 35 * MIN, auto: true, what: { products: true, inventory: true, prices: true, images: true } },
+      woo: { store: 'dazzleshop-bd.com', account: 'Dazzle Shop', version: 'WooCommerce 9.3', at: now - 75 * DAY, lastSync: now - 20 * MIN, auto: true, what: { products: true, inventory: true, prices: true, images: true, orders: true } },
       shopify: null,
-      gbp: { account: 'GridShop BD', at: now - 120 * DAY, lastSync: now - 2 * HOUR, auto: true, what: { info: true, hours: true, reviews: true, posts: true } },
+      gbp: { account: 'Dazzle Shop', at: now - 120 * DAY, lastSync: now - 2 * HOUR, auto: true, what: { info: true, hours: true, reviews: true, posts: true } },
     },
     items: { meta: {}, gmc: {}, woo: {}, shopify: {} },
     fixes: {},
@@ -131,8 +131,8 @@ function seed(now) {
     results: {},
     settings: DEFAULT_SETTINGS,
     resolved: [
-      { id: 'r1', ch: 'gmc', key: 'GR-DAL-1', name: 'Chickpeas Boot Dal 1kg', issue: 'gmc-gtin', at: now - 26 * HOUR, how: 'Barcode added' },
-      { id: 'r2', ch: 'meta', key: 'HM-BTL-750', name: 'Steel Water Bottle 750ml', issue: 'meta-image', at: now - 2 * DAY, how: 'Retried' },
+      { id: 'r1', ch: 'gmc', key: 'AC-CLN-KIT', name: 'Screen Cleaning Kit', issue: 'gmc-gtin', at: now - 26 * HOUR, how: 'Barcode added' },
+      { id: 'r2', ch: 'meta', key: 'AC-STD-FLD', name: 'Foldable Phone Stand', issue: 'meta-image', at: now - 2 * DAY, how: 'Retried' },
     ],
     gbp: { replies: {}, info: {}, confirmed: {}, posts: null, media: {}, services: null },
   };
@@ -158,13 +158,13 @@ function save(mut) { const s = state(); mut(s); write(s); return s; }
 // ---- products on the channels ------------------------------------------------------------------------------
 // base status per channel by SKU (the demo shop's real picture); everything else is synced / approved
 const BASE = {
-  meta: { 'EL-EAR-PRO': 'meta-image', 'CL-SNK-42': 'meta-image', 'CL-KRT-01': 'meta-nophoto', 'GR-ATTA-2': 'unpublished', 'GR-MUS-1': 'unpublished' },
-  gmc: { 'GR-MSR-1': 'gmc-gtin', 'CL-KRT-01': 'gmc-nophoto', 'CL-LEG-CL': 'gmc-small', 'HM-RCK-18': 'gmc-price', 'GR-SOY-2': 'gmc-shipping', 'GR-ATTA-2': 'unpublished' },
-  woo: { 'CL-TEE-BM': 'woo-sku', 'HM-BTL-750': 'woo-image', 'GR-ATTA-2': 'unpublished', 'GR-MUS-1': 'unpublished' },
-  shopify: { 'GR-RICE-5': 'shopify-weight', 'EL-PHN-128': 'shopify-image' },
+  meta: { 'AU-EAR-PRO': 'meta-image', 'WR-BND-08': 'meta-image', 'AC-MAG-15': 'meta-nophoto', 'AC-LNS-PR': 'unpublished', 'AC-OTG-C': 'unpublished' },
+  gmc: { 'AC-LYD-01': 'gmc-gtin', 'AC-MAG-15': 'gmc-nophoto', 'AC-CHG-25': 'gmc-small', 'PB-ANK-10K': 'gmc-price', 'AC-GLS-9H': 'gmc-shipping', 'AC-LNS-PR': 'unpublished' },
+  woo: { 'AC-CSE-A55': 'woo-sku', 'AC-STD-FLD': 'woo-image', 'AC-LNS-PR': 'unpublished', 'AC-OTG-C': 'unpublished' },
+  shopify: { 'AC-CBL-100': 'shopify-weight', 'PH-RLM-N50': 'shopify-image' },
 };
 // products that were just changed: shown as Processing for a while after the first visit
-const BASE_PROCESSING = { meta: { 'CL-JNS-32': 40 * MIN }, gmc: { 'CL-TEE-BM': 3 * HOUR }, woo: {}, shopify: {} };
+const BASE_PROCESSING = { meta: { 'AC-HLD-CAR': 40 * MIN }, gmc: { 'AC-CSE-A55': 3 * HOUR }, woo: {}, shopify: {} };
 
 const keyOf = (p) => p.sku || p.id;
 const sumOn = (on) => Object.values(on || {}).reduce((a, x) => a + (Number(x) || 0), 0);
@@ -431,13 +431,12 @@ export function gbpLocations() {
   const confirmed = (s.gbp || {}).confirmed || {};
   let list;
   if (isOnePlace()) {
-    list = [{ id: 'on', name: 'GridShop', area: 'Tejgaon, Dhaka', address: 'Plot 12, Tejgaon I/A, Dhaka (hidden — you deliver to customers)', serviceArea: 'Delivers across Dhaka, Gazipur and Narayanganj', phone: '09610-XX0400', hours: hoursFrom('10:00', '20:00', []), st: 'attention', rating: 4.5, reviews: 214 }];
+    list = [{ id: 'on', name: 'Dazzle Shop', area: 'Tejgaon, Dhaka', address: 'Plot 12, Tejgaon I/A, Dhaka (hidden — you deliver to customers)', serviceArea: 'Delivers across Dhaka, Gazipur and Narayanganj', phone: '09610-XX0400', hours: hoursFrom('10:00', '20:00', []), st: 'attention', rating: 4.5, reviews: 214 }];
   } else {
     const by = (id) => getPlaces({ all: true }).find((p) => p.id === id) || {};
     list = [
-      { id: 'dh', name: 'GridShop Dhanmondi', area: 'Dhanmondi, Dhaka', address: by('dh').address || 'House 42, Road 27, Dhanmondi, Dhaka', phone: by('dh').phone || '01712-XX4410', hours: hoursFrom('10:00', '22:00'), st: 'verified', rating: 4.6, reviews: 128 },
-      { id: 'mp', name: 'GridShop Mirpur', area: 'Mirpur, Dhaka', address: by('mp').address || 'Plot 8, Section 10, Mirpur, Dhaka', phone: by('mp').phone || '01715-XX6630', hours: hoursFrom('10:00', '21:00'), st: 'verified', rating: 4.4, reviews: 86 },
-      { id: 'gl', name: 'GridShop Gulshan', area: 'Gulshan, Dhaka', address: by('gl').address || 'Road 11, Gulshan-1, Dhaka', phone: by('gl').phone || '01713-XX2215', hours: hoursFrom('11:00', '21:00'), st: 'attention', rating: 4.7, reviews: 41 },
+      { id: 'dh', name: 'Dazzle Shop Dhanmondi', area: 'Dhanmondi, Dhaka', address: by('dh').address || 'House 42, Road 27, Dhanmondi, Dhaka', phone: by('dh').phone || '01712-XX4410', hours: hoursFrom('10:00', '22:00'), st: 'verified', rating: 4.6, reviews: 128 },
+      { id: 'mp', name: 'Dazzle Shop Mirpur', area: 'Mirpur, Dhaka', address: by('mp').address || 'Plot 8, Section 10, Mirpur, Dhaka', phone: by('mp').phone || '01715-XX6630', hours: hoursFrom('10:00', '21:00'), st: 'verified', rating: 4.4, reviews: 86 },
     ];
   }
   const info = (s.gbp || {}).info || {};
@@ -486,7 +485,7 @@ const gbpLocationsRaw = (id) => gbpLocations().find((l) => l.id === id);
 
 // business info, per location
 const CATEGORY = 'Department store';
-export const CATEGORIES = ['Department store', 'Clothing store', 'Grocery store', 'Cosmetics store', 'Electronics store', 'Shoe store', 'Gift shop', 'Online shop'];
+export const CATEGORIES = ['Mobile phone shop', 'Electronics store', 'Cell phone accessory store', 'Mobile phone repair shop', 'Computer store', 'Gift shop', 'Online shop'];
 export const ATTRIBUTES = [
   ['delivery', 'Home delivery'], ['cod', 'Cash on delivery'], ['pickup', 'In-store pickup'], ['bkash', 'Pays by bKash'], ['cards', 'Takes debit and credit cards'],
   ['wheelchair', 'Wheelchair-accessible entrance'], ['parking', 'Parking'], ['wifi', 'Free Wi-Fi'], ['women', 'Women-owned'],
@@ -497,10 +496,10 @@ export function getInfo(id) {
   if (!l) return null;
   const saved = ((s.gbp || {}).info || {})[id] || {};
   return {
-    name: l.name, category: CATEGORY, description: 'Clothing, skin care, groceries and electronics at fair prices. Order online for home delivery, or visit us.',
-    phone: l.phone, website: 'https://gridshop.com.bd', address: l.address, hours: l.hours,
+    name: l.name, category: CATEGORY, description: 'Official smartphones, accessories and repairs at fair prices. Order online for home delivery, or visit us.',
+    phone: l.phone, website: 'https://dazzleshop.com.bd', address: l.address, hours: l.hours,
     special: [{ id: 'sp1', date: '2026-12-16', label: 'Victory Day', open: false, from: '10:00', to: '20:00' }, { id: 'sp2', date: '2026-12-25', label: 'Christmas', open: true, from: '12:00', to: '20:00' }],
-    attrs: { delivery: true, cod: true, pickup: !isOnePlace(), bkash: true, cards: !isOnePlace(), wheelchair: false, parking: id === 'gl', wifi: false, women: false },
+    attrs: { delivery: true, cod: true, pickup: !isOnePlace(), bkash: true, cards: !isOnePlace(), wheelchair: false, parking: id === 'mp', wifi: false, women: false },
     ...saved,
   };
 }
@@ -508,16 +507,16 @@ export function saveInfo(id, info) { save((s) => { s.gbp.info = { ...(s.gbp.info
 
 // reviews
 const REVIEWS = [
-  ['rv1', 'dh', 'Nusrat Jahan', 5, 'Very helpful staff and the kurti collection is beautiful. Got my size exchanged in five minutes.', 2 * HOUR],
-  ['rv2', 'mp', 'Tanvir Ahmed', 4, 'Good prices on rice and oil. The queue at the counter was a bit long in the evening.', 7 * HOUR],
-  ['rv3', 'gl', 'Farzana Akter', 2, 'Ordered earbuds online for pickup but they were not ready when I came. Had to wait 30 minutes.', 20 * HOUR],
+  ['rv1', 'dh', 'Nusrat Jahan', 5, 'Very helpful staff and they set up my new phone for free. Got my case exchanged in five minutes.', 2 * HOUR],
+  ['rv2', 'mp', 'Tanvir Ahmed', 4, 'Good prices on chargers and cables. The queue at the counter was a bit long in the evening.', 7 * HOUR],
+  ['rv3', 'mp', 'Farzana Akter', 2, 'Ordered earbuds online for pickup but they were not ready when I came. Had to wait 30 minutes.', 20 * HOUR],
   ['rv4', 'dh', 'Imran Hossain', 5, 'খুব ভালো সার্ভিস, দাম ঠিক আছে। আবার আসব।', 1 * DAY + 3 * HOUR],
   ['rv5', 'mp', 'Sumaiya Islam', 3, 'Products are fine but the shop gets very crowded on Saturday.', 2 * DAY],
-  ['rv6', 'gl', 'Rafiq Uddin', 5, 'Clean shop, polite people, and they accept bKash. Recommended.', 3 * DAY, 'Thank you, Rafiq! We are happy you liked the shop. See you again soon.'],
-  ['rv7', 'dh', 'Mitu Rahman', 4, 'Sunscreen was original and well priced. Parking is hard to find nearby.', 4 * DAY, 'Thank you, Mitu. Sorry about the parking — there is a car park on Road 27, two minutes away.'],
-  ['rv8', 'mp', 'Kamal Pasha', 1, 'The rice cooker stopped working after a week and nobody called me back.', 5 * DAY],
+  ['rv6', 'dh', 'Rafiq Uddin', 5, 'Clean shop, polite people, and they accept bKash. Recommended.', 3 * DAY, 'Thank you, Rafiq! We are happy you liked the shop. See you again soon.'],
+  ['rv7', 'dh', 'Mitu Rahman', 4, 'The iPhone was official with a warranty card and well priced. Parking is hard to find nearby.', 4 * DAY, 'Thank you, Mitu. Sorry about the parking — there is a car park on Road 27, two minutes away.'],
+  ['rv8', 'mp', 'Kamal Pasha', 1, 'The power bank stopped working after a week and nobody called me back.', 5 * DAY],
   ['rv9', 'dh', 'Ayesha Siddiqua', 5, 'Fast service and they gift-wrapped my order for free.', 8 * DAY, 'Thank you, Ayesha! Happy to help — enjoy your gift.'],
-  ['rv10', 'gl', 'Shahriar Kabir', 4, 'Nice collection of sneakers. Wish they had more sizes in stock.', 11 * DAY],
+  ['rv10', 'mp', 'Shahriar Kabir', 4, 'Nice collection of cases. Wish they had more for older models.', 11 * DAY],
 ];
 export function getReviews() {
   const s = state();
@@ -552,15 +551,15 @@ export function aiReply(review, n = 0) {
   const band = review.stars >= 5 ? 'high' : review.stars >= 3 ? 'mid' : 'low';
   const list = AI[band];
   const topic = /queue|wait|crowd/i.test(review.text) ? 'the waiting time' : /park/i.test(review.text) ? 'parking' : /size|stock/i.test(review.text) ? 'having more sizes in stock' : 'this';
-  return list[n % list.length].replace('{first}', review.name.split(' ')[0]).replace('{shop}', loc.name || 'GridShop').replace('{phone}', loc.phone || 'our shop').replace('{topic}', topic);
+  return list[n % list.length].replace('{first}', review.name.split(' ')[0]).replace('{shop}', loc.name || 'Dazzle Shop').replace('{phone}', loc.phone || 'our shop').replace('{topic}', topic);
 }
 
 // posts
 const POSTS = [
-  { id: 'po1', st: 'published', text: 'Puja collection is in! New kurtis and panjabis from ৳990. Visit us or order online for home delivery.', cta: 'order', link: 'https://gridshop.com.bd/puja', tone: '#fde7f1', icon: 'shirt', locs: 'all', ago: 3 * DAY, views: 1240 },
-  { id: 'po2', st: 'published', text: 'Free gift wrapping on every order this week. Just ask at the counter.', cta: 'learn', link: 'https://gridshop.com.bd/offers', tone: '#e7f8f1', icon: 'gift', locs: 'all', ago: 9 * DAY, views: 860 },
-  { id: 'po3', st: 'draft', text: 'Winter skin care is here: moisturisers, lip balm and sunscreen from top brands.', cta: 'buy', link: 'https://gridshop.com.bd/skin-care', tone: '#fff4e0', icon: 'sparkles', locs: 'all', ago: 1 * DAY },
-  { id: 'po4', st: 'scheduled', text: 'Victory Day sale: 16% off on everything on 16 December.', cta: 'order', link: 'https://gridshop.com.bd/sale', tone: '#e0f2fe', icon: 'percent', locs: 'all', ahead: 6 * DAY },
+  { id: 'po1', st: 'published', text: 'Puja offer is on! Free tempered glass with every phone. Visit us or order online for home delivery.', cta: 'order', link: 'https://dazzleshop.com.bd/puja', tone: '#fde7f1', icon: 'smartphone', locs: 'all', ago: 3 * DAY, views: 1240 },
+  { id: 'po2', st: 'published', text: 'Free gift wrapping on every order this week. Just ask at the counter.', cta: 'learn', link: 'https://dazzleshop.com.bd/offers', tone: '#e7f8f1', icon: 'gift', locs: 'all', ago: 9 * DAY, views: 860 },
+  { id: 'po3', st: 'draft', text: 'New power banks are here: Anker, Xiaomi and Baseus, 10000 to 20000 mAh.', cta: 'buy', link: 'https://dazzleshop.com.bd/power-banks', tone: '#fff4e0', icon: 'sparkles', locs: 'all', ago: 1 * DAY },
+  { id: 'po4', st: 'scheduled', text: 'Victory Day sale: 16% off on everything on 16 December.', cta: 'order', link: 'https://dazzleshop.com.bd/sale', tone: '#e0f2fe', icon: 'percent', locs: 'all', ahead: 6 * DAY },
 ];
 export const CTAS = [['', 'No button'], ['order', 'Order online'], ['buy', 'Buy'], ['learn', 'Learn more'], ['call', 'Call now'], ['book', 'Book']];
 export function getPosts() {

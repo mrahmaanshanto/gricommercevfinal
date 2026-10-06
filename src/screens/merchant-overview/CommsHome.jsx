@@ -24,7 +24,9 @@ import { HOME_CSS, Fig, Hero, greeting } from './OnlineHome';
 import { formatDate } from '@/lib/format';
 import { downloadCsv } from '@/lib/reports/period';
 import { trackItems, ACTIONS_EVENT, SEVERITY, ageOf, ageText } from '@/lib/actionItems';
-import { PILLS_CSS } from './ActionPills';
+import { PILLS_CSS, ActionPills } from './ActionPills';
+import { getMeetings, needsNote } from '@/lib/meetings';
+import { hasModule } from '@/lib/edition';
 import { AsOf, Readiness, EXTRAS_CSS } from './HomeExtras';
 
 const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch { return fb; } };
@@ -48,10 +50,13 @@ function build() {
   const posTotal = sales.reduce((a, s) => a + ((s.totals && s.totals.total) || 0), 0);
   // as action items (lib/actionItems.js): one key per issue, owner, severity and since when
   const MIN = 60 * 1000;
+  // meetings with leads and customers that ended without a note (lib/meetings.js), as on the full Home
+  const meetNotes = safe(() => getMeetings().filter((mt) => needsNote(mt)), []);
   const todo = [
     waiting.length > 0 && { key: 'comms:reply', label: 'Reply to chats', n: waiting.length, href: '/merchant-inbox', severity: waiting[0].min > 60 ? 'high' : 'normal', area: 'area-comms', owner: ['comms', 'orders', 'online-sales'], since: now - waiting[0].min * MIN },
     missed.length > 0 && { key: 'comms:call-back', label: 'Call back', n: missed.length, href: '/merchant-calls', severity: 'high', area: 'area-comms', owner: ['comms', 'orders', 'online-sales'], since: Math.min(...missed.map((c) => c.at || now)) },
     due.length > 0 && { key: 'leads:follow-up', label: 'Follow up', n: due.length, href: '/sales-leads', severity: due.some((x) => x.st === 'overdue') ? 'high' : 'normal', area: 'area-customers', owner: ['online-sales', 'shop-manager', 'comms', 'orders'], since: due[0].l.next.at },
+    hasModule('comms') && meetNotes.length > 0 && { key: 'meetings:notes', label: 'Write meeting notes', n: meetNotes.length, href: '/meetings?tab=note', severity: 'normal', area: 'area-customers', owner: ['ceo', 'online-sales', 'shop-manager'], since: Math.min(...meetNotes.map((m) => m.at || Date.now())) },
     comments.length > 0 && { key: 'comms:comments', label: 'Answer comments', n: comments.length, href: '/merchant-inbox', severity: 'normal', area: 'area-comms', owner: ['comms', 'content'] },
   ].filter(Boolean);
   return { now, open, waiting, unread, callsToday, due, sales, posTotal, todo };
@@ -106,6 +111,7 @@ export default function CommsHome() {
                   <Menu label="Create" icon="plus" cls="ix-btn" align="start" items={[{ label: 'New sale', icon: 'scan-barcode', href: '/pos' }]} />
                   <Link href="/merchant-inbox" className="ix-btn"><Icon name="inbox" width="16" height="16" aria-hidden="true" />Open inbox</Link>
                   <button type="button" className="ix-btn" onClick={exportCsv} disabled={!d}><Icon name="download" width="16" height="16" aria-hidden="true" />Export</button>
+                  {d && d.todo ? <span className="hm-needs-btn"><ActionPills rows={d.todo} source="home-comms" variant="button" label="Needs you" /></span> : null}
                   {d ? <AsOf at={d.now} onRefresh={refresh} /> : null}
                 </div>
                 {d ? (

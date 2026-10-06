@@ -91,7 +91,7 @@ export default class PosKeypadScreen extends Component {
                 <button type="button" aria-pressed="false" style={{ flex: "1", height: "44px", border: "none", borderRadius: "var(--radius-md)", background: "none", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#475569", cursor: "pointer" }}>Cash</button>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "#f8fafc" }}>
-                <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Quantity · Premium Miniket Rice 5kg</span>
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Quantity · Baseus USB-C Cable 100W 1m</span>
                 <span style={{ fontSize: "var(--text-3xl)", lineHeight: "38px", fontWeight: "var(--weight-semibold)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>3</span>
               </div>
               <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "8px" }}>
@@ -116,12 +116,12 @@ export default class PosKeypadScreen extends Component {
               </div>
             </div>
           </div>
-          <div className="pos-float__edit" role="dialog" aria-label="Edit line: Premium Miniket Rice 5kg" style={{ position: "absolute", left: "464px", top: "206px", width: "466px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 24px 60px -20px rgba(15,23,42,.55)", overflow: "hidden", color: "#475569" }}>
+          <div className="pos-float__edit" role="dialog" aria-label="Edit line: Baseus USB-C Cable 100W 1m" style={{ position: "absolute", left: "464px", top: "206px", width: "466px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 24px 60px -20px rgba(15,23,42,.55)", overflow: "hidden", color: "#475569" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", borderBottom: "1px solid #e2e8f0" }}>
               <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: "36px", height: "36px", flex: "none", borderRadius: "var(--radius-lg)", background: "#eef2f7", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#a9b8d4" }}>P</span>
               <span style={{ display: "block" }}>
-                <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Premium Miniket Rice 5kg</span>
-                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Sack · 5kg · line 2 of 6 · ৳780.00 list price</span>
+                <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Baseus USB-C Cable 100W 1m</span>
+                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Black · 1m · line 2 of 6 · ৳780.00 list price</span>
               </span>
               <button type="button" className="dc-h353" aria-label="Close line editor" style={{ marginLeft: "auto", width: "44px", height: "44px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
                 <__Icon name="x" strokeWidth="1.75" width="17" height="17" />

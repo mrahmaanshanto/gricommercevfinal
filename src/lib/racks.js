@@ -19,24 +19,24 @@ export const binCode = (rack, shelf, bin) => `${rack.code}-${shelf}-${pad2(bin)}
 const R = (id, place, code, name, shelves, bins, capacity) => ({ id, place, code, name, shelves, bins, capacity });
 const SEED_RACKS = [
   R('RK-cw-A', 'cw', 'A', 'Fast movers', 4, 6, 40),
-  R('RK-cw-B', 'cw', 'B', 'Bulk grocery', 3, 4, 80),
-  R('RK-cw-C', 'cw', 'C', 'Electronics cage', 3, 4, 20),
+  R('RK-cw-B', 'cw', 'B', 'Accessories bulk', 3, 4, 80),
+  R('RK-cw-C', 'cw', 'C', 'Phone cage (locked)', 3, 4, 20),
   R('RK-dh-S', 'dh', 'S', 'Shop floor', 3, 4, 30),
 ];
 let n = 0;
 const S = (place, rack, shelf, bin, sku, qty) => ({ id: 'SL-' + String(++n).padStart(3, '0'), place, rack, shelf, bin, sku, qty });
 const SEED_SLOTS = [
-  S('cw', 'RK-cw-A', 1, 1, 'SK-SUN-50', 30), S('cw', 'RK-cw-A', 1, 2, 'SK-SUN-50', 30), S('cw', 'RK-cw-A', 1, 3, 'SK-TON-150', 36),
-  S('cw', 'RK-cw-A', 2, 1, 'SK-SHA-340', 40), S('cw', 'RK-cw-A', 2, 2, 'SK-SHA-340', 40), S('cw', 'RK-cw-A', 2, 3, 'SK-SHA-340', 20),
-  S('cw', 'RK-cw-A', 3, 1, 'CL-TEE-BM', 40), S('cw', 'RK-cw-A', 3, 2, 'CL-TEE-BM', 30), S('cw', 'RK-cw-A', 3, 4, 'CL-JNS-32', 35),
-  S('cw', 'RK-cw-A', 4, 1, 'CL-SNK-42', 10), S('cw', 'RK-cw-A', 4, 2, 'CL-LEG-CL', 20),
-  S('cw', 'RK-cw-B', 1, 1, 'GR-RICE-5', 80), S('cw', 'RK-cw-B', 1, 2, 'GR-RICE-5', 80), S('cw', 'RK-cw-B', 1, 3, 'GR-DAL-1', 60),
-  S('cw', 'RK-cw-B', 2, 1, 'GR-SOY-2', 60), S('cw', 'RK-cw-B', 2, 2, 'GR-ATTA-2', 70),
-  S('cw', 'RK-cw-B', 3, 1, 'HM-BTL-750', 60), S('cw', 'RK-cw-B', 3, 2, 'HM-RCK-18', 30),
-  S('cw', 'RK-cw-C', 1, 1, 'EL-PHN-128', 20), S('cw', 'RK-cw-C', 1, 2, 'EL-EAR-PRO', 20), S('cw', 'RK-cw-C', 2, 1, 'EL-EAR-PRO', 20),
-  S('dh', 'RK-dh-S', 1, 1, 'SK-SHA-340', 30), S('dh', 'RK-dh-S', 1, 2, 'SK-TON-150', 30), S('dh', 'RK-dh-S', 1, 3, 'SK-SUN-50', 4),
-  S('dh', 'RK-dh-S', 2, 1, 'CL-JNS-32', 24), S('dh', 'RK-dh-S', 2, 2, 'CL-TEE-BM', 12),
-  S('dh', 'RK-dh-S', 3, 1, 'GR-RICE-5', 20), S('dh', 'RK-dh-S', 3, 2, 'HM-BTL-750', 20),
+  S('cw', 'RK-cw-A', 1, 1, 'AC-CHG-20', 30), S('cw', 'RK-cw-A', 1, 2, 'AC-CHG-20', 30), S('cw', 'RK-cw-A', 1, 3, 'AU-EAR-TC', 36),
+  S('cw', 'RK-cw-A', 2, 1, 'AC-CBL-LTG', 40), S('cw', 'RK-cw-A', 2, 2, 'AC-CBL-LTG', 40), S('cw', 'RK-cw-A', 2, 3, 'AC-CBL-LTG', 20),
+  S('cw', 'RK-cw-A', 3, 1, 'AC-CSE-A55', 40), S('cw', 'RK-cw-A', 3, 2, 'AC-CSE-A55', 30), S('cw', 'RK-cw-A', 3, 4, 'AC-HLD-CAR', 35),
+  S('cw', 'RK-cw-A', 4, 1, 'WR-BND-08', 10), S('cw', 'RK-cw-A', 4, 2, 'AC-CHG-25', 20),
+  S('cw', 'RK-cw-B', 1, 1, 'AC-CBL-100', 80), S('cw', 'RK-cw-B', 1, 2, 'AC-CBL-100', 80), S('cw', 'RK-cw-B', 1, 3, 'AC-CLN-KIT', 60),
+  S('cw', 'RK-cw-B', 2, 1, 'AC-GLS-9H', 60), S('cw', 'RK-cw-B', 2, 2, 'AC-LNS-PR', 70),
+  S('cw', 'RK-cw-B', 3, 1, 'AC-STD-FLD', 60), S('cw', 'RK-cw-B', 3, 2, 'PB-ANK-10K', 30),
+  S('cw', 'RK-cw-C', 1, 1, 'PH-RLM-N50', 20), S('cw', 'RK-cw-C', 1, 2, 'AU-EAR-PRO', 20), S('cw', 'RK-cw-C', 2, 1, 'AU-EAR-PRO', 20),
+  S('dh', 'RK-dh-S', 1, 1, 'AC-CBL-LTG', 30), S('dh', 'RK-dh-S', 1, 2, 'AU-EAR-TC', 30), S('dh', 'RK-dh-S', 1, 3, 'AC-CHG-20', 4),
+  S('dh', 'RK-dh-S', 2, 1, 'AC-HLD-CAR', 24), S('dh', 'RK-dh-S', 2, 2, 'AC-CSE-A55', 12),
+  S('dh', 'RK-dh-S', 3, 1, 'AC-CBL-100', 20), S('dh', 'RK-dh-S', 3, 2, 'AC-STD-FLD', 20),
 ];
 /** The demo racks (the same on the server and in the browser, for a first render). */
 export const SEED = { racks: SEED_RACKS, slots: SEED_SLOTS };

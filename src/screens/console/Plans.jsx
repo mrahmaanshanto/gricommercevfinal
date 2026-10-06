@@ -6,22 +6,49 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { ConsoleSide, ConsoleTop, ConsoleToast } from './ConsoleFrame';
+import { MAIN, PAGE, TITLEROW, H1, SUBT, H2, PHEAD, PSIDE, PANEL, UPPER, BTN, Plus, Lock } from './consoleParts';
+import { attach, db, now, param, plans, diff, catalogue, fmt } from '@/lib/platform';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
+// Plans: one ladder per segment from the versioned catalogue (lib/platform › db().plans). Changes are drafts of the
+// next version, approved by a second person (FormPlan).
+const PIDS = ['growth', 'business', 'enterprise'];
+
 class Component extends DCLogic {
+  componentDidMount() { this.off = attach(this); const l = param('ladder'); if (l) this.setState({ ladder: l }); }
+  componentWillUnmount() { if (this.off) this.off(); }
+
   renderVals() {
     const v = this.renderVals0() || {};
     const mini = !!(this.state || {}).mini;
     v.miniCls = mini ? 'mini' : '';
-    if (typeof v.rootCls === 'string') v.rootCls = v.rootCls + (mini ? ' mini' : '');
     v.toggleSide = () => this.setState({ mini: !mini });
     v.sideLabel = mini ? 'Expand menu' : 'Collapse menu';
     return v;
   }
 
   renderVals0() {
-    return {};
+    const s = this.state || {};
+    const t = now();
+    const d = db();
+    const ladderId = s.ladder || 'online';
+    const p = plans(d, t, ladderId);
+    const most = PIDS.reduce((a, b) => ((p.counts[b] || 0) > (p.counts[a] || 0) ? b : a), 'growth');
+    const prev = p.ladder.versions.filter((x) => x.v < p.live.v).sort((a, b) => b.v - a.v)[0];
+    const changes = prev ? PIDS.flatMap((pid) => diff(prev.plans[pid], p.live.plans[pid]).map(([mark, text]) => ({ key: pid + text, mark, text: `${catalogue.PLAN_NAME[pid]}: ${text}` }))) : [];
+    const segWord = catalogue.ladderLabel(ladderId).toLowerCase();
+    const nextV = Math.max(...p.ladder.versions.map((x) => x.v), ...d.planDrafts.filter((x) => x.ladder === ladderId).map((x) => x.v)) + 1;
+    return {
+      tabs: p.tabs.map((x) => ({ ...x, cls: x.id === ladderId ? 'tab on' : 'tab', sel: x.id === ladderId ? 'true' : 'false', pick: () => this.setState({ ladder: x.id, compare: false }) })),
+      ladderId, liveV: p.live.v, liveFrom: p.liveFrom, older: p.older, nextV,
+      cards: PIDS.map((pid) => { const pl = p.live.plans[pid]; return { pid, name: pl.name, price: fmt.taka(pl.price), tagline: pl.tagline, n: p.counts[pid] || 0, most: pid === most, seg: segWord }; }),
+      setRows: p.setRows, limitRows: p.limitRows,
+      drafts: d.planDrafts.filter((x) => x.ladder === ladderId && (x.status === 'draft' || x.status === 'pending' || x.status === 'rejected')).map((x) => ({ ...x, label: `${catalogue.PLAN_NAME[x.plan]} · version ${x.v}`, state: x.status === 'pending' ? `waiting for ${x.approver}` : x.status === 'rejected' ? `rejected by ${x.decidedBy}` : `draft by ${x.by}` })),
+      compare: !!s.compare, toggleCompare: () => this.setState({ compare: !s.compare }), prevV: prev ? prev.v : null, changes,
+      draftHref: `/form-plan?ladder=${ladderId}&plan=${most}`,
+    };
   }
 }
 
@@ -242,474 +269,98 @@ export default class PlansScreen extends Component {
       <div className="dc-screen" data-screen="Plans">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className={`cs ${v.miniCls ?? ""}`} style={{ width: "1440px", height: "1160px", overflow: "hidden", position: "relative", background: "var(--bg)" }}>
-          <aside className="side" aria-label="Console navigation">
-            <div className="sidein">
-              <div className="sidehead" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "18px 12px 6px 20px" }}>
-                <span className="logo-full">
-                  <img src="/assets/62dadbbb3f365aebdd41bb9975f5931f.png" alt="GridCommerce" style={{ height: "28px", width: "auto", display: "block" }} />
-                </span>
-                <img className="logo-mini" src="/assets/9b6f9ad369f1cbde65271a968e6ba1f1.png" alt="GridCommerce" style={{ height: "32px", width: "auto" }} />
-                <button className="tb sidetoggle" type="button" onClick={v.toggleSide} aria-label={v.sideLabel} title={v.sideLabel}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3" y="3" width="18" height="18" rx="3" />
-                    <path d="M9 3v18" />
-                  </svg>
-                </button>
-              </div>
-              <div className="sidemeta" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 20px 12px" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", height: "22px", padding: "0 8px", borderRadius: "var(--radius-md)", background: "var(--iconbg)", color: "var(--iconfg)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase" }}>Console</span>
-                <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Staff only · views logged</span>
-              </div>
-              <nav aria-label="Console" className="sidenav">
-                <__Link href="/console-shell" className="nav top" title="Overview">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Overview</span>
-                </__Link>
-                <div className="navlabel" style={{ margin: "10px 10px 6px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--sidemuted)" }}>Manage</div>
-                <__Link href="/merchants" className="nav grp" title="Tenants" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 9 4.5 4h15L21 9" />
-                      <path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9Z" />
-                      <path d="M5 12v9h14v-9" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Tenants</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/module-catalogue" className="nav grp open" title="Packaging" aria-expanded="true">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" />
-                      <path d="m3 7 9 5 9-5M12 12v10" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Packaging</span>
-                  <span className="chev open">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <div className="kids">
-                  <__Link href="/module-catalogue" className="nav sub">
-                    <span className="navtxt">Module catalogue</span>
-                  </__Link>
-                  <__Link href="/plans" className="nav sub on" aria-current="page">
-                    <span className="navtxt">Plans</span>
-                  </__Link>
-                  <__Link href="/entitlements" className="nav sub">
-                    <span className="navtxt">Entitlements</span>
-                  </__Link>
-                  <__Link href="/limits" className="nav sub">
-                    <span className="navtxt">Limits and meters</span>
-                  </__Link>
-                </div>
-                <__Link href="/subscriptions" className="nav grp" title="Billing" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="2" y="5" width="20" height="14" rx="2" />
-                      <path d="M2 10h20M6 15h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Billing</span>
-                  <span className="badge warn">4</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/health-risk" className="nav grp" title="Monitoring" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 12h4l3-8 4 16 3-8h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Monitoring</span>
-                  <span className="badge warn">5</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/support-desk" className="nav grp" title="Support" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 14v-2a9 9 0 0 1 18 0v2" />
-                      <path d="M21 14v3a2 2 0 0 1-2 2h-2v-7h4M3 14v3a2 2 0 0 0 2 2h2v-7H3" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Support</span>
-                  <span className="badge ">12</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/leads" className="nav grp" title="Sales CRM" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Sales CRM</span>
-                  <span className="badge ">18</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/ops-centre" className="nav grp" title="Operations" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Operations</span>
-                  <span className="badge err">2</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/releases" className="nav grp" title="System" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="4" y="11" width="16" height="10" rx="2" />
-                      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">System</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-              </nav>
-              <__Link href="/ops-centre" className="statuscard" title="1 open incident" style={{ display: "block", color: "inherit", textDecoration: "none" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ flex: "none", width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#ff9800", boxShadow: "0 0 0 3px rgba(255,152,0,.2)" }} />
-                  <span className="statustxt" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>1 open incident</span>
-                  <span className="num statustxt" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>99.96%</span>
-                </div>
-                <div className="statustxt ell" style={{ marginTop: "4px", fontSize: "var(--text-xs)", color: "var(--sidebody)" }}>Steadfast webhooks delayed · 38 stores</div>
-              </__Link>
-              <div className="me">
-                <span style={{ position: "relative", display: "inline-flex", flex: "none" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-xl)", background: "linear-gradient(145deg,#2eaee4,#003087)", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>FA</span>
-                  <span style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "11px", height: "11px", borderRadius: "var(--radius-full)", background: "#10b981", border: "2px solid var(--side)" }} />
-                </span>
-                <div className="metxt" style={{ minWidth: "0" }}>
-                  <div className="ell" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>Farhana Akter</div>
-                  <div className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Support lead · 2FA on</div>
-                </div>
-                <__Link href="/staff-roles" className="tb mebtn" aria-label="Account and roles" style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--sidemuted)" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 21a8 8 0 0 1 16 0" />
-                  </svg>
-                </__Link>
-              </div>
-            </div>
-          </aside>
-          <header className="topbar">
-            <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", minWidth: "230px" }}>
-              <span className="crumbic">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" />
-                  <path d="m3 7 9 5 9-5M12 12v10" />
-                </svg>
-              </span>
-              <span style={{ color: "var(--muted)" }}>Packaging</span>
-              <span style={{ color: "var(--muted)" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m9 6 6 6-6 6" />
-                </svg>
-              </span>
-              <span style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Plans</span>
-            </nav>
-            <button className="searchbtn" type="button"><span style={{ display: "inline-flex" }}>
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </svg>
-</span>Search stores, phones, invoices, leads<span className="kbd">Ctrl K</span></button>
-            {" "}
-            <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "8px", height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "var(--okbg)", color: "var(--okt)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-lg)", background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,.18)" }} />Production</span>
-            {" "}
-            <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)", padding: "0 4px" }}>Sun 20 Sep · 14:32</span>
-            {" "}
-            <span style={{ width: "1px", height: "24px", background: "var(--line)" }} />
-            {" "}
-            <button className="tb" type="button" aria-label="Notifications, 3 unread" style={{ position: "relative" }}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                <path d="M10 21h4" />
-              </svg>
-              <span style={{ position: "absolute", top: "8px", right: "9px", width: "8px", height: "8px", borderRadius: "var(--radius-lg)", background: "#ff5724", border: "2px solid var(--surface)" }} />
-            </button>
-            {" "}
-            <button className="tb" type="button" aria-label="Help and runbooks">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
-              </svg>
-            </button>
-          </header>
-          <main className="mainarea" style={{ position: "absolute", left: "272px", right: "0", top: "64px", bottom: "0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "22px 28px", display: "flex", flexDirection: "column", gap: "16px", minHeight: "0" }}>
-              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px" }}>
+          <ConsoleSide group="packaging" item="plans" toggle={v.toggleSide} label={v.sideLabel} />
+          <ConsoleTop group="packaging" page="Plans" />
+          <main className="mainarea" style={MAIN}>
+            <div style={PAGE}>
+              <div style={TITLEROW}>
                 <div style={{ minWidth: "0" }}>
-                  <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>Plans</h1>
-                  <p style={{ margin: "5px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Three ladders, one per segment, all from one versioned catalogue</p>
+                  <h1 style={H1}>Plans</h1>
+                  <p style={SUBT}>Three ladders, one per segment, all from one versioned catalogue</p>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: "none" }} />
               </div>
               <div role="tablist" className="cs-strip" style={{ display: "flex", gap: "22px", borderBottom: "1px solid var(--line)" }}>
-                <button className="tab on" type="button" role="tab" aria-selected="true">Online ladder<span className="cnt">41</span></button>
-                <button className="tab" type="button" role="tab" aria-selected="false">Retail ladder<span className="cnt">12</span></button>
-                <button className="tab" type="button" role="tab" aria-selected="false">Wholesale ladder<span className="cnt">9</span></button>
+                {v.tabs.map((x) => <button key={x.id} className={x.cls} type="button" role="tab" aria-selected={x.sel} onClick={x.pick}>{x.label}<span className="cnt">{x.n}</span></button>)}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span className="pill p-ok"><span className="shp shp-ok" />Version 3 · live since 01 Sep 2026</span>
-                <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>14 stores still on version 2, kept as they bought it</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <span className="pill p-ok"><span className="shp shp-ok" />Version {v.liveV} · live since {v.liveFrom}</span>
+                <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>{v.older ? `${v.older} store${v.older === 1 ? "" : "s"} still on an older version, kept as they bought it` : "Every store is on this version"}</span>
                 <span style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
-                  <button className="btn btng" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Compare versions</button>
-                  <__Link href="/form-plan" className="btn btnp" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M12 5v14M5 12h14" />
-</svg>Draft version 4</__Link>
+                  <button className="btn btng" type="button" onClick={v.toggleCompare} aria-pressed={v.compare ? "true" : "false"} style={BTN} disabled={!v.prevV}>{v.compare ? "Hide changes" : "Compare versions"}</button>
+                  <__Link href={v.draftHref} className="btn btnp" style={BTN}><Plus />Draft version {v.nextV}</__Link>
                 </span>
               </div>
+              {v.drafts.length ? (
+                <div className="panel" style={{ padding: "8px 18px" }}>
+                  {v.drafts.map((x, i) => (
+                    <div key={x.id} style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", borderTop: i ? "1px solid var(--line)" : "0", fontSize: "var(--text-xs-plus)" }}>
+                      <span className={x.status === "pending" ? "pill p-warn" : x.status === "rejected" ? "pill p-err" : "pill p-grey"}>{x.status === "pending" ? "Waiting for approval" : x.status === "rejected" ? "Rejected" : "Draft"}</span>
+                      <span style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>{x.label}</span>
+                      <span style={{ color: "var(--muted)" }}>{x.state}</span>
+                      <__Link href={"/form-plan?id=" + x.id} className="rowlink" style={{ marginLeft: "auto" }}>Open →</__Link>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {v.compare ? (
+                <section className="panel" style={PANEL}>
+                  <div style={PHEAD}>
+                    <h2 style={H2}>Version {v.liveV} compared with version {v.prevV}</h2>
+                    <div style={PSIDE} />
+                  </div>
+                  {v.changes.length ? v.changes.map((c) => (
+                    <div key={c.key} style={{ display: "flex", alignItems: "flex-start", gap: "10px", minHeight: "32px", fontSize: "var(--text-xs-plus)" }}>
+                      <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "var(--radius-md)", fontWeight: "var(--weight-semibold)", background: c.mark === "+" ? "#e7f8f1" : c.mark === "−" ? "#ffece5" : "#f2f5f9", color: c.mark === "+" ? "#047857" : c.mark === "−" ? "#c2410c" : "#003087" }}>{c.mark}</span>
+                      <span style={{ color: "var(--ink)", lineHeight: "1.45" }}>{c.text}</span>
+                    </div>
+                  )) : <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>No differences.</div>}
+                </section>
+              ) : null}
               <section className="panel cs-compare" style={{ padding: "20px 24px", minWidth: "0" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "stretch" }}>
                   <div />
-                  <div style={{ padding: "18px", borderRadius: "var(--radius-xl)", background: "var(--surface2)", border: "1px solid var(--line)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Growth</span>
+                  {v.cards.map((c) => (
+                    <div key={c.pid} style={c.most ? { padding: "18px", borderRadius: "var(--radius-xl)", background: "#012169", color: "#fff" } : { padding: "18px", borderRadius: "var(--radius-xl)", background: "var(--surface2)", border: "1px solid var(--line)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: c.most ? "#fff" : "var(--ink)" }}>{c.name}</span>
+                        {c.most ? <span className="pill" style={{ background: "#009cde", color: "#04121f" }}>Most chosen</span> : null}
+                      </div>
+                      <div className="num" style={{ marginTop: "6px", fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: c.most ? "#fff" : "var(--ink)" }}>{c.price}<span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", opacity: ".75" }}> / month</span></div>
+                      <div style={{ marginTop: "4px", fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: c.most ? "#cbd8ee" : "var(--body)" }}>{c.tagline}</div>
+                      <div style={{ marginTop: "10px", fontSize: "var(--text-xs-plus)", color: c.most ? "#7fd4f5" : "#0070a0", fontWeight: "var(--weight-medium)" }}>{c.n} {c.seg} store{c.n === 1 ? "" : "s"} on this plan</div>
+                      <__Link href={`/form-plan?ladder=${v.ladderId}&plan=${c.pid}`} className="rowlink" style={{ display: "inline-block", marginTop: "8px", color: c.most ? "#7fd4f5" : undefined }}>Change →</__Link>
                     </div>
-                    <div className="num" style={{ marginTop: "6px", fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>৳1,000<span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", opacity: ".75" }}> / month</span></div>
-                    <div style={{ marginTop: "4px", fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: "var(--body)" }}>Start selling in one segment with the everyday core.</div>
-                    <div style={{ marginTop: "10px", fontSize: "var(--text-xs-plus)", color: "#0070a0", fontWeight: "var(--weight-medium)" }}>19 online stores on this plan</div>
-                  </div>
-                  <div style={{ padding: "18px", borderRadius: "var(--radius-xl)", background: "#012169", color: "#fff" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#fff" }}>Business</span>
-                      <span className="pill" style={{ background: "#009cde", color: "#04121f" }}>Most chosen</span>
-                    </div>
-                    <div className="num" style={{ marginTop: "6px", fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#fff" }}>৳2,500<span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", opacity: ".75" }}> / month</span></div>
-                    <div style={{ marginTop: "4px", fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: "#cbd8ee" }}>Adds offers, loyalty, cart recovery and analytics.</div>
-                    <div style={{ marginTop: "10px", fontSize: "var(--text-xs-plus)", color: "#7fd4f5", fontWeight: "var(--weight-medium)" }}>17 online stores on this plan</div>
-                  </div>
-                  <div style={{ padding: "18px", borderRadius: "var(--radius-xl)", background: "var(--surface2)", border: "1px solid var(--line)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Enterprise</span>
-                    </div>
-                    <div className="num" style={{ marginTop: "6px", fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>৳5,000<span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", opacity: ".75" }}> / month</span></div>
-                    <div style={{ marginTop: "4px", fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: "var(--body)" }}>Adds warehouses, payroll and custom terms.</div>
-                    <div style={{ marginTop: "10px", fontSize: "var(--text-xs-plus)", color: "#0070a0", fontWeight: "var(--weight-medium)" }}>5 online stores on this plan</div>
-                  </div>
+                  ))}
                 </div>
                 <div className="cs-compare-head" aria-hidden="true">
-                  <span>Growth</span>
-                  <span>Business</span>
-                  <span>Enterprise</span>
+                  {v.cards.map((c) => <span key={c.pid}>{c.name}</span>)}
                 </div>
-                <div style={{ marginTop: "10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)", padding: "10px 0 6px" }}>Module sets</div>
-                <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Platform core</span>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Included</span>
+                <div style={{ marginTop: "10px", ...UPPER, padding: "10px 0 6px" }}>Module sets</div>
+                {v.setRows.map((r) => (
+                  <div key={r.id} style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
+                    <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>{r.label}</span>
+                    {r.cells.map((c, i) => (
+                      <div key={i} style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
+                        {c === "Included" ? <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>Included</span>
+                          : c === "Add-on" ? <span style={{ color: "#0070a0", fontWeight: "var(--weight-medium)" }}>{r.id === "credits" ? "Add-on credits" : "Add-on"}</span>
+                          : c === "Hidden" ? <span style={{ color: "var(--muted)" }}>Hidden</span>
+                          : <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--muted)" }}><Lock s={15} />Upgrade</span>}
+                      </div>
+                    ))}
                   </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Included</span>
+                ))}
+                <div style={{ marginTop: "6px", ...UPPER, padding: "10px 0 6px" }}>Limits, metered monthly</div>
+                {v.limitRows.map((r) => (
+                  <div key={r.k} style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
+                    <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>{r.label}</span>
+                    {r.cells.map((c, i) => (
+                      <div key={i} style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
+                        <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>{c}</span>
+                      </div>
+                    ))}
                   </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Included</span>
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Everyday core</span>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Included</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Included</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Included</span>
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Online set</span>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Included</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Included</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Included</span>
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Grow set</span>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--muted)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <rect x="4" y="11" width="16" height="10" rx="2" />
-  <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-</svg>Upgrade</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Included</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Included</span>
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Scale set</span>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--muted)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <rect x="4" y="11" width="16" height="10" rx="2" />
-  <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-</svg>Upgrade</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--muted)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <rect x="4" y="11" width="16" height="10" rx="2" />
-  <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-</svg>Upgrade</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#003087", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Included</span>
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Credit add-ons</span>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ color: "#0070a0", fontWeight: "var(--weight-medium)" }}>Add-on credits</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ color: "#0070a0", fontWeight: "var(--weight-medium)" }}>Add-on credits</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span style={{ color: "#0070a0", fontWeight: "var(--weight-medium)" }}>Add-on credits</span>
-                  </div>
-                </div>
-                <div style={{ marginTop: "6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)", padding: "10px 0 6px" }}>Limits, metered monthly</div>
-                <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Orders a month</span>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>500</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>2,500</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>10,000</span>
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Products</span>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>200</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>2,000</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Unlimited</span>
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Staff seats</span>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>2</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>5</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>15</span>
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Storage</span>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>5 GB</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>25 GB</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>100 GB</span>
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Courier connections</span>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>1</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>3</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Unlimited</span>
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Landing pages</span>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>2</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>10</span>
-                  </div>
-                  <div style={{ padding: "0 18px", fontSize: "var(--text-xs-plus)" }}>
-                    <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>50</span>
-                  </div>
-                </div>
+                ))}
               </section>
             </div>
           </main>

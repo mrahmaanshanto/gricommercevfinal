@@ -17,6 +17,7 @@ import {
 } from '@/lib/hr';
 import { HrPage, useHr, Avatar, money, profileHref } from './hrShared';
 import { HrReview, reviewRow } from './HrReview';
+import { ModuleSetup } from '@/components/ModuleSetup';
 
 const CSS = `
 .hd-todo{display:flex;flex-wrap:wrap;gap:var(--space-2)}
@@ -188,6 +189,7 @@ export default function HrDashboard() {
       about="Today at a glance: who is in, what needs you, requests to decide and the next dates. Tap a figure or a task to open its page."
       more={[{ label: 'Attendance', href: '/attendance' }, { label: 'Shifts & roster', href: '/shifts' }, { label: 'Leave', href: '/leave' }, { label: 'Payroll', href: '/payroll' }]}
       primary={{ label: 'Add staff', href: '/staff-create' }}>
+      <ModuleSetup area="area-hr" />
       <MetricStrip label="Attendance today" items={[
         { label: 'Present', value: String(present), sub: `of ${expected.length}${late.length ? ` · ${late.length} late` : ''}`, href: '/attendance' },
         { label: 'Not in yet', value: String(notIn.length), href: '/attendance' },

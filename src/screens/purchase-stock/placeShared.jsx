@@ -19,6 +19,10 @@ import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
 import { IndexTabs, KV } from '@/components/ui/IndexKit';
 import { formatBDT } from '@/lib/format';
 import { getPlaces, savePlace, setPlaceActive, deletePlace, checkPlace, STAFF_NAMES, codeOf } from '@/lib/locations';
+import { getStockSetup } from '@/lib/stockSetup';
+import { hasModule } from '@/lib/edition';
+/** True for the place online orders ship from and come back to (Settings › Stock setup; Central Warehouse by default). */
+export const isOnlinePlace = (pl) => !!pl && hasModule('online') && pl.id === getStockSetup().homeId;
 import { CATALOG, getCatalog, getMoves, placeStock, allowNegative, setAllowNegative } from '@/lib/stock';
 import { getHolds } from '@/lib/stockHolds';
 import { getTransfers } from '@/lib/transfers';
@@ -191,6 +195,7 @@ export function PlaceList({ label, nouns, all, active, showOff, setShowOff, d, c
 export function usePlaceToggle(d, reload) {
   const [blocked, setBlocked] = useState(null);   // { pl, what, items }
   const ask = async (pl, what) => {
+    if (what !== 'on' && isOnlinePlace(pl)) { toast(`${pl.name} is where online orders ship from. Choose another place in Settings › Stock setup first.`, { tone: 'error' }); return; }
     if (what === 'on') {
       setPlaceActive(pl.id, true); reload();
       toast(`${pl.name} is active again. It shows in the place lists that read the live list.`);
@@ -345,6 +350,7 @@ export function PlaceDialog({ pl, d, onClose, facts = [], extra, onEdit, onToggl
       <div className="pl-dlg">
         <div className="pl-badges">
           <StatusOf pl={pl} />
+          {isOnlinePlace(pl) ? <StatusBadge tone="primary" icon="globe">Online orders ship from here</StatusBadge> : null}
           {pl.type === 'Branch' ? <StatusBadge tone={pl.counter ? 'info' : 'neutral'} icon="monitor">{pl.counter ? 'Sells at a counter' : 'No counter sales'}</StatusBadge> : null}
           {pl.receives ? <StatusBadge tone="info" icon="truck">Receives deliveries</StatusBadge> : null}
           {neg ? <StatusBadge tone="error">Negative stock allowed</StatusBadge> : null}

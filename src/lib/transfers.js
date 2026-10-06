@@ -11,12 +11,12 @@ const at = (day, h, m) => new Date(2026, 8, day, h, m).getTime();
 const L = (sku, qty, got) => ({ sku, qty, got: got == null ? 0 : got });
 
 const SEED = [
-  { no: 'TRF-0012', at: at(29, 16, 20), by: 'Karim', from: 'Central Warehouse', to: 'Gulshan-1 branch', carrier: 'Jamal (van driver)', status: 'way', lines: [L('CL-TEE-BM', 10), L('EL-EAR-PRO', 4)] },
-  { no: 'TRF-0011', at: at(28, 11, 5), by: 'Karim', from: 'Central Warehouse', to: 'Dhanmondi branch', carrier: 'Jamal (van driver)', status: 'way', lines: [L('CL-SNK-42', 6), L('SK-SUN-50', 24), L('GR-SOY-2', 12)] },
-  { no: 'TRF-0010', at: at(27, 10, 40), by: 'Karim', from: 'Central Warehouse', to: 'Chattogram hub', carrier: 'Sundarban Courier', status: 'draft', lines: [L('GR-RICE-5', 40), L('EL-PHN-128', 6)] },
-  { no: 'TRF-0009', at: at(24, 9, 15), by: 'Karim', from: 'Central Warehouse', to: 'Mirpur branch', carrier: 'Jamal (van driver)', status: 'received', receivedAt: at(24, 14, 30), lines: [L('GR-ATTA-2', 20, 20), L('HM-BTL-750', 12, 12)] },
-  { no: 'TRF-0008', at: at(22, 12, 0), by: 'Tania', from: 'Dhanmondi branch', to: 'Central Warehouse', carrier: 'Pathao Courier', status: 'received', receivedAt: at(23, 11, 10), lines: [L('SK-TON-150', 12, 10), L('CL-JNS-32', 6, 6)] },
-  { no: 'TRF-0007', at: at(15, 10, 30), by: 'Karim', from: 'Central Warehouse', to: 'Chattogram hub', carrier: 'Sundarban Courier', status: 'received', receivedAt: at(17, 15, 0), lines: [L('GR-RICE-5', 80, 80), L('EL-EAR-PRO', 10, 10), L('EL-PHN-128', 8, 8), L('GR-DAL-1', 22, 22)] },
+  { no: 'TRF-0012', at: at(29, 16, 20), by: 'Karim', from: 'Central Warehouse', to: 'Mirpur branch', carrier: 'Jamal (van driver)', status: 'way', lines: [L('AC-CSE-A55', 10), L('AU-EAR-PRO', 4)] },
+  { no: 'TRF-0011', at: at(28, 11, 5), by: 'Karim', from: 'Central Warehouse', to: 'Dhanmondi branch', carrier: 'Jamal (van driver)', status: 'way', lines: [L('WR-BND-08', 6), L('AC-CHG-20', 24), L('AC-GLS-9H', 12)] },
+  { no: 'TRF-0010', at: at(27, 10, 40), by: 'Karim', from: 'Central Warehouse', to: 'Central Warehouse', carrier: 'Sundarban Courier', status: 'draft', lines: [L('AC-CBL-100', 40), L('PH-RLM-N50', 6)] },
+  { no: 'TRF-0009', at: at(24, 9, 15), by: 'Karim', from: 'Central Warehouse', to: 'Mirpur branch', carrier: 'Jamal (van driver)', status: 'received', receivedAt: at(24, 14, 30), lines: [L('AC-LNS-PR', 20, 20), L('AC-STD-FLD', 12, 12)] },
+  { no: 'TRF-0008', at: at(22, 12, 0), by: 'Tania', from: 'Dhanmondi branch', to: 'Central Warehouse', carrier: 'Pathao Courier', status: 'received', receivedAt: at(23, 11, 10), lines: [L('AU-EAR-TC', 12, 10), L('AC-HLD-CAR', 6, 6)] },
+  { no: 'TRF-0007', at: at(15, 10, 30), by: 'Karim', from: 'Central Warehouse', to: 'Central Warehouse', carrier: 'Sundarban Courier', status: 'received', receivedAt: at(17, 15, 0), lines: [L('AC-CBL-100', 80, 80), L('AU-EAR-PRO', 10, 10), L('PH-RLM-N50', 8, 8), L('AC-CLN-KIT', 22, 22)] },
 ];
 
 const read = () => { try { return JSON.parse(window.localStorage.getItem(KEY)) || SEED; } catch { return SEED; } };

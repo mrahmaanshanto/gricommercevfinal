@@ -19,7 +19,7 @@ import { HomeWidgets, WIDGETS_CSS } from '@/components/dashboard/HomeWidgets';
 import { Spark, Menu, figIcon } from '@/components/ui/IndexKit';
 import { downloadCsv } from '@/lib/reports/period';
 import { trackItems, ACTIONS_EVENT, SEVERITY, ageOf, ageText } from '@/lib/actionItems';
-import { PILLS_CSS } from './ActionPills';
+import { PILLS_CSS, ActionPills } from './ActionPills';
 import { AsOf, Readiness, InsightsCard, changeInsight, isNewShop, EXTRAS_CSS } from './HomeExtras';
 import { formatBDT, formatDate } from '@/lib/format';
 import { dailySummary } from '@/lib/reports/dailySummary';
@@ -27,6 +27,7 @@ import { addDays, monthStart } from '@/lib/reports/period';
 import { clockNow, startOfDay, getPayouts } from '@/lib/settlements';
 import { getSales, salesByChannel } from '@/lib/salesBook';
 import { getOrders, isCounterSale, courierReturns, rtoState } from '@/lib/orders';
+import { getMeetings, needsNote } from '@/lib/meetings';
 import { ORDER_STATUSES } from '@/lib/orderStatus';
 import { getInvoices } from '@/lib/invoices';
 import { getAdjustments } from '@/lib/stockAdjustments';
@@ -187,6 +188,8 @@ function build({ dayOffset, place, ed = 'full' }) {
   const toVerify = byStatus.onhold + byStatus.processing + byStatus.pending;
   const oldest = (list, f = (x) => x.at) => { const ts = list.map(f).filter((t) => Number(t) > 0); return ts.length ? Math.min(...ts) : undefined; };
   const verifyList = orders.filter((o) => ['onhold', 'processing', 'pending'].includes(o.statusKey));
+  // meetings with leads and customers that ended without a note (lib/meetings.js)
+  const meetNotes = safe(() => getMeetings().filter((mt) => needsNote(mt)), []);
   const todo = [
     has('online') && toVerify > 0 && { key: 'orders:verify', label: 'Verify orders', n: toVerify, href: '/merchant-orders?status=onhold', severity: 'high', area: 'area-orders', owner: ['orders', 'comms', 'online-sales'], since: oldest(verifyList) },
     has('online') && byStatus.ready > 0 && { key: 'orders:to-courier', label: 'Send to courier', n: byStatus.ready, href: '/merchant-orders?status=ready', severity: 'high', area: 'area-orders', owner: ['orders', 'wh-manager', 'wh-supervisor'], since: oldest(orders.filter((o) => o.statusKey === 'ready')) },
@@ -196,6 +199,7 @@ function build({ dayOffset, place, ed = 'full' }) {
     has('catalog') && adjustments.length > 0 && { key: 'stock:adjustments', label: 'Approve stock adjustments', n: adjustments.length, href: '/stock-adjustments', severity: 'normal', area: 'area-inventory', owner: ['wh-manager'], since: oldest(adjustments) },
     has('catalog') && poApproval.length > 0 && { key: 'purchasing:po-approval', label: 'Approve purchase orders', n: poApproval.length, href: '/purchase-orders', severity: 'normal', area: 'area-inventory', owner: ['ceo', 'wh-manager'], since: oldest(poApproval) },
     has('online') && returnsToReceive.length > 0 && { key: 'orders:returns', label: 'Receive returns', n: returnsToReceive.length, href: '/courier-returns', severity: 'normal', area: 'area-orders', owner: ['orders', 'wh-manager', 'wh-supervisor'], since: oldest(returnsToReceive) },
+    has('comms') && meetNotes.length > 0 && { key: 'meetings:notes', label: 'Write meeting notes', n: meetNotes.length, href: '/meetings?tab=note', severity: 'normal', area: 'area-customers', owner: ['ceo', 'online-sales', 'shop-manager'], since: oldest(meetNotes) },
     has('catalog') && stock.lowCount > 0 && { key: 'stock:restock', label: 'Restock', n: stock.lowCount, href: '/stock', severity: 'low', area: 'area-inventory', owner: ['wh-manager', 'shop-manager'] },
   ].filter(Boolean);
   // online orders placed on each of the last 7 days (the Orders figure's trend line)
@@ -300,7 +304,7 @@ export default function Home() {
       ['Sales', Math.round(x.sales.today), Math.round(x.sales.prev), change == null ? '' : change],
       ['Bills', x.sales.bills, '', ''],
       ...(has('online') ? [['Online orders placed', x.d.orders.placed, '', '']] : []),
-      ...(has('money') ? [['Money in hand', Math.round(x.money.cashTotal), '', ''], ['Payouts due this week', Math.round(x.money.thisWeek), '', ''], ['COD with couriers', Math.round(x.money.cod), '', ''], ['Invoices due', Math.round(x.money.invoices), '', ''], ['Owed to suppliers', Math.round(x.money.supplier), '', ''], ['Bills to pay', Math.round(x.money.toPay), '', '']] : []),
+      ...(has('money') ? [['Money in hand', Math.round(x.money.cashTotal), '', ''], ['Payouts due this week', Math.round(x.money.thisWeek), '', ''], ...(has('online') ? [['COD with couriers', Math.round(x.money.cod), '', '']] : []), ['Invoices due', Math.round(x.money.invoices), '', ''], ['Owed to suppliers', Math.round(x.money.supplier), '', ''], ['Bills to pay', Math.round(x.money.toPay), '', '']] : []),
       ['This month', Math.round(x.month), 'Target ' + target, Math.round(Math.min(1, x.month / target) * 100) + '% of target'],
       ...(has('catalog') ? [['Low stock items', x.stock.lowCount, '', '']] : []),
       [],
@@ -343,6 +347,7 @@ export default function Home() {
                   ) : null}
                   <Menu label="Create" icon="plus" cls="ix-btn" align="start" items={create} />
                   <button type="button" className="ix-btn" onClick={exportCsv} disabled={!data}><Icon name="download" width="16" height="16" aria-hidden="true" />Export</button>
+                  {data && data.todo ? <span className="hm-needs-btn"><ActionPills rows={data.todo} source="home" variant="button" label="Needs you" /></span> : null}
                   {data ? <AsOf at={data.asOf} onRefresh={() => setTick((n) => n + 1)} /> : null}
                 </div>
                 {data ? (

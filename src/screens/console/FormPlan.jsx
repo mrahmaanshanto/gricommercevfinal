@@ -6,10 +6,31 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { ConsoleSide, ConsoleTop, ConsoleToast } from './ConsoleFrame';
+import { MAIN, TITLEROW, H1, SUBT, H2, PHEAD, PSIDE, PANEL, BTN } from './consoleParts';
+import { attach, db, now, staff, param, draftFor, draftErrors, diff, saveDraft, submitDraft, decideDraft, catalogue, fmt } from '@/lib/platform';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
+// Draft the next version of one plan. /form-plan?ladder=online&plan=business starts one; /form-plan?id=PV-001 opens a
+// saved draft. Approval is by a second person (lib/platform/plans.js): the approver sees Approve / Reject here.
+const VIS = [['Public', 'Shown on the pricing page and in upgrade offers.'], ['Private link', 'Only through a link staff send.'], ['Custom for one store', 'Built for a single account; needs a review date.']];
+const EXISTING = [['keep', 'Keep them on version {base}', "They keep today's price and limits until they change plan."], ['next', 'Move at their next bill', "30 days' notice by SMS and in the admin."], ['now', 'Move now', 'Needs an Admin; only for price cuts.']];
+const LIMITS = [['orders', 'Orders a month', 'orders'], ['products', 'Products', 'products'], ['seats', 'Staff seats', 'seats'], ['storage', 'Storage', 'GB'], ['couriers', 'Courier connections', 'couriers'], ['pages', 'Landing pages', 'pages'], ['sms', 'SMS included', 'a month'], ['ai', 'AI product credits', 'a month']];
+
 class Component extends DCLogic {
+  componentDidMount() {
+    this.off = attach(this);
+    const d = db();
+    const id = param('id');
+    const saved = id ? d.planDrafts.find((x) => x.id === id) : null;
+    const form = saved ? { ...saved } : draftFor(d, param('ladder', 'online'), param('plan', 'business'));
+    if (!saved) form.liveFromText = fmt.dmy(fmt.startOfMonth(fmt.addMonths(now(), 1, 1)));
+    else form.liveFromText = saved.liveFrom ? fmt.dmy(saved.liveFrom) : '';
+    this.setState({ form, ready: true });
+  }
+  componentWillUnmount() { if (this.off) this.off(); }
+
   renderVals() {
     const v = this.renderVals0() || {};
     const mini = !!(this.state || {}).mini;
@@ -20,7 +41,56 @@ class Component extends DCLogic {
   }
 
   renderVals0() {
-    return {};
+    const s = this.state || {};
+    const d = db();
+    const me = staff();
+    const f = s.form || draftFor(d, 'online', 'business');
+    const ladder = d.plans[f.ladder];
+    const base = ladder.versions.find((x) => x.v === f.baseV) || ladder.versions[ladder.versions.length - 1];
+    const basePlan = base.plans[f.plan];
+    const set = (patch) => this.setState({ form: { ...f, ...patch } });
+    const numIn = (k) => (e) => set({ [k]: fmt.parseAmount(e.target.value) || 0 });
+    const errs = s.tried ? draftErrors({ ...f, basePrice: basePlan.price }) : draftErrors({ ...f, basePrice: basePlan.price, why: f.why || 'x', name: f.name || 'x' });
+    const changes = diff(basePlan, f);
+    const onBase = Object.values(d.subs).filter((x) => x.ladder === f.ladder && x.plan === f.plan && x.version === base.v).length;
+    const pending = f.status === 'pending';
+    const iAmApprover = pending && f.by !== me.name && (catalogue.can(me, 'billing', 'approve') || me.role === 'admin');
+    const locked = pending || f.status === 'approved';
+    const parseDate = (txt) => { const ms = Date.parse(txt); return Number.isFinite(ms) ? ms : null; };
+    const fields = () => ({ ...f, liveFrom: parseDate(f.liveFromText) });
+    const say = (text, tone = 'ok') => this.setState({ toast: text, toastTone: tone });
+    const errCount = Object.keys(errs).length;
+    const growSet = f.sets.grow === 'Included';
+    return {
+      f, locked, pending, iAmApprover, approved: f.status === 'approved', rejected: f.status === 'rejected',
+      title: `Draft plan · ${f.name || catalogue.PLAN_NAME[f.plan]}, version ${f.v}`,
+      sub: `${catalogue.ladderLabel(f.ladder)} ladder · changes publish as a new version${pending ? ` · waiting for ${f.approver}` : f.status === 'approved' ? ` · approved by ${f.decidedBy}` : f.status === 'rejected' ? ` · rejected by ${f.decidedBy}: ${f.decisionNote}` : ''}`,
+      ladders: catalogue.LADDERS, onLadder: (e) => { const nd = draftFor(d, e.target.value, f.plan); this.setState({ form: { ...nd, liveFromText: f.liveFromText } }); },
+      onName: (e) => set({ name: e.target.value }), onTagline: (e) => set({ tagline: e.target.value }),
+      vis: VIS.map(([k, help]) => ({ k, help, cls: (f.visibility || 'Public') === k ? 'rc on' : 'rc', on: (f.visibility || 'Public') === k ? 'true' : 'false', pick: () => !locked && set({ visibility: k }) })),
+      onPrice: numIn('price'), onYearly: numIn('yearly'), onSetup: numIn('setup'), onTrial: numIn('trialDays'),
+      sets: catalogue.SETS.filter((x) => x.id !== 'service' && (!x.ladder || x.ladder === f.ladder)).map((x) => ({ id: x.id, label: x.label, value: f.sets[x.id] || 'Included', on: (e) => set({ sets: { ...f.sets, [x.id]: e.target.value } }) })),
+      setStates: catalogue.SET_STATES,
+      limits: LIMITS.map(([k, label, post]) => ({ k, label, post, value: f.limits[k] >= catalogue.UNLIMITED ? 'Unlimited' : fmt.num(f.limits[k]), on: (e) => { const txt = e.target.value.trim().toLowerCase(); set({ limits: { ...f.limits, [k]: txt.startsWith('unl') ? catalogue.UNLIMITED : fmt.parseAmount(txt) || 0 } }); } })),
+      onWarn: numIn('warnAt'), onTopup: numIn('topup'),
+      atLimit: [['block', 'Block and offer a top-up', 'The action that would exceed is paused with a plain message.'], ['bill', 'Allow and bill the overage', 'Charged on the next invoice.']].map(([k, label, help]) => ({ k, label, help, cls: f.atLimit === k ? 'rc on' : 'rc', on: f.atLimit === k ? 'true' : 'false', pick: () => !locked && set({ atLimit: k }) })),
+      existing: EXISTING.map(([k, label, help]) => ({ k, label: label.replace('{base}', base.v), help, cls: f.existing === k ? 'rc on' : 'rc', on: f.existing === k ? 'true' : 'false', pick: () => !locked && set({ existing: k }) })),
+      existingSub: `${onBase} store${onBase === 1 ? ' is' : 's are'} on version ${base.v} of ${basePlan.name}.`,
+      onLive: (e) => set({ liveFromText: e.target.value }),
+      approvers: catalogue.APPROVERS.filter((n) => n !== me.name || pending).map((n) => ({ n, label: `${n} · ${(catalogue.staffBy(n) || {}).title}` })),
+      onApprover: (e) => set({ approver: e.target.value }), onWhy: (e) => set({ why: e.target.value }),
+      errs, errCount, yearlyMax: fmt.taka(f.price * 12),
+      preview: { name: f.name || catalogue.PLAN_NAME[f.plan], price: fmt.taka(f.price), tagline: f.tagline, items: [`${f.limits.orders >= catalogue.UNLIMITED ? 'Unlimited' : fmt.num(f.limits.orders)} orders a month`, `${fmt.num(f.limits.seats)} staff seats`, growSet ? `Offers, loyalty, cart recovery${f.sets.credits === 'Included' ? ', inbox' : ''}` : 'Everyday core for one segment', `${f.trialDays}-day trial`] },
+      changes: changes.map(([mark, text], i) => ({ key: i, mark, text })), baseV: base.v,
+      saveDraft: () => { const r = saveDraft(fields()); if (r.ok) { this.setState({ form: { ...r.draft, liveFromText: f.liveFromText } }); say(`Draft saved · ${r.draft.id}`); } else say(r.error, 'err'); },
+      submit: () => { this.setState({ tried: true }); const r = submitDraft(fields()); if (r.ok) { this.setState({ form: { ...r.draft, liveFromText: f.liveFromText } }); say(`Sent to ${r.draft.approver} for approval`); } else { if (r.draft) this.setState({ form: { ...r.draft, liveFromText: f.liveFromText } }); say(r.error, 'err'); } },
+      approve: () => { const r = decideDraft(f.id, 'approve'); if (r.ok) { this.setState({ form: { ...r.draft, liveFromText: f.liveFromText } }); say(`Version ${r.version} approved · ${r.draft.liveFrom > now() ? 'goes live ' + fmt.dmy(r.draft.liveFrom) : 'live now'}`); } else say(r.error, 'err'); },
+      rejecting: !!s.rejecting, rejectNote: s.rejectNote || '', onRejectNote: (e) => this.setState({ rejectNote: e.target.value }),
+      startReject: () => this.setState({ rejecting: true }), cancelReject: () => this.setState({ rejecting: false }),
+      reject: () => { const r = decideDraft(f.id, 'reject', s.rejectNote || ''); if (r.ok) { this.setState({ form: { ...r.draft, liveFromText: f.liveFromText }, rejecting: false }); say('Draft rejected · the drafter sees why'); } else say(r.error, 'err'); },
+      canDraft: catalogue.can(me, 'packaging', 'edit'),
+      toast: s.toast || '', toastTone: s.toastTone || 'ok', hideToast: () => this.setState({ toast: '' }),
+    };
   }
 }
 
@@ -241,250 +311,22 @@ export default class FormPlanScreen extends Component {
       <div className="dc-screen" data-screen="FormPlan">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className={`cs ${v.miniCls ?? ""}`} style={{ width: "1440px", height: "2420px", overflow: "hidden", position: "relative", background: "var(--bg)" }}>
-          <aside className="side" aria-label="Console navigation">
-            <div className="sidein">
-              <div className="sidehead" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "18px 12px 6px 20px" }}>
-                <span className="logo-full">
-                  <img src="/assets/62dadbbb3f365aebdd41bb9975f5931f.png" alt="GridCommerce" style={{ height: "28px", width: "auto", display: "block" }} />
-                </span>
-                <img className="logo-mini" src="/assets/9b6f9ad369f1cbde65271a968e6ba1f1.png" alt="GridCommerce" style={{ height: "32px", width: "auto" }} />
-                <button className="tb sidetoggle" type="button" onClick={v.toggleSide} aria-label={v.sideLabel} title={v.sideLabel}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3" y="3" width="18" height="18" rx="3" />
-                    <path d="M9 3v18" />
-                  </svg>
-                </button>
-              </div>
-              <div className="sidemeta" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 20px 12px" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", height: "22px", padding: "0 8px", borderRadius: "var(--radius-md)", background: "var(--iconbg)", color: "var(--iconfg)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase" }}>Console</span>
-                <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Staff only · views logged</span>
-              </div>
-              <nav aria-label="Console" className="sidenav">
-                <__Link href="/console-shell" className="nav top" title="Overview">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Overview</span>
-                </__Link>
-                <div className="navlabel" style={{ margin: "10px 10px 6px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--sidemuted)" }}>Manage</div>
-                <__Link href="/merchants" className="nav grp" title="Tenants" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 9 4.5 4h15L21 9" />
-                      <path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9Z" />
-                      <path d="M5 12v9h14v-9" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Tenants</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/module-catalogue" className="nav grp open" title="Packaging" aria-expanded="true">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" />
-                      <path d="m3 7 9 5 9-5M12 12v10" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Packaging</span>
-                  <span className="chev open">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <div className="kids">
-                  <__Link href="/module-catalogue" className="nav sub">
-                    <span className="navtxt">Module catalogue</span>
-                  </__Link>
-                  <__Link href="/plans" className="nav sub on" aria-current="page">
-                    <span className="navtxt">Plans</span>
-                  </__Link>
-                  <__Link href="/entitlements" className="nav sub">
-                    <span className="navtxt">Entitlements</span>
-                  </__Link>
-                  <__Link href="/limits" className="nav sub">
-                    <span className="navtxt">Limits and meters</span>
-                  </__Link>
-                </div>
-                <__Link href="/subscriptions" className="nav grp" title="Billing" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="2" y="5" width="20" height="14" rx="2" />
-                      <path d="M2 10h20M6 15h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Billing</span>
-                  <span className="badge warn">4</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/health-risk" className="nav grp" title="Monitoring" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 12h4l3-8 4 16 3-8h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Monitoring</span>
-                  <span className="badge warn">5</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/support-desk" className="nav grp" title="Support" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 14v-2a9 9 0 0 1 18 0v2" />
-                      <path d="M21 14v3a2 2 0 0 1-2 2h-2v-7h4M3 14v3a2 2 0 0 0 2 2h2v-7H3" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Support</span>
-                  <span className="badge ">12</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/leads" className="nav grp" title="Sales CRM" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Sales CRM</span>
-                  <span className="badge ">18</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/ops-centre" className="nav grp" title="Operations" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Operations</span>
-                  <span className="badge err">2</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/releases" className="nav grp" title="System" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="4" y="11" width="16" height="10" rx="2" />
-                      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">System</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-              </nav>
-              <__Link href="/ops-centre" className="statuscard" title="1 open incident" style={{ display: "block", color: "inherit", textDecoration: "none" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ flex: "none", width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#ff9800", boxShadow: "0 0 0 3px rgba(255,152,0,.2)" }} />
-                  <span className="statustxt" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>1 open incident</span>
-                  <span className="num statustxt" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>99.96%</span>
-                </div>
-                <div className="statustxt ell" style={{ marginTop: "4px", fontSize: "var(--text-xs)", color: "var(--sidebody)" }}>Steadfast webhooks delayed · 38 stores</div>
-              </__Link>
-              <div className="me">
-                <span style={{ position: "relative", display: "inline-flex", flex: "none" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-xl)", background: "linear-gradient(145deg,#2eaee4,#003087)", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>FA</span>
-                  <span style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "11px", height: "11px", borderRadius: "var(--radius-full)", background: "#10b981", border: "2px solid var(--side)" }} />
-                </span>
-                <div className="metxt" style={{ minWidth: "0" }}>
-                  <div className="ell" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>Farhana Akter</div>
-                  <div className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Support lead · 2FA on</div>
-                </div>
-                <__Link href="/staff-roles" className="tb mebtn" aria-label="Account and roles" style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--sidemuted)" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 21a8 8 0 0 1 16 0" />
-                  </svg>
-                </__Link>
-              </div>
-            </div>
-          </aside>
-          <header className="topbar">
-            <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", minWidth: "230px" }}>
-              <span className="crumbic">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" />
-                  <path d="m3 7 9 5 9-5M12 12v10" />
-                </svg>
-              </span>
-              <span style={{ color: "var(--muted)" }}>Packaging</span>
-              <span style={{ color: "var(--muted)" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m9 6 6 6-6 6" />
-                </svg>
-              </span>
-              <span style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Plan version 4</span>
-            </nav>
-            <button className="searchbtn" type="button"><span style={{ display: "inline-flex" }}>
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </svg>
-</span>Search stores, phones, invoices, leads<span className="kbd">Ctrl K</span></button>
-            {" "}
-            <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "8px", height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "var(--okbg)", color: "var(--okt)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-lg)", background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,.18)" }} />Production</span>
-            {" "}
-            <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)", padding: "0 4px" }}>Sun 20 Sep · 14:32</span>
-            {" "}
-            <span style={{ width: "1px", height: "24px", background: "var(--line)" }} />
-            {" "}
-            <button className="tb" type="button" aria-label="Notifications, 3 unread" style={{ position: "relative" }}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                <path d="M10 21h4" />
-              </svg>
-              <span style={{ position: "absolute", top: "8px", right: "9px", width: "8px", height: "8px", borderRadius: "var(--radius-lg)", background: "#ff5724", border: "2px solid var(--surface)" }} />
-            </button>
-            {" "}
-            <button className="tb" type="button" aria-label="Help and runbooks">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
-              </svg>
-            </button>
-          </header>
-          <main className="mainarea" style={{ position: "absolute", left: "272px", right: "0", top: "64px", bottom: "0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <ConsoleSide group="packaging" item="plans" toggle={v.toggleSide} label={v.sideLabel} />
+          <ConsoleTop group="packaging" page="Plan version 4" />
+          <main className="mainarea" style={MAIN}>
             <div style={{ padding: "22px 28px 96px", display: "flex", flexDirection: "column", gap: "16px", minHeight: "0" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)" }}>
-                <__Link href="/plans" style={{ fontWeight: "var(--weight-medium)" }}>← Plans</__Link>
+                <__Link href={"/plans?ladder=" + v.f.ladder} style={{ fontWeight: "var(--weight-medium)" }}>← Plans</__Link>
               </div>
-              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px" }}>
+              <div style={TITLEROW}>
                 <div style={{ minWidth: "0" }}>
-                  <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>Draft plan · Business, version 4</h1>
-                  <p style={{ margin: "5px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Online ladder · changes publish as a new version</p>
+                  <h1 style={H1}>{v.title}</h1>
+                  <p style={SUBT}>{v.sub}</p>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: "none" }} />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 320px", gap: "18px", alignItems: "start" }}>
+                <fieldset disabled={v.locked} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
                 <div className="fcard">
                   <section className="fsec">
                     <div>
@@ -495,45 +337,31 @@ export default class FormPlanScreen extends Component {
                       <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
                         <label className="fld">
                           <span className="flab">Ladder<span className="req" aria-hidden="true">*</span></span>
-                          <select defaultValue="Online" className="in">
-                            <option>Online</option>
-                            <option>Retail</option>
-                            <option>Wholesale</option>
+                          <select value={v.f.ladder} onChange={v.onLadder} className="in" disabled={!!v.f.id}>
+                            {v.ladders.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
                           </select>
                         </label>
                         <label className="fld">
                           <span className="flab">Plan name<span className="req" aria-hidden="true">*</span></span>
-                          <input className="in " type="text" defaultValue="Business" placeholder="" />
+                          <input className={"in " + (v.errs.name ? "err" : "")} type="text" value={v.f.name} onChange={v.onName} />
                         </label>
                         <label className="fld" style={{ gridColumn: "1 / -1" }}>
                           <span className="flab">Tagline</span>
-                          <input className="in " type="text" defaultValue="For stores doing 30 to 150 orders a day" placeholder="" />
+                          <input className="in " type="text" value={v.f.tagline} onChange={v.onTagline} />
                         </label>
                       </div>
                       <div className="fld">
                         <span className="flab">Visibility</span>
-                        <div className="rgrid" role="radiogroup" style={{ gridTemplateColumns: "repeat(1,minmax(0,1fr))" }}>
-                          <div className="rc on" role="radio" aria-checked="true" tabIndex="0">
-                            <span className="rdot" aria-hidden="true" />
-                            <div style={{ minWidth: "0" }}>
-                              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Public</div>
-                              <div className="fhelp" style={{ marginTop: "2px" }}>Shown on the pricing page and in upgrade offers.</div>
+                        <div className="rgrid" role="radiogroup" aria-label="Visibility">
+                          {v.vis.map((x) => (
+                            <div key={x.k} className={x.cls} role="radio" aria-checked={x.on} tabIndex="0" onClick={x.pick} onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); x.pick(); } }} style={{ cursor: "pointer" }}>
+                              <span className="rdot" aria-hidden="true" />
+                              <div style={{ minWidth: "0" }}>
+                                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>{x.k}</div>
+                                <div className="fhelp" style={{ marginTop: "2px" }}>{x.help}</div>
+                              </div>
                             </div>
-                          </div>
-                          <div className="rc" role="radio" aria-checked="false" tabIndex="0">
-                            <span className="rdot" aria-hidden="true" />
-                            <div style={{ minWidth: "0" }}>
-                              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Private link</div>
-                              <div className="fhelp" style={{ marginTop: "2px" }}>Only through a link staff send.</div>
-                            </div>
-                          </div>
-                          <div className="rc" role="radio" aria-checked="false" tabIndex="0">
-                            <span className="rdot" aria-hidden="true" />
-                            <div style={{ minWidth: "0" }}>
-                              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Custom for one store</div>
-                              <div className="fhelp" style={{ marginTop: "2px" }}>Built for a single account; needs a review date.</div>
-                            </div>
-                          </div>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -543,45 +371,26 @@ export default class FormPlanScreen extends Component {
                       <h2 className="fsh">Price</h2>
                       <p className="fsd">All prices in Taka, VAT included. Changing a price never changes what existing customers pay.</p>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                      <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
-                        <label className="fld">
-                          <span className="flab">Monthly price<span className="req" aria-hidden="true">*</span></span>
-                          <div className="affix ">
-                            <span className="pre">৳</span>
-                            <input type="text" defaultValue="2,500" />
-                            <span className="post">/ month</span>
-                          </div>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Yearly price</span>
-                          <div className="affix err">
-                            <span className="pre">৳</span>
-                            <input type="text" defaultValue="30,000" />
-                            <span className="post">/ year</span>
-                          </div>
-                          <span className="ferr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
-  <path d="M12 9v4M12 17h.01" />
-</svg>Yearly must be lower than 12 × monthly (৳30,000). Try ৳25,000.</span>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Setup fee</span>
-                          <div className="affix ">
-                            <span className="pre">৳</span>
-                            <input type="text" defaultValue="0" />
-                          </div>
-                          <span className="fhelp">Leave 0 for self-serve plans.</span>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Store trial</span>
-                          <div className="affix ">
-                            <input type="text" defaultValue="15" />
-                            <span className="post">days</span>
-                          </div>
-                          <span className="fhelp">Clock starts at the first real order or when the store is published.</span>
-                        </label>
-                      </div>
+                    <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
+                      <label className="fld">
+                        <span className="flab">Monthly price<span className="req" aria-hidden="true">*</span></span>
+                        <div className={"affix " + (v.errs.price ? "err" : "")}><span className="pre">৳</span><input type="text" inputMode="numeric" value={fmt.num(v.f.price)} onChange={v.onPrice} /><span className="post">/ month</span></div>
+                      </label>
+                      <label className="fld">
+                        <span className="flab">Yearly price</span>
+                        <div className={"affix " + (v.errs.yearly ? "err" : "")}><span className="pre">৳</span><input type="text" inputMode="numeric" value={fmt.num(v.f.yearly)} onChange={v.onYearly} /><span className="post">/ year</span></div>
+                        {v.errs.yearly ? <span className="ferr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>{v.errs.yearly}</span> : <span className="fhelp">Lower than 12 × monthly ({v.yearlyMax}).</span>}
+                      </label>
+                      <label className="fld">
+                        <span className="flab">Setup fee</span>
+                        <div className="affix "><span className="pre">৳</span><input type="text" inputMode="numeric" value={fmt.num(v.f.setup)} onChange={v.onSetup} /></div>
+                        <span className="fhelp">Leave 0 for self-serve plans.</span>
+                      </label>
+                      <label className="fld">
+                        <span className="flab">Store trial</span>
+                        <div className="affix "><input type="text" inputMode="numeric" value={v.f.trialDays} onChange={v.onTrial} /><span className="post">days</span></div>
+                        <span className="fhelp">Clock starts at the first real order or when the store is published.</span>
+                      </label>
                     </div>
                   </section>
                   <section className="fsec">
@@ -589,63 +398,15 @@ export default class FormPlanScreen extends Component {
                       <h2 className="fsh">Module sets</h2>
                       <p className="fsd">What each set does in this plan.</p>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                      <div style={{ borderBottom: "1px solid var(--line)" }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 220px", gap: "12px", alignItems: "center", minHeight: "48px", borderTop: "1px solid var(--line)" }}>
-                          <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Platform core</span>
-                          <select aria-label="Included" defaultValue="Included" className="in">
-                            <option>Included</option>
-                            <option>Locked · upgrade</option>
-                            <option>Add-on</option>
-                            <option>Hidden</option>
+                    <div>
+                      {v.sets.map((x, i) => (
+                        <div key={x.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 220px", gap: "12px", alignItems: "center", minHeight: "48px", borderTop: i ? "1px solid var(--line)" : "0" }}>
+                          <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>{x.label}</span>
+                          <select aria-label={x.label} value={x.value} onChange={x.on} className="in">
+                            {v.setStates.map((o) => <option key={o}>{o}</option>)}
                           </select>
                         </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 220px", gap: "12px", alignItems: "center", minHeight: "48px", borderTop: "1px solid var(--line)" }}>
-                          <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Everyday core</span>
-                          <select aria-label="Included" defaultValue="Included" className="in">
-                            <option>Included</option>
-                            <option>Locked · upgrade</option>
-                            <option>Add-on</option>
-                            <option>Hidden</option>
-                          </select>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 220px", gap: "12px", alignItems: "center", minHeight: "48px", borderTop: "1px solid var(--line)" }}>
-                          <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Online set</span>
-                          <select aria-label="Included" defaultValue="Included" className="in">
-                            <option>Included</option>
-                            <option>Locked · upgrade</option>
-                            <option>Add-on</option>
-                            <option>Hidden</option>
-                          </select>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 220px", gap: "12px", alignItems: "center", minHeight: "48px", borderTop: "1px solid var(--line)" }}>
-                          <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Grow set</span>
-                          <select aria-label="Included" defaultValue="Included" className="in">
-                            <option>Included</option>
-                            <option>Locked · upgrade</option>
-                            <option>Add-on</option>
-                            <option>Hidden</option>
-                          </select>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 220px", gap: "12px", alignItems: "center", minHeight: "48px", borderTop: "1px solid var(--line)" }}>
-                          <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Scale set</span>
-                          <select aria-label="Included" defaultValue="Locked · upgrade" className="in">
-                            <option>Included</option>
-                            <option>Locked · upgrade</option>
-                            <option>Add-on</option>
-                            <option>Hidden</option>
-                          </select>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 220px", gap: "12px", alignItems: "center", minHeight: "48px", borderTop: "1px solid var(--line)" }}>
-                          <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Credit add-ons</span>
-                          <select aria-label="Included" defaultValue="Add-on" className="in">
-                            <option>Included</option>
-                            <option>Locked · upgrade</option>
-                            <option>Add-on</option>
-                            <option>Hidden</option>
-                          </select>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </section>
                   <section className="fsec">
@@ -653,65 +414,13 @@ export default class FormPlanScreen extends Component {
                       <h2 className="fsh">Limits</h2>
                       <p className="fsd">Metered every calendar month, Dhaka time.</p>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                      <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
-                        <label className="fld">
-                          <span className="flab">Orders a month</span>
-                          <div className="affix ">
-                            <input type="text" defaultValue="2,500" />
-                            <span className="post">orders</span>
-                          </div>
+                    <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
+                      {v.limits.map((x) => (
+                        <label key={x.k} className="fld">
+                          <span className="flab">{x.label}</span>
+                          <div className="affix "><input type="text" value={x.value} onChange={x.on} /><span className="post">{x.post}</span></div>
                         </label>
-                        <label className="fld">
-                          <span className="flab">Products</span>
-                          <div className="affix ">
-                            <input type="text" defaultValue="2,000" />
-                            <span className="post">products</span>
-                          </div>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Staff seats</span>
-                          <div className="affix ">
-                            <input type="text" defaultValue="5" />
-                            <span className="post">seats</span>
-                          </div>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Storage</span>
-                          <div className="affix ">
-                            <input type="text" defaultValue="25" />
-                            <span className="post">GB</span>
-                          </div>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Courier connections</span>
-                          <div className="affix ">
-                            <input type="text" defaultValue="3" />
-                            <span className="post">couriers</span>
-                          </div>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Landing pages</span>
-                          <div className="affix ">
-                            <input type="text" defaultValue="10" />
-                            <span className="post">pages</span>
-                          </div>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">SMS included</span>
-                          <div className="affix ">
-                            <input type="text" defaultValue="2,000" />
-                            <span className="post">a month</span>
-                          </div>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">AI product credits</span>
-                          <div className="affix ">
-                            <input type="text" defaultValue="100" />
-                            <span className="post">a month</span>
-                          </div>
-                        </label>
-                      </div>
+                      ))}
                     </div>
                   </section>
                   <section className="fsec">
@@ -723,145 +432,124 @@ export default class FormPlanScreen extends Component {
                       <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
                         <label className="fld">
                           <span className="flab">Warn the owner at</span>
-                          <div className="affix ">
-                            <input type="text" defaultValue="80" />
-                            <span className="post">%</span>
-                          </div>
+                          <div className="affix "><input type="text" inputMode="numeric" value={v.f.warnAt} onChange={v.onWarn} /><span className="post">%</span></div>
                         </label>
                         <label className="fld">
                           <span className="flab">Top-up pack</span>
-                          <div className="affix ">
-                            <span className="pre">৳</span>
-                            <input type="text" defaultValue="300" />
-                            <span className="post">per 200 orders</span>
-                          </div>
+                          <div className="affix "><span className="pre">৳</span><input type="text" inputMode="numeric" value={fmt.num(v.f.topup)} onChange={v.onTopup} /><span className="post">per 200 orders</span></div>
                         </label>
                       </div>
-                      <div className="rgrid" role="radiogroup" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
-                        <div className="rc on" role="radio" aria-checked="true" tabIndex="0">
-                          <span className="rdot" aria-hidden="true" />
-                          <div style={{ minWidth: "0" }}>
-                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Block and offer a top-up</div>
-                            <div className="fhelp" style={{ marginTop: "2px" }}>The action that would exceed is paused with a plain message.</div>
+                      <div className="rgrid" role="radiogroup" aria-label="At the limit">
+                        {v.atLimit.map((x) => (
+                          <div key={x.k} className={x.cls} role="radio" aria-checked={x.on} tabIndex="0" onClick={x.pick} onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); x.pick(); } }} style={{ cursor: "pointer" }}>
+                            <span className="rdot" aria-hidden="true" />
+                            <div style={{ minWidth: "0" }}>
+                              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>{x.label}</div>
+                              <div className="fhelp" style={{ marginTop: "2px" }}>{x.help}</div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="rc" role="radio" aria-checked="false" tabIndex="0">
-                          <span className="rdot" aria-hidden="true" />
-                          <div style={{ minWidth: "0" }}>
-                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Allow and bill the overage</div>
-                            <div className="fhelp" style={{ marginTop: "2px" }}>Charged on the next invoice.</div>
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     </div>
                   </section>
                   <section className="fsec">
                     <div>
                       <h2 className="fsh">Existing customers</h2>
-                      <p className="fsd">14 stores are on version 3 of Business.</p>
+                      <p className="fsd">{v.existingSub}</p>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                      <div className="rgrid" role="radiogroup" style={{ gridTemplateColumns: "repeat(1,minmax(0,1fr))" }}>
-                        <div className="rc on" role="radio" aria-checked="true" tabIndex="0">
-                          <span className="rdot" aria-hidden="true" />
-                          <div style={{ minWidth: "0" }}>
-                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Keep them on version 3</div>
-                            <div className="fhelp" style={{ marginTop: "2px" }}>They keep today's price and limits until they change plan.</div>
+                      <div className="rgrid" role="radiogroup" aria-label="Existing customers">
+                        {v.existing.map((x) => (
+                          <div key={x.k} className={x.cls} role="radio" aria-checked={x.on} tabIndex="0" onClick={x.pick} onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); x.pick(); } }} style={{ cursor: "pointer" }}>
+                            <span className="rdot" aria-hidden="true" />
+                            <div style={{ minWidth: "0" }}>
+                              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>{x.label}</div>
+                              <div className="fhelp" style={{ marginTop: "2px" }}>{x.help}</div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="rc" role="radio" aria-checked="false" tabIndex="0">
-                          <span className="rdot" aria-hidden="true" />
-                          <div style={{ minWidth: "0" }}>
-                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Move at their next bill</div>
-                            <div className="fhelp" style={{ marginTop: "2px" }}>30 days' notice by SMS and in the admin.</div>
-                          </div>
-                        </div>
-                        <div className="rc" role="radio" aria-checked="false" tabIndex="0">
-                          <span className="rdot" aria-hidden="true" />
-                          <div style={{ minWidth: "0" }}>
-                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Move now</div>
-                            <div className="fhelp" style={{ marginTop: "2px" }}>Needs an Admin; only for price cuts.</div>
-                          </div>
-                        </div>
+                        ))}
                       </div>
+                      {v.errs.existing ? <span className="ferr">{v.errs.existing}</span> : null}
                       <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
                         <label className="fld">
                           <span className="flab">Goes live on</span>
-                          <input className="in " type="text" defaultValue="01 Oct 2026" placeholder="" />
+                          <input className="in " type="text" value={v.f.liveFromText || ""} onChange={v.onLive} placeholder="Today if empty" />
                         </label>
                         <label className="fld">
                           <span className="flab">Second approver<span className="req" aria-hidden="true">*</span></span>
-                          <select defaultValue="Nusrat Islam · Finance" className="in">
-                            <option>Nusrat Islam · Finance</option>
-                            <option>Mahin Khan · Admin</option>
+                          <select value={v.f.approver} onChange={v.onApprover} className="in">
+                            {v.approvers.map((a) => <option key={a.n} value={a.n}>{a.label}</option>)}
                           </select>
                         </label>
                         <label className="fld" style={{ gridColumn: "1 / -1" }}>
                           <span className="flab">Why this change<span className="req" aria-hidden="true">*</span></span>
-                          <textarea className="in" rows="2" placeholder="" defaultValue={"Adds Inbox to the Grow set and raises SMS included from 1,000 to 2,000."} />
+                          <textarea className={"in " + (v.errs.why ? "err" : "")} rows="2" placeholder="What changes and why" value={v.f.why} onChange={v.onWhy} />
                         </label>
                       </div>
                     </div>
                   </section>
                 </div>
+                </fieldset>
                 <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Pricing page preview</h2>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
+                  <section className="panel" style={PANEL}>
+                    <div style={PHEAD}>
+                      <h2 style={H2}>Pricing page preview</h2>
+                      <div style={PSIDE} />
                     </div>
                     <div style={{ padding: "18px", borderRadius: "var(--radius-xl)", background: "#012169", color: "#fff" }}>
-                      <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>Business</div>
-                      <div className="num" style={{ marginTop: "6px", fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)" }}>৳2,500<span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", opacity: ".75" }}> / month</span></div>
-                      <div style={{ marginTop: "4px", fontSize: "var(--text-xs-plus)", color: "#cbd8ee" }}>For stores doing 30 to 150 orders a day</div>
+                      <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>{v.preview.name}</div>
+                      <div className="num" style={{ marginTop: "6px", fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)" }}>{v.preview.price}<span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", opacity: ".75" }}> / month</span></div>
+                      <div style={{ marginTop: "4px", fontSize: "var(--text-xs-plus)", color: "#cbd8ee" }}>{v.preview.tagline}</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "12px", fontSize: "var(--text-xs-plus)", color: "#e0e6f1" }}>
-                        <span style={{ display: "flex", gap: "8px", alignItems: "center" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>2,500 orders a month</span>
-                        <span style={{ display: "flex", gap: "8px", alignItems: "center" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>5 staff seats</span>
-                        <span style={{ display: "flex", gap: "8px", alignItems: "center" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>Offers, loyalty, cart recovery, inbox</span>
-                        <span style={{ display: "flex", gap: "8px", alignItems: "center" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>15-day trial</span>
+                        {v.preview.items.map((x) => <span key={x} style={{ display: "flex", gap: "8px", alignItems: "center" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>{x}</span>)}
                       </div>
                       <div style={{ marginTop: "14px", display: "flex", alignItems: "center", justifyContent: "center", height: "40px", borderRadius: "var(--radius-lg)", background: "#009cde", color: "#04121f", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>Start free trial</div>
                     </div>
                   </section>
-                  <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Compared with version 3</h2>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
+                  <section className="panel" style={PANEL}>
+                    <div style={PHEAD}>
+                      <h2 style={H2}>Compared with version {v.baseV}</h2>
+                      <div style={PSIDE} />
                     </div>
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", minHeight: "32px", fontSize: "var(--text-xs-plus)" }}>
-                      <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "var(--radius-md)", fontWeight: "var(--weight-semibold)", background: "#e7f8f1", color: "#047857" }}>+</span>
-                      <span style={{ color: "var(--ink)", lineHeight: "1.45" }}>Inbox and automation included</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", minHeight: "32px", fontSize: "var(--text-xs-plus)" }}>
-                      <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "var(--radius-md)", fontWeight: "var(--weight-semibold)", background: "#f2f5f9", color: "#003087" }}>~</span>
-                      <span style={{ color: "var(--ink)", lineHeight: "1.45" }}>SMS included 1,000 → 2,000</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", minHeight: "32px", fontSize: "var(--text-xs-plus)" }}>
-                      <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "var(--radius-md)", fontWeight: "var(--weight-semibold)", background: "#f2f5f9", color: "#003087" }}>~</span>
-                      <span style={{ color: "var(--ink)", lineHeight: "1.45" }}>Yearly ৳27,000 → ৳30,000</span>
-                    </div>
+                    {v.changes.length ? v.changes.map((c) => (
+                      <div key={c.key} style={{ display: "flex", alignItems: "flex-start", gap: "10px", minHeight: "32px", fontSize: "var(--text-xs-plus)" }}>
+                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "var(--radius-md)", fontWeight: "var(--weight-semibold)", background: c.mark === "+" ? "#e7f8f1" : c.mark === "−" ? "#ffece5" : "#f2f5f9", color: c.mark === "+" ? "#047857" : c.mark === "−" ? "#c2410c" : "#003087" }}>{c.mark}</span>
+                        <span style={{ color: "var(--ink)", lineHeight: "1.45" }}>{c.text}</span>
+                      </div>
+                    )) : <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>No changes yet.</div>}
                   </section>
-                  <div className="note n-err"><strong>1 field to fix</strong> before this can be sent for approval.</div>
+                  {v.errCount ? <div className="note n-err"><strong>{v.errCount} field{v.errCount === 1 ? "" : "s"} to fix</strong> before this can be sent for approval.</div> : v.approved ? <div className="note n-ok"><strong>Approved.</strong> Version {v.f.v} {v.f.liveFrom > Date.now() ? "goes live " + fmt.dmy(v.f.liveFrom) : "is live"}.</div> : v.pending ? <div className="note n-warn">Waiting for <strong>{v.f.approver}</strong>. You cannot approve your own draft.</div> : !v.canDraft ? <div className="note n-warn">Only an Admin can draft plan versions.</div> : null}
+                  {v.rejecting ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <textarea className="inp" rows={2} value={v.rejectNote} onChange={v.onRejectNote} placeholder="Why is it rejected? The drafter sees this." aria-label="Reason for rejecting" style={{ height: "auto", padding: "8px 10px", fontSize: "var(--text-xs-plus)" }} />
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button className="btn btnp" type="button" onClick={v.reject} style={BTN}>Reject</button>
+                        <button className="btn btng" type="button" onClick={v.cancelReject} style={BTN}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
             <div className="formbar">
               <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Fields marked <span style={{ color: "#c2410c" }}>*</span> are required · every save is written to the audit log</span>
               <span style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
-                <__Link href="/plans" className="btn btng" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Cancel</__Link>
-                <button className="btn btng" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Save draft</button>
-                <button className="btn btnp" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Send for approval</button>
+                <__Link href={"/plans?ladder=" + v.f.ladder} className="btn btng" style={BTN}>{v.locked ? "Back" : "Cancel"}</__Link>
+                {v.iAmApprover ? (
+                  <>
+                    <button className="btn btng" type="button" onClick={v.startReject} style={BTN}>Reject</button>
+                    <button className="btn btnp" type="button" onClick={v.approve} style={BTN}>Approve and publish</button>
+                  </>
+                ) : !v.locked ? (
+                  <>
+                    <button className="btn btng" type="button" onClick={v.saveDraft} disabled={!v.canDraft} style={BTN}>Save draft</button>
+                    <button className="btn btnp" type="button" onClick={v.submit} disabled={!v.canDraft} style={BTN}>Send for approval</button>
+                  </>
+                ) : null}
               </span>
             </div>
           </main>
+          <ConsoleToast text={v.toast} tone={v.toastTone} onClose={v.hideToast} />
         </div>
       </div>
     );

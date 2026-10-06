@@ -27,13 +27,15 @@ import { binsFor } from '@/lib/racks';
 import { ordersToReview, proofToReview, methodLabel } from '@/lib/paymentProof';
 import { ordersWithEditRequests, editRequestOf } from '@/lib/orderEdit';
 import { getQuotes, quoteTotals, quoteState, QUOTE_STATE } from '@/lib/quotes';
+import { wholesaleOn } from '@/lib/edition';
 import { startJob } from '@/lib/orderJobs';
 import { printNode } from '@/lib/printNode';
 import { OrderJobs } from '@/screens/merchant-orders/OrderJobs';
 import { ReviewProofDialog } from '@/screens/merchant-orders/ProofDialogs';
 import QuoteDialog from '@/screens/merchant-orders/QuoteDialog';
 
-const QUEUES = [
+// Quotes are for wholesale buyers: shown only when wholesale is on (edition.js › WHOLESALE; off for now)
+const ALL_QUEUES = [
   { key: 'courier', label: 'Courier review' },
   { key: 'payment', label: 'Payment review' },
   { key: 'pick', label: 'Pick & pack' },
@@ -41,6 +43,7 @@ const QUEUES = [
   { key: 'quotes', label: 'Quotes' },
   { key: 'edits', label: 'Edits to review' },
 ];
+const QUEUES = ALL_QUEUES.filter((x) => x.key !== 'quotes' || wholesaleOn());
 const EMPTY = { courier: 'No orders ready for the courier', payment: 'No payments to review', pick: 'Nothing to pick', print: 'No labels to print', quotes: 'No quotes yet', edits: 'No edits to review' };
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 const digits = (p) => String(p || '').replace(/\D/g, '').replace(/^88/, '');
@@ -174,7 +177,7 @@ export default function OrderWork() {
           <div className="gc-shell__content">
             <div className="ix-page">
               <ShopHeader icon="list-checks" title="Order work"
-                about="Queues around the order list: courier booking, payment review, pick and pack, labels to print, quotes for wholesale buyers and edits to review."
+                about="Queues around the order list: courier booking, payment review, pick and pack, labels to print and edits to review."
                 more={[{ label: 'All orders', href: '/merchant-orders' }, { label: 'Order settings', href: '/order-settings' }]}
                 primary={q === 'quotes' ? { label: 'New quote', onClick: () => setQuote({ id: '' }) } : undefined} />
 

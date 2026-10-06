@@ -31,9 +31,9 @@ export const modeBy = (k) => COUNT_MODES.find((m) => m.k === k) || COUNT_MODES[0
 
 const at = (d, h, m) => new Date(2026, 8, d, h, m || 0).getTime();
 const SEED = [
-  { id: 'CNT-0007', mode: 'cycle', place: 'Dhanmondi branch', area: 'Electronics', skus: ['EL-PHN-128', 'EL-EAR-PRO'], snapshotAt: at(20, 17, 30), snapshot: { 'EL-PHN-128': 13, 'EL-EAR-PRO': 9 },
-    lines: { 'EL-PHN-128': { counts: [{ by: 'Suman', qty: 12, at: at(20, 17, 52), pass: 1 }] }, 'EL-EAR-PRO': { counts: [{ by: 'Suman', qty: 9, at: at(20, 17, 55), pass: 1 }] } },
-    after: { 'EL-PHN-128': 0, 'EL-EAR-PRO': 0 }, status: 'posted', createdBy: 'Suman', postedAt: at(20, 18, 10), postedBy: 'Rakib Hasan', uncounted: 'keep', seed: true },
+  { id: 'CNT-0007', mode: 'cycle', place: 'Dhanmondi branch', area: 'Phones', skus: ['PH-RLM-N50', 'AU-EAR-PRO'], snapshotAt: at(20, 17, 30), snapshot: { 'PH-RLM-N50': 13, 'AU-EAR-PRO': 9 },
+    lines: { 'PH-RLM-N50': { counts: [{ by: 'Suman', qty: 12, at: at(20, 17, 52), pass: 1 }] }, 'AU-EAR-PRO': { counts: [{ by: 'Suman', qty: 9, at: at(20, 17, 55), pass: 1 }] } },
+    after: { 'PH-RLM-N50': 0, 'AU-EAR-PRO': 0 }, status: 'posted', createdBy: 'Suman', postedAt: at(20, 18, 10), postedBy: 'Rakib Hasan', uncounted: 'keep', seed: true },
   { id: 'CNT-0006', mode: 'full', place: 'Mirpur branch', area: 'all', skus: [], snapshotAt: at(12, 21, 0), snapshot: {}, lines: {}, status: 'posted', createdBy: 'Moumita Das', postedAt: at(12, 23, 40), postedBy: 'Nabila Rahman', uncounted: 'keep', seed: true, summary: '64 products · 3 differences' },
 ];
 

@@ -24,8 +24,8 @@ const PR = {
   rice: ['Power bank 20,000 mAh', 1950], oil: ['20W USB-C fast charger', 890], sugar: ['Lightning cable 1 m', 135],
   lentil: ['Micro-USB cable 1 m', 145], salt: ['SIM ejector pin pack', 42], lux: ['Screen cleaning wipes', 65],
   det: ['Shockproof case A15', 180], sham: ['Cleaning spray 100 ml', 240], bisc: ['Tempered glass 2-pack', 60],
-  water: ['Cable protector pack', 35], chana: ['USB-C OTG adapter', 85], polo: ['Polo T-shirt', 550],
-  cooker: ['Bluetooth speaker Mini', 3200], blender: ['Blender', 2850],
+  water: ['Cable protector pack', 35], chana: ['USB-C OTG adapter', 85], polo: ['Silicone case', 550],
+  cooker: ['Bluetooth speaker Mini', 3200], blender: ['Neckband earphones', 2850],
 };
 const CU = { walk: ['Walk-in customer', ''], karim: ['Karim Saheb', '01711-234567'], rafiq: ['Rafiq Mia', '01819-445566'], nasrin: ['Nasrin Akter', '01912-778899'], salma: ['Salma Begum', '01556-112233'], jamal: ['Jamal Telecom', '01713-908070'], habib: ['Habib Telecom', '01819-300400'] };
 const ST = { rina: 'Rina', babu: 'Babu', sumon: 'Sumon', owner: 'Mostafiz' };

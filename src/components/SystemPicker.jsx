@@ -1,6 +1,7 @@
 'use client';
-// SystemPicker — "Choose your system" on the sign-in page: Retail + Wholesale, Online, Retail + Wholesale + Online
-// (src/lib/systems.js). A site locked to another edition (Connect) also lists its own.
+// SystemPicker — "Demo: preview a system" on the full product site's sign-in page: Retail, Online and Retail + Online
+// (src/lib/systems.js). An edition site (locked to one edition) shows no choice, only "Open the demo": one tap signs in
+// to its own system (demo; email / phone sign-in works below it too).
 // Demo: tapping a system signs in at once (onPick). The system you are on (this site's, or the previewed edition on
 // the full site) is outlined. Arrow keys move between them. Rendered after mount (the edition preview is client-only).
 
@@ -23,6 +24,7 @@ const CSS = `
 .sp__txt b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:#0f172a}
 .sp__txt small{font-size:var(--text-xs);color:var(--text-muted)}
 .sp__hint{font-size:var(--text-xs);color:var(--text-muted)}
+.sp__demo{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:44px}
 .sp__go{flex:none;color:#64748b;transition:transform 150ms cubic-bezier(0.23,1,0.32,1)}
 .sp__spin{width:18px;height:18px;flex:none;border-radius:var(--radius-full);border:2px solid #cbd5e1;border-top-color:#003087;animation:spSpin 700ms linear infinite}
 @keyframes spSpin{to{transform:rotate(360deg)}}
@@ -32,8 +34,18 @@ const CSS = `
 
 export function SystemPicker({ onPick, busy }) {
   const here = currentEditionId();
-  const own = LOCKED && !systemBy(currentEditionId()) ? [{ ed: currentEditionId(), icon: 'messages-square', blurb: 'This site' }] : [];
-  const list = [...SYSTEMS, ...own];
+  if (LOCKED) return (
+    <div className="sp">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <button type="button" className="gc-btn gc-btn--solid sp__demo" disabled={!!busy} onClick={() => onPick(here)}>
+        {busy ? <span className="sp__spin" role="status" aria-label="Signing in" /> : <Icon name="log-in" width="18" height="18" aria-hidden="true" />}
+        {`Open the ${EDITIONS[here] ? EDITIONS[here].short : ''} demo`}
+      </button>
+      <span className="sp__hint">Demo: no password needed. Or sign in with any email below.</span>
+    </div>
+  );
+  // a site locked to one edition lists only its own system; the full product site lists the three to preview
+  const list = LOCKED ? [systemBy(here) || { ed: here, icon: 'messages-square', blurb: 'This site' }] : SYSTEMS;
   const keys = (e, i) => {
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
     e.preventDefault();
@@ -43,7 +55,7 @@ export function SystemPicker({ onPick, busy }) {
   return (
     <div className="sp">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <span id="sp-label">Choose your system</span>
+      <span id="sp-label">{LOCKED ? 'Your system' : 'Demo: preview a system'}</span>
       <div className="sp__list" role="group" aria-labelledby="sp-label">
         {list.map((s, i) => (
           <button key={s.ed} type="button" aria-current={here === s.ed ? 'true' : undefined} data-busy={busy === s.ed ? 'true' : undefined} disabled={!!busy} className="sp__opt" onClick={() => onPick(s.ed)} onKeyDown={(e) => keys(e, i)}>

@@ -27,13 +27,13 @@ var POLS = {
     apply: [['Category', 'Accessories, Audio'], ['Brands', 'All brands'], ['Products', '38 products'], ['Variants', 'All variants'], ['Excluded', 'Clearance stock']] },
   rep: { n: '7-day replacement guarantee', type: 'replace', per: ['7', 'days'], cnt: '112 products', st: 'Published', ver: 'v1 · published 3 May 2026', tint: '#fff4e0', ink: '#a14f06', def: false,
     cov: ['Faulty on arrival', 'Wrong item sent'], not: ['Change of mind', 'Used or unsealed items'],
-    apply: [['Category', 'Skin care, Clothing'], ['Brands', 'All brands'], ['Products', '112 products'], ['Variants', 'All variants'], ['Excluded', 'Sale items']] },
+    apply: [['Category', 'Accessories, Audio'], ['Brands', 'All brands'], ['Products', '112 products'], ['Variants', 'All variants'], ['Excluded', 'Sale items']] },
   tv: { n: '2 years parts, 1 year service', type: 'service', per: ['2', 'years'], cnt: '14 products', st: 'Draft', ver: 'v1 · draft, not published', tint: '#f3e8ff', ink: '#6d28d9', def: false,
     cov: ['Panel and board parts', 'Power supply'], not: ['Burn-in from static images', 'Wall mount damage'],
-    apply: [['Category', 'TVs, Monitors'], ['Brands', 'Walton, Sony'], ['Products', '14 products'], ['Variants', 'All variants'], ['Excluded', 'Display units']] },
+    apply: [['Category', 'Wearables, Power banks'], ['Brands', 'Xiaomi, Anker'], ['Products', '14 products'], ['Variants', 'All variants'], ['Excluded', 'Display units']] },
   money: { n: '15-day money-back', type: 'money', per: ['15', 'days'], cnt: '9 products', st: 'Published', ver: 'v1 · published 20 Aug 2026', tint: '#ffece6', ink: '#b83210', def: false,
     cov: ['Any reason, unused, in the box'], not: ['Opened software or gift cards'],
-    apply: [['Category', 'Smart home'], ['Brands', 'GridShop'], ['Products', '9 products'], ['Variants', 'All variants'], ['Excluded', '—']] }
+    apply: [['Category', 'Smart home'], ['Brands', 'Dazzle Shop'], ['Products', '9 products'], ['Variants', 'All variants'], ['Excluded', '—']] }
 };
 var ORDER = ['phone', 'shop', 'rep', 'tv', 'money'];
 var TYPEL = { brand: 'Brand warranty', seller: 'Seller warranty', service: 'Service warranty', replace: 'Replacement guarantee', money: 'Money-back guarantee' };
@@ -441,9 +441,9 @@ export default class WarrantyPoliciesScreen extends Component {
                                 <span style={{ fontFamily: "var(--font-data)", color: "var(--text-body)" }}>IMEI 350912118845201</span>
                                 <span>Starts <b>19 Sep 2026</b></span>
                                 <span>Ends <b>{v.cardEnd}</b></span>
-                                <span className="ix-muted">INV-24817 · GridShop</span>
+                                <span className="ix-muted">INV-24817 · Dazzle Shop</span>
                               </div>
-                              <QrCode text="https://gridshop.com.bd/warranty/INV-24817" size={76} label="QR code" />
+                              <QrCode text="https://dazzleshop.com.bd/warranty/INV-24817" size={76} label="QR code" />
                             </div>
                           </div>
                           <div className="wp-field">

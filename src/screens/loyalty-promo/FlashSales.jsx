@@ -87,7 +87,7 @@ export default class FlashSalesScreen extends Component {
                 <MetricStrip label="This month" items={[
                   { label: 'Flash sale sales', value: '৳1,86,900', sub: 'this month' },
                   { label: 'Pieces sold', value: '612', sub: 'this month' },
-                  { label: 'Best seller', value: 'Denim Jeans', sub: '96 sold' },
+                  { label: 'Best seller', value: 'Anker 20W Charger', sub: '96 sold' },
                 ]} />
 
                 <section className="ix-card" aria-label="Flash sales">

@@ -1,5 +1,5 @@
 'use client';
-// SalesProfit — Accounts › Sales & profit: how much each channel (Online, Retail, Wholesale) sold
+// SalesProfit — Accounts › Sales & profit: how much each channel (Online, Retail; Wholesale while it is on) sold
 // over a period and how much profit each made.
 // Shopify-style (docs/shopify-style.md): the period, four key figures, then
 //   Sales trend     day-by-day stacked bars per channel (grouped when the period is long).
@@ -17,6 +17,7 @@ import { toast } from '@/runtime/ui';
 import { EmptyState, InfoTip } from '@/components/ui';
 import { MetricStrip } from '@/components/ui/IndexKit';
 import { clockNow, dayKey, fromKey, startOfDay } from '@/lib/settlements';
+import { wholesaleOn } from '@/lib/edition';
 import { getSales } from '@/lib/salesBook';
 import { profitByChannel } from '@/lib/profit';
 import { AccPage, money, useBooks } from './accShared';
@@ -55,7 +56,7 @@ const CH = [
   { id: 'Online', color: 'var(--primary)', help: 'Website, Facebook and phone orders' },
   { id: 'Retail', color: 'var(--fill-success)', help: 'Counter sales at the shops' },
   { id: 'Wholesale', color: 'var(--fill-warning)', help: 'Invoices to wholesale customers' },
-];
+].filter((c) => c.id !== 'Wholesale' || wholesaleOn());   // wholesale is off for now (edition.js)
 const IDS = CH.map((c) => c.id);
 
 /** Zero figures, used before the books are read in the browser. */
@@ -271,7 +272,7 @@ export default function SalesProfit() {
         { label: 'All channels · net sales', value: F(p.all.net), sub: ready ? `${p.all.orders.toLocaleString('en')} orders` : '' },
         { label: 'Gross profit', value: F(p.all.gross), sub: ready ? `${P(p.all.net ? p.all.gross / p.all.net : null)} margin` : '' },
         { label: loss ? 'Net loss' : 'Net profit', value: <span className={ready ? (loss ? 'sp-neg' : 'sp-pos') : ''}>{F(p.net)}</span>, sub: ready ? `${P(p.all.net ? p.netMargin : null)} of sales` : '' },
-        { label: 'Still due', value: F(p.all.due), sub: 'online and wholesale', href: '/dues' },
+        { label: 'Still due', value: F(p.all.due), sub: wholesaleOn() ? 'online and wholesale' : 'customers who owe', href: '/dues' },
       ]} />
 
       {empty ? (

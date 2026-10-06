@@ -10,6 +10,7 @@ import { Icon as __Icon } from '@/runtime/dc';
 import { SettingsSwitcher as __SettingsSwitcher } from '@/shell/Shell';
 import __SetChrome, { SettingsLogic as __SettingsLogic, SetIn as __In, SetErr as __Err, SetSw as __Sw, SetSeg as __Seg, SetChk as __Chk, SetSaveBar as __SaveBar } from '@/screens/settings-console/SetChrome';
 import { toast } from '@/runtime/ui';
+import { wholesaleOn, hasModule } from '@/lib/edition';
 import { formatBDT } from '@/lib/format';
 import __SetRail from '@/screens/settings-console/SetRail';
 import __SetTopbar from '@/screens/settings-console/SetTopbar';
@@ -49,6 +50,9 @@ function GatewayPanel({ f, name }) {
 
 class Component extends __SettingsLogic {
   formId = "payments";
+  // Retail (no online module): checkout gateways, COD and exchange rates are for online selling, so only the card
+  // machine (GatewayList) and the counter's send-money / bank transfer rows show. Read after mount.
+  componentDidMount() { if (super.componentDidMount) super.componentDidMount(); this.setState({ online: hasModule('online') }); }
   fields = {
     cash_on_delivery: {l: "Cash on delivery", d: true},
     sslcommerz: {l: "SSLCommerz", d: true},
@@ -64,7 +68,7 @@ class Component extends __SettingsLogic {
     bank_transfer: {l: "Bank transfer", d: true},
     bkash_mode: {l: "bKash mode", d: "Live"},
     bkash_app_key: {l: "App key", d: "••••••••••••4c9f", req: true},
-    bkash_username: {l: "Username", d: "GridShop_bd", req: true},
+    bkash_username: {l: "Username", d: "DazzleShop_bd", req: true},
     bkash_password: {l: "Password", d: "••••••••••", req: true},
     bkash_merchant_number: {l: "Merchant number", d: "01811-843300"},
     bkash_checkout_label: {l: "Checkout label", d: "bKash — pay from app or wallet"},
@@ -121,9 +125,9 @@ class Component extends __SettingsLogic {
     vip_required_prepay: {l: "VIP: Required prepay (per product)", d: false},
     mobile_and_electronics_full_payment: {l: "Mobile & Electronics: Full payment", d: true},
     mobile_and_electronics_percentage_advance: {l: "Mobile & Electronics: Percentage advance", d: true},
-    grocery_fresh_delivery_charge_only: {l: "Grocery · Fresh: Delivery charge only", d: true},
+    grocery_fresh_delivery_charge_only: {l: "Phones: Delivery charge only", d: true},
     sslcommerz_mode: {l: "SSLCommerz mode", d: "Live"},
-    sslcommerz_id: {l: "SSLCommerz store ID", d: "GridShop_live", req: (f) => !!f.get("sslcommerz", false)},
+    sslcommerz_id: {l: "SSLCommerz store ID", d: "DazzleShop_live", req: (f) => !!f.get("sslcommerz", false)},
     sslcommerz_secret: {l: "SSLCommerz store password", d: "••••••••••", req: (f) => !!f.get("sslcommerz", false)},
     eps_mode: {l: "EPS mode", d: "Sandbox"},
     eps_id: {l: "EPS merchant ID", d: "EPS-TEST-0042", req: (f) => !!f.get("eps", false)},
@@ -153,6 +157,7 @@ class Component extends __SettingsLogic {
     const f = this.f;
     return {
       f,
+      online: !this.state || this.state.online !== false,
       badge: (id) => this.renderBadge(id),
       // the header counts come from the same state as each gateway's badge: on, set up, and in that mode
       live: ONLINE.filter((id) => this.renderBadge(id).text === "LIVE").length,
@@ -226,12 +231,12 @@ export default class SetPaymentsScreen extends Component {
                         <span className="gc-pagehead__about" hidden>Optional configuration keeps its values while collapsed. A gateway in Live mode is marked in red everywhere it appears.</span>
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>{v.live} live · {v.sandbox} sandbox · {v.offline} offline</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>{v.online ? <>{v.live} live · {v.sandbox} sandbox · </> : null}{v.offline} offline</span>
                         <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Last saved 7 Sep 2026, 11:04 AM</span>
                       </span>
                     </header>
                     <GatewayList />
-                    <section id="s0" className="ix-card set-card">
+                    {v.online ? <><section id="s0" className="ix-card set-card">
                       <div className="set-head">
                         <span style={{ display: "block" }}>
                           <h2 className="set-title">Online gateways</h2>
@@ -260,7 +265,7 @@ export default class SetPaymentsScreen extends Component {
                         <PaymentLogo provider="sslcommerz" size={34} radius={9} decorative />
                         <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>SSLCommerz</span>
-                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Cards, internet banking and mobile wallets · merchant GridShop_live</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Cards, internet banking and mobile wallets · merchant DazzleShop_live</span>
                         </span>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("sslcommerz").tone }}>{v.badge("sslcommerz").text}</span>
                         <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />
@@ -706,7 +711,7 @@ export default class SetPaymentsScreen extends Component {
                                       <__Chk chip f={v.f} n="returning_customer_required_prepay" title="Required prepay (per product)" />
                                     </span>
                                   </div>
-                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 12px" }}>
+                                  {wholesaleOn() ? <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 12px" }}>
                                     <span style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
                                       <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Wholesale</span>
                                       <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Merchant-tagged bulk buyer</span>
@@ -718,7 +723,7 @@ export default class SetPaymentsScreen extends Component {
                                       <__Chk chip f={v.f} n="wholesale_percentage_advance" title="Percentage advance" />
                                       <__Chk chip f={v.f} n="wholesale_required_prepay" title="Required prepay (per product)" />
                                     </span>
-                                  </div>
+                                  </div> : null}
                                   <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 12px" }}>
                                     <span style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
                                       <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>VIP</span>
@@ -759,7 +764,7 @@ export default class SetPaymentsScreen extends Component {
                                     </span>
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", gap: "12px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px" }}>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "26px", flex: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#334155" }}><__Icon name="tag" strokeWidth="1.75" width="13" height="13" style={{ color: "var(--text-muted)" }} />Grocery · Fresh</span>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "26px", flex: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#334155" }}><__Icon name="tag" strokeWidth="1.75" width="13" height="13" style={{ color: "var(--text-muted)" }} />Phones</span>
                                     <__Icon name="arrow-right" strokeWidth="1.75" width="15" height="15" style={{ flex: "none", color: "#cbd5e1" }} />
                                     <span style={{ flex: "1", minWidth: "0", display: "flex", flexWrap: "wrap", gap: "6px" }}>
                                       <__Chk chip f={v.f} n="grocery_fresh_delivery_charge_only" title="Delivery charge only" />
@@ -879,7 +884,7 @@ export default class SetPaymentsScreen extends Component {
                           <span style={{ width: "96px", flex: "none", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--text-success)" }}>+0.2%</span>
                         </div>
                       </div>
-                    </section>
+                    </section></> : null}
                     <section id="s2" className="ix-card set-card">
                       <div className="set-head">
                         <span style={{ display: "block" }}>
@@ -924,7 +929,7 @@ export default class SetPaymentsScreen extends Component {
                         <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#0f172a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>BNK</span>
                         <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Bank transfer</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>City Bank PLC · Feni branch · A/C GridShop Smart Commerce Ltd.</span>
+                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>City Bank PLC · Dhanmondi branch · A/C Dazzle Shop Ltd.</span>
                         </span>
                         <span style={{ width: "230px", flex: "none" }}>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>

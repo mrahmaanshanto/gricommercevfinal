@@ -39,17 +39,21 @@ export function RoleGuard() {
     const ed = currentEdition();
     const mod = state.module ? MODULES[state.module] : null;
     const where = state.module ? editionsWith(state.module).map((e) => EDITIONS[e].short) : [];
+    // a module switched off everywhere (wholesale, for now): say so instead of naming an edition
+    const off = state.module && !where.length;
     return (
       <div className="gc-modal__backdrop" style={{ zIndex: 150 }}>
         <div className="gc-modal" role="alertdialog" aria-modal="true" aria-labelledby="rg-title" style={{ maxWidth: 460, textAlign: 'center' }}>
           <span style={{ display: 'inline-grid', placeItems: 'center', width: 52, height: 52, borderRadius: 'var(--radius-full)', background: 'var(--fill-primary-soft)', color: 'var(--primary)', marginBottom: 'var(--space-3)' }}><Icon name="package-plus" width="24" height="24" aria-hidden="true" /></span>
-          <h2 id="rg-title" className="gc-modal__title">Not in {ed.short}</h2>
+          <h2 id="rg-title" className="gc-modal__title">{off ? mod.label + ' is switched off' : 'Not in ' + ed.short}</h2>
           <p className="gc-modal__text">
-            {mod ? <>This page is part of <b>{mod.label}</b>{where.length ? <>, which comes with {where.join(', ')}</> : null}. </> : null}
-            Your shop uses <b>{ed.name}</b>.
+            {off ? <>GridCommerce doesn’t offer {mod.label.toLowerCase()} for now.</> : <>
+              {mod ? <>This page is part of <b>{mod.label}</b>{where.length ? <>, which comes with {where.join(', ')}</> : null}. </> : null}
+              Your shop uses <b>{ed.name}</b>.
+            </>}
           </p>
           <div className="gc-modal__foot" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
-            {!LOCKED ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => previewEdition('full')}>Show all modules</button> : null}
+            {!LOCKED && !off ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => previewEdition('full')}>Show all modules</button> : null}
             <button type="button" className="gc-btn gc-btn--solid" onClick={() => navigate('/merchant-overview')} data-autofocus>Go to Dashboard</button>
           </div>
         </div>

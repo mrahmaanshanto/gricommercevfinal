@@ -50,7 +50,7 @@ class Component extends DCLogic {
       more: [
         { big: '৳300 OFF', title: '৳300 off on ৳2,000 or more', left: '2 days left', lc: '#b83210', cover: 'linear-gradient(135deg, #012169, #0a5bd0)' },
         { big: '40% OFF', title: 'Weekend Mega Sale', left: 'Ends Sunday night', lc: '#b83210', cover: 'linear-gradient(135deg, #b83210, #f59e0b)' },
-        { big: '15% OFF', title: '15% off all skin care', left: '7 days left', lc: '#047857', cover: 'linear-gradient(135deg, #047857, #10b981)' }
+        { big: '15% OFF', title: '15% off all accessories', left: '7 days left', lc: '#047857', cover: 'linear-gradient(135deg, #047857, #10b981)' }
       ]
     };
   }
@@ -141,13 +141,13 @@ export default class OfferDetailScreen extends Component {
           <header className="sf-header sf-pad" style={{ minHeight: "76px", background: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "32px", padding: "0 64px" }}>
             <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
               <span style={{ width: "38px", height: "38px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>G</span>
-              <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>GridShop</span>
+              <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Dazzle Shop</span>
             </a>
             <nav aria-label="Shop" className="sf-navrow" style={{ display: "flex", gap: "26px" }}>
               <a className="sf-nav" href="#">Home</a>
-              <a className="sf-nav" href="#">Skin care</a>
-              <a className="sf-nav" href="#">Clothing</a>
-              <a className="sf-nav" href="#">Grocery</a>
+              <a className="sf-nav" href="#">Phones</a>
+              <a className="sf-nav" href="#">Accessories</a>
+              <a className="sf-nav" href="#">Audio</a>
               <__Link href="/offers" className="sf-nav on">Offers</__Link>
             </nav>
             <label className="sf-search" style={{ position: "relative", flexGrow: "1", maxWidth: "420px", marginLeft: "auto" }}>
@@ -327,7 +327,7 @@ export default class OfferDetailScreen extends Component {
             </aside>
           </section>
           <footer className="sf-footer sf-pad" style={{ marginTop: "auto", background: "#0f172a", color: "#cbd5e1", padding: "36px 64px", display: "flex", alignItems: "center", gap: "24px", fontSize: "var(--text-sm)" }}>
-            <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#fff" }}>GridShop</span>
+            <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#fff" }}>Dazzle Shop</span>
             <span>House 12, Road 5, Dhanmondi, Dhaka</span>
             <span>Call 09610-XXXXXX</span>
             <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>Powered by <img src="/assets/820d4a69b45ed8fa40c9bc6015985c0e.png" alt="GridCommerce" style={{ height: "18px", objectFit: "contain" }} /></span>

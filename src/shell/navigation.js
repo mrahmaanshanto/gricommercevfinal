@@ -22,6 +22,11 @@ export const NAV = [
       { id: 'calls', icon: 'phone', label: 'Calls', to: 'merchant-calls/MerchantCalls.dc.html' },
       { id: 'comm-ai', icon: 'phone-call', label: 'AI calls', count: 1, to: 'ai-call/AiCalls.dc.html' },
     ] },
+    // Grid AI: what the AI knows, how it behaves, testing it, approvals for risky actions and its activity log
+    { id: 'area-gridai', icon: 'sparkles', label: 'Grid AI', children: [
+      { id: 'ai-knowledge', icon: 'book-open', label: 'Knowledge', to: 'gridai/Knowledge.dc.html' },
+      { id: 'ai-behaviour', icon: 'sliders-horizontal', label: 'Behaviour', to: 'gridai/Behaviour.dc.html' },
+    ] },
     { id: 'area-orders', icon: 'shopping-cart', label: 'Orders', children: [
       { id: 'orders-all', icon: 'inbox', label: 'All orders', to: 'merchant-orders/MerchantOrders.dc.html' },
       { id: 'orders-wholesale', icon: 'truck', label: 'Wholesale orders', to: 'sales/WholesaleOrders.dc.html' },
@@ -73,6 +78,7 @@ export const NAV = [
     { id: 'area-customers', icon: 'users', label: 'Customers', children: [
       { id: 'customers', icon: 'users', label: 'All customers', to: 'customers-crm/AllCustomers.dc.html' },
       { id: 'leads', icon: 'target', label: 'Leads & follow-ups', to: 'team/SalesLeads.dc.html' },
+      { id: 'meetings', icon: 'video', label: 'Meetings', live: 'meetings', to: 'customers-crm/Meetings.dc.html' },
       { id: 'cust-settings', icon: 'sliders-horizontal', label: 'Customer settings', tab: 'Settings', to: 'customers-crm/CustomerSettings.dc.html' },
     ] },
     { id: 'area-comms', icon: 'messages-square', label: 'Communications', children: [

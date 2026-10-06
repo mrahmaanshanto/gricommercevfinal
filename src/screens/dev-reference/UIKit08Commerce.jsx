@@ -786,7 +786,7 @@ export default class UIKit08CommerceScreen extends Component {
                   </div>
                   <div style={{ padding: "12px", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)" }}>
                     <span className="klbl">SMS · 142 / 160 characters</span>
-                    <div style={{ marginTop: "6px" }}>GridShop: Order GC-24817 on the way. Pay ৳1,084 on delivery. Help: 09612-XX0000</div>
+                    <div style={{ marginTop: "6px" }}>Dazzle Shop: Order GC-24817 on the way. Pay ৳1,084 on delivery. Help: 09612-XX0000</div>
                   </div>
                 </div>
                 <div className="kspec-f">
@@ -810,7 +810,7 @@ export default class UIKit08CommerceScreen extends Component {
                 </div>
                 <div className="kspec-b" style={{ padding: "22px", background: "#fff" }}>
                   <div style={{ width: "260px", margin: "0 auto", padding: "16px", background: "#fff", boxShadow: "0 10px 30px -14px rgba(15,23,42,.35)", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "#0f172a", display: "flex", flexDirection: "column", gap: "4px" }}>
-                    <div style={{ textAlign: "center", fontFamily: "var(--font-sans)", fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>GridShop</div>
+                    <div style={{ textAlign: "center", fontFamily: "var(--font-sans)", fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>Dazzle Shop</div>
                     <div style={{ textAlign: "center" }}>Dhanmondi · 01712-XX4410</div>
                     <div style={{ textAlign: "center" }}>Receipt R-DH1-00831 · 19 Sep 2026 10:12</div>
                     <div style={{ borderTop: "1px dashed #94a3b8", margin: "6px 0" }} />

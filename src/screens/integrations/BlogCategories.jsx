@@ -1,5 +1,5 @@
 'use client';
-// Blog categories — the sections of the storefront blog (gridshop.com.bd/blog/category/<slug>), as a Shopify-style
+// Blog categories — the sections of the storefront blog (dazzleshop.com.bd/blog/category/<slug>), as a Shopify-style
 // list: tree order (sub-categories under their parent), colour, post counts (a link to those posts) and whether its
 // search title/description are filled in. A row opens the category:
 //   Add/edit   name, address (made from the name until edited, checked for clashes), parent (one level),
@@ -106,7 +106,7 @@ export default function BlogCategories() {
               <div><span className="gc-label">Colour</span><div className="bl-row" style={{ flexWrap: 'wrap' }}><Swatches value={form.color} onChange={(color) => setF({ color })} label="Category colour" /><CatChip cat={{ name: form.name || 'Preview', color: form.color }} /></div></div>
               <div><label className="gc-label" htmlFor="bc-desc">Description</label><textarea id="bc-desc" className="gc-input" rows={2} value={form.description} placeholder="Shown at the top of the category page." onChange={(e) => setF({ description: e.target.value })} /></div>
               <p className="bc-sec">Search engines</p>
-              <div><label className="gc-label" htmlFor="bc-mt">SEO title</label><input id="bc-mt" className="gc-input" value={form.seo.metaTitle} placeholder={`${form.name || 'Category'} | GridShop blog`} onChange={(e) => setF({ seo: { ...form.seo, metaTitle: e.target.value } })} /><Count len={(form.seo.metaTitle || '').length} min={50} max={60} /></div>
+              <div><label className="gc-label" htmlFor="bc-mt">SEO title</label><input id="bc-mt" className="gc-input" value={form.seo.metaTitle} placeholder={`${form.name || 'Category'} | Dazzle Shop blog`} onChange={(e) => setF({ seo: { ...form.seo, metaTitle: e.target.value } })} /><Count len={(form.seo.metaTitle || '').length} min={50} max={60} /></div>
               <div><label className="gc-label" htmlFor="bc-md">Meta description</label><textarea id="bc-md" className="gc-input" rows={3} value={form.seo.metaDescription} onChange={(e) => setF({ seo: { ...form.seo, metaDescription: e.target.value } })} /><Count len={(form.seo.metaDescription || '').length} min={120} max={160} /></div>
               {err ? <p className="gc-help gc-help--error" role="alert" style={{ margin: 0 }}>{err}</p> : null}
               <div className="gc-modal__foot" style={{ marginTop: 0 }}>

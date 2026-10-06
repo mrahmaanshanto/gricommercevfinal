@@ -82,7 +82,7 @@ export function needsApproval(m) {
 const at = (d, h, m = 0) => new Date(2026, 9, d, h, m).getTime();
 const SEED = [
   { id: 'AP-R015', kind: 'refund', title: 'Refund INV-0226 · New Madina Telecom', amount: 4200, at: at(1, 10, 5), by: 'rakib', byName: 'Rakib Hasan', status: 'waiting', rule: 'LM-6',
-    payload: { refundId: 'RF-0015' }, facts: [['Customer', 'New Madina Telecom'], ['Method', 'Bank transfer'], ['From', 'BRAC Bank current'], ['Reason', 'Four sunscreen packs returned']] },
+    payload: { refundId: 'RF-0015' }, facts: [['Customer', 'New Madina Telecom'], ['Method', 'Bank transfer'], ['From', 'BRAC Bank current'], ['Reason', 'Four chargers returned']] },
   { id: 'AP-0003', kind: 'expense', title: 'Facebook ads · October boost', amount: 18000, at: at(1, 16, 20), by: 'shakil', byName: 'Shakil Ahmed', status: 'waiting', rule: 'LM-2',
     payload: { account: 'citybank', amount: -18000, kind: 'expense', cat: 'Marketing', party: 'Meta Platforms', note: 'Puja campaign boost' }, facts: [['Category', 'Marketing'], ['Paid from', 'City Bank current'], ['Paid to', 'Meta Platforms']] },
   { id: 'AP-0002', kind: 'move', title: 'Safe to BRAC Bank · cash deposit', amount: 120000, at: at(1, 12, 5), by: 'rakib', byName: 'Rakib Hasan', status: 'waiting', rule: 'LM-4',

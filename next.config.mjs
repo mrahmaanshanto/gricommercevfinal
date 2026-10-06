@@ -18,6 +18,8 @@ const MOVED = {
   '/wholesale-invoices': '/sales-invoices', '/wholesale-invoice-edit': '/sales-invoices',
   // social accounts are connected in Connections (one place for every connection)
   '/social-connections': '/connections?group=social',
+  // one Add product editor and one Settings page (the settings frame pieces are components, not pages)
+  '/add-product-tabs': '/add-product', '/set-chrome': '/set-general', '/set-rail': '/set-general', '/set-topbar': '/set-general',
 };
 
 const nextConfig = {

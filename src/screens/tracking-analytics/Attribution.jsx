@@ -94,7 +94,7 @@ class Component extends DCLogic {
       hear: [['Facebook or Instagram', 41, '#2563eb'], ['Friend or family', 22, '#7c3aed'], ['TikTok', 14, '#db2777'], ['Google', 11, '#059669'], ['Creator', 8, '#f59e0b'], ['Walked past', 4, '#94a3b8']].map(function (h) { return { l: h[0], w: h[1] + '%', h: (h[1] / 41 * 88) + '%', c: h[2], n: Math.round(h[1] * 6.48) }; }),
       askHear: mkSw(this, 'askHear', true),
       infl: [['Nadia’s Skin Diary', 'NADIA10', 38, 41200, 4120], ['TechBangla Reviews', 'TBR500', 11, 49400, 5500], ['Dhaka Style Files', 'DSF15', 23, 19800, 3000], ['Mitul Cooks', 'MITUL5', 4, 1400, 1000]].map(function (i2, k) { var x = i2[3] / i2[4]; var sp = sparkP(series(14, i2[2], i2[2] * .3, k * 2 + 1, x > 4 ? .5 : -.4)); var a2 = AVC[k]; var nm = i2[0].split(' '); return { n: i2[0], ini: (nm[0].charAt(0) + nm[1].charAt(0)).toUpperCase(), ab: a2[0], af: a2[1], c: i2[1], o: i2[2], r: bdt(i2[3]), p: bdt(i2[4]), x: x2(x), xb: x >= 4 ? '#e7f8f1' : x >= 2 ? '#fff4e0' : '#ffece6', xf: x >= 4 ? '#047857' : x >= 2 ? '#a14f06' : '#be123c', line: sp.line, area: sp.area, cc: x >= 4 ? '#059669' : x >= 2 ? '#d97706' : '#e11d48' }; }),
-      uPage: page, uSrc: src, uMed: med, uCamp: camp, uBase: 'https://gridshop.com.bd' + page, uSlug: slug,
+      uPage: page, uSrc: src, uMed: med, uCamp: camp, uBase: 'https://dazzleshop.com.bd' + page, uSlug: slug,
       setPage: function (e) { self.setState({ page: e.target.value }); }, setSrc: function (e) { self.setState({ src: e.target.value }); }, setMed: function (e) { self.setState({ med: e.target.value }); }, typeCamp: function (e) { self.setState({ camp: e.target.value }); },
       copyUrl: function () { toast(self, 'Link copied.'); }, shortUrl: function () { toast(self, 'Short link: gsh.bd/' + slug.slice(0, 8) + ' — clicks are counted too.'); }
     };
@@ -321,8 +321,8 @@ export default class AttributionScreen extends Component {
                     <span className="lbl">Page</span>
                     <select className="inp" value={v.uPage} onChange={v.setPage} aria-label="Page">
                       <option value="/offers/eid-gift-box">Eid gift box offer</option>
-                      <option value="/p/sunscreen-spf50-50ml">Sunscreen SPF50</option>
-                      <option value="/lp/kurti-new-drop">Kurti new drop</option>
+                      <option value="/p/anker-20w-charger">Anker 20W charger</option>
+                      <option value="/lp/new-phones-drop">New phones drop</option>
                       <option value="/">Home page</option>
                     </select>
                   </label>

@@ -178,7 +178,7 @@ export default function AccountsHome() {
                   );
                 })}
               </div>
-            ) : <EmptyState icon="calendar-check" title="Nothing expected" body="New online payments and delivered COD parcels show here." />}
+            ) : <EmptyState icon="calendar-check" title="Nothing expected" body="Money your payment partners collect shows here until it reaches your bank." />}
           </div>
         </section>
 

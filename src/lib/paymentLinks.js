@@ -17,7 +17,7 @@ import { currentUser } from './team';
 
 const KEY = 'gc.pay.links';
 const DAY = 864e5;
-export const LINK_BASE = 'https://gridshop.com.bd/pay/';
+export const LINK_BASE = 'https://dazzleshop.com.bd/pay/';
 export const LINK_METHODS = [['bKash', 'bkash-pgw'], ['Nagad', 'nagad-pgw'], ['Card', 'sslcommerz']];
 export const EXPIRY_CHOICES = [[1, '1 day'], [3, '3 days'], [7, '7 days'], [30, '30 days']];
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;

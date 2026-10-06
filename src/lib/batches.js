@@ -15,11 +15,11 @@ const DAY = 864e5;
 const endOf = (y, m, d) => new Date(y, m - 1, d, 23, 59, 59).getTime();
 const B = (id, sku, name, qty, expiry, ref, supplier, at) => ({ id, sku, name, place: 'Central Warehouse', qty, expiry, ref, supplier, at, done: false, seed: true });
 const SEED = [
-  B('BT-0001', 'SK-TON-150', 'Hyaluronic Toner 150ml', 12, endOf(2026, 9, 29), 'PB-0003', 'Dhaka Beauty Imports', endOf(2026, 3, 2)),
-  B('BT-0002', 'GR-ATTA-2', 'Atta Wheat Flour 2kg', 30, endOf(2026, 10, 9), 'PB-0005', 'Rahman Traders', endOf(2026, 8, 9)),
-  B('BT-0003', 'SK-SUN-50', 'Sunscreen SPF 50 · 50ml', 24, endOf(2026, 10, 18), 'PB-0003', 'Dhaka Beauty Imports', endOf(2026, 4, 10)),
-  B('BT-0004', 'SK-SHA-340', 'Daily Care Shampoo 340ml', 18, endOf(2026, 10, 26), 'PB-0006', 'Rahman Traders', endOf(2026, 5, 3)),
-  B('BT-0005', 'GR-SOY-2', 'Soybean Cooking Oil 2L', 20, endOf(2026, 12, 20), 'PB-0005', 'Rahman Traders', endOf(2026, 8, 9)),
+  B('BT-0001', 'AU-EAR-TC', 'Type-C Wired Earphones', 12, endOf(2026, 9, 29), 'PB-0003', 'Dhaka Audio Imports', endOf(2026, 3, 2)),
+  B('BT-0002', 'AC-LNS-PR', 'Camera Lens Protector', 30, endOf(2026, 10, 9), 'PB-0005', 'Rahman Telecom', endOf(2026, 8, 9)),
+  B('BT-0003', 'AC-CHG-20', 'Anker 20W USB-C Charger', 24, endOf(2026, 10, 18), 'PB-0003', 'Dhaka Audio Imports', endOf(2026, 4, 10)),
+  B('BT-0004', 'AC-CBL-LTG', 'Lightning Cable 1m', 18, endOf(2026, 10, 26), 'PB-0006', 'Rahman Telecom', endOf(2026, 5, 3)),
+  B('BT-0005', 'AC-GLS-9H', 'Tempered Glass 9H', 20, endOf(2026, 12, 20), 'PB-0005', 'Rahman Telecom', endOf(2026, 8, 9)),
 ];
 
 const read = () => { if (typeof window === 'undefined') return SEED; try { const v = JSON.parse(window.localStorage.getItem(KEY)); return Array.isArray(v) ? v : SEED; } catch { return SEED; } };

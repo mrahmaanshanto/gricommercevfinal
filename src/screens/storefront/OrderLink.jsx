@@ -17,7 +17,7 @@ const TERMS = [
   { id: 'full', label: 'Pay in full now', note: 'bKash, Nagad or card' },
 ];
 // shown when the page is opened without a link id, so the layout can be reviewed
-const SAMPLE = { id: 'SAMPLE', discount: 0, vat: true, lines: [{ id: 'p1', name: 'Denim Jeans · Blue', variant: 'Size 32', price: 1290, qty: 1 }, { id: 'p3', name: 'Sunscreen SPF 50 · 50ml', variant: 'Single', price: 890, qty: 1 }] };
+const SAMPLE = { id: 'SAMPLE', discount: 0, vat: true, lines: [{ id: 'p1', name: 'Baseus Car Phone Holder', variant: 'Black', price: 1290, qty: 1 }, { id: 'p3', name: 'Anker 20W USB-C Charger', variant: 'Single', price: 890, qty: 1 }] };
 
 const CSS = `
 .ol{min-height:100dvh;background:var(--surface-page);color:var(--text-body);font-family:var(--font-sans);font-size:var(--text-sm)}
@@ -72,7 +72,7 @@ export default function OrderLink() {
   if (link === undefined) return <div className="dc-screen ds"><style dangerouslySetInnerHTML={{ __html: CSS }} /><div className="ol" /></div>;
 
   const top = (
-    <header className="ol__top"><span className="ol__logo" aria-hidden="true">G</span><span className="ol__shop">GridShop</span></header>
+    <header className="ol__top"><span className="ol__logo" aria-hidden="true">G</span><span className="ol__shop">Dazzle Shop</span></header>
   );
 
   if (link === null || link.used) {
@@ -122,7 +122,7 @@ export default function OrderLink() {
           <main className="ol__card ol__done" role="status">
             <Icon name="circle-check" width="44" height="44" aria-hidden="true" />
             <h1 style={{ marginTop: 'var(--space-3)' }}>Order request sent</h1>
-            <p className="ol__lead" style={{ margin: 'var(--space-3) auto 0' }}>Request {done.id} for {formatBDT(total)} is with GridShop. They will call {done.phone} to confirm.{payNow ? ` You chose to pay ${formatBDT(payNow)} now; the shop will send the payment request.` : ' You pay when the parcel arrives.'}</p>
+            <p className="ol__lead" style={{ margin: 'var(--space-3) auto 0' }}>Request {done.id} for {formatBDT(total)} is with Dazzle Shop. They will call {done.phone} to confirm.{payNow ? ` You chose to pay ${formatBDT(payNow)} now; the shop will send the payment request.` : ' You pay when the parcel arrives.'}</p>
           </main>
         </div>
       </div>
@@ -137,7 +137,7 @@ export default function OrderLink() {
         <main className="ol__wrap">
           <form onSubmit={submit} noValidate>
             <h1>Complete your order</h1>
-            <p className="ol__lead">GridShop picked these items for you. Add your details and choose how to pay.</p>
+            <p className="ol__lead">Dazzle Shop picked these items for you. Add your details and choose how to pay.</p>
 
             <section className="ol__card" aria-labelledby="ol-you">
               <h2 id="ol-you">Your details</h2>

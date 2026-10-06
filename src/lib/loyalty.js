@@ -123,7 +123,7 @@ const POINTS_SEED = [
   P('01819072332', sep(16, 20), 'earn', 93, 'Order #GC-10482 delivered', '৳6,200 × Gold 1.5x', 'Online', '#GC-10482'),
   P('01711245518', sep(4, 16), 'earn', 186, 'Order #GC-10431 delivered', '৳9,300 × Platinum 2x', 'Online', '#GC-10431'),
   P('01711245518', sep(10, 17, 48), 'redeem', -1000, 'Changed points to wallet money', '৳500 added to the wallet', 'Online', 'WL-points', 500, { onBill: false }),
-  P('01711245518', sep(17, 12), 'redeem', -420, 'Used at Gulshan-1 branch', 'POS bill ৳5,860', 'Retail', 'Memo #1012', 210),
+  P('01711245518', sep(17, 12), 'redeem', -420, 'Used at Mirpur branch', 'POS bill ৳5,860', 'Retail', 'Memo #1012', 210),
   P('01711245518', sep(21, 19), 'earn', 248, 'Order #GC-10501 delivered', '৳12,400 × Platinum 2x', 'Online', '#GC-10501'),
   P('01914622045', sep(8, 14), 'redeem', -120, 'Used on the website', 'Order #GC-10447', 'Online', '#GC-10447', 60),
   P('01914622045', sep(15, 18), 'earn', 61, 'Order #GC-10490 delivered', '৳4,900 × Silver 1.25x', 'Online', '#GC-10490'),
@@ -208,7 +208,7 @@ WALLET_SEED.push(W('01553336655', sep(15, 12), 'reward', 230, 'Invite reward', '
 
 // ---- product points (demo) ----------------------------------------------------------------------
 export const PRODUCT_MODES = [['normal', 'Normal'], ['double', 'Double'], ['off', 'Off']];
-const PRODUCT_SEED = { 'SK-SUN-50': 'double', 'CL-JNS-32': 'double', 'GR-RICE-5': 'off', 'GR-SOY-2': 'off' };
+const PRODUCT_SEED = { 'AC-CHG-20': 'double', 'AC-HLD-CAR': 'double', 'AC-CBL-100': 'off', 'AC-GLS-9H': 'off' };
 export const getProductPoints = () => ({ ...PRODUCT_SEED, ...read(KEYS.products, {}) });
 export function setProductPoints(map) { const all = { ...getProductPoints(), ...map }; write(KEYS.products, all); changed(); return all; }
 /** Points one piece of a product gives a customer at level `tier` (object from settings). */

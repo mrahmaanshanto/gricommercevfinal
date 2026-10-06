@@ -6,22 +6,75 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { ConsoleSide, ConsoleTop, ConsoleToast } from './ConsoleFrame';
+import { MAIN, PAGE, TITLEROW, H1, SUBT, H2, PHEAD, PSIDE, PANEL, TH, CELL, CELLB, BTN, grid, row, Kpi, StoreCell, BarRow, Plus } from './consoleParts';
+import { attach, db, now, staff, param, adjustments, adjustmentEffect, decideAdjustment, askAboutAdjustment, catalogue, fmt } from '@/lib/platform';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
+// Bill adjustments: credits, discounts, waivers and charges, each with a reason code; above the threshold a second
+// person approves (never the one who asked). Live from lib/platform.
 class Component extends DCLogic {
+  componentDidMount() { this.off = attach(this); const id = param('id'); if (id) this.setState({ sel: id }); }
+  componentWillUnmount() { if (this.off) this.off(); }
+
   renderVals() {
     const v = this.renderVals0() || {};
     const mini = !!(this.state || {}).mini;
     v.miniCls = mini ? 'mini' : '';
-    if (typeof v.rootCls === 'string') v.rootCls = v.rootCls + (mini ? ' mini' : '');
     v.toggleSide = () => this.setState({ mini: !mini });
     v.sideLabel = mini ? 'Expand menu' : 'Collapse menu';
     return v;
   }
 
   renderVals0() {
-    return {};
+    const s = this.state || {};
+    const t = now();
+    const d = db();
+    const me = staff();
+    const x = adjustments(d, t);
+    const say = (text, tone = 'ok') => this.setState({ toast: text, toastTone: tone });
+    const sel = x.list.find((a) => a.id === s.sel) || x.list.find((a) => a.status === 'pending') || x.list[0] || null;
+    const eff = sel ? adjustmentEffect(d, sel, t) : null;
+    const sp = (vals, color) => ({ ...fmt.spark(vals), color });
+    const days = Array.from({ length: 14 }, (_, i) => fmt.startOfDay(t) - (13 - i) * fmt.DAY);
+    const maxReason = Math.max(1, ...x.reasons.map((r) => r.n));
+    const ownRequest = sel && sel.by === me.name;
+    const canApprove = catalogue.can(me, 'billing', 'approve');
+    const approver = sel && sel.status === 'pending' ? (sel.approver || catalogue.APPROVERS.find((n) => n !== sel.by)) : null;
+    const steps = !sel ? [] : [
+      { key: 'r', ini: catalogue.staffIni(sel.by), color: catalogue.staffColor(sel.by), head: `${sel.by} requested`, when: fmt.ago(sel.at, t), sub: `Reason code ${sel.reason}${sel.linked ? ' · linked to ' + sel.linked : ''}` },
+      ...(sel.amount > x.threshold ? [{ key: 't', ini: 'MK', color: '#00567a', head: `Over ${fmt.taka(x.threshold)}: second approval needed`, when: fmt.ago(sel.at, t), sub: 'Any finance approver except the requester' }] : [{ key: 't', ini: '✓', color: '#10b981', head: `Under ${fmt.taka(x.threshold)}: approved on asking`, when: fmt.ago(sel.at, t), sub: 'No second person needed' }]),
+      ...sel.questions.map((q, i) => ({ key: 'q' + i, ini: catalogue.staffIni(q.by), color: catalogue.staffColor(q.by), head: `${q.by} asked`, when: fmt.ago(q.at, t), sub: q.text })),
+      sel.status === 'pending'
+        ? { key: 'w', ini: catalogue.staffIni(approver), color: catalogue.staffColor(approver), head: `Waiting for ${approver}, ${(catalogue.staffBy(approver) || {}).title || 'finance'}`.replace(', Finance', ', finance'), when: '', sub: sel.remindedAt ? `Reminder sent at ${fmt.hm(sel.remindedAt)}` : 'Not reminded yet' }
+        : sel.decidedBy && sel.decidedBy !== 'auto' ? { key: 'd', ini: catalogue.staffIni(sel.decidedBy), color: catalogue.staffColor(sel.decidedBy), head: `${sel.status === 'approved' ? 'Approved' : 'Rejected'} by ${sel.decidedBy}`, when: fmt.ago(sel.decidedAt, t), sub: sel.status === 'approved' ? (sel.cnId ? `${sel.cnId} issued` : 'Applied to the next bill') : sel.decisionNote || 'Reason recorded' } : null,
+    ].filter(Boolean);
+    return {
+      month: x.month, threshold: x.threshold,
+      kpis: [
+        { label: 'Waiting for approval', value: String(x.kpis.pending), note: fmt.taka(x.kpis.pendingAmt), cls: 'dpill d-flat', ...sp(days.map((d0) => d.adjustments.filter((a) => a.at <= d0 + fmt.DAY && (a.status === 'pending' || a.decidedAt > d0 + fmt.DAY)).length), '#ff9800') },
+        { label: `Approved, ${x.month}`, value: fmt.taka(x.kpis.approved), note: `${x.kpis.approvedN} credit${x.kpis.approvedN === 1 ? '' : 's'}`, cls: 'dpill d-flat', ...sp(days.map((d0) => d.adjustments.filter((a) => a.status === 'approved' && a.decidedAt <= d0 + fmt.DAY && a.decidedAt >= fmt.startOfMonth(t)).reduce((n, a) => n + a.amount, 0)), '#10b981') },
+        { label: 'Rejected', value: String(x.kpis.rejected), note: 'reason recorded', cls: 'dpill d-flat', ...sp(days.map((d0, i) => i % 5 === 0 ? 1 : 0), '#6683b7') },
+        { label: 'Without reason code', value: '0', note: 'not allowed', cls: 'dpill d-good', ...sp(days.map(() => 0), '#10b981') },
+      ],
+      rows: x.list.map((a) => ({ ...a, on: sel && a.id === sel.id, pick: () => this.setState({ sel: a.id, mode: null, text: '' }) })),
+      reasons: x.reasons.map((r, i) => ({ ...r, width: Math.round((r.n / maxReason) * 100) + '%', color: ['#003087', '#2e559d', '#0070a0', '#ff9800'][i % 4] })),
+      sel, eff, steps, ownRequest, canApprove,
+      decided: sel && sel.status !== 'pending',
+      verb: sel ? { credit: 'credit', discount: 'discount', waive: 'waiver', charge: 'charge' }[sel.type] : '',
+      mode: s.mode || null, text: s.text || '', onText: (e) => this.setState({ text: e.target.value }),
+      approve: () => { const r = decideAdjustment(sel.id, 'approve'); if (r.ok) say(`${sel.id} approved${r.adjustment.cnId ? ' · ' + r.adjustment.cnId + ' issued to ' + sel.store : ''}`); else say(r.error, 'err'); },
+      startReject: () => this.setState({ mode: 'reject', text: '' }),
+      startAsk: () => this.setState({ mode: 'ask', text: '' }),
+      cancelMode: () => this.setState({ mode: null, text: '' }),
+      submitMode: () => {
+        if (s.mode === 'reject') { const r = decideAdjustment(sel.id, 'reject', s.text); if (r.ok) { say(`${sel.id} rejected · reason recorded`); this.setState({ mode: null, text: '' }); } else say(r.error, 'err'); }
+        else { if (!String(s.text || '').trim()) { say('Write the question first.', 'err'); return; } askAboutAdjustment(sel.id, s.text.trim()); say(`Question sent to ${sel.by}`); this.setState({ mode: null, text: '' }); }
+      },
+      blockText: !sel || sel.status !== 'pending' ? '' : ownRequest ? 'You requested this, so you cannot approve it.' : !canApprove ? 'Only Finance or an Admin can approve money changes.' : '',
+      toast: s.toast || '', toastTone: s.toastTone || 'ok', hideToast: () => this.setState({ toast: '' }),
+    };
   }
 }
 
@@ -242,308 +295,26 @@ export default class AdjustmentsScreen extends Component {
       <div className="dc-screen" data-screen="Adjustments">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className={`cs ${v.miniCls ?? ""}`} style={{ width: "1440px", height: "1000px", overflow: "hidden", position: "relative", background: "var(--bg)" }}>
-          <aside className="side" aria-label="Console navigation">
-            <div className="sidein">
-              <div className="sidehead" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "18px 12px 6px 20px" }}>
-                <span className="logo-full">
-                  <img src="/assets/62dadbbb3f365aebdd41bb9975f5931f.png" alt="GridCommerce" style={{ height: "28px", width: "auto", display: "block" }} />
-                </span>
-                <img className="logo-mini" src="/assets/9b6f9ad369f1cbde65271a968e6ba1f1.png" alt="GridCommerce" style={{ height: "32px", width: "auto" }} />
-                <button className="tb sidetoggle" type="button" onClick={v.toggleSide} aria-label={v.sideLabel} title={v.sideLabel}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3" y="3" width="18" height="18" rx="3" />
-                    <path d="M9 3v18" />
-                  </svg>
-                </button>
-              </div>
-              <div className="sidemeta" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 20px 12px" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", height: "22px", padding: "0 8px", borderRadius: "var(--radius-md)", background: "var(--iconbg)", color: "var(--iconfg)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase" }}>Console</span>
-                <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Staff only · views logged</span>
-              </div>
-              <nav aria-label="Console" className="sidenav">
-                <__Link href="/console-shell" className="nav top" title="Overview">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Overview</span>
-                </__Link>
-                <div className="navlabel" style={{ margin: "10px 10px 6px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--sidemuted)" }}>Manage</div>
-                <__Link href="/merchants" className="nav grp" title="Tenants" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 9 4.5 4h15L21 9" />
-                      <path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9Z" />
-                      <path d="M5 12v9h14v-9" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Tenants</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/module-catalogue" className="nav grp" title="Packaging" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" />
-                      <path d="m3 7 9 5 9-5M12 12v10" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Packaging</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/subscriptions" className="nav grp open" title="Billing" aria-expanded="true">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="2" y="5" width="20" height="14" rx="2" />
-                      <path d="M2 10h20M6 15h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Billing</span>
-                  <span className="chev open">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <div className="kids">
-                  <__Link href="/subscriptions" className="nav sub">
-                    <span className="navtxt">Subscriptions</span>
-                  </__Link>
-                  <__Link href="/invoices" className="nav sub">
-                    <span className="navtxt">Invoices</span>
-                  </__Link>
-                  <__Link href="/collections" className="nav sub">
-                    <span className="navtxt">Collections</span>
-                    <span className="badge warn">4</span>
-                  </__Link>
-                  <__Link href="/adjustments" className="nav sub on" aria-current="page">
-                    <span className="navtxt">Adjustments</span>
-                  </__Link>
-                </div>
-                <__Link href="/health-risk" className="nav grp" title="Monitoring" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 12h4l3-8 4 16 3-8h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Monitoring</span>
-                  <span className="badge warn">5</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/support-desk" className="nav grp" title="Support" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 14v-2a9 9 0 0 1 18 0v2" />
-                      <path d="M21 14v3a2 2 0 0 1-2 2h-2v-7h4M3 14v3a2 2 0 0 0 2 2h2v-7H3" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Support</span>
-                  <span className="badge ">12</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/leads" className="nav grp" title="Sales CRM" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Sales CRM</span>
-                  <span className="badge ">18</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/ops-centre" className="nav grp" title="Operations" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Operations</span>
-                  <span className="badge err">2</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/releases" className="nav grp" title="System" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="4" y="11" width="16" height="10" rx="2" />
-                      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">System</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-              </nav>
-              <__Link href="/ops-centre" className="statuscard" title="1 open incident" style={{ display: "block", color: "inherit", textDecoration: "none" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ flex: "none", width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#ff9800", boxShadow: "0 0 0 3px rgba(255,152,0,.2)" }} />
-                  <span className="statustxt" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>1 open incident</span>
-                  <span className="num statustxt" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>99.96%</span>
-                </div>
-                <div className="statustxt ell" style={{ marginTop: "4px", fontSize: "var(--text-xs)", color: "var(--sidebody)" }}>Steadfast webhooks delayed · 38 stores</div>
-              </__Link>
-              <div className="me">
-                <span style={{ position: "relative", display: "inline-flex", flex: "none" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-xl)", background: "linear-gradient(145deg,#2eaee4,#003087)", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>FA</span>
-                  <span style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "11px", height: "11px", borderRadius: "var(--radius-full)", background: "#10b981", border: "2px solid var(--side)" }} />
-                </span>
-                <div className="metxt" style={{ minWidth: "0" }}>
-                  <div className="ell" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>Farhana Akter</div>
-                  <div className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Support lead · 2FA on</div>
-                </div>
-                <__Link href="/staff-roles" className="tb mebtn" aria-label="Account and roles" style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--sidemuted)" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 21a8 8 0 0 1 16 0" />
-                  </svg>
-                </__Link>
-              </div>
-            </div>
-          </aside>
-          <header className="topbar">
-            <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", minWidth: "230px" }}>
-              <span className="crumbic">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="2" y="5" width="20" height="14" rx="2" />
-                  <path d="M2 10h20M6 15h4" />
-                </svg>
-              </span>
-              <span style={{ color: "var(--muted)" }}>Billing</span>
-              <span style={{ color: "var(--muted)" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m9 6 6 6-6 6" />
-                </svg>
-              </span>
-              <span style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Adjustments</span>
-            </nav>
-            <button className="searchbtn" type="button"><span style={{ display: "inline-flex" }}>
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </svg>
-</span>Search stores, phones, invoices, leads<span className="kbd">Ctrl K</span></button>
-            {" "}
-            <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "8px", height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "var(--okbg)", color: "var(--okt)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-lg)", background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,.18)" }} />Production</span>
-            {" "}
-            <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)", padding: "0 4px" }}>Sun 20 Sep · 14:32</span>
-            {" "}
-            <span style={{ width: "1px", height: "24px", background: "var(--line)" }} />
-            {" "}
-            <button className="tb" type="button" aria-label="Notifications, 3 unread" style={{ position: "relative" }}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                <path d="M10 21h4" />
-              </svg>
-              <span style={{ position: "absolute", top: "8px", right: "9px", width: "8px", height: "8px", borderRadius: "var(--radius-lg)", background: "#ff5724", border: "2px solid var(--surface)" }} />
-            </button>
-            {" "}
-            <button className="tb" type="button" aria-label="Help and runbooks">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
-              </svg>
-            </button>
-          </header>
-          <main className="mainarea" style={{ position: "absolute", left: "272px", right: "0", top: "64px", bottom: "0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "22px 28px", display: "flex", flexDirection: "column", gap: "16px", minHeight: "0" }}>
-              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px" }}>
+          <ConsoleSide group="billing" item="adjustments" toggle={v.toggleSide} label={v.sideLabel} />
+          <ConsoleTop group="billing" page="Adjustments" />
+          <main className="mainarea" style={MAIN}>
+            <div style={PAGE}>
+              <div style={TITLEROW}>
                 <div style={{ minWidth: "0" }}>
-                  <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>Bill adjustments</h1>
-                  <p style={{ margin: "5px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Every discount, credit or waiver has a reason code; above ৳500 it needs a second person</p>
+                  <h1 style={H1}>Bill adjustments</h1>
+                  <p style={SUBT}>Every discount, credit or waiver has a reason code; above {fmt.taka(v.threshold)} it needs a second person</p>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: "none" }}>
-                  <__Link href="/form-adjustment" className="btn btnp" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M12 5v14M5 12h14" />
-</svg>New adjustment</__Link>
+                  <__Link href="/form-adjustment" className="btn btnp" style={BTN}><Plus />New adjustment</__Link>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "12px" }}>
-                <div className="kpi">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                    <span className="kl" title="Waiting for approval">Waiting for approval</span>
-                    <svg width="64" height="22" viewBox="0 0 64 22" aria-hidden="true" style={{ flex: "none" }}>
-                      <path d="M0.0,15.3 L4.3,19.0 L8.5,18.2 L12.8,17.3 L17.1,12.9 L21.3,11.4 L25.6,14.5 L29.9,9.8 L34.1,14.0 L38.4,13.7 L42.7,14.9 L46.9,12.6 L51.2,7.7 L55.5,5.4 L59.7,3.0 L64.0,6.2 L64,22 L0,22 Z" fill="#6683b7" opacity=".10" />
-                      <path d="M0.0,15.3 L4.3,19.0 L8.5,18.2 L12.8,17.3 L17.1,12.9 L21.3,11.4 L25.6,14.5 L29.9,9.8 L34.1,14.0 L38.4,13.7 L42.7,14.9 L46.9,12.6 L51.2,7.7 L55.5,5.4 L59.7,3.0 L64.0,6.2" fill="none" stroke="#6683b7" strokeWidth="1.7" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="2">2</span>
-                  <div>
-                    <span className="dpill d-flat">৳12,833</span>
-                  </div>
-                </div>
-                <div className="kpi">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                    <span className="kl" title="Approved, September">Approved, September</span>
-                    <svg width="64" height="22" viewBox="0 0 64 22" aria-hidden="true" style={{ flex: "none" }}>
-                      <path d="M0.0,3.0 L4.3,5.4 L8.5,6.0 L12.8,9.2 L17.1,8.9 L21.3,12.1 L25.6,14.8 L29.9,19.0 L34.1,15.6 L38.4,15.7 L42.7,11.1 L46.9,6.4 L51.2,8.3 L55.5,9.9 L59.7,12.3 L64.0,13.9 L64,22 L0,22 Z" fill="#6683b7" opacity=".10" />
-                      <path d="M0.0,3.0 L4.3,5.4 L8.5,6.0 L12.8,9.2 L17.1,8.9 L21.3,12.1 L25.6,14.8 L29.9,19.0 L34.1,15.6 L38.4,15.7 L42.7,11.1 L46.9,6.4 L51.2,8.3 L55.5,9.9 L59.7,12.3 L64.0,13.9" fill="none" stroke="#6683b7" strokeWidth="1.7" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="৳3,300">৳3,300</span>
-                  <div>
-                    <span className="dpill d-flat">7 credits</span>
-                  </div>
-                </div>
-                <div className="kpi">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                    <span className="kl" title="Rejected">Rejected</span>
-                    <svg width="64" height="22" viewBox="0 0 64 22" aria-hidden="true" style={{ flex: "none" }}>
-                      <path d="M0.0,16.8 L4.3,17.5 L8.5,19.0 L12.8,18.7 L17.1,17.6 L21.3,17.9 L25.6,14.0 L29.9,10.9 L34.1,10.5 L38.4,8.3 L42.7,9.1 L46.9,5.7 L51.2,7.9 L55.5,8.6 L59.7,5.8 L64.0,3.0 L64,22 L0,22 Z" fill="#6683b7" opacity=".10" />
-                      <path d="M0.0,16.8 L4.3,17.5 L8.5,19.0 L12.8,18.7 L17.1,17.6 L21.3,17.9 L25.6,14.0 L29.9,10.9 L34.1,10.5 L38.4,8.3 L42.7,9.1 L46.9,5.7 L51.2,7.9 L55.5,8.6 L59.7,5.8 L64.0,3.0" fill="none" stroke="#6683b7" strokeWidth="1.7" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="1">1</span>
-                  <div>
-                    <span className="dpill d-flat">reason recorded</span>
-                  </div>
-                </div>
-                <div className="kpi">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                    <span className="kl" title="Without reason code">Without reason code</span>
-                    <svg width="64" height="22" viewBox="0 0 64 22" aria-hidden="true" style={{ flex: "none" }}>
-                      <path d="M0.0,19.0 L4.3,17.3 L8.5,16.6 L12.8,17.0 L17.1,13.9 L21.3,13.8 L25.6,13.2 L29.9,13.9 L34.1,11.9 L38.4,8.9 L42.7,7.0 L46.9,6.3 L51.2,7.2 L55.5,6.2 L59.7,3.0 L64.0,3.0 L64,22 L0,22 Z" fill="#10b981" opacity=".10" />
-                      <path d="M0.0,19.0 L4.3,17.3 L8.5,16.6 L12.8,17.0 L17.1,13.9 L21.3,13.8 L25.6,13.2 L29.9,13.9 L34.1,11.9 L38.4,8.9 L42.7,7.0 L46.9,6.3 L51.2,7.2 L55.5,6.2 L59.7,3.0 L64.0,3.0" fill="none" stroke="#10b981" strokeWidth="1.7" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="0">0</span>
-                  <div>
-                    <span className="dpill d-good">not allowed</span>
-                  </div>
-                </div>
+              <div style={grid("repeat(4,minmax(0,1fr))")}>
+                {v.kpis.map((k) => <Kpi key={k.label} k={k} />)}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 400px", gap: "14px", alignItems: "stretch" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                   <div className="panel" style={{ overflow: "hidden", "--cs-row-min": "860px" }}>
-                    <div className="th" style={{ display: "grid", gridTemplateColumns: "100px minmax(0,1fr) minmax(0,1.8fr) 90px minmax(0,1fr) 170px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
+                    <div className="th" style={{ display: "grid", gridTemplateColumns: "100px minmax(0,1fr) minmax(0,1.8fr) 90px minmax(0,1fr) 170px", ...TH }}>
                       <span>Request</span>
                       <span>Store</span>
                       <span>Change and reason</span>
@@ -551,134 +322,84 @@ export default class AdjustmentsScreen extends Component {
                       <span>Requested by</span>
                       <span>Status</span>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "100px minmax(0,1fr) minmax(0,1.8fr) 90px minmax(0,1fr) 170px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", background: "#fff8e6" }}>
-                      <span className="mono" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>ADJ-0042</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Dhaka Gadget Hub</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Credit ৳833 · Steadfast outage, 10 days of courier failures</span>
-                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)", textAlign: "right" }}>৳833</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Farhana Akter</span>
-                      <span className="pill p-warn" style={{ justifySelf: "start" }}><span className="shp shp-warn" aria-hidden="true" />Needs 2nd approval</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "100px minmax(0,1fr) minmax(0,1.8fr) 90px minmax(0,1fr) 170px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
-                      <span className="mono" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>ADJ-0041</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Mohona Traders</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Discount 20% for yearly prepay</span>
-                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)", textAlign: "right" }}>৳12,000</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Mahin Khan</span>
-                      <span className="pill p-warn" style={{ justifySelf: "start" }}><span className="shp shp-warn" aria-hidden="true" />Needs 2nd approval</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "100px minmax(0,1fr) minmax(0,1.8fr) 90px minmax(0,1fr) 170px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
-                      <span className="mono" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>ADJ-0040</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Shonali Crafts</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Credit ৳500 · courier outage, 2 days</span>
-                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)", textAlign: "right" }}>৳500</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Farhana Akter</span>
-                      <span className="pill p-ok" style={{ justifySelf: "start" }}><span className="shp shp-ok" aria-hidden="true" />Approved</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "100px minmax(0,1fr) minmax(0,1.8fr) 90px minmax(0,1fr) 170px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
-                      <span className="mono" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>ADJ-0039</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Rupsha Sports</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Waive September · store closed for flood repairs</span>
-                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)", textAlign: "right" }}>৳2,000</span>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Rakib Hasan</span>
-                      <span className="pill p-err" style={{ justifySelf: "start" }}><span className="shp shp-err" aria-hidden="true" />Rejected</span>
-                    </div>
+                    {v.rows.map((a, i) => (
+                      <div key={a.key} onClick={a.pick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") a.pick(); }} style={{ ...row("100px minmax(0,1fr) minmax(0,1.8fr) 90px minmax(0,1fr) 170px", i === 0), cursor: "pointer", background: a.on ? "#fff8e6" : undefined }}>
+                        <span className="mono" style={CELLB}>{a.id}</span>
+                        <span style={CELLB}>{a.store}</span>
+                        <span style={CELL}>{a.change}</span>
+                        <span className="num" style={{ ...CELLB, textAlign: "right" }}>{a.amountText}</span>
+                        <span style={CELL}>{a.by}</span>
+                        <span className={a.cls} style={{ justifySelf: "start" }}><span className={a.shp} aria-hidden="true" />{a.statusText}</span>
+                      </div>
+                    ))}
                   </div>
-                  <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Adjustments by reason, September</h2>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
+                  <section className="panel" style={PANEL}>
+                    <div style={PHEAD}>
+                      <h2 style={H2}>Adjustments by reason, {v.month}</h2>
+                      <div style={PSIDE} />
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "110px minmax(0,1fr) 64px", alignItems: "center", gap: "10px", minHeight: "30px" }}>
-                      <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Outage credit</span>
-                      <span style={{ height: "10px", borderRadius: "var(--radius-sm)", background: "var(--track)" }}>
-                        <span style={{ display: "block", width: "100%", height: "100%", borderRadius: "var(--radius-sm)", background: "#003087" }} />
-                      </span>
-                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)", textAlign: "right" }}>5</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "110px minmax(0,1fr) 64px", alignItems: "center", gap: "10px", minHeight: "30px" }}>
-                      <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Prepay discount</span>
-                      <span style={{ height: "10px", borderRadius: "var(--radius-sm)", background: "var(--track)" }}>
-                        <span style={{ display: "block", width: "60%", height: "100%", borderRadius: "var(--radius-sm)", background: "#2e559d" }} />
-                      </span>
-                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)", textAlign: "right" }}>3</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "110px minmax(0,1fr) 64px", alignItems: "center", gap: "10px", minHeight: "30px" }}>
-                      <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Goodwill</span>
-                      <span style={{ height: "10px", borderRadius: "var(--radius-sm)", background: "var(--track)" }}>
-                        <span style={{ display: "block", width: "40%", height: "100%", borderRadius: "var(--radius-sm)", background: "#0070a0" }} />
-                      </span>
-                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)", textAlign: "right" }}>2</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "110px minmax(0,1fr) 64px", alignItems: "center", gap: "10px", minHeight: "30px" }}>
-                      <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}>Billing error</span>
-                      <span style={{ height: "10px", borderRadius: "var(--radius-sm)", background: "var(--track)" }}>
-                        <span style={{ display: "block", width: "20%", height: "100%", borderRadius: "var(--radius-sm)", background: "#ff9800" }} />
-                      </span>
-                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)", textAlign: "right" }}>1</span>
-                    </div>
+                    {v.reasons.length ? v.reasons.map((r) => <BarRow key={r.key} label={r.label} width={r.width} color={r.color} value={r.n} />) : <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>No adjustments this month.</div>}
                   </section>
                 </div>
-                <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Approve · ADJ-0042</h2>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
+                <section className="panel" style={PANEL}>
+                  <div style={PHEAD}>
+                    <h2 style={H2}>{v.sel ? (v.decided ? `${v.sel.status === "approved" ? "Approved" : "Rejected"} · ${v.sel.id}` : `Approve · ${v.sel.id}`) : "Approve"}</h2>
+                    <div style={PSIDE} />
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0" }}>
-                      <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>DG</span>
-                      <span style={{ minWidth: "0" }}>
-                        <span className="ell" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Dhaka Gadget Hub</span>
-                        <span className="mono ell" style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>ADJ-0042 · credit</span>
-                      </span>
-                    </span>
-                    <div className="cs-ba" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 30px minmax(0,1fr)", gap: "10px", alignItems: "center" }}>
-                      <div style={{ padding: "14px", borderRadius: "var(--radius-xl)", background: "var(--surface2)" }}>
-                        <div style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>Before · INV-2026-0912</div>
-                        <div className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>৳2,500</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Retail · Business, September</div>
-                      </div>
-                      <span className="cs-ba-arrow" aria-hidden="true" style={{ textAlign: "center", color: "var(--muted)" }}>→</span>
-                      <div style={{ padding: "14px", borderRadius: "var(--radius-xl)", background: "#e0f3fb" }}>
-                        <div style={{ fontSize: "var(--text-xs)", color: "#00567a" }}>After · with CN-2026-0015</div>
-                        <div className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#00567a" }}>৳1,667</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", color: "#00567a" }}>credit ৳833 = 10 of 30 days</div>
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ display: "flex", gap: "10px", padding: "10px 0", borderTop: "1px solid var(--line)" }}>
-                        <span className="av" style={{ width: "26px", height: "26px", background: "#003087" }} title="FA">FA</span>
-                        <div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Farhana Akter requested <span style={{ fontWeight: "var(--weight-regular)", color: "var(--muted)" }}>Today 10:40</span></div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Reason code OUTAGE-CREDIT · linked to INC-114 and ticket T-2291</div>
+                  {v.sel ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                      <StoreCell ini={v.sel.ini} name={v.sel.store} sub={`${v.sel.id} · ${v.sel.type}`} href={"/merchant-detail?id=" + v.sel.shopId + "&tab=billing"} Link={__Link} />
+                      <div className="cs-ba" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 30px minmax(0,1fr)", gap: "10px", alignItems: "center" }}>
+                        <div style={{ padding: "14px", borderRadius: "var(--radius-xl)", background: "var(--surface2)" }}>
+                          <div style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>{v.eff.beforeLabel}</div>
+                          <div className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>{fmt.taka(v.eff.before)}</div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>{v.eff.planLine}</div>
+                        </div>
+                        <span className="cs-ba-arrow" aria-hidden="true" style={{ textAlign: "center", color: "var(--muted)" }}>→</span>
+                        <div style={{ padding: "14px", borderRadius: "var(--radius-xl)", background: "#e0f3fb" }}>
+                          <div style={{ fontSize: "var(--text-xs)", color: "#00567a" }}>{v.eff.afterLabel}</div>
+                          <div className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#00567a" }}>{fmt.taka(v.eff.after)}</div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", color: "#00567a" }}>{v.eff.explain}</div>
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: "10px", padding: "10px 0", borderTop: "1px solid var(--line)" }}>
-                        <span className="av" style={{ width: "26px", height: "26px", background: "#00567a" }} title="MK">MK</span>
-                        <div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Over ৳500: second approval needed <span style={{ fontWeight: "var(--weight-regular)", color: "var(--muted)" }}>Today 10:40</span></div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Any finance approver except the requester</div>
-                        </div>
+                      <div>
+                        {v.steps.map((st) => (
+                          <div key={st.key} style={{ display: "flex", gap: "10px", padding: "10px 0", borderTop: "1px solid var(--line)" }}>
+                            <span className="av" style={{ width: "26px", height: "26px", background: st.color, flex: "none" }} title={st.ini}>{st.ini}</span>
+                            <div>
+                              <div style={CELLB}>{st.head} <span style={{ fontWeight: "var(--weight-regular)", color: "var(--muted)" }}>{st.when}</span></div>
+                              <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>{st.sub}</div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div style={{ display: "flex", gap: "10px", padding: "10px 0", borderTop: "1px solid var(--line)" }}>
-                        <span className="av" style={{ width: "26px", height: "26px", background: "#7d94bf" }} title="NI">NI</span>
-                        <div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Waiting for Nusrat Islam, finance <span style={{ fontWeight: "var(--weight-regular)", color: "var(--muted)" }} /></div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Reminder sent at 13:00</div>
-                        </div>
-                      </div>
+                      {!v.decided ? (
+                        <>
+                          {v.mode ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                              <textarea className="inp" rows={2} value={v.text} onChange={v.onText} placeholder={v.mode === "reject" ? "Why is it rejected? The requester sees this." : "Your question for the requester"} aria-label={v.mode === "reject" ? "Reason for rejecting" : "Question"} style={{ height: "auto", padding: "8px 10px", fontSize: "var(--text-xs-plus)" }} />
+                              <div style={{ display: "flex", gap: "8px" }}>
+                                <button className="btn btnp" type="button" onClick={v.submitMode} style={BTN}>{v.mode === "reject" ? "Reject" : "Send question"}</button>
+                                <button className="btn btng" type="button" onClick={v.cancelMode} style={BTN}>Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                              <button className="btn btnp" type="button" onClick={v.approve} disabled={!!v.blockText} style={{ ...BTN, opacity: v.blockText ? ".5" : "1" }}>Approve {v.verb}</button>
+                              <button className="btn btng" type="button" onClick={v.startReject} disabled={!!v.blockText} style={{ ...BTN, opacity: v.blockText ? ".5" : "1" }}>Reject</button>
+                              <button className="btn btng" type="button" onClick={v.startAsk} style={BTN}>Ask a question</button>
+                            </div>
+                          )}
+                          {v.blockText ? <div style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>{v.blockText}</div> : null}
+                        </>
+                      ) : null}
                     </div>
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <button className="btn btnp" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Approve credit</button>
-                      <button className="btn btng" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Reject</button>
-                      <button className="btn btng" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Ask a question</button>
-                    </div>
-                    <div style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>You requested this, so you cannot approve it.</div>
-                  </div>
+                  ) : <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>No adjustments yet.</div>}
                 </section>
               </div>
             </div>
           </main>
+          <ConsoleToast text={v.toast} tone={v.toastTone} onClose={v.hideToast} />
         </div>
       </div>
     );

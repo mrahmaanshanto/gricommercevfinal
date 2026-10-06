@@ -76,11 +76,11 @@ export const VARS = ['{name}', '{offer}', '{code}', '{expiry}', '{shop}', '{link
 export function pickLists() {
   const list = allProducts().filter((p) => p.st !== 'deleted');
   const cats = Array.from(new Set(list.map((p) => String(p.cat || '').split(' › ').pop()).filter(Boolean))).sort();
-  return { cats: cats.length ? cats : ['Sunscreen', 'Toner', 'Serum', 'Grocery'], prods: list.map((p) => p.name).slice(0, 60) };
+  return { cats: cats.length ? cats : ['Smartphones', 'Chargers & cables', 'Cases & covers', 'Earbuds'], prods: list.map((p) => p.name).slice(0, 60) };
 }
 
 // ---- words ----------------------------------------------------------------------------------------------------
-/** "a customer buys from Sunscreen" — what makes the offer go out. */
+/** "a customer buys from Smartphones" — what makes the offer go out. */
 export function triggerText(o) {
   if (o.trig === 'manual') return 'You send it to “' + (o.group || 'All customers') + '”';
   const t = triggerBy(o.sit);
@@ -95,7 +95,7 @@ export function waitText(o) {
   const w = WAITS.find((x) => x[0] === o.wait);
   return !w || w[0] === '0' ? 'right away' : w[1] + ' ' + triggerBy(o.sit).from;
 }
-/** "10% off Toner products (up to ৳200)" — what the customer gets. */
+/** "10% off Cases & covers products (up to ৳200)" — what the customer gets. */
 export function rewardText(o) {
   const min = Number(o.oMin) ? ' on orders above ' + money(o.oMin) : '';
   const cap = Number(o.oCap) ? ' (up to ' + money(o.oCap) + ')' : '';
@@ -119,23 +119,23 @@ export function blankOffer() {
 }
 const seed = (o) => ({ ...blankOffer(), ...o, at: Date.UTC(2026, 8, 1) });
 const SEED = [
-  seed({ id: 'so-cross', name: 'Bought sunscreen, try toner', sit: 'buy_cat', sCat: 'Sunscreen', wait: '5', off: 'pct_cat', oCat: 'Toner', oPct: '10', oCap: '200', sent: 1060, used: 104, sales: 118200, discount: 7400, msg: 'Hi {name}, loved your sunscreen? Try our toners with {offer}! Code {code}, till {expiry}. {link}' }),
+  seed({ id: 'so-cross', name: 'Bought a phone, add a case', sit: 'buy_cat', sCat: 'Smartphones', wait: '5', off: 'pct_cat', oCat: 'Cases & covers', oPct: '10', oCap: '200', sent: 1060, used: 104, sales: 118200, discount: 7400, msg: 'Hi {name}, enjoying your new phone? Protect it with {offer} on cases! Code {code}, till {expiry}. {link}' }),
   seed({ id: 'so-win', name: 'Win them back', sit: 'stopped', sIdle: '30', wait: '0', off: 'pct_order', oPct: '10', oCap: '300', oMin: '1000', ch: ['sms', 'wa'], sent: 640, used: 71, sales: 186400, discount: 14200, msg: 'আমরা আপনাকে মিস করছি, {name}! {offer} — কোড {code}, {expiry} পর্যন্ত। {link}' }),
-  seed({ id: 'so-view', name: 'Looked but didn’t buy', sit: 'view_prod', sProd: 'Vitamin C Serum 30ml', sViews: '3', wait: '1', off: 'pct_prod', oProd: 'Vitamin C Serum 30ml', oPct: '10', oCap: '', days: '3', ch: ['wa'], sent: 522, used: 96, sales: 142800, discount: 9600 }),
-  seed({ id: 'so-refill', name: 'Time to buy rice again', sit: 'refill', sCat: 'Grocery', wait: '3', off: 'ship', ch: ['sms'], sent: 410, used: 88, sales: 96700, discount: 5300 }),
+  seed({ id: 'so-view', name: 'Looked but didn’t buy', sit: 'view_prod', sProd: 'Redmi Note 13 8/256GB', sViews: '3', wait: '1', off: 'pct_prod', oProd: 'Redmi Note 13 8/256GB', oPct: '10', oCap: '', days: '3', ch: ['wa'], sent: 522, used: 96, sales: 142800, discount: 9600 }),
+  seed({ id: 'so-refill', name: 'Time for a new glass', sit: 'refill', sCat: 'Screen protection', wait: '3', off: 'ship', ch: ['sms'], sent: 410, used: 88, sales: 96700, discount: 5300 }),
   seed({ id: 'so-wish', name: 'Wishlist price drop', sit: 'wish_drop', wait: '0', off: 'tk_order', oTk: '100', days: '3', ch: ['wa', 'email'], sent: 188, used: 41, sales: 52400, discount: 4100 }),
   seed({ id: 'so-vip', name: 'Welcome to Gold', sit: 'level_up', sLevel: 'Gold', wait: '0', off: 'points', oMult: '2', days: '30', ch: ['sms', 'email'], sent: 128, used: 24, sales: 32800, discount: 700 }),
-  seed({ id: 'so-puja', name: 'Puja gift', trig: 'manual', group: 'Loyal', off: 'gift', oProd: 'Lip Balm Strawberry 4g', oMin: '2000', days: '14', on: false, msg: 'শুভ পূজা, {name}! ৳২,০০০+ অর্ডারে ফ্রি উপহার। কোড {code}, {expiry} পর্যন্ত। {link}' }),
+  seed({ id: 'so-puja', name: 'Puja gift', trig: 'manual', group: 'Loyal', off: 'gift', oProd: 'Phone Pouch (gift)', oMin: '2000', days: '14', on: false, msg: 'শুভ পূজা, {name}! ৳২,০০০+ অর্ডারে ফ্রি উপহার। কোড {code}, {expiry} পর্যন্ত। {link}' }),
 ];
 const LOG_SEED = [
   ['2026-09-19T09:02', 'Farzana Akter', 'Win them back', 'wa', 'FAR7Q2', 'used', 'Ordered ৳3,420'],
-  ['2026-09-19T09:05', 'Rafiqul Islam', 'Bought sunscreen, try toner', 'sms', 'RAF4K8', 'delivered', ''],
+  ['2026-09-19T09:05', 'Rafiqul Islam', 'Bought a phone, add a case', 'sms', 'RAF4K8', 'delivered', ''],
   ['2026-09-19T09:10', 'Nusrat Jahan', 'Looked but didn’t buy', 'sms', 'NUS7Q2', 'delivered', ''],
   ['2026-09-19T09:40', 'Tanvir Hasan', 'Wishlist price drop', 'email', 'TAN2M5', 'opened', ''],
-  ['2026-09-19T10:12', 'Sumaiya Rahman', 'Time to buy rice again', 'sms', 'SUM9P1', 'failed', 'Number switched off'],
+  ['2026-09-19T10:12', 'Sumaiya Rahman', 'Time for a new glass', 'sms', 'SUM9P1', 'failed', 'Number switched off'],
   ['2026-09-19T10:30', 'Mehedi Hasan', 'Win them back', 'wa', 'MEH3D7', 'read', ''],
   ['2026-09-19T11:05', 'Ayesha Siddika', 'Welcome to Gold', 'email', 'AYE6G2', 'delivered', ''],
-  ['2026-09-18T16:20', 'Kamrul Hasan', 'Bought sunscreen, try toner', 'wa', 'KAM8T4', 'used', 'Ordered ৳1,980'],
+  ['2026-09-18T16:20', 'Kamrul Hasan', 'Bought a phone, add a case', 'wa', 'KAM8T4', 'used', 'Ordered ৳1,980'],
   ['2026-09-18T15:02', 'Shirin Akter', 'Looked but didn’t buy', 'wa', 'SHI5V9', 'read', ''],
   ['2026-09-18T12:44', 'Arif Chowdhury', 'Win them back', 'sms', 'ARI1W3', 'delivered', ''],
 ].map(([at, who, offer, ch, code, status, note], i) => ({ id: 'sl-' + i, at: new Date(at + ':00+06:00').getTime(), who, offer, ch, code, status, note }));

@@ -42,6 +42,18 @@ import { getConvs, recentConvs, lastLine, ago as agoText, unreadCount, initialsO
 import { liveCount, LIVE_EVENT } from '../lib/liveCounts';
 import { currentPlan, PLAN_EVENT } from '../lib/plans';
 import { landingOf, setLanding, areaOf, NAV_PROFILE_EVENT } from '../lib/navProfile';
+import { businessProfile } from '../lib/businessProfile';
+import { getPlaces } from '../lib/locations';
+
+// the account menu's shop line: the store name from Settings › General and how many branches it has
+const shopName = () => { try { return businessProfile().brand.name || 'Your shop'; } catch { return 'Your shop'; } };
+function placesLine() {
+  let list = [];
+  try { list = getPlaces({}).filter((p) => p.active !== false && !p.noSale); } catch { /* ignore */ }
+  const n = list.filter((p) => p.type === 'Branch').length;
+  if (n) return n + (n === 1 ? ' branch' : ' branches');
+  return list.length > 1 ? list.length + ' places' : '1 shop';
+}
 
 // the menu area of this page: the side menu's active id, else the address
 function pageArea() {
@@ -69,6 +81,7 @@ export function defineGcTopbar() {
     ext: '<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
     refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
     chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+    video: '<path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
     bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
     chev: '<path d="m6 9 6 6 6-6"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
@@ -201,10 +214,18 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 
   const NOTES = [
     { i: 'cart', t: 'New order #136812', d: 'Nusrat Jahan · ৳2,450 · bKash paid', w: '2 min', u: 1 },
-    { i: 'box', t: 'Low stock: Sunscreen SPF 50', d: '4 left at Dhanmondi branch', w: '18 min', u: 1 },
+    { i: 'box', t: 'Low stock: Anker 20W charger', d: '4 left at Dhanmondi branch', w: '18 min', u: 1 },
     { i: 'truck', t: 'Steadfast pickups delayed', d: '23 parcels waiting for tracking numbers', w: '1 h', u: 1 },
     { i: 'wallet', t: 'COD payout received', d: 'Pathao · ৳48,300 for 31 orders', w: '3 h', u: 0 },
     { i: 'zap', t: 'Flash sale starts in 5 hours', d: 'Weekend Mega Sale · 6:00 PM', w: 'Today', u: 0 }
+  ];
+  // a shop without online selling: counter sales, dues and stock (no couriers, COD or online payments)
+  const RETAIL_NOTES = [
+    { i: 'cart', t: 'Counter sale #136812', d: 'Dhanmondi · Counter 1 · ৳2,450 cash', w: '2 min', u: 1 },
+    { i: 'box', t: 'Low stock: Anker 20W charger', d: '4 left at Dhanmondi branch', w: '18 min', u: 1 },
+    { i: 'wallet', t: 'Payment due today', d: 'Shirin Akter · ৳3,200 on due', w: '1 h', u: 1 },
+    { i: 'wallet', t: 'Card machine payout received', d: 'City Bank · ৳48,300 for 31 sales', w: '3 h', u: 0 },
+    { i: 'truck', t: 'Stock transfer arrived', d: 'Central Warehouse → Dhanmondi · 24 items', w: 'Today', u: 0 }
   ];
 
   class GcTopbar extends HTMLElement {
@@ -216,6 +237,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       this._loc = () => this.render();
       window.addEventListener('gc:locale', this._loc);
       window.addEventListener('gc:settle', this._loc);
+      window.addEventListener('gc:meet', this._loc);
       window.addEventListener(SESSION_EVENT, this._loc);
       window.addEventListener(EDITION_EVENT, this._loc);
       window.addEventListener(PROPOSAL_EVENT, this._loc);
@@ -238,7 +260,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       if (!this._navBound) { this._navBound = true; this.root.addEventListener('click', (e) => { const a = e.composedPath().find((el) => el.matches && el.matches('a[href^="/"]')); if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); this._open = ''; navigate(a.getAttribute('href')); } }); }
       document.addEventListener('pointerdown', this._doc); document.addEventListener('keydown', this._key);
     }
-    disconnectedCallback() { document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener(EDITION_EVENT, this._loc); window.removeEventListener(PROPOSAL_EVENT, this._loc); window.removeEventListener('gc:settle', this._loc); window.removeEventListener(SESSION_EVENT, this._loc); window.removeEventListener(PLAN_EVENT, this._loc); window.removeEventListener(NAV_PROFILE_EVENT, this._loc); window.removeEventListener(LIVE_EVENT, this._inbox); if (this._setup) ['gc:connections', 'gc:ledger', 'gc:pos', 'gc:route', 'focus'].forEach((ev) => window.removeEventListener(ev, this._setup)); }
+    disconnectedCallback() { document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener(EDITION_EVENT, this._loc); window.removeEventListener(PROPOSAL_EVENT, this._loc); window.removeEventListener('gc:settle', this._loc); window.removeEventListener('gc:meet', this._loc); window.removeEventListener(SESSION_EVENT, this._loc); window.removeEventListener(PLAN_EVENT, this._loc); window.removeEventListener(NAV_PROFILE_EVENT, this._loc); window.removeEventListener(LIVE_EVENT, this._inbox); if (this._setup) ['gc:connections', 'gc:ledger', 'gc:pos', 'gc:route', 'focus'].forEach((ev) => window.removeEventListener(ev, this._setup)); }
     /** Closes the open popover; from the keyboard, focus goes back to the button that opened it. */
     close(refocus) { const k = this._open; this._open = ''; this.render(); if (refocus && k) { const el = this.root.querySelector(k === 'search' ? 'input' : `[data-act="${k}"]`); if (el) el.focus(); } }
     attributeChangedCallback() { if (this.isConnected) this.render(); }
@@ -253,7 +275,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const title = a('page', ''), crumb = ((c) => (c === title ? '' : c))(menuCrumb(a('crumb', ''))), ph = (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches) ? L('Search') : L(a('placeholder', has('catalog') ? 'Search orders, products, customers, invoices…' : 'Search customers, chats and calls…'));
       const exp = (k) => `aria-expanded="${o === k}" aria-haspopup="true"`;
       const pop = (k, html, style) => (o === k ? `<div class="pop" role="dialog" style="${style}">${html}</div>` : '');
-      const searchPop = `<div class="ph">${L('Recent searches')}</div><div class="chips"><button class="chip">#136779</button><button class="chip">01711-234567</button><button class="chip">Denim Jeans</button><button class="chip">INV-2026-0912</button></div>
+      const searchPop = `<div class="ph">${L('Recent searches')}</div><div class="chips"><button class="chip">#136779</button><button class="chip">01711-234567</button><button class="chip">Redmi Note 13</button><button class="chip">INV-2026-0912</button></div>
         <div class="ph">${L('Jump to')}</div>
         ${has('commerce') ? `<a class="it" href="${routeOf('merchant-orders/MerchantOrders.dc.html')}"><span class="ico">${ic('cart', 16)}</span><span><b>Orders</b><small>Search by order ID, phone or customer</small></span></a>` : ''}
         ${has('catalog') ? `<a class="it" href="${routeOf('products/AllProducts.dc.html')}"><span class="ico">${ic('box', 16)}</span><span><b>Products</b><small>Name, SKU or barcode</small></span></a>` : ''}
@@ -262,10 +284,10 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         ${has('comms') ? `<a class="it" href="${routeOf('merchant-inbox/MerchantInbox.dc.html')}"><span class="ico">${ic('user', 16)}</span><span><b>Inbox</b><small>Name, phone or message</small></span></a>` : ''}`;
       const scanPop = `<div class="ph">Scan a barcode <span style="text-transform:none;letter-spacing:0;font-weight:var(--weight-medium)">USB scanner ready</span></div>
         <div class="scanbox">Point the camera at a barcode, or scan with the USB scanner</div>
-        ${this._scanHit ? `<div class="hit" role="status"><span class="ok">${ic('check', 16, 2.5)}</span><span><b style="display:block">Denim Jeans · Blue · 32</b><span style="font-family:var(--font-data);font-size:11.5px;color:var(--muted)">8941200200214 · 40 in stock · ৳1,890</span></span></div>
+        ${this._scanHit ? `<div class="hit" role="status"><span class="ok">${ic('check', 16, 2.5)}</span><span><b style="display:block">Baseus Car Phone Holder</b><span style="font-family:var(--font-data);font-size:11.5px;color:var(--muted)">8941200200214 · 40 in stock · ৳1,890</span></span></div>
         <div class="row2"><a class="pb p" href="${routeOf('products/AddProduct.dc.html')}" style="display:flex;align-items:center;justify-content:center;text-decoration:none">Open product</a><a class="pb s" href="${routeOf('pos-register/Pos.dc.html')}" style="display:flex;align-items:center;justify-content:center;text-decoration:none">Add to POS cart</a></div>` : `<div class="row2"><button class="pb s" data-act="cam">${ic('camera', 14)} Use phone camera</button></div>`}`;
       const invPop = `<div class="ph">Invoices <a href="${routeOf('order-detail/OrderDetail.dc.html')}">See all</a></div>
-        <a class="it" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('plus', 16, 2.2)}</span><span><b>New invoice</b><small>For a phone, walk-in or wholesale order</small></span></a>
+        <a class="it" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('plus', 16, 2.2)}</span><span><b>New invoice</b><small>For a phone or walk-in sale</small></span></a>
         <div class="hr"></div>
         ${[['INV-2026-0931', 'Nusrat Jahan · ৳2,450', 'Paid'], ['INV-2026-0930', 'Rahim Traders · ৳38,200', 'Due 25 Sep'], ['INV-2026-0929', 'Walk-in · ৳890', 'Paid']].map((r) => `<a class="it" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('receipt', 16)}</span><span><b>${r[0]}</b><small>${r[1]}</small></span><span class="t">${r[2]}</span></a>`).join('')}`;
       const filesPop = `<div class="ph">Recent files <a href="${routeOf('settings-console/SetMedia.dc.html')}">File manager</a></div>
@@ -274,10 +296,13 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       // payouts waiting for the evening check (components/EveningCheck.jsx)
       const settle = (typeof window !== 'undefined' && window.__gcSettle) || { count: 0 };
       const settleNote = settle.count ? `<a class="it note unread" href="/settlements?check=1"><span class="ico">${ic('wallet', 16)}</span><span><b>${esc(settle.text)}</b><small>Did the expected money reach your bank? Tap to answer.</small></span><span class="t">Now</span><i class="dot" role="img" aria-label="Unread"></i></a>` : '';
-      const unread = this._unread + (settle.count ? 1 : 0);
+      // meetings starting soon or waiting for a note (components/MeetingAlerts.jsx)
+      const meet = ((typeof window !== 'undefined' && window.__gcMeet) || { items: [] }).items;
+      const meetNotes = meet.map((m) => `<a class="it note unread" href="/meetings?id=${encodeURIComponent(m.id)}"><span class="ico">${ic('video', 16)}</span><span><b>${esc(m.t)}</b><small>${esc(m.d)}</small></span><span class="t">${esc(m.w)}</span><i class="dot" role="img" aria-label="Unread"></i></a>`).join('');
+      const unread = this._unread + (settle.count ? 1 : 0) + meet.length;
       const notePop = `<div class="ph">${L('Notifications')} <button data-act="readall">${L('Mark all read')}</button></div>
-        ${settleNote}${NOTES.map((n, i) => { const un = n.u && i < this._unread; return `<a class="it note${un ? ' unread' : ''}" href="${routeOf(has('commerce') ? 'merchant-orders/MerchantOrders.dc.html' : 'merchant-inbox/MerchantInbox.dc.html')}"><span class="ico">${ic(n.i, 16)}</span><span><b>${n.t}</b><small>${n.d}</small></span><span class="t">${n.w}</span><i class="dot"${un ? ' role="img" aria-label="Unread"' : ' aria-hidden="true"'}></i></a>`; }).join('')}
-        <a class="foot" href="${routeOf('merchant-inbox/MerchantInbox.dc.html')}">${L('View all notifications')}</a>`;
+        ${settleNote}${meetNotes}${(has('online') ? NOTES : RETAIL_NOTES).map((n, i) => { const un = n.u && i < this._unread; return `<a class="it note${un ? ' unread' : ''}" href="${routeOf(has('commerce') ? 'merchant-orders/MerchantOrders.dc.html' : 'merchant-inbox/MerchantInbox.dc.html')}"><span class="ico">${ic(n.i, 16)}</span><span><b>${n.t}</b><small>${n.d}</small></span><span class="t">${n.w}</span><i class="dot"${un ? ' role="img" aria-label="Unread"' : ' aria-hidden="true"'}></i></a>`; }).join('')}
+        <a class="foot" href="${routeOf(has('comms') ? 'merchant-inbox/MerchantInbox.dc.html' : 'merchant-orders/MerchantOrders.dc.html')}">${L('View all notifications')}</a>`;
       // parts of Nayeem's proposal switched on (src/lib/proposal.js): say so, so a screenshot is never taken for today's build
       const pOn = proposalsOn().length;
       const pText = L('Proposal: {n} on').replace('{n}', pOn);
@@ -322,7 +347,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         ${has('commerce') ? `<a class="it only-narrow" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('receipt', 16)}</span><span><b>${L('Invoices')}</b></span></a>` : ''}
         <a class="it only-narrow" href="${routeOf('settings-console/SetMedia.dc.html')}"><span class="ico">${ic('folder', 16)}</span><span><b>${L('Files')}</b></span></a>
         <label class="it" style="cursor:default;align-items:center"><span class="ico">${ic('flag', 16)}</span><b style="white-space:nowrap">${L('Start page')}</b><select class="lsel" data-act="landing" aria-label="${L('Start page')}">${landingOpts}</select></label>
-        <a class="it" href="/subscription"><span class="ico">${ic('store', 16)}</span><span><b>GridShop</b><small>${esc(L(plan.name + ' plan'))} · ${L('3 branches')}</small></span><span class="t" style="color:#047857">${ic('check', 14, 2.5)}</span></a>
+        <a class="it" href="/subscription"><span class="ico">${ic('store', 16)}</span><span><b>${esc(shopName())}</b><small>${esc(L(plan.name + ' plan'))} · ${esc(L(placesLine()))}</small></span><span class="t" style="color:#047857">${ic('check', 14, 2.5)}</span></a>
         <div class="it" style="cursor:default;align-items:center"><span class="ico">${ic('kb', 16)}</span><b>${L('Language')}</b><span class="seg" role="group" aria-label="${L('Language')}"><button data-lang="en" class="${locale === 'en' ? 'on' : ''}" aria-pressed="${locale === 'en'}">EN</button><button data-lang="bn" lang="bn" class="${locale === 'bn' ? 'on' : ''}" aria-pressed="${locale === 'bn'}">বাংলা</button></span></div>
         <div class="hr"></div>
         <a class="it" href="/set-profile"><span class="ico">${ic('user', 16)}</span><span><b>${L('Profile type')}</b><small>${L('Switch to a team member’s profile')}</small></span></a>

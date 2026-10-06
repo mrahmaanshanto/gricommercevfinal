@@ -178,16 +178,24 @@ function SalesSummary({ lines, cats, now }) {
 }
 
 // ---- Order summary ------------------------------------------------------------------------------------------------
-const GROUPS = [
+const ALL_GROUPS = [
   ['New', ['onhold', 'processing', 'pending'], 'var(--viz-1)'],
   ['Approved', ['approved'], 'var(--viz-7)'],
   ['Ready for courier', ['ready'], 'var(--viz-4)'],
-  ['In transit', ['shipped'], 'var(--viz-5)'],
+  ['Sent to courier', ['shipped'], 'var(--viz-5)'],
   ['Delivered', ['delivered'], 'var(--viz-3)'],
   ['Cancelled', ['cancelled'], 'var(--viz-8)'],
   ['Returned', ['returned'], 'var(--viz-2)'],
 ];
-function OrderSummary({ orders, cats, now }) {
+// a shop without online selling: counter sales are finished or on due (no courier steps)
+const RETAIL_GROUPS = [
+  ['Payment due', ['pending'], 'var(--viz-1)'],
+  ['Completed', ['delivered'], 'var(--viz-3)'],
+  ['Cancelled', ['cancelled'], 'var(--viz-8)'],
+  ['Returned', ['returned'], 'var(--viz-2)'],
+];
+function OrderSummary({ orders, cats, now, online = true }) {
+  const GROUPS = online ? ALL_GROUPS : RETAIL_GROUPS;
   const [from, setFrom] = useState(iso(now - 6 * DAY));
   const [to, setTo] = useState(iso(now));
   const [cat, setCat] = useState('');
@@ -198,7 +206,7 @@ function OrderSummary({ orders, cats, now }) {
     const inCat = (o) => !cat || (o.lines || []).some((l) => topCat((safe(() => productBy(l.sku || l.name), null) || {}).cat) === cat);
     const list = orders.filter((o) => o.at >= a && o.at < b && inCat(o));
     return { total: list.length, by: GROUPS.map(([, keys]) => list.filter((o) => keys.includes(o.statusKey)).length) };
-  }, [orders, from, to, cat]);
+  }, [orders, from, to, cat, GROUPS]);
   const R = 112, STEP = 11, SW = 7;
   const most = Math.max(1, ...counts.by);
   return (
@@ -410,7 +418,9 @@ function LowStock({ cats }) {
   );
 }
 
-export function HomeWidgets({ has = () => true }) {
+/** skip: widget keys to leave out (e.g. ['latest-orders'] on the Online Home, which has its own Latest orders card). */
+export function HomeWidgets({ has = () => true, skip = [] }) {
+  const no = (k) => skip.includes(k);
   const [now] = useState(() => Date.now());
   const lines = useMemo(() => safe(() => getSaleLines(), []), []);
   const orders = useMemo(() => safe(() => getOrders(), []), []);
@@ -418,10 +428,15 @@ export function HomeWidgets({ has = () => true }) {
   const cats = useMemo(() => [...new Set(safe(() => getCatalog(), []).map((r) => topCat(r.cat)).filter(Boolean))].sort(), []);
   return (
     <div className="hw">
-      <div className="hw-row hw-row--wide"><SalesSummary lines={lines} cats={cats} now={now} />{has('online') || has('commerce') ? <OrderSummary orders={orders} cats={cats} now={now} /> : null}</div>
+      <div className="hw-row hw-row--wide"><SalesSummary lines={lines} cats={cats} now={now} />{has('online') || has('commerce') ? <OrderSummary orders={orders} cats={cats} now={now} online={has('online')} /> : null}</div>
       <div className="hw-row">{has('online') ? <LiveVisitors now={now} /> : null}<TopCustomers lines={lines} now={now} /></div>
-      <div className="hw-row"><LatestOrders orders={orders} /><LatestCustomers people={people} /></div>
-      <div className="hw-row"><TopProducts lines={lines} now={now} />{has('catalog') ? <LowStock cats={cats} /> : null}</div>
+      {no('latest-orders') ? (<>
+        <div className="hw-row"><TopProducts lines={lines} now={now} /><LatestCustomers people={people} /></div>
+        {has('catalog') ? <div className="hw-row"><LowStock cats={cats} /></div> : null}
+      </>) : (<>
+        <div className="hw-row"><LatestOrders orders={orders} /><LatestCustomers people={people} /></div>
+        <div className="hw-row"><TopProducts lines={lines} now={now} />{has('catalog') ? <LowStock cats={cats} /> : null}</div>
+      </>)}
     </div>
   );
 }

@@ -6,16 +6,29 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { ConsoleSide, ConsoleTop, ConsoleToast } from './ConsoleFrame';
+import { attach, db, now, merchants, catalogue } from '@/lib/platform';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
-const STORES = [{"n": "Rongdhonu Fashion", "tid": "0007", "dom": "rongdhonu.com.bd", "seg": "Online", "plan": "Business", "st": "Active", "sk": "ok", "h": 86, "orders": 1840, "lim": 2500, "last": 0, "own": "TS", "mods": ["Landing pages", "Loyalty", "Cart recovery", "Inbox"], "trial": "none", "bill": "Paid", "src": "Meta ads", "by": "Tania Sultana", "dist": "Dhaka", "mrr": 2500}, {"n": "Mohona Traders", "tid": "0012", "dom": "mohonatraders.com.bd", "seg": "Wholesale", "plan": "Enterprise", "st": "Active", "sk": "ok", "h": 90, "orders": 3120, "lim": 10000, "last": 0, "own": "MK", "mods": ["Wholesale dues", "Warehouse", "Payroll", "Inbox", "AI products"], "trial": "none", "bill": "Paid", "src": "Event", "by": "Mahin Khan", "dist": "Dhaka", "mrr": 5000}, {"n": "Shonali Crafts", "tid": "0017", "dom": "shonalicrafts.com", "seg": "Online · Retail", "plan": "Growth", "st": "Active", "sk": "ok", "h": 78, "orders": 410, "lim": 500, "last": 0, "own": "TS", "mods": ["POS", "Landing pages"], "trial": "module", "bill": "Paid", "src": "Reference", "by": "Tania Sultana", "dist": "Dhaka", "mrr": 1000}, {"n": "Dhaka Gadget Hub", "tid": "0031", "dom": "dhakagadgethub.com.bd", "seg": "Retail", "plan": "Business", "st": "Grace · day 3", "sk": "warn", "h": 54, "orders": 960, "lim": 2500, "last": 0, "own": "FA", "mods": ["POS", "Loyalty", "Cart recovery", "Warehouse", "Blasts"], "trial": "module", "bill": "Overdue", "src": "Physical visit", "by": "Rakib Hasan", "dist": "Dhaka", "mrr": 2500}, {"n": "Rupsha Sports", "tid": "0038", "dom": "rupshasports.com.bd", "seg": "Retail", "plan": "Growth", "st": "Suspended", "sk": "err", "h": 18, "orders": 0, "lim": 500, "last": 19, "own": "RH", "mods": ["POS"], "trial": "none", "bill": "Overdue", "src": "YouTube ads", "by": "Rakib Hasan", "dist": "Khulna", "mrr": 1000}, {"n": "Bindu Beauty", "tid": "0044", "dom": "bindubeauty.com.bd", "seg": "Online", "plan": "Business", "st": "Past due · read-only", "sk": "err", "h": 33, "orders": 640, "lim": 2500, "last": 9, "own": "RH", "mods": ["Landing pages", "Loyalty", "Blasts"], "trial": "none", "bill": "Overdue", "src": "Meta ads", "by": "Rakib Hasan", "dist": "Chattogram", "mrr": 2500}, {"n": "Nodi Organic", "tid": "0058", "dom": "nodiorganic.gridcommerce.com.bd", "seg": "Online", "plan": "Growth", "st": "Trial · day 9", "sk": "none", "h": 41, "orders": 12, "lim": 500, "last": 6, "own": "RH", "mods": ["Landing pages"], "trial": "trial", "bill": "Trial", "src": "Meta ads", "by": "Rakib Hasan", "dist": "Bogura", "mrr": 0}, {"n": "Kolpo Books", "tid": "0061", "dom": "kolpobooks.gridcommerce.com.bd", "seg": "Online", "plan": "Growth", "st": "Trial · day 12", "sk": "none", "h": 72, "orders": 48, "lim": 500, "last": 0, "own": "TS", "mods": ["Landing pages"], "trial": "ending", "bill": "Trial", "src": "Website", "by": "Tania Sultana", "dist": "Dhaka", "mrr": 0}, {"n": "Mehedi Traders", "tid": "0066", "dom": "meheditraders.com.bd", "seg": "Wholesale", "plan": "Business", "st": "Active", "sk": "ok", "h": 81, "orders": 780, "lim": 2500, "last": 1, "own": "FA", "mods": ["Wholesale dues", "Warehouse", "Loyalty"], "trial": "module", "bill": "Paid", "src": "Event", "by": "Farhana Akter", "dist": "Narayanganj", "mrr": 2500}, {"n": "Pabna Dairy Hub", "tid": "0069", "dom": "pabnadairy.gridcommerce.com.bd", "seg": "Wholesale", "plan": "Growth", "st": "Trial · day 13", "sk": "none", "h": 58, "orders": 4, "lim": 500, "last": 2, "own": "MK", "mods": ["Wholesale dues"], "trial": "ending", "bill": "Trial", "src": "Affiliate", "by": "Mahin Khan", "dist": "Pabna", "mrr": 0}, {"n": "Sabuj Bazar", "tid": "0072", "dom": "sabujbazar.gridcommerce.com.bd", "seg": "Online", "plan": "Business", "st": "Trial · day 6", "sk": "none", "h": 82, "orders": 31, "lim": 2500, "last": 0, "own": "TS", "mods": ["Landing pages", "Cart recovery"], "trial": "trial", "bill": "Trial", "src": "Meta ads", "by": "Tania Sultana", "dist": "Sylhet", "mrr": 0}, {"n": "Rongin Saree", "tid": "0074", "dom": "ronginsaree.gridcommerce.com.bd", "seg": "Online", "plan": "Growth", "st": "Trial · day 5", "sk": "none", "h": 77, "orders": 22, "lim": 500, "last": 0, "own": "FA", "mods": ["Landing pages"], "trial": "trial", "bill": "Trial", "src": "Reference", "by": "Farhana Akter", "dist": "Tangail", "mrr": 0}, {"n": "Ghorer Bazar BD", "tid": "0023", "dom": "ghorerbazarbd.com", "seg": "Online", "plan": "Business", "st": "Active", "sk": "ok", "h": 69, "orders": 1320, "lim": 2500, "last": 8, "own": "MK", "mods": ["Landing pages", "Cart recovery", "Inbox"], "trial": "none", "bill": "Due", "src": "YouTube ads", "by": "Mahin Khan", "dist": "Dhaka", "mrr": 2500}, {"n": "Tech Zone Uttara", "tid": "0028", "dom": "techzoneuttara.com.bd", "seg": "Retail", "plan": "Growth", "st": "Active", "sk": "ok", "h": 63, "orders": 205, "lim": 500, "last": 34, "own": "RH", "mods": ["POS"], "trial": "none", "bill": "Due", "src": "Physical visit", "by": "Rakib Hasan", "dist": "Dhaka", "mrr": 1000}];
-const FILTERS = [["plan", "Plan", ["All plans", "Growth", "Business", "Enterprise"]], ["module", "Module in use", ["Any module", "POS", "Warehouse", "Wholesale dues", "Landing pages", "Loyalty", "Cart recovery", "Inbox", "Blasts", "AI products", "Payroll"]], ["trial", "Trial", ["Any", "Store in trial", "Trial ends in 3 days", "Module trial running", "Not in trial"]], ["activity", "Activity", ["Any", "Active in last 7 days", "Inactive 7+ days", "Inactive 30+ days"]], ["health", "Health", ["Any score", "Healthy · 75+", "Watch · 50–74", "At risk · under 50"]], ["billing", "Billing", ["Any", "Paid", "Due", "Overdue", "In trial"]], ["segment", "Segment", ["Any", "Online", "Retail", "Wholesale"]], ["source", "Came from", ["Any source", "Physical visit", "Meta ads", "YouTube ads", "Reference", "Affiliate", "Website", "Event"]], ["by", "Onboarded by", ["Anyone", "Farhana Akter", "Rakib Hasan", "Tania Sultana", "Mahin Khan"]], ["dist", "District", ["All districts", "Dhaka", "Chattogram", "Sylhet", "Khulna", "Narayanganj", "Bogura", "Pabna", "Tangail"]]];
+// stores come from the platform data (lib/platform): every store with its plan, state, health and billing
+const FILTERS = [["plan", "Plan", ["All plans", "Growth", "Business", "Enterprise"]], ["module", "Module in use", ["Any module", "POS", "Warehouse", "Wholesale dues", "Landing pages", "Loyalty", "Cart recovery", "Inbox", "Blasts", "AI products", "Payroll"]], ["trial", "Trial", ["Any", "Store in trial", "Trial ends in 3 days", "Module trial running", "Not in trial"]], ["activity", "Activity", ["Any", "Active in last 7 days", "Inactive 7+ days", "Inactive 30+ days"]], ["health", "Health", ["Any score", "Healthy · 75+", "Watch · 50–74", "At risk · under 50"]], ["billing", "Billing", ["Any", "Paid", "Due", "Overdue", "In trial"]], ["segment", "Segment", ["Any", "Online", "Retail", "Wholesale"]], ["source", "Came from", ["Any source", "Physical visit", "Meta ads", "YouTube ads", "Reference", "Affiliate", "Website", "Event"]], ["by", "Onboarded by", ["Anyone", ...catalogue.ONBOARDERS]], ["dist", "District", ["All districts", ...catalogue.DISTRICTS]]];
+const VIEW_KEY = 'gc.platform.view.merchants';
 const AVC = {"FA": "#003087", "RH": "#0070a0", "TS": "#2e559d", "MK": "#00567a", "NI": "#7d94bf"};
 const COL = { ok: '#10b981', warn: '#ff9800', err: '#ff5724', none: '#94a3b8' };
 const PILL = { ok: 'pill p-ok', warn: 'pill p-warn', err: 'pill p-err', none: 'pill p-grey' };
 const BILL = { Paid: 'pill p-ok', Due: 'pill p-warn', Overdue: 'pill p-err', Trial: 'pill p-grey' };
 class Component extends DCLogic {
+  componentDidMount() {
+    this.off = attach(this);
+    // a saved view (filters and sort) comes back; ?billing= / ?trial= open a filtered list
+    try { const v = JSON.parse(window.localStorage.getItem(VIEW_KEY) || 'null'); if (v) this.setState(v); } catch { /* none */ }
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('billing')) this.setState({ f_billing: q.get('billing') });
+    if (q.get('trial')) this.setState({ f_trial: q.get('trial') });
+  }
+  componentWillUnmount() { if (this.off) this.off(); }
+
   renderVals() {
     const v = this.renderVals0() || {};
     const mini = !!(this.state || {}).mini;
@@ -32,8 +45,10 @@ class Component extends DCLogic {
     FILTERS.forEach(([k, , opts]) => { f[k] = s['f_' + k] ?? opts[0]; });
     const q = (s.q || '').trim().toLowerCase();
     const hk = (h) => h >= 75 ? 'ok' : h >= 50 ? 'warn' : 'err';
-    let list = STORES.filter((m) => {
-      if (q && !(m.n + ' ' + m.dom + ' ' + m.tid + ' ' + m.by).toLowerCase().includes(q)) return false;
+    const data = merchants(db(), now());
+    const owners = Object.fromEntries(db().shops.map((x) => [x.id, x.owner.name + ' ' + x.owner.phone]));
+    let list = data.rows.filter((m) => {
+      if (q && !(m.n + ' ' + m.dom + ' ' + m.tid + ' ' + m.by + ' ' + owners[m.tid]).toLowerCase().includes(q)) return false;
       if (f.plan !== 'All plans' && m.plan !== f.plan) return false;
       if (f.module !== 'Any module' && !m.mods.includes(f.module)) return false;
       if (f.trial === 'Store in trial' && !(m.trial === 'trial' || m.trial === 'ending')) return false;
@@ -61,11 +76,29 @@ class Component extends DCLogic {
     const C = 2 * Math.PI * 11;
     const active = FILTERS.filter(([k, , opts]) => f[k] !== opts[0]).length + (q ? 1 : 0);
     const out = {
+      kpi: data.kpis, total: data.total,
+      toast: s.toast || '', hideToast: () => this.setState({ toast: '' }),
+      exportCsv: () => {
+        const head = ['Tenant', 'Store', 'Domain', 'Segment', 'Plan', 'State', 'Health', 'Orders this month', 'Order limit', 'Came from', 'Onboarded by', 'District', 'Billing', 'Last active (days)', 'Monthly value'];
+        const esc = (x) => `"${String(x ?? '').replace(/"/g, '""')}"`;
+        const csv = [head, ...list.map((r) => [r.tid, r.n, r.dom, r.seg, r.plan, r.st, r.h, r.orders, r.lim, r.src, r.by, r.dist, r.bill, r.last, r.mrr])].map((row) => row.map(esc).join(',')).join('\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        a.download = 'gridcommerce-stores.csv';
+        a.click();
+        this.setState({ toast: `${list.length} stores exported to gridcommerce-stores.csv` });
+      },
+      saveView: () => {
+        const view = { q: s.q || '', sort: s.sort };
+        FILTERS.forEach(([key]) => { view['f_' + key] = s['f_' + key]; });
+        try { window.localStorage.setItem(VIEW_KEY, JSON.stringify(view)); } catch { /* ignore */ }
+        this.setState({ toast: 'View saved · the list opens like this next time' });
+      },
       onSearch: (ev) => this.setState({ q: ev.target.value }),
       sort, onSort: (ev) => this.setState({ sort: ev.target.value }),
       more: !!s.more, moreLabel: s.more ? 'Fewer filters' : <>More filters<span className="cs-desk-only"> · segment, source, onboarded by, district</span></>,
       toggleMore: () => this.setState({ more: !s.more }),
-      clearAll: () => { const r = { q: '' }; FILTERS.forEach(([k]) => { r['f_' + k] = undefined; }); this.setState(r); },
+      clearAll: () => { const r = { q: '' }; FILTERS.forEach(([key]) => { r['f_' + key] = undefined; }); this.setState(r); try { window.localStorage.removeItem(VIEW_KEY); } catch { /* ignore */ } },
       count: list.length, none: list.length === 0,
       activeText: active ? active + (active === 1 ? ' filter on' : ' filters on') : 'no filters',
       rows: list.map((m) => {
@@ -78,9 +111,10 @@ class Component extends DCLogic {
           ordersText: m.orders.toLocaleString('en-IN') + ' / ' + m.lim.toLocaleString('en-IN'),
           pct: (p * 100).toFixed(0) + '%', barCol: p >= 1 ? '#ff5724' : p >= .8 ? '#ff9800' : '#003087',
           billPill: BILL[m.bill],
+          href: '/merchant-detail?id=' + m.tid,
           lastText: m.last === 0 ? 'Today' : m.last === 1 ? 'Yesterday' : m.last + ' days ago',
           lastCol: m.last >= 7 ? 'var(--errt)' : 'var(--body)', lastW: m.last >= 7 ? 600 : 400,
-          avc: AVC[m.own] || '#64748b',
+          avc: m.ownColor || AVC[m.own] || '#64748b',
         });
       }),
     };
@@ -327,238 +361,8 @@ export default class MerchantsScreen extends Component {
       <div className="dc-screen" data-screen="Merchants">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className={`cs ${v.miniCls ?? ""}`} style={{ width: "1440px", height: "1400px", overflow: "hidden", position: "relative", background: "var(--bg)" }}>
-          <aside className="side" aria-label="Console navigation">
-            <div className="sidein">
-              <div className="sidehead" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "18px 12px 6px 20px" }}>
-                <span className="logo-full">
-                  <img src="/assets/62dadbbb3f365aebdd41bb9975f5931f.png" alt="GridCommerce" style={{ height: "28px", width: "auto", display: "block" }} />
-                </span>
-                <img className="logo-mini" src="/assets/9b6f9ad369f1cbde65271a968e6ba1f1.png" alt="GridCommerce" style={{ height: "32px", width: "auto" }} />
-                <button className="tb sidetoggle" type="button" onClick={v.toggleSide} aria-label={v.sideLabel} title={v.sideLabel}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3" y="3" width="18" height="18" rx="3" />
-                    <path d="M9 3v18" />
-                  </svg>
-                </button>
-              </div>
-              <div className="sidemeta" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 20px 12px" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", height: "22px", padding: "0 8px", borderRadius: "var(--radius-md)", background: "var(--iconbg)", color: "var(--iconfg)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase" }}>Console</span>
-                <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Staff only · views logged</span>
-              </div>
-              <nav aria-label="Console" className="sidenav">
-                <__Link href="/console-shell" className="nav top" title="Overview">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Overview</span>
-                </__Link>
-                <div className="navlabel" style={{ margin: "10px 10px 6px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--sidemuted)" }}>Manage</div>
-                <__Link href="/merchants" className="nav grp open" title="Tenants" aria-expanded="true">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 9 4.5 4h15L21 9" />
-                      <path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9Z" />
-                      <path d="M5 12v9h14v-9" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Tenants</span>
-                  <span className="chev open">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <div className="kids">
-                  <__Link href="/merchants" className="nav sub on" aria-current="page">
-                    <span className="navtxt">Merchants</span>
-                  </__Link>
-                  <__Link href="/provisioning" className="nav sub">
-                    <span className="navtxt">Provisioning</span>
-                  </__Link>
-                  <__Link href="/domains" className="nav sub">
-                    <span className="navtxt">Domains</span>
-                  </__Link>
-                  <__Link href="/backups" className="nav sub">
-                    <span className="navtxt">Backups</span>
-                  </__Link>
-                </div>
-                <__Link href="/module-catalogue" className="nav grp" title="Packaging" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" />
-                      <path d="m3 7 9 5 9-5M12 12v10" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Packaging</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/subscriptions" className="nav grp" title="Billing" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="2" y="5" width="20" height="14" rx="2" />
-                      <path d="M2 10h20M6 15h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Billing</span>
-                  <span className="badge warn">4</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/health-risk" className="nav grp" title="Monitoring" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 12h4l3-8 4 16 3-8h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Monitoring</span>
-                  <span className="badge warn">5</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/support-desk" className="nav grp" title="Support" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 14v-2a9 9 0 0 1 18 0v2" />
-                      <path d="M21 14v3a2 2 0 0 1-2 2h-2v-7h4M3 14v3a2 2 0 0 0 2 2h2v-7H3" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Support</span>
-                  <span className="badge ">12</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/leads" className="nav grp" title="Sales CRM" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Sales CRM</span>
-                  <span className="badge ">18</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/ops-centre" className="nav grp" title="Operations" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Operations</span>
-                  <span className="badge err">2</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/releases" className="nav grp" title="System" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="4" y="11" width="16" height="10" rx="2" />
-                      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">System</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-              </nav>
-              <__Link href="/ops-centre" className="statuscard" title="1 open incident" style={{ display: "block", color: "inherit", textDecoration: "none" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ flex: "none", width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#ff9800", boxShadow: "0 0 0 3px rgba(255,152,0,.2)" }} />
-                  <span className="statustxt" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>1 open incident</span>
-                  <span className="num statustxt" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>99.96%</span>
-                </div>
-                <div className="statustxt ell" style={{ marginTop: "4px", fontSize: "var(--text-xs)", color: "var(--sidebody)" }}>Steadfast webhooks delayed · 38 stores</div>
-              </__Link>
-              <div className="me">
-                <span style={{ position: "relative", display: "inline-flex", flex: "none" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-xl)", background: "linear-gradient(145deg,#2eaee4,#003087)", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>FA</span>
-                  <span style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "11px", height: "11px", borderRadius: "var(--radius-full)", background: "#10b981", border: "2px solid var(--side)" }} />
-                </span>
-                <div className="metxt" style={{ minWidth: "0" }}>
-                  <div className="ell" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>Farhana Akter</div>
-                  <div className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Support lead · 2FA on</div>
-                </div>
-                <__Link href="/staff-roles" className="tb mebtn" aria-label="Account and roles" style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--sidemuted)" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 21a8 8 0 0 1 16 0" />
-                  </svg>
-                </__Link>
-              </div>
-            </div>
-          </aside>
-          <header className="topbar">
-            <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", minWidth: "230px" }}>
-              <span className="crumbic">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 9 4.5 4h15L21 9" />
-                  <path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9Z" />
-                  <path d="M5 12v9h14v-9" />
-                </svg>
-              </span>
-              <span style={{ color: "var(--muted)" }}>Tenants</span>
-              <span style={{ color: "var(--muted)" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m9 6 6 6-6 6" />
-                </svg>
-              </span>
-              <span style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Merchants</span>
-            </nav>
-            <button className="searchbtn" type="button"><span style={{ display: "inline-flex" }}>
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </svg>
-</span>Search stores, phones, invoices, leads<span className="kbd">Ctrl K</span></button>
-            {" "}
-            <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "8px", height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "var(--okbg)", color: "var(--okt)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-lg)", background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,.18)" }} />Production</span>
-            {" "}
-            <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)", padding: "0 4px" }}>Sun 20 Sep · 14:32</span>
-            {" "}
-            <span style={{ width: "1px", height: "24px", background: "var(--line)" }} />
-            {" "}
-            <button className="tb" type="button" aria-label="Notifications, 3 unread" style={{ position: "relative" }}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                <path d="M10 21h4" />
-              </svg>
-              <span style={{ position: "absolute", top: "8px", right: "9px", width: "8px", height: "8px", borderRadius: "var(--radius-lg)", background: "#ff5724", border: "2px solid var(--surface)" }} />
-            </button>
-            {" "}
-            <button className="tb" type="button" aria-label="Help and runbooks">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
-              </svg>
-            </button>
-          </header>
+          <ConsoleSide group="tenants" item="merchants" toggle={v.toggleSide} label={v.sideLabel} />
+          <ConsoleTop group="tenants" page="Merchants" />
           <main className="mainarea" style={{ position: "absolute", left: "272px", right: "0", top: "64px", bottom: "0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "14px", minHeight: "0" }}>
               <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px" }}>
@@ -567,7 +371,7 @@ export default class MerchantsScreen extends Component {
                   <p style={{ margin: "5px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Every store on GridCommerce · click a store to open its full merchant page</p>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: "none" }}>
-                  <button className="btn btng" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <button className="btn btng" type="button" onClick={v.exportCsv} style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
 </svg>Export CSV</button>
                   <__Link href="/form-provision" className="btn btnp" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -584,9 +388,9 @@ export default class MerchantsScreen extends Component {
                       <path d="M0.0,19.0 L4.3,18.6 L8.5,16.5 L12.8,16.2 L17.1,15.3 L21.3,13.6 L25.6,11.4 L29.9,9.3 L34.1,7.3 L38.4,7.3 L42.7,5.9 L46.9,4.5 L51.2,4.1 L55.5,4.5 L59.7,3.6 L64.0,3.0" fill="none" stroke="#10b981" strokeWidth="1.7" strokeLinejoin="round" />
                     </svg>
                   </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="62">62</span>
+                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title={v.kpi.stores}>{v.kpi.stores}</span>
                   <div>
-                    <span className="dpill d-good">+6 this month</span>
+                    <span className="dpill d-good">{v.kpi.storesNote}</span>
                   </div>
                 </div>
                 <div className="kpi">
@@ -597,9 +401,9 @@ export default class MerchantsScreen extends Component {
                       <path d="M0.0,13.3 L4.3,15.3 L8.5,16.6 L12.8,15.9 L17.1,10.6 L21.3,4.6 L25.6,10.5 L29.9,6.6 L34.1,11.1 L38.4,16.0 L42.7,17.0 L46.9,19.0 L51.2,12.8 L55.5,7.5 L59.7,3.0 L64.0,9.1" fill="none" stroke="#6683b7" strokeWidth="1.7" strokeLinejoin="round" />
                     </svg>
                   </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="41">41</span>
+                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title={v.kpi.paying}>{v.kpi.paying}</span>
                   <div>
-                    <span className="dpill d-flat">৳88,000 a month</span>
+                    <span className="dpill d-flat">{v.kpi.payingNote}</span>
                   </div>
                 </div>
                 <div className="kpi">
@@ -610,9 +414,9 @@ export default class MerchantsScreen extends Component {
                       <path d="M0.0,19.0 L4.3,16.2 L8.5,11.6 L12.8,8.3 L17.1,10.9 L21.3,11.9 L25.6,7.3 L29.9,11.0 L34.1,10.3 L38.4,4.6 L42.7,6.3 L46.9,8.6 L51.2,6.8 L55.5,7.2 L59.7,3.0 L64.0,5.2" fill="none" stroke="#6683b7" strokeWidth="1.7" strokeLinejoin="round" />
                     </svg>
                   </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="18">18</span>
+                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title={v.kpi.trial}>{v.kpi.trial}</span>
                   <div>
-                    <span className="dpill d-flat">4 end in 3 days</span>
+                    <span className="dpill d-flat">{v.kpi.trialNote}</span>
                   </div>
                 </div>
                 <div className="kpi">
@@ -623,9 +427,9 @@ export default class MerchantsScreen extends Component {
                       <path d="M0.0,19.0 L4.3,17.4 L8.5,15.8 L12.8,16.1 L17.1,15.9 L21.3,14.0 L25.6,13.0 L29.9,10.8 L34.1,10.6 L38.4,8.0 L42.7,6.9 L46.9,7.6 L51.2,6.2 L55.5,5.8 L59.7,5.6 L64.0,3.0" fill="none" stroke="#ff5724" strokeWidth="1.7" strokeLinejoin="round" />
                     </svg>
                   </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="4">4</span>
+                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title={v.kpi.overdue}>{v.kpi.overdue}</span>
                   <div>
-                    <span className="dpill d-bad">৳9,500 · being called</span>
+                    <span className="dpill d-bad">{v.kpi.overdueNote}</span>
                   </div>
                 </div>
                 <div className="kpi">
@@ -636,9 +440,9 @@ export default class MerchantsScreen extends Component {
                       <path d="M0.0,17.8 L4.3,18.3 L8.5,17.9 L12.8,19.0 L17.1,16.0 L21.3,17.4 L25.6,14.0 L29.9,11.4 L34.1,9.5 L38.4,9.4 L42.7,7.6 L46.9,7.5 L51.2,3.2 L55.5,3.0 L59.7,3.2 L64.0,3.1" fill="none" stroke="#ff5724" strokeWidth="1.7" strokeLinejoin="round" />
                     </svg>
                   </div>
-                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="6">6</span>
+                  <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title={v.kpi.inactive}>{v.kpi.inactive}</span>
                   <div>
-                    <span className="dpill d-bad">2 are paying</span>
+                    <span className="dpill d-bad">{v.kpi.inactiveNote}</span>
                   </div>
                 </div>
               </div>
@@ -721,9 +525,9 @@ export default class MerchantsScreen extends Component {
                   <button className="btn btng" type="button" onClick={v.toggleMore} style={{ minHeight: "36px", padding: "0 12px", fontSize: "var(--text-xs-plus)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3Z" />
 </svg>{v.moreLabel}</button>
-                  <span style={{ color: "var(--body)" }}><strong className="num" style={{ color: "var(--ink)" }}>{v.count}</strong> of 14 shown here · {v.activeText}</span>
+                  <span style={{ color: "var(--body)" }}><strong className="num" style={{ color: "var(--ink)" }}>{v.count}</strong> of {v.total} shown here · {v.activeText}</span>
                   <button className="btn" type="button" onClick={v.clearAll} style={{ marginLeft: "auto", minHeight: "36px", padding: "0 12px", fontSize: "var(--text-xs-plus)", background: "transparent", color: "#003087" }}>Clear all</button>
-                  <button className="btn btng" type="button" style={{ minHeight: "36px", padding: "0 12px", fontSize: "var(--text-xs-plus)" }}>Save this view</button>
+                  <button className="btn btng" type="button" onClick={v.saveView} style={{ minHeight: "36px", padding: "0 12px", fontSize: "var(--text-xs-plus)" }}>Save this view</button>
                 </div>
               </div>
               <div className="panel" style={{ overflow: "hidden", "--cs-row-min": "1180px" }}>
@@ -738,8 +542,8 @@ export default class MerchantsScreen extends Component {
                   <span>Last active</span>
                   <span />
                 </div>
-                {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
-                    <__Link href="/merchant-detail" className="mrow">
+                {__list(v.rows).map((r) => (<React.Fragment key={r.tid}>
+                    <__Link href={r.href} className="mrow">
                       <span style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0" }}>
                         <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "34px", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>{r?.ini}</span>
                         <span style={{ minWidth: "0" }}>
@@ -801,6 +605,7 @@ export default class MerchantsScreen extends Component {
               </div>
             </div>
           </main>
+          <ConsoleToast text={v.toast} onClose={v.hideToast} />
         </div>
       </div>
     );

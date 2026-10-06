@@ -27,12 +27,12 @@ var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov',
 function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
 function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
 var P = [
-  { id: 1, name: 'Denim Jeans · Blue · 32', code: '8941200200214', mrp: 1890, cost: 1150, price: 1290, qty: 40 },
-  { id: 2, name: 'Men’s Polo Shirt · Navy · M', code: '8941200100118', mrp: 1450, cost: 780, price: 990, qty: 60 },
-  { id: 3, name: 'Sunscreen SPF 50 · 50ml', code: '8941100500235', mrp: 1250, cost: 936, price: 890, qty: 30 },
-  { id: 4, name: 'Cotton T-shirt · Black · M', code: '8941200300311', mrp: 590, cost: 290, price: 399, qty: 80 }
+  { id: 1, name: 'Baseus Car Phone Holder', code: '8941200200214', mrp: 1890, cost: 1150, price: 1290, qty: 40 },
+  { id: 2, name: 'Liquid Silicone Case · Navy / iPhone 15', code: '8941200100118', mrp: 1450, cost: 780, price: 990, qty: 60 },
+  { id: 3, name: 'Anker 20W USB-C Charger', code: '8941100500235', mrp: 1250, cost: 936, price: 890, qty: 30 },
+  { id: 4, name: 'Camera Lens Protector', code: '8941100100059', mrp: 590, cost: 290, price: 399, qty: 80 }
 ];
-var EXTRA = { id: 5, name: 'Rice Water Cleanser 150ml', code: '8941100500341', mrp: 890, cost: 426, price: 690, qty: 25 };
+var EXTRA = { id: 5, name: 'Type-C Wired Earphones', code: '8941300300031', mrp: 890, cost: 426, price: 690, qty: 25 };
 var WHENS = [{ k: 'tonight', label: 'Tonight 6:00 PM – 12:00 AM' }, { k: 'weekend', label: 'This weekend' }, { k: 'three', label: '3 days' }, { k: 'own', label: 'Pick dates' }];
 
 // The demo clock is 12:14 PM (Dhaka) on today's date. The first render (server and hydration) uses this fixed
@@ -53,21 +53,21 @@ function timesAt(now) {
 var LEADS = [{ k: 'at', label: 'At the start', ms: 0 }, { k: 'h6', label: '6 hours before', ms: 6 * 3600000 }, { k: 'd1', label: '1 day before', ms: 86400000 }, { k: 'd3', label: '3 days before', ms: 3 * 86400000 }];
 // catalogue the finder searches · exp = days to expiry, noSale = days since last sale, sold30 = pieces in 30 days, age = days since it arrived, other = in another running sale
 var CAT = [
-  { id: 101, name: 'Vitamin C Serum 30ml', code: '8941100500419', cat: 'Skin care', brand: 'Kioraa', mrp: 1650, cost: 820, stock: 34, exp: 21, sold30: 9, noSale: 6, age: 210 },
-  { id: 102, name: 'Snail Repair Cream 50ml', code: '8941100500426', cat: 'Skin care', brand: 'Kioraa', mrp: 2450, cost: 1300, stock: 18, exp: 38, sold30: 4, noSale: 11, age: 260 },
-  { id: 103, name: 'Aloe Soothing Gel 300ml', code: '8941100500433', cat: 'Skin care', brand: 'Kioraa', mrp: 690, cost: 310, stock: 120, exp: 54, sold30: 22, noSale: 1, age: 300 },
-  { id: 104, name: 'Mango Juice 1L · 12 pack', code: '8941300100127', cat: 'Grocery', brand: 'Deshi Fresh', mrp: 1440, cost: 1050, stock: 46, exp: 12, sold30: 30, noSale: 2, age: 40 },
-  { id: 105, name: 'Basmati Rice 5kg', code: '8941300100134', cat: 'Grocery', brand: 'Deshi Fresh', mrp: 1180, cost: 930, stock: 210, exp: 160, sold30: 64, noSale: 1, age: 90 },
-  { id: 106, name: 'Greek Yogurt 500g', code: '8941300100141', cat: 'Grocery', brand: 'Deshi Fresh', mrp: 320, cost: 210, stock: 58, exp: 6, sold30: 41, noSale: 1, age: 5 },
-  { id: 107, name: 'Leather Jacket · Black · L', code: '8941200200412', cat: 'Clothing', brand: 'Aarong Basics', mrp: 7800, cost: 4300, stock: 9, exp: null, sold30: 1, noSale: 48, age: 320 },
-  { id: 108, name: 'Silk Saree · Maroon', code: '8941200200429', cat: 'Clothing', brand: 'Aarong Basics', mrp: 5400, cost: 2600, stock: 14, exp: null, sold30: 3, noSale: 19, age: 150 },
-  { id: 109, name: 'Winter Hoodie · Grey · M', code: '8941200200436', cat: 'Clothing', brand: 'Aarong Basics', mrp: 1950, cost: 900, stock: 140, exp: null, sold30: 5, noSale: 63, age: 280 },
-  { id: 110, name: 'Kids Raincoat · Yellow', code: '8941200200443', cat: 'Clothing', brand: 'Aarong Basics', mrp: 890, cost: 380, stock: 95, exp: null, sold30: 2, noSale: 71, age: 400 },
-  { id: 111, name: 'Bluetooth Earbuds Pro', code: '8941400100118', cat: 'Electronics', brand: 'SoundBD', mrp: 3490, cost: 2100, stock: 26, exp: null, sold30: 18, noSale: 1, age: 14 },
-  { id: 112, name: 'Smart Watch S2', code: '8941400100125', cat: 'Electronics', brand: 'SoundBD', mrp: 6200, cost: 4100, stock: 12, exp: null, sold30: 6, noSale: 4, age: 22 },
-  { id: 113, name: 'Power Bank 20000mAh', code: '8941400100132', cat: 'Electronics', brand: 'SoundBD', mrp: 2250, cost: 1380, stock: 80, exp: null, sold30: 55, noSale: 1, age: 180 },
-  { id: 114, name: 'Linen Kurta · White · L', code: '8941200200450', cat: 'Clothing', brand: 'Aarong Basics', mrp: 2100, cost: 820, stock: 60, exp: null, sold30: 38, noSale: 1, age: 8 },
-  { id: 115, name: 'Cotton T-shirt · Black · M', code: '8941200300311', cat: 'Clothing', brand: 'Aarong Basics', mrp: 590, cost: 290, stock: 80, exp: null, sold30: 120, noSale: 1, age: 200, other: 'Weekend Mega Sale' }
+  { id: 101, name: 'Screen Cleaning Spray 100ml', code: '8941100500419', cat: 'Accessories', brand: 'Dazzle Shop', mrp: 1650, cost: 820, stock: 34, exp: 21, sold30: 9, noSale: 6, age: 210 },
+  { id: 102, name: 'Galaxy A35 Clear Case', code: '8941100500426', cat: 'Accessories', brand: 'Spigen', mrp: 2450, cost: 1300, stock: 18, exp: null, sold30: 4, noSale: 11, age: 260 },
+  { id: 103, name: 'Micro-USB Cable 1m', code: '8941100500433', cat: 'Accessories', brand: 'Ugreen', mrp: 690, cost: 310, stock: 120, exp: null, sold30: 22, noSale: 1, age: 300 },
+  { id: 104, name: 'Realme Buds T110', code: '8941300100127', cat: 'Audio', brand: 'Realme', mrp: 1440, cost: 1050, stock: 46, exp: null, sold30: 30, noSale: 2, age: 40 },
+  { id: 105, name: 'Car Charger 38W Dual', code: '8941300100134', cat: 'Accessories', brand: 'Baseus', mrp: 1180, cost: 930, stock: 210, exp: null, sold30: 64, noSale: 1, age: 90 },
+  { id: 106, name: 'Phone Lanyard Strap', code: '8941300100141', cat: 'Accessories', brand: 'Dazzle Shop', mrp: 320, cost: 210, stock: 58, exp: null, sold30: 41, noSale: 1, age: 5 },
+  { id: 107, name: 'Galaxy Tab A9 64GB', code: '8941200200412', cat: 'Phones', brand: 'Samsung', mrp: 7800, cost: 4300, stock: 9, exp: null, sold30: 1, noSale: 48, age: 320 },
+  { id: 108, name: 'Galaxy A05 4/64GB', code: '8941200200429', cat: 'Phones', brand: 'Samsung', mrp: 5400, cost: 2600, stock: 14, exp: null, sold30: 3, noSale: 19, age: 150 },
+  { id: 109, name: 'Rugged Case · Redmi Note 12', code: '8941200200436', cat: 'Accessories', brand: 'Spigen', mrp: 1950, cost: 900, stock: 140, exp: null, sold30: 5, noSale: 63, age: 280 },
+  { id: 110, name: 'Selfie Ring Light', code: '8941200200443', cat: 'Accessories', brand: 'Dazzle Shop', mrp: 890, cost: 380, stock: 95, exp: null, sold30: 2, noSale: 71, age: 400 },
+  { id: 111, name: 'Bluetooth Earbuds Pro', code: '8941400100118', cat: 'Audio', brand: 'SoundMax', mrp: 3490, cost: 2100, stock: 26, exp: null, sold30: 18, noSale: 1, age: 14 },
+  { id: 112, name: 'Smart Watch S2', code: '8941400100125', cat: 'Wearables', brand: 'Xiaomi', mrp: 6200, cost: 4100, stock: 12, exp: null, sold30: 6, noSale: 4, age: 22 },
+  { id: 113, name: 'Power Bank 20000mAh', code: '8941400100132', cat: 'Power banks', brand: 'Anker', mrp: 2250, cost: 1380, stock: 80, exp: null, sold30: 55, noSale: 1, age: 180 },
+  { id: 114, name: 'Magnetic Wireless Charger 15W', code: '8941200200450', cat: 'Accessories', brand: 'Baseus', mrp: 2100, cost: 820, stock: 60, exp: null, sold30: 38, noSale: 1, age: 8 },
+  { id: 115, name: 'Camera Lens Protector', code: '8941100100059', cat: 'Accessories', brand: 'Dazzle Shop', mrp: 590, cost: 290, stock: 80, exp: null, sold30: 120, noSale: 1, age: 200, other: 'Weekend Mega Sale' }
 ];
 var CRITS = [
   { k: 'expiring', label: 'Expiring soon', note: 'Within 60 days', test: function (p) { return p.exp != null && p.exp <= 60; }, sort: function (a, b) { return a.exp - b.exp; } },
@@ -160,7 +160,7 @@ class Component extends DCLogic {
       leadText: L.ms ? 'Poster goes up ' + whenOf(TW[0] - L.ms) + ' and counts down to ' + whenOf(TW[0]) + '.' : 'Poster goes up at ' + whenOf(TW[0]) + ' and shows only the end time.',
       finderOpen: !!s.finder, finderBtn: s.finder ? 'Hide' : 'Find products', finderToggle: function () { self.setState({ finder: !s.finder }); },
       crits: CRITS.map(function (c) { var on = c.k === crit, n = base.filter(c.test).length; return { label: c.label, note: c.note, count: n, on: on, pick: function () { self.setState({ crit: c.k, sel: {} }); } }; }),
-      cats: ['All', 'Skin care', 'Clothing', 'Grocery', 'Electronics'].map(function (c) { var on = c === cat; return { label: c === 'All' ? 'All categories' : c, on: on, pick: function () { self.setState({ cat: c, sel: {} }); } }; }),
+      cats: ['All', 'Phones', 'Accessories', 'Audio', 'Wearables'].map(function (c) { var on = c === cat; return { label: c === 'All' ? 'All categories' : c, on: on, pick: function () { self.setState({ cat: c, sel: {} }); } }; }),
       hideOther: hideO, critHint: cands.length + ' match · sorted by ' + { expiring: 'soonest expiry', value: 'stock value', slow: 'longest without a sale', over: 'most days of stock', best: 'most sold', margin: 'biggest margin', 'new': 'newest', all: 'name' }[crit],
       cands: cands.map(function (p) { var w = whyOf(p, crit, now0), g = sugOf(p), had = !!inSale[p.code], on = !!sel[p.id] || had, pr = g.pr - p.cost;
         return { name: p.name, meta: p.cat + ' · ' + p.stock + ' in stock' + (p.other ? ' · in ' + p.other : ''), why: w[0], whySub: had ? 'Already in this sale' : w[1], whyBg: w[2][0], whyFg: w[2][1],
@@ -338,7 +338,7 @@ export default class NewFlashSaleScreen extends Component {
                                 {v.cats.map((c) => <button key={c.label} type="button" className="ix-chip" aria-pressed={c.on} onClick={c.pick}>{c.label}</button>)}
                               </div>
                               <div className="nf-filters">
-                                <select className="ix-filter" aria-label="Brand"><option>All brands</option><option>Kioraa</option><option>Aarong Basics</option><option>Deshi Fresh</option><option>SoundBD</option></select>
+                                <select className="ix-filter" aria-label="Brand"><option>All brands</option><option>Samsung</option><option>Baseus</option><option>Spigen</option><option>Anker</option></select>
                                 <select className="ix-filter" aria-label="Stock at least"><option>5 pieces</option><option>1 piece</option><option>20 pieces</option><option>50 pieces</option></select>
                                 <select className="ix-filter" aria-label="Price"><option>Any price</option><option>Under ৳500</option><option>৳500 – ৳2,000</option><option>Over ৳2,000</option></select>
                                 <select className="ix-filter" aria-label="Warehouse"><option>All warehouses</option><option>Dhanmondi branch</option><option>Mirpur godown</option></select>

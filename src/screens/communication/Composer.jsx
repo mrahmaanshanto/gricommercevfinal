@@ -18,24 +18,24 @@ function val(e) { return e && e.target ? e.target.value : e; }
 
 // key, name, short, (colour: unused, the channel icon brings its own), auto?, account, status, supports, note
 var PLAT = [
-  ['fb', 'Facebook Page', 'FB', '', true, 'GridShop', 'ok', 'Text, photos, videos, links', 'Posts go out at the scheduled minute.'],
-  ['ig', 'Instagram', 'IG', '', true, '@gridshop.bd', 'ok', 'Photos, carousels, Reels', 'Needs a photo or video. Business account linked to the Facebook Page.'],
+  ['fb', 'Facebook Page', 'FB', '', true, 'Dazzle Shop', 'ok', 'Text, photos, videos, links', 'Posts go out at the scheduled minute.'],
+  ['ig', 'Instagram', 'IG', '', true, '@dazzleshop.bd', 'ok', 'Photos, carousels, Reels', 'Needs a photo or video. Business account linked to the Facebook Page.'],
   ['wa', 'WhatsApp broadcast', 'WA', '', true, '+880 1711-482093', 'ok', 'Template message with photo', 'Goes only to customers who opted in. ৳1.10 per message from the wallet.'],
-  ['tt', 'TikTok', 'TT', '', true, '@gridshop', 'renew', 'Videos, photo posts', 'Access expires in 3 days. Reconnect to keep posting.'],
-  ['yt', 'YouTube', 'YT', '', true, 'GridShop BD', 'ok', 'Videos and Shorts', 'Needs a video.'],
-  ['x', 'X', 'X', '', true, '@gridshopbd', 'off', 'Text up to 280 characters, photos', 'How many posts a month depends on the X API plan.'],
+  ['tt', 'TikTok', 'TT', '', true, '@dazzleshop', 'renew', 'Videos, photo posts', 'Access expires in 3 days. Reconnect to keep posting.'],
+  ['yt', 'YouTube', 'YT', '', true, 'Dazzle Shop', 'ok', 'Videos and Shorts', 'Needs a video.'],
+  ['x', 'X', 'X', '', true, '@dazzleshopbd', 'off', 'Text up to 280 characters, photos', 'How many posts a month depends on the X API plan.'],
   ['pin', 'Pinterest', 'PIN', '', true, 'Not connected', 'off', 'Pins with photo and link', 'Each pin needs a photo and a link.'],
-  ['wac', 'WhatsApp Channel', 'WAC', '', false, 'GridShop Offers', 'manual', 'Reminder with the text ready to copy', 'WhatsApp has no posting API for channels, so a reminder is sent to post by hand.'],
+  ['wac', 'WhatsApp Channel', 'WAC', '', false, 'Dazzle Shop Offers', 'manual', 'Reminder with the text ready to copy', 'WhatsApp has no posting API for channels, so a reminder is sent to post by hand.'],
   ['fbg', 'Facebook groups', 'FBG', '', false, '3 groups', 'manual', 'Reminder with the text ready to copy', 'Meta closed group posting by API in 2024, so a reminder is sent to post by hand.'],
-  ['li', 'LinkedIn page', 'IN', '', true, 'GridShop Ltd', 'ok', 'Text, photos, links', 'Company page only, not personal profiles.']
+  ['li', 'LinkedIn page', 'IN', '', true, 'Dazzle Shop Ltd', 'ok', 'Text, photos, links', 'Company page only, not personal profiles.']
 ];
 var CH = { fb: 'facebook', ig: 'instagram', wa: 'whatsapp', tt: 'tiktok', yt: 'youtube', x: 'x', pin: 'pinterest', wac: 'whatsapp', fbg: 'facebook', li: 'linkedin' };
 var CK_ICON = { bad: 'triangle-alert', warn: 'clock', info: 'info', ok: 'check' };
 function plat(k) { return PLAT.filter(function (p) { return p[0] === k; })[0]; }
 
 var BASE = { en: 'Puja is here.\nGet 10% off every charger and cable with code PUJA10, until 20 October.\nFree delivery inside Dhaka on orders over ৳1,500.', bn: 'পূজা এসে গেছে!\nPUJA10 কোডে সব চার্জার ও ক্যাবলে ১০% ছাড়, ২০ অক্টোবর পর্যন্ত।\nঢাকার ভেতরে ৳১,৫০০-এর বেশি অর্ডারে ফ্রি ডেলিভারি।', mix: 'Puja offer cholche!\nPUJA10 code diye shob charger ar cable e 10% off, 20 October porjonto.\nDhakar bhitore ৳1,500+ order e free delivery.' };
-var SETS = [['Brand', ['#GridShop', '#GridShopBD']], ['Puja offer', ['#PujaOffer', '#পূজার_অফার', '#DurgaPuja']], ['Phone care', ['#PhoneAccessoriesBD', '#PhoneCase', '#FastCharger']]];
-var SUGG = ['#GridShop', '#PujaOffer', '#DhakaShopping', '#PhoneAccessoriesBD', '#FastCharger', '#পূজার_অফার', '#OnlineShoppingBD', '#Discount'];
+var SETS = [['Brand', ['#Dazzle Shop', '#Dazzle ShopBD']], ['Puja offer', ['#PujaOffer', '#পূজার_অফার', '#DurgaPuja']], ['Phone care', ['#PhoneAccessoriesBD', '#PhoneCase', '#FastCharger']]];
+var SUGG = ['#Dazzle Shop', '#PujaOffer', '#DhakaShopping', '#PhoneAccessoriesBD', '#FastCharger', '#পূজার_অফার', '#OnlineShoppingBD', '#Discount'];
 var EMO = [['party', '🎉'], ['gift', '🎁'], ['fire', '🔥'], ['truck', '🚚'], ['check', '✅'], ['clock', '⏰'], ['phone', '📱'], ['star', '⭐'], ['heart', '❤️'], ['point', '👉']];
 var TONES = [['friendly', 'Friendly'], ['urgent', 'Urgent'], ['premium', 'Premium'], ['fun', 'Playful']];
 var GEN = {
@@ -54,8 +54,8 @@ class Component extends DCLogic {
     var self = this, s = this.state || {};
     var sel = s.sel || { fb: 1, ig: 1, wa: 1, tt: 1, wac: 1 };
     var lang = s.lang || 'en', text = s.text == null ? BASE[lang] : s.text, hist = s.hist || [];
-    var tags = s.tags || { '#GridShop': 1, '#PujaOffer': 1, '#DhakaShopping': 1 };
-    var media = s.media || ['photo'], link = s.link == null ? 'https://gridshop.com.bd/offers/puja' : s.link;
+    var tags = s.tags || { '#Dazzle Shop': 1, '#PujaOffer': 1, '#DhakaShopping': 1 };
+    var media = s.media || ['photo'], link = s.link == null ? 'https://dazzleshop.com.bd/offers/puja' : s.link;
     var date = s.date || '2026-10-01', time = s.time || '20:00';
     var mode = s.mode || 'gen', tone = s.tone || 'friendly', gl = s.gl || 'en', glen = s.glen || 'md';
     function setText(t, note) { self.setState({ text: t, hist: hist.concat([text]).slice(-20), lastRw: note || '' }); }
@@ -98,7 +98,7 @@ class Component extends DCLogic {
       emojiOpen: !!s.emo, fEmoji: function () { self.setState({ emo: !s.emo }); },
       emojis: EMO.map(function (e) { return { n: e[0], c: e[1], add: function () { setText(text.replace(/\n?$/, ' ' + e[1])); } }; }),
       fHash: function () { toast('Pick hashtags below. They are added at the end, so the text stays clean.'); },
-      fMention: function () { setText(text + ' @gridshop.bd'); }, fVar: function () { setText(text + ' {price}'); toast('{price} is filled with the product price when the post goes out.'); },
+      fMention: function () { setText(text + ' @dazzleshop.bd'); }, fVar: function () { setText(text + ' {price}'); toast('{price} is filled with the product price when the post goes out.'); },
       undo: function () { if (!hist.length) return; self.setState({ text: hist[hist.length - 1], hist: hist.slice(0, -1), lastRw: '' }); },
       hashNote: tagList.length + ' hashtags · Instagram allows 30, X works best with 1 or 2', hashOver: tagList.length > 30,
       sets: SETS.map(function (g) { return { l: g[0], n: g[1].length, add: function () { var n = assign({}, tags); g[1].forEach(function (t) { n[t] = 1; }); self.setState({ tags: n }); } }; }),

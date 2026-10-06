@@ -77,11 +77,11 @@ class Component extends DCLogic {
     var kind = s.kind || I.kind;
     var errs = s.errs || {};
     var act = s.act || 'code';
-    var bx = s.bx || { buySku: 'SK-SUN-50', buyQty: 2, getSku: 'SK-TON-150', getQty: 1, getPct: 50 };
+    var bx = s.bx || { buySku: 'AC-CHG-20', buyQty: 2, getSku: 'AU-EAR-TC', getQty: 1, getPct: 50 };
     var brackets = s.brackets || [{ min: 3, pct: 5 }, { min: 6, pct: 10 }];
-    var giftSku = s.giftSku || 'HM-BTL-750', cat = s.cat || CATS[0], skus = s.skus || ['EL-PHN-128'];
+    var giftSku = s.giftSku || 'AC-STD-FLD', cat = s.cat || CATS[0], skus = s.skus || ['PH-RLM-N50'];
     var combine = s.combine || ['product', 'delivery', 'points'];
-    var test = s.test || { sku: 'SK-SUN-50', qty: 2, sku2: 'SK-TON-150', qty2: 1, pay: 'cod', ch: 'online' };
+    var test = s.test || { sku: 'AC-CHG-20', qty: 2, sku2: 'AU-EAR-TC', qty2: 1, pay: 'cod', ch: 'online' };
     var amtStep = kind === 'pct' ? 5 : 50, amtMax = kind === 'pct' ? 90 : 10000;
     var amtV = s.amt == null ? (I.amt || (kind === 'pct' ? 10 : 100)) : s.amt;
     // The amount can be typed (and so can be empty); the steppers keep their old step and limits.
@@ -316,7 +316,7 @@ export default class NewCouponScreen extends Component {
                         {v.isAuto ? (
                           <div className="ly-field">
                             <label className="gc-label" htmlFor="cp-oname">Offer name<__Req /></label>
-                            <input id="cp-oname" className="gc-input" value={v.oname} onChange={v.typeOname} placeholder="e.g. Buy 2 sunscreens, get a toner 50% off" {...__inv(v.errs?.oname, "cp-oname-err")} />
+                            <input id="cp-oname" className="gc-input" value={v.oname} onChange={v.typeOname} placeholder="e.g. Buy 2 chargers, get earphones 50% off" {...__inv(v.errs?.oname, "cp-oname-err")} />
                             <__Err id="cp-oname-err" msg={v.errs?.oname} />
                           </div>
                         ) : null}
@@ -474,7 +474,7 @@ export default class NewCouponScreen extends Component {
                             <label className="gc-label" htmlFor="cp-title">Post title<__Req /></label>
                             <input id="cp-title" className="gc-input" value={v.postTitle} onChange={v.typeTitle} aria-required="true" {...__inv(v.errs?.title, "cp-title-err")} />
                             <__Err id="cp-title-err" msg={v.errs?.title} />
-                            <p className="ly-help">Link: gridshop.com.bd/offers/{v.slug}</p>
+                            <p className="ly-help">Link: dazzleshop.com.bd/offers/{v.slug}</p>
                           </div>
                           <div className="ly-field">
                             <span className="gc-label">Featured image</span>

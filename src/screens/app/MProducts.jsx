@@ -146,15 +146,15 @@ export default class MProductsScreen extends Component {
             <div className="chips" style={{ marginTop: "14px" }}>
               <span className="chip on">All <span className="n">412</span></span>
               <span className="chip">Low stock <span className="n">23</span></span>
-              <span className="chip">Skin care</span>
-              <span className="chip">Clothing</span>
+              <span className="chip">Phones</span>
+              <span className="chip">Accessories</span>
             </div>
             <div className="card" style={{ margin: "16px 20px 0" }}>
               <__Link href="/m-product-edit" className="row">
                 <span className="av" style={{ width: "52px", height: "52px", background: "#fff4e0", color: "#003087", fontSize: "var(--text-lg)" }}>S</span>
                 <span className="m">
                   <span style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
-                    <span className="t ell" style={{ fontWeight: "var(--weight-medium)", flex: "1" }}>Sunscreen SPF 50 · 50ml</span>
+                    <span className="t ell" style={{ fontWeight: "var(--weight-medium)", flex: "1" }}>Anker 20W USB-C Charger</span>
                     <span className="num" style={{ fontWeight: "var(--weight-medium)", flex: "none" }}>৳1,250</span>
                   </span>
                   <span style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "4px" }}>
@@ -167,7 +167,7 @@ export default class MProductsScreen extends Component {
                 <span className="av" style={{ width: "52px", height: "52px", background: "#e0f3fb", color: "#003087", fontSize: "var(--text-lg)" }}>D</span>
                 <span className="m">
                   <span style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
-                    <span className="t ell" style={{ fontWeight: "var(--weight-medium)", flex: "1" }}>Denim Jeans · Blue · 32</span>
+                    <span className="t ell" style={{ fontWeight: "var(--weight-medium)", flex: "1" }}>Baseus Car Phone Holder</span>
                     <span className="num" style={{ fontWeight: "var(--weight-medium)", flex: "none" }}>৳1,890</span>
                   </span>
                   <span style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "4px" }}>
@@ -180,7 +180,7 @@ export default class MProductsScreen extends Component {
                 <span className="av" style={{ width: "52px", height: "52px", background: "#eef2f6", color: "#003087", fontSize: "var(--text-lg)" }}>M</span>
                 <span className="m">
                   <span style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
-                    <span className="t ell" style={{ fontWeight: "var(--weight-medium)", flex: "1" }}>Men’s Polo · Navy · M</span>
+                    <span className="t ell" style={{ fontWeight: "var(--weight-medium)", flex: "1" }}>Liquid Silicone Case · Navy</span>
                     <span className="num" style={{ fontWeight: "var(--weight-medium)", flex: "none" }}>৳1,450</span>
                   </span>
                   <span style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "4px" }}>
@@ -193,7 +193,7 @@ export default class MProductsScreen extends Component {
                 <span className="av" style={{ width: "52px", height: "52px", background: "#e7f7f0", color: "#003087", fontSize: "var(--text-lg)" }}>R</span>
                 <span className="m">
                   <span style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
-                    <span className="t ell" style={{ fontWeight: "var(--weight-medium)", flex: "1" }}>Rice Water Cleanser 150ml</span>
+                    <span className="t ell" style={{ fontWeight: "var(--weight-medium)", flex: "1" }}>Magnetic Wireless Charger 15W</span>
                     <span className="num" style={{ fontWeight: "var(--weight-medium)", flex: "none" }}>৳890</span>
                   </span>
                   <span style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "4px" }}>
@@ -206,7 +206,7 @@ export default class MProductsScreen extends Component {
                 <span className="av" style={{ width: "52px", height: "52px", background: "#eef2f6", color: "#003087", fontSize: "var(--text-lg)" }}>C</span>
                 <span className="m">
                   <span style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
-                    <span className="t ell" style={{ fontWeight: "var(--weight-medium)", flex: "1" }}>Cotton T-shirt · Black · M</span>
+                    <span className="t ell" style={{ fontWeight: "var(--weight-medium)", flex: "1" }}>Camera Lens Protector · Clear</span>
                     <span className="num" style={{ fontWeight: "var(--weight-medium)", flex: "none" }}>৳590</span>
                   </span>
                   <span style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "4px" }}>
@@ -219,7 +219,7 @@ export default class MProductsScreen extends Component {
                 <span className="av" style={{ width: "52px", height: "52px", background: "#e0f3fb", color: "#003087", fontSize: "var(--text-lg)" }}>A</span>
                 <span className="m">
                   <span style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
-                    <span className="t ell" style={{ fontWeight: "var(--weight-medium)", flex: "1" }}>Aloe Soothing Gel 300ml</span>
+                    <span className="t ell" style={{ fontWeight: "var(--weight-medium)", flex: "1" }}>Micro-USB Cable 1m</span>
                     <span className="num" style={{ fontWeight: "var(--weight-medium)", flex: "none" }}>৳690</span>
                   </span>
                   <span style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "4px" }}>

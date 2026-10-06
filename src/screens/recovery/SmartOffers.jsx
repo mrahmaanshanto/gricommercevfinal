@@ -132,7 +132,7 @@ export default function SmartOffers() {
   const rew = edit ? rewardBy(edit.off) : null;
   const preview = edit ? String(edit.msg || '').replace('{name}', 'Nusrat').replace('{offer}', rewardText(edit).charAt(0).toLowerCase() + rewardText(edit).slice(1)).replace('{code}', 'NUS7Q2')
     .replace('{expiry}', (() => { const d = new Date(Date.now() + (Number(edit.days) || 7) * 864e5); return d.getDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()]; })())
-    .replace('{shop}', 'GridShop').replace('{link}', 'grid.shop/o/NUS7Q2') : '';
+    .replace('{shop}', 'Dazzle Shop').replace('{link}', 'grid.shop/o/NUS7Q2') : '';
   const selectOf = (id, value, onChange, opts, label) => (
     <select id={id} className="gc-input gc-select" value={value} onChange={onChange} aria-label={label}>
       {opts.map((o) => (Array.isArray(o) ? <option key={o[0]} value={o[0]}>{o[1]}</option> : <option key={o} value={o}>{o}</option>))}

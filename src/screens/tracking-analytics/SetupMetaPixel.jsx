@@ -154,7 +154,7 @@ export default class SetupMetaPixelScreen extends Component {
                         <span className="err">A Pixel ID has 15 or 16 digits. Copy it from the pixel's Settings tab.</span>
                       </>) : null}
                       {v.pidOk ? (<>
-                        <span style={{ fontSize: "var(--text-xs-plus)", color: "#047857" }}>Valid · pixel “GridShop store” found</span>
+                        <span style={{ fontSize: "var(--text-xs-plus)", color: "#047857" }}>Valid · pixel “Dazzle Shop store” found</span>
                       </>) : null}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px", minWidth: "0" }}>

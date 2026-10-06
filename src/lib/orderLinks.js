@@ -53,7 +53,7 @@ const stamp = (d) => {
 };
 
 /** Which time an order status stamps in `times`. */
-export const STATUS_TIME = { Approved: 'approved', 'Ready for courier': 'ready', 'In transit': 'shipped', 'Ready to ship': 'ready', Shipped: 'shipped', Delivered: 'delivered', Returned: 'returned', Cancelled: 'cancelled' };
+export const STATUS_TIME = { Approved: 'approved', 'Ready for courier': 'ready', 'Sent to courier': 'shipped', 'In transit': 'shipped', 'Ready to ship': 'ready', Shipped: 'shipped', Delivered: 'delivered', Returned: 'returned', Cancelled: 'cancelled' };
 /** The payment method an order was taken with, from its payment label. */
 export const METHOD_OF_PAYMENT = { COD: 'COD', Paid: 'Gateway', Partial: 'Mixed', Unpaid: 'Due' };
 const isCounter = (channel) => /^(POS|Wholesale)/.test(String(channel || ''));

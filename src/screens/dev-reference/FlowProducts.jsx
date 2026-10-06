@@ -265,7 +265,7 @@ export default class FlowProductsScreen extends Component {
                   <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Quick single-page add for simple products.</span>
                   <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/products/AddProduct.dc.html</span>
                 </__Link>
-                <__Link href="/add-product-tabs" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
+                <__Link href="/add-product" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
                   <code style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>AddProductTabs.dc.html</code>
                   <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Full editor: details, variants, pricing, stock, SEO.</span>
                   <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/products/AddProductTabs.dc.html</span>

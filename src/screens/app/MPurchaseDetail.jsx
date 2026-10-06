@@ -157,7 +157,7 @@ export default class MPurchaseDetailScreen extends Component {
                 <span className="pill p-warn"><span className="sh warn" aria-hidden="true" />Partly received</span>
                 <span className="pill p-grey">Mirpur godown</span>
               </div>
-              <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", marginTop: "8px" }}>Dhaka Denim Works</div>
+              <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", marginTop: "8px" }}>Dhaka Mobile Accessories</div>
               <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Ordered 10 Sep by Mehedi · expected 21 Sep</div>
             </div>
             <div className="card" style={{ margin: "16px 20px 0", padding: "16px", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "8px" }}>
@@ -182,7 +182,7 @@ export default class MPurchaseDetailScreen extends Component {
               <div className="lrow">
                 <span className="av" style={{ width: "44px", height: "44px", background: "#e0f3fb", color: "#003087" }}>D</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Denim Jeans · Blue · 32</span>
+                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Baseus Car Phone Holder</span>
                   <span className="num" style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>100 of 100 in · ৳1,040 each</span>
                   <span className="bar" style={{ display: "block", marginTop: "7px" }}>
                     <i style={{ width: "100%", background: "#10b981" }} />
@@ -197,7 +197,7 @@ export default class MPurchaseDetailScreen extends Component {
               <div className="lrow">
                 <span className="av" style={{ width: "44px", height: "44px", background: "#e0f3fb", color: "#003087" }}>D</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Denim Jeans · Blue · 34</span>
+                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Baseus Car Phone Holder · Vent</span>
                   <span className="num" style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>80 of 100 in · ৳1,040 each</span>
                   <span className="bar" style={{ display: "block", marginTop: "7px" }}>
                     <i style={{ width: "80%", background: "#003087" }} />
@@ -208,7 +208,7 @@ export default class MPurchaseDetailScreen extends Component {
               <div className="lrow">
                 <span className="av" style={{ width: "44px", height: "44px", background: "#e0f3fb", color: "#003087" }}>D</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Denim Jeans · Black · 32</span>
+                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Baseus Car Phone Holder · Dash</span>
                   <span className="num" style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>0 of 100 in · ৳1,040 each</span>
                   <span className="bar" style={{ display: "block", marginTop: "7px" }}>
                     <i style={{ width: "0%", background: "#003087" }} />

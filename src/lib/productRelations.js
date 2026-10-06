@@ -23,11 +23,11 @@ export const REL_KINDS = [
   { k: 'fbt', label: 'Frequently bought together', many: true },
 ];
 const SEED = {
-  'p-phone-5gp': { related: ['p-laptop-rtx'], accessories: ['p-phone-case', 'p-earbuds-pro'], substitutes: [], successor: '', fbt: ['p-phone-case'] },
-  'p-sunscreen-50': { related: ['p-toner-150'], accessories: [], substitutes: [], successor: '', fbt: ['p-toner-150'] },
-  'p-toner-150': { related: ['p-sunscreen-50'], accessories: [], substitutes: [], successor: '', fbt: ['p-sunscreen-50'] },
-  'p-rice-5': { related: ['p-masur-dal'], accessories: [], substitutes: ['p-rice-25'], successor: '', fbt: ['p-masur-dal'] },
-  'p-aloe-300': { related: [], accessories: [], substitutes: [], successor: 'p-sunscreen-50', fbt: [] },
+  'p-phone-5gp': { related: ['p-iphone-15p'], accessories: ['p-phone-case', 'p-earbuds-pro'], substitutes: [], successor: '', fbt: ['p-phone-case'] },
+  'p-charger-20': { related: ['p-earphones-tc'], accessories: [], substitutes: [], successor: '', fbt: ['p-earphones-tc'] },
+  'p-earphones-tc': { related: ['p-charger-20'], accessories: [], substitutes: [], successor: '', fbt: ['p-charger-20'] },
+  'p-cable-100w': { related: ['p-lanyard'], accessories: [], substitutes: ['p-redmi-buds'], successor: '', fbt: ['p-lanyard'] },
+  'p-selfie-old': { related: [], accessories: [], substitutes: [], successor: 'p-charger-20', fbt: [] },
   'p-earbuds-pro': { related: [], accessories: [], substitutes: [], successor: '', fbt: ['p-phone-case'] },
 };
 const EMPTY = { related: [], accessories: [], substitutes: [], successor: '', fbt: [] };

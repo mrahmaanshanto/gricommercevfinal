@@ -16,7 +16,7 @@ import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
 import { RecordHeader, KV } from '@/components/ui/IndexKit';
 import { PaymentLogo } from '@/components/PaymentLogo';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { getInvoices, recordPayment, reviseInvoice, saveInvoice, isPaid, paidSoFar, discountsOf, statusOf, deliveryOf, sentOf, challanNo, creditOf, CREDIT_METHOD, paymentLog, editPayment, voidPayment } from '@/lib/invoices';
+import { getInvoices, recordPayment, reviseInvoice, saveInvoice, isPaid, paidSoFar, discountsOf, statusOf, deliveryOf, sentOf, challanNo, creditOf, CREDIT_METHOD, paymentLog, editPayment, voidPayment, isAccepted, acceptInvoice, stageOf, STAGES, revisionsOf } from '@/lib/invoices';
 import { DeliveryDialog, ChallanDialog, DELIVERY, DELIVERY_CSS } from './DeliveryDialog';
 import { HoldStockDialog, HOLD_CSS, canHold } from './HoldStockDialog';
 import { EMPLOYEES } from '@/lib/posStore';
@@ -83,22 +83,6 @@ const CSS = PAPER_CSS + DELIVERY_CSS + HOLD_CSS + `
 }
 `;
 
-const unit = (l) => r2((l.price * l.qty - (l.disc || 0)) / (l.qty || 1));
-const orderDisc = (totals) => r2(discountsOf({ totals }) - (totals.lineDisc || 0));
-/** What changed from one version of the invoice to the next: qty, price, removed lines, discount. */
-function changesOf(a, b) {
-  const out = [];
-  a.lines.forEach((l) => {
-    const m = b.lines.find((x) => x.id === l.id);
-    if (!m) { out.push(`${l.name} removed (was ${l.qty} × ${money(unit(l))})`); return; }
-    if (m.qty !== l.qty) out.push(`${l.name}: qty ${l.qty} → ${m.qty}`);
-    if (unit(m) !== unit(l)) out.push(`${l.name}: price ${money(unit(l))} → ${money(unit(m))}`);
-  });
-  b.lines.filter((m) => !a.lines.some((l) => l.id === m.id)).forEach((m) => out.push(`${m.name} added (${m.qty} × ${money(unit(m))})`));
-  const da = orderDisc(a.totals), db = orderDisc(b.totals);
-  if (da !== db) out.push(`Discount ${money(da)} → ${money(db)}`);
-  return out.length ? out : ['No change to items or prices'];
-}
 
 export default function SalesInvoice() {
   const [ready, setReady] = useState(false);
@@ -159,7 +143,9 @@ export default function SalesInvoice() {
   const history = sameCustomer.filter((r) => r.id !== inv.id);
   const lifetime = { orders: sameCustomer.length, bought: r2(sameCustomer.reduce((a, r) => a + r.totals.total, 0)), due: r2(sameCustomer.reduce((a, r) => a + Math.max(0, r.due), 0)) };
   const dv = deliveryOf(inv), sent = sentOf(inv);
-  const revisions = (inv.revisions || []).map((v, i, list) => ({ ...v, next: list[i + 1] || inv })).reverse();
+  const revisions = revisionsOf(inv);
+  const stage = stageOf(inv);
+  const doAccept = () => { const next = acceptInvoice(inv, pay.by); reload(); toast(`${next.id} accepted by ${pay.by}. Payments can be recorded now.`); };
 
   // receive payment: money above the due can be kept as the customer's advance
   const method = pay.method === CREDIT_METHOD && !credit ? 'Cash' : pay.method;
@@ -204,7 +190,7 @@ export default function SalesInvoice() {
   const fixMax = fix ? (fix.method === CREDIT_METHOD ? r2(Math.min(fix.row.amount + Math.max(0, inv.due), (fix.row.method === CREDIT_METHOD ? fix.row.amount : 0) + credit)) : r2(fix.row.amount + Math.max(0, inv.due))) : 0;
 
   // edit and send again: a new revision; pieces already delivered set the lowest a line can go
-  const openEdit = () => setEdit({ by: EMPLOYEES[0].name, lines: inv.lines.map((l) => ({ ...l, price: Math.round((l.price * l.qty - (l.disc || 0)) / l.qty * 100) / 100 })), discount: String(Math.round((discountsOf(inv) - (inv.totals.lineDisc || 0)) * 100) / 100 || '') });
+  const openEdit = () => setEdit({ reason: '', by: EMPLOYEES[0].name, lines: inv.lines.map((l) => ({ ...l, price: Math.round((l.price * l.qty - (l.disc || 0)) / l.qty * 100) / 100 })), discount: String(Math.round((discountsOf(inv) - (inv.totals.lineDisc || 0)) * 100) / 100 || '') });
   const draft = edit ? (() => {
     const gross = edit.lines.reduce((a, l) => a + l.price * l.qty, 0);
     const d = Math.min(gross, num(edit.discount));
@@ -219,10 +205,11 @@ export default function SalesInvoice() {
     if (!edit.lines.length) { toast('An invoice needs at least one item', { tone: 'error' }); return; }
     const low = inv.lines.find((l) => (sent[l.id] || 0) > ((edit.lines.find((x) => x.id === l.id) || {}).qty || 0));
     if (low) { toast(`${sent[low.id]} pcs of ${low.name} were already sent. The quantity cannot go below that.`, { tone: 'error' }); return; }
-    const next = reviseInvoice(inv, edit.lines, num(edit.discount), edit.by);
+    if (!String(edit.reason || '').trim()) { toast('Write why the invoice is changed', { tone: 'error' }); return; }
+    const next = reviseInvoice(inv, edit.lines, num(edit.discount), edit.by, edit.reason);
     if (draft.over && phone) toast(`${money(draft.over)} paid above the new total is kept as ${name}’s advance credit`, { tone: 'info' });
     setEdit(null);
-    if (andSend) send(next, true); else { reload(); toast(`${next.id} saved as revision ${next.rev}. The customer has not been sent the change yet.`); }
+    if (andSend) send(next, true); else { reload(); toast(`${next.id} saved as revision ${next.rev}. It needs to be accepted again before payment.`); }
   };
 
   const shownHistory = history.slice(0, HISTORY_ROWS);
@@ -240,6 +227,7 @@ export default function SalesInvoice() {
               <RecordHeader back="/sales-invoices" backLabel="Back to Invoices" title={inv.id} meta={meta}
                 badges={<>
                   <StatusBadge tone={STATUS[st][1]}>{STATUS[st][0]}</StatusBadge>
+                  {stage !== 'paid' ? <StatusBadge tone={STAGES[stage].tone} icon={STAGES[stage].icon}>{STAGES[stage].label}</StatusBadge> : null}
                   {inv.wholesale ? <StatusBadge tone={DELIVERY[dv.status][1]} icon="truck">{DELIVERY[dv.status][0]}</StatusBadge> : null}
                 </>}
                 secondary={[{ label: 'Send', onClick: () => send(inv, !!inv.sentAt) }, { label: 'Return', href: '/return-exchange?ref=' + encodeURIComponent(inv.id) }]}
@@ -274,8 +262,18 @@ export default function SalesInvoice() {
                         <dt className={isPaid(inv) ? '' : 'is-due'}>Due</dt><dd className={isPaid(inv) ? '' : 'is-due'}>{money(Math.max(0, inv.due))}</dd>
                       </dl>
                       {credit > 0 ? <div className="si-credit"><span>{name} has advance credit</span><b>{money(credit)}</b></div> : null}
-                      {!isPaid(inv) ? (
+                      {!isPaid(inv) && !isAccepted(inv) ? (
+                        <div className="si-form">
+                          <h3>Accept this invoice</h3>
+                          <p className="gc-help" style={{ margin: 0 }}>{(inv.rev || 1) > 1 ? `Revision ${inv.rev} changed the invoice. Check the items and prices again, then accept.` : 'Check the items, prices and customer, then accept. Payments can be recorded after that.'}</p>
+                          <div className="si-two">
+                            <div><label className="gc-label" htmlFor="si-acc-by">Accepted by</label><select id="si-acc-by" className="gc-input gc-select" value={pay.by} onChange={(e) => setPay({ ...pay, by: e.target.value })}>{EMPLOYEES.map((m) => <option key={m.name}>{m.name}</option>)}</select></div>
+                          </div>
+                          <div><button type="button" className="gc-btn gc-btn--solid" onClick={doAccept}><Icon name="clipboard-check" width="16" height="16" aria-hidden="true" />Accept invoice</button></div>
+                        </div>
+                      ) : !isPaid(inv) ? (
                         <form className="si-form" onSubmit={receive}>
+                          {inv.acceptedAt ? <p className="gc-help" style={{ margin: 0 }}>Accepted by {inv.acceptedBy} · {formatDate(inv.acceptedAt)}</p> : null}
                           <h3>Receive payment</h3>
                           <div className="si-methods" role="group" aria-label="Payment method">
                             {tiles.map(([m, icon, logo]) => (
@@ -369,8 +367,8 @@ export default function SalesInvoice() {
                             <tr key={v.rev}>
                               <td className="si-strong" style={{ whiteSpace: 'nowrap' }}>{v.rev} → {v.rev + 1}</td>
                               <td>{formatDate(v.at)}<span className="iv-sub">{formatTime(v.at)} · by {v.by}</span></td>
-                              <td><ul className="si-changes">{changesOf(v, v.next).map((c) => <li key={c}>{c}</li>)}</ul></td>
-                              <td className="iv-num">{money(v.totals.total)} → <span className="si-strong">{money(v.next.totals.total)}</span></td>
+                              <td><ul className="si-changes">{v.changes.map((c) => <li key={c}>{c}</li>)}</ul>{v.reason ? <span className="iv-sub">Why: {v.reason}</span> : null}</td>
+                              <td className="iv-num">{money(v.from)} → <span className="si-strong">{money(v.to)}</span></td>
                             </tr>
                           ))}</tbody>
                         </table>
@@ -482,7 +480,8 @@ export default function SalesInvoice() {
             </div>
             <div className="si-total"><span>New total {money(draft.total)} · unpaid</span><b>{money(draft.due)}</b></div>
             {draft.over ? <p className="gc-help" style={{ margin: 0 }}>{phone ? `${money(draft.over)} already paid is above the new total. It is kept as ${name}’s advance credit.` : `${money(draft.over)} already paid is above the new total. Give it back to the customer.`}</p> : null}
-            <p className="gc-help" style={{ margin: 0 }}>The current version is kept in the invoice’s revision history.</p>
+            <div><label className="gc-label" htmlFor="si-why">Why is it changed?</label><input id="si-why" className="gc-input" value={edit.reason} onChange={(e) => setEdit({ ...edit, reason: e.target.value })} placeholder="For example: the customer took 6, not 8" /></div>
+            <p className="gc-help" style={{ margin: 0 }}>The current version is kept in the revision history. The new revision must be accepted again before payment.</p>
             <div className="gc-modal__foot" style={{ marginTop: 0 }}>
               <button type="button" className="gc-btn gc-btn--neutral" style={{ marginRight: 'auto' }} onClick={() => setEdit(null)}>Cancel</button>
               <button type="button" className="gc-btn gc-btn--neutral" onClick={() => saveEdit(false)}>Save</button>

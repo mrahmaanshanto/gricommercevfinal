@@ -20,6 +20,7 @@ import { getStockSetup } from '@/lib/stockSetup';
 import { hasModule } from '@/lib/edition';
 import { CHANNELS_EVENT, channelMap, getChannels, setPublished, retryMany, STATUS, ISSUES, channelBy, PRODUCT_CHS } from '@/lib/channels';
 import { BrandLogo as __BrandLogo } from '@/components/BrandLogo';
+import { ModuleSetup } from '@/components/ModuleSetup';
 
 // Sales channels on the product list (src/lib/channels.js): a filter, a small Meta / Google mark per row and the
 // channel actions for the selected products. Shown when the edition sells on channels.
@@ -200,8 +201,8 @@ class Component extends DCLogic {
       },
       exportCsv: function () {
         if (!list.length) { toast(self, 'Nothing to export. Change the filters first.', true); return; }
-        var rows = [['Name', 'SKU', 'Barcode', 'Status', 'Stock', 'Category', 'Brand', 'Sell to', 'Retail price', 'Wholesale price', 'Wholesale MOQ', 'Variants']].concat(list.map(function (p) {
-          return [p.name, p.sku, p.barcode, ST[p.st][0], p.inv, p.cat, p.brand, sellLabel(p.sell), p.sell === 'wholesale' ? '' : p.price, p.wholesale == null ? '' : p.wholesale, p.moq == null ? '' : p.moq, p.variants.length || 1];
+        var rows = [['Name', 'SKU', 'Barcode', 'Status', 'Stock', 'Category', 'Brand'].concat(wsOn ? ['Sell to', 'Retail price', 'Wholesale price', 'Wholesale MOQ'] : ['Price'], ['Variants'])].concat(list.map(function (p) {
+          return [p.name, p.sku, p.barcode, ST[p.st][0], p.inv, p.cat, p.brand].concat(wsOn ? [sellLabel(p.sell), p.sell === 'wholesale' ? '' : p.price, p.wholesale == null ? '' : p.wholesale, p.moq == null ? '' : p.moq] : [p.price], [p.variants.length || 1]);
         }));
         downloadCsv('products-' + tab + '.csv', rows);
         toast(self, 'Exported ' + list.length + (list.length === 1 ? ' product' : ' products') + ' as CSV.');
@@ -252,6 +253,7 @@ class AllProductsView extends Component {
                   secondary={[{ label: 'Export', onClick: v.exportCsv }, { label: 'Import', onClick: v.importCsv }]}
                   more={[{ label: 'Bulk edit', onClick: v.bulkEdit }, { label: 'Categories', href: '/categories' }, { label: 'Catalog setup', href: '/catalog-setup' }, { label: 'Barcode labels', href: '/barcode-labels' }]}
                   primary={{ label: 'Add product', href: '/add-product' }} />
+                <ModuleSetup area="area-products" />
                 {v.hasMsg ? <div className="gc-alert gc-alert--soft" role="status">{v.msg}</div> : null}
 
                 <section className="ix-card" aria-label="Products">

@@ -6,10 +6,29 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { ConsoleSide, ConsoleTop, ConsoleToast } from './ConsoleFrame';
+import { MAIN, TITLEROW, H1, SUBT, H2, PHEAD, PSIDE, PANEL, BTN, Go } from './consoleParts';
+import { attach, db, staff, provisionStore, subdomainFree, catalogue, fmt } from '@/lib/platform';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
+// Provision a store (staff set it up on a visit or a call): the store, its owner, a trial or paid plan and a setup
+// run that goes live by itself in a few minutes (Provisioning). "Save and finish later" keeps the form in this browser.
+const DRAFT_KEY = 'gc.platform.provisionDraft';
+const EXTRA = [['M05', 'Warehouse (M05)'], ['G5', 'AI product creation (G5)'], ['G3', 'Inbox and automation (G3)'], ['S6', 'Assisted migration (S6)']];
+const MIGRATE = [['empty', 'Start empty', 'The owner adds products in the setup wizard.'], ['csv', 'Import a CSV', 'Products and stock from a spreadsheet.'], ['wordpress', 'Migrate from WordPress', 'Products, customers and orders; assisted.']];
+const EMPTY = { name: '', legal: '', cat: 'Fashion', dist: 'Dhaka', address: '', licence: '', tin: '', owner: '', phone: '', email: '', lang: 'বাংলা', sendLogin: true, sub: '', domain: '', segs: ['Online'], plan: 'business', trial: true, modules: [], src: 'Physical visit', by: 'Rakib Hasan', helper: 'Tania Sultana', campaign: '', refCode: '', migrate: 'empty' };
+
 class Component extends DCLogic {
+  componentDidMount() {
+    this.off = attach(this);
+    let saved = null;
+    try { saved = JSON.parse(window.localStorage.getItem(DRAFT_KEY) || 'null'); } catch { saved = null; }
+    const me = staff();
+    this.setState({ f: { ...EMPTY, by: catalogue.ONBOARDERS.includes(me.name) ? me.name : EMPTY.by, ...(saved || {}) }, restored: !!saved });
+  }
+  componentWillUnmount() { if (this.off) this.off(); }
+
   renderVals() {
     const v = this.renderVals0() || {};
     const mini = !!(this.state || {}).mini;
@@ -20,7 +39,41 @@ class Component extends DCLogic {
   }
 
   renderVals0() {
-    return {};
+    const s = this.state || {};
+    const d = db();
+    const f = s.f || EMPTY;
+    const set = (patch) => this.setState({ f: { ...f, ...patch }, err: null });
+    const txt = (k) => (e) => set({ [k]: e.target.value });
+    const slug = f.sub || f.name.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 24);
+    const free = slug ? subdomainFree(d, slug) : { ok: false, why: '' };
+    const ladder = f.segs.includes('Online') ? 'online' : f.segs.includes('Retail') ? 'retail' : 'wholesale';
+    const live = d.plans[ladder].versions.find((x) => x.v === d.plans[ladder].live);
+    const err = s.err || null;
+    const say = (text, tone = 'ok') => this.setState({ toast: text, toastTone: tone });
+    const stageSecs = (key) => Math.round(catalogue.STAGES.find((x) => x[0] === key)[2] / 1000);
+    return {
+      f, err, restored: !!s.restored, slug, free, freeText: !slug ? 'Pick the store’s free address.' : free.ok ? 'Available' : free.why,
+      cats: catalogue.CATEGORIES, dists: catalogue.DISTRICTS, sources: catalogue.SOURCES, onboarders: catalogue.ONBOARDERS,
+      on: { name: txt('name'), legal: txt('legal'), cat: txt('cat'), dist: txt('dist'), address: txt('address'), licence: txt('licence'), tin: txt('tin'), owner: txt('owner'), phone: txt('phone'), email: txt('email'), domain: txt('domain'), src: txt('src'), by: txt('by'), helper: txt('helper'), campaign: txt('campaign'), refCode: txt('refCode') },
+      onSub: (e) => set({ sub: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }),
+      onPlan: (e) => set({ plan: e.target.value }), onStart: (e) => set({ trial: e.target.value === 'trial' }),
+      langs: ['বাংলা', 'English'].map((x) => ({ x, cls: f.lang === x ? 'tagsel on' : 'tagsel', on: f.lang === x ? 'true' : 'false', pick: () => set({ lang: x }) })),
+      toggleLogin: () => set({ sendLogin: !f.sendLogin }),
+      segs: ['Online', 'Retail', 'Wholesale'].map((x) => ({ x, cls: f.segs.includes(x) ? 'tagsel on' : 'tagsel', on: f.segs.includes(x) ? 'true' : 'false', pick: () => set({ segs: f.segs.includes(x) ? f.segs.filter((y) => y !== x) : [...f.segs, x] }) })),
+      planOpts: ['business', 'growth', 'enterprise'].map((p) => ({ p, label: `${live.plans[p].name} · ${fmt.taka(live.plans[p].price)}` })),
+      extras: EXTRA.map(([code, label]) => ({ code, label, on: f.modules.includes(code), pick: () => set({ modules: f.modules.includes(code) ? f.modules.filter((y) => y !== code) : [...f.modules, code] }) })),
+      migrates: MIGRATE.map(([k, label, help]) => ({ k, label, help, cls: f.migrate === k ? 'rc on' : 'rc', on: f.migrate === k ? 'true' : 'false', pick: () => set({ migrate: k }) })),
+      steps: [['Create store and owner', stageSecs('store') + stageSecs('owner')], ['Default theme and settings', stageSecs('theme')], ['Search index', stageSecs('search')], ['Free address and certificate', stageSecs('domain')], [f.trial ? 'Billing account and trial' : 'Billing account and first bill', stageSecs('billing')], ['Hand over to setup wizard', stageSecs('wizard')]],
+      go: s.go || null,
+      saveLater: () => { try { window.localStorage.setItem(DRAFT_KEY, JSON.stringify(f)); } catch { /* ignore */ } say('Saved in this browser · open the form again to finish'); },
+      create: () => {
+        const r = provisionStore({ ...f, sub: slug });
+        if (!r.ok) { this.setState({ err: r }); say(r.error, 'err'); return; }
+        try { window.localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+        this.setState({ go: '/provisioning?run=' + (d.runs.find((x) => x.shopId === r.id) || {}).id });
+      },
+      toast: s.toast || '', toastTone: s.toastTone || 'ok', hideToast: () => this.setState({ toast: '' }),
+    };
   }
 }
 
@@ -241,247 +294,17 @@ export default class FormProvisionScreen extends Component {
       <div className="dc-screen" data-screen="FormProvision">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className={`cs ${v.miniCls ?? ""}`} style={{ width: "1440px", height: "2020px", overflow: "hidden", position: "relative", background: "var(--bg)" }}>
-          <aside className="side" aria-label="Console navigation">
-            <div className="sidein">
-              <div className="sidehead" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "18px 12px 6px 20px" }}>
-                <span className="logo-full">
-                  <img src="/assets/62dadbbb3f365aebdd41bb9975f5931f.png" alt="GridCommerce" style={{ height: "28px", width: "auto", display: "block" }} />
-                </span>
-                <img className="logo-mini" src="/assets/9b6f9ad369f1cbde65271a968e6ba1f1.png" alt="GridCommerce" style={{ height: "32px", width: "auto" }} />
-                <button className="tb sidetoggle" type="button" onClick={v.toggleSide} aria-label={v.sideLabel} title={v.sideLabel}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3" y="3" width="18" height="18" rx="3" />
-                    <path d="M9 3v18" />
-                  </svg>
-                </button>
-              </div>
-              <div className="sidemeta" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 20px 12px" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", height: "22px", padding: "0 8px", borderRadius: "var(--radius-md)", background: "var(--iconbg)", color: "var(--iconfg)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase" }}>Console</span>
-                <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Staff only · views logged</span>
-              </div>
-              <nav aria-label="Console" className="sidenav">
-                <__Link href="/console-shell" className="nav top" title="Overview">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Overview</span>
-                </__Link>
-                <div className="navlabel" style={{ margin: "10px 10px 6px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--sidemuted)" }}>Manage</div>
-                <__Link href="/merchants" className="nav grp open" title="Tenants" aria-expanded="true">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 9 4.5 4h15L21 9" />
-                      <path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9Z" />
-                      <path d="M5 12v9h14v-9" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Tenants</span>
-                  <span className="chev open">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <div className="kids">
-                  <__Link href="/merchants" className="nav sub on" aria-current="page">
-                    <span className="navtxt">Merchants</span>
-                  </__Link>
-                  <__Link href="/provisioning" className="nav sub">
-                    <span className="navtxt">Provisioning</span>
-                  </__Link>
-                  <__Link href="/domains" className="nav sub">
-                    <span className="navtxt">Domains</span>
-                  </__Link>
-                  <__Link href="/backups" className="nav sub">
-                    <span className="navtxt">Backups</span>
-                  </__Link>
-                </div>
-                <__Link href="/module-catalogue" className="nav grp" title="Packaging" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" />
-                      <path d="m3 7 9 5 9-5M12 12v10" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Packaging</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/subscriptions" className="nav grp" title="Billing" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="2" y="5" width="20" height="14" rx="2" />
-                      <path d="M2 10h20M6 15h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Billing</span>
-                  <span className="badge warn">4</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/health-risk" className="nav grp" title="Monitoring" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 12h4l3-8 4 16 3-8h4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Monitoring</span>
-                  <span className="badge warn">5</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/support-desk" className="nav grp" title="Support" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 14v-2a9 9 0 0 1 18 0v2" />
-                      <path d="M21 14v3a2 2 0 0 1-2 2h-2v-7h4M3 14v3a2 2 0 0 0 2 2h2v-7H3" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Support</span>
-                  <span className="badge ">12</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/leads" className="nav grp" title="Sales CRM" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Sales CRM</span>
-                  <span className="badge ">18</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/ops-centre" className="nav grp" title="Operations" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">Operations</span>
-                  <span className="badge err">2</span>
-                  <span className="chev" style={{ marginLeft: "8px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-                <__Link href="/releases" className="nav grp" title="System" aria-expanded="false">
-                  <span className="navic">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="4" y="11" width="16" height="10" rx="2" />
-                      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                    </svg>
-                  </span>
-                  <span className="navtxt">System</span>
-                  <span className="chev">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                </__Link>
-              </nav>
-              <__Link href="/ops-centre" className="statuscard" title="1 open incident" style={{ display: "block", color: "inherit", textDecoration: "none" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ flex: "none", width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#ff9800", boxShadow: "0 0 0 3px rgba(255,152,0,.2)" }} />
-                  <span className="statustxt" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>1 open incident</span>
-                  <span className="num statustxt" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>99.96%</span>
-                </div>
-                <div className="statustxt ell" style={{ marginTop: "4px", fontSize: "var(--text-xs)", color: "var(--sidebody)" }}>Steadfast webhooks delayed · 38 stores</div>
-              </__Link>
-              <div className="me">
-                <span style={{ position: "relative", display: "inline-flex", flex: "none" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-xl)", background: "linear-gradient(145deg,#2eaee4,#003087)", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>FA</span>
-                  <span style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "11px", height: "11px", borderRadius: "var(--radius-full)", background: "#10b981", border: "2px solid var(--side)" }} />
-                </span>
-                <div className="metxt" style={{ minWidth: "0" }}>
-                  <div className="ell" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>Farhana Akter</div>
-                  <div className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Support lead · 2FA on</div>
-                </div>
-                <__Link href="/staff-roles" className="tb mebtn" aria-label="Account and roles" style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--sidemuted)" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 21a8 8 0 0 1 16 0" />
-                  </svg>
-                </__Link>
-              </div>
-            </div>
-          </aside>
-          <header className="topbar">
-            <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", minWidth: "230px" }}>
-              <span className="crumbic">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 9 4.5 4h15L21 9" />
-                  <path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9Z" />
-                  <path d="M5 12v9h14v-9" />
-                </svg>
-              </span>
-              <span style={{ color: "var(--muted)" }}>Tenants</span>
-              <span style={{ color: "var(--muted)" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m9 6 6 6-6 6" />
-                </svg>
-              </span>
-              <span style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Provision a store</span>
-            </nav>
-            <button className="searchbtn" type="button"><span style={{ display: "inline-flex" }}>
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </svg>
-</span>Search stores, phones, invoices, leads<span className="kbd">Ctrl K</span></button>
-            {" "}
-            <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "8px", height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "var(--okbg)", color: "var(--okt)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-lg)", background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,.18)" }} />Production</span>
-            {" "}
-            <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)", padding: "0 4px" }}>Sun 20 Sep · 14:32</span>
-            {" "}
-            <span style={{ width: "1px", height: "24px", background: "var(--line)" }} />
-            {" "}
-            <button className="tb" type="button" aria-label="Notifications, 3 unread" style={{ position: "relative" }}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                <path d="M10 21h4" />
-              </svg>
-              <span style={{ position: "absolute", top: "8px", right: "9px", width: "8px", height: "8px", borderRadius: "var(--radius-lg)", background: "#ff5724", border: "2px solid var(--surface)" }} />
-            </button>
-            {" "}
-            <button className="tb" type="button" aria-label="Help and runbooks">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
-              </svg>
-            </button>
-          </header>
-          <main className="mainarea" style={{ position: "absolute", left: "272px", right: "0", top: "64px", bottom: "0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <ConsoleSide group="tenants" item="merchants" toggle={v.toggleSide} label={v.sideLabel} />
+          <ConsoleTop group="tenants" page="Provision a store" />
+          <main className="mainarea" style={MAIN}>
             <div style={{ padding: "22px 28px 96px", display: "flex", flexDirection: "column", gap: "16px", minHeight: "0" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)" }}>
                 <__Link href="/merchants" style={{ fontWeight: "var(--weight-medium)" }}>← Merchants</__Link>
               </div>
-              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px" }}>
+              <div style={TITLEROW}>
                 <div style={{ minWidth: "0" }}>
-                  <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>Provision a store</h1>
-                  <p style={{ margin: "5px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>For stores set up by staff, on a visit or a call</p>
+                  <h1 style={H1}>Provision a store</h1>
+                  <p style={SUBT}>For stores set up by staff, on a visit or a call{v.restored ? " · continued from a saved form" : ""}</p>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: "none" }} />
               </div>
@@ -492,49 +315,36 @@ export default class FormProvisionScreen extends Component {
                       <h2 className="fsh">Business</h2>
                       <p className="fsd">As it should appear on invoices.</p>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                      <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
-                        <label className="fld">
-                          <span className="flab">Store name<span className="req" aria-hidden="true">*</span></span>
-                          <input className="in " type="text" defaultValue="Ruposhi Jewels" placeholder="" />
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Business or legal name</span>
-                          <input className="in " type="text" defaultValue="Ruposhi Jewellers" placeholder="" />
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Category<span className="req" aria-hidden="true">*</span></span>
-                          <select defaultValue="Jewellery and accessories" className="in">
-                            <option>Jewellery and accessories</option>
-                            <option>Fashion</option>
-                            <option>Electronics</option>
-                            <option>Grocery</option>
-                            <option>Beauty</option>
-                          </select>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">District<span className="req" aria-hidden="true">*</span></span>
-                          <select defaultValue="Dhaka" className="in">
-                            <option>Dhaka</option>
-                            <option>Chattogram</option>
-                            <option>Sylhet</option>
-                            <option>Khulna</option>
-                          </select>
-                        </label>
-                        <label className="fld" style={{ gridColumn: "1 / -1" }}>
-                          <span className="flab">Address</span>
-                          <input className="in " type="text" defaultValue="Shop 22, Bashundhara City, Panthapath" placeholder="" />
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Trade licence number</span>
-                          <input className="in " type="text" defaultValue="" placeholder="Optional" />
-                          <span className="fhelp">Needed only for invoices with VAT.</span>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">TIN</span>
-                          <input className="in " type="text" defaultValue="" placeholder="Optional" />
-                        </label>
-                      </div>
+                    <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
+                      <label className="fld">
+                        <span className="flab">Store name<span className="req" aria-hidden="true">*</span></span>
+                        <input className={"in " + (v.err && v.err.field === "name" ? "err" : "")} type="text" value={v.f.name} onChange={v.on.name} placeholder="e.g. Ruposhi Jewels" />
+                      </label>
+                      <label className="fld">
+                        <span className="flab">Business or legal name</span>
+                        <input className="in " type="text" value={v.f.legal} onChange={v.on.legal} placeholder="Same as the store name" />
+                      </label>
+                      <label className="fld">
+                        <span className="flab">Category<span className="req" aria-hidden="true">*</span></span>
+                        <select value={v.f.cat} onChange={v.on.cat} className="in">{v.cats.map((x) => <option key={x}>{x}</option>)}</select>
+                      </label>
+                      <label className="fld">
+                        <span className="flab">District<span className="req" aria-hidden="true">*</span></span>
+                        <select value={v.f.dist} onChange={v.on.dist} className="in">{v.dists.map((x) => <option key={x}>{x}</option>)}</select>
+                      </label>
+                      <label className="fld">
+                        <span className="flab">Address</span>
+                        <input className="in " type="text" value={v.f.address} onChange={v.on.address} placeholder="Shop, building, road" />
+                      </label>
+                      <label className="fld">
+                        <span className="flab">Trade licence number</span>
+                        <input className="in " type="text" value={v.f.licence} onChange={v.on.licence} placeholder="Optional" />
+                        <span className="fhelp">Needed only for invoices with VAT.</span>
+                      </label>
+                      <label className="fld">
+                        <span className="flab">TIN</span>
+                        <input className="in " type="text" value={v.f.tin} onChange={v.on.tin} placeholder="Optional" />
+                      </label>
                     </div>
                   </section>
                   <section className="fsec">
@@ -546,33 +356,32 @@ export default class FormProvisionScreen extends Component {
                       <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
                         <label className="fld">
                           <span className="flab">Full name<span className="req" aria-hidden="true">*</span></span>
-                          <input className="in " type="text" defaultValue="Nasrin Sultana" placeholder="" />
+                          <input className={"in " + (v.err && v.err.field === "owner" ? "err" : "")} type="text" value={v.f.owner} onChange={v.on.owner} />
                         </label>
                         <label className="fld">
                           <span className="flab">Mobile<span className="req" aria-hidden="true">*</span></span>
-                          <div className="affix ">
+                          <div className={"affix " + (v.err && v.err.field === "phone" ? "err" : "")}>
                             <span className="pre">+880</span>
-                            <input type="text" defaultValue="1715-XXXXXX" />
+                            <input type="text" inputMode="tel" value={v.f.phone} onChange={v.on.phone} placeholder="17XX-XXXXXX" />
                           </div>
                         </label>
                         <label className="fld">
                           <span className="flab">Email</span>
-                          <input className="in " type="text" defaultValue="nasrin@ruposhi.com.bd" placeholder="" />
+                          <input className="in " type="text" value={v.f.email} onChange={v.on.email} placeholder="Optional" />
                         </label>
                         <div className="fld">
                           <span className="flab">Language</span>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                            <span className="tagsel on" role="checkbox" aria-checked="true" tabIndex="0">বাংলা</span>
-                            <span className="tagsel" role="checkbox" aria-checked="false" tabIndex="0">English</span>
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            {v.langs.map((x) => <span key={x.x} className={x.cls} role="checkbox" aria-checked={x.on} tabIndex="0" onClick={x.pick} onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); x.pick(); } }} style={{ cursor: "pointer" }}>{x.x}</span>)}
                           </div>
                         </div>
                       </div>
                       <div className="swrow">
-                        <div style={{ minWidth: "0" }}>
+                        <div>
                           <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Send login by SMS</div>
-                          <div className="fhelp" style={{ marginTop: "2px" }}>A one-time link, valid for 24 hours.</div>
+                          <div className="fhelp">A one-time link, valid for 24 hours.</div>
                         </div>
-                        <span className="sw on" role="switch" aria-checked="true" tabIndex="0" aria-label="Send login by SMS" />
+                        <span className={v.f.sendLogin ? "sw on" : "sw"} role="switch" aria-checked={v.f.sendLogin ? "true" : "false"} tabIndex="0" aria-label="Send login by SMS" onClick={v.toggleLogin} onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); v.toggleLogin(); } }} style={{ cursor: "pointer" }} />
                       </div>
                     </div>
                   </section>
@@ -581,18 +390,18 @@ export default class FormProvisionScreen extends Component {
                       <h2 className="fsh">Store address</h2>
                       <p className="fsd">The free address is ready in minutes; a custom domain can be added now or later.</p>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+                    <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
                       <label className="fld">
                         <span className="flab">Free address<span className="req" aria-hidden="true">*</span></span>
-                        <div className="affix ok cs-affix-stack">
-                          <input type="text" defaultValue="ruposhijewels" />
+                        <div className={"affix cs-affix-stack " + (v.slug ? (v.free.ok ? "ok" : "err") : "")}>
+                          <input type="text" value={v.f.sub} onChange={v.onSub} placeholder={v.slug || "storename"} />
                           <span className="post">.gridcommerce.com.bd</span>
                         </div>
-                        <span className="fhelp">Available</span>
+                        <span className={v.slug && !v.free.ok ? "ferr" : "fhelp"}>{v.freeText}</span>
                       </label>
                       <label className="fld">
                         <span className="flab">Custom domain</span>
-                        <input className="in " type="text" defaultValue="ruposhi.com.bd" placeholder="" />
+                        <input className="in " type="text" value={v.f.domain} onChange={v.on.domain} placeholder="Optional, e.g. ruposhi.com.bd" />
                         <span className="fhelp">We email the DNS steps to the owner.</span>
                       </label>
                     </div>
@@ -605,56 +414,32 @@ export default class FormProvisionScreen extends Component {
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                       <div className="fld">
                         <span className="flab">Segments<span className="req" aria-hidden="true">*</span></span>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                          <span className="tagsel on" role="checkbox" aria-checked="true" tabIndex="0">Online</span>
-                          <span className="tagsel on" role="checkbox" aria-checked="true" tabIndex="0">Retail</span>
-                          <span className="tagsel" role="checkbox" aria-checked="false" tabIndex="0">Wholesale</span>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                          {v.segs.map((x) => <span key={x.x} className={x.cls} role="checkbox" aria-checked={x.on} tabIndex="0" onClick={x.pick} onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); x.pick(); } }} style={{ cursor: "pointer" }}>{x.x}</span>)}
                         </div>
                       </div>
                       <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
                         <label className="fld">
                           <span className="flab">Plan<span className="req" aria-hidden="true">*</span></span>
-                          <select defaultValue="Business · ৳2,500" className="in">
-                            <option>Business · ৳2,500</option>
-                            <option>Growth · ৳1,000</option>
-                            <option>Enterprise · ৳5,000</option>
-                          </select>
+                          <select value={v.f.plan} onChange={v.onPlan} className="in">{v.planOpts.map((o) => <option key={o.p} value={o.p}>{o.label}</option>)}</select>
                         </label>
                         <label className="fld">
                           <span className="flab">Start</span>
-                          <select defaultValue="15-day trial" className="in">
-                            <option>15-day trial</option>
-                            <option>Paid from today</option>
+                          <select value={v.f.trial ? "trial" : "paid"} onChange={v.onStart} className="in">
+                            <option value="trial">15-day trial</option>
+                            <option value="paid">Paid from today</option>
                           </select>
                         </label>
                       </div>
                       <div className="fld">
                         <span className="flab">Extra modules</span>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "2px 16px" }}>
-                          <div className="chk" role="checkbox" aria-checked="false" tabIndex="0">
-                            <span className="cb" />
-                            <span className="ell">Warehouse (M05)</span>
-                          </div>
-                          <div className="chk" role="checkbox" aria-checked="true" tabIndex="0">
-                            <span className="cb on">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M20 6 9 17l-5-5" />
-                              </svg>
-                            </span>
-                            <span className="ell">AI product creation (G5)</span>
-                          </div>
-                          <div className="chk" role="checkbox" aria-checked="false" tabIndex="0">
-                            <span className="cb" />
-                            <span className="ell">Inbox and automation (G3)</span>
-                          </div>
-                          <div className="chk" role="checkbox" aria-checked="true" tabIndex="0">
-                            <span className="cb on">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M20 6 9 17l-5-5" />
-                              </svg>
-                            </span>
-                            <span className="ell">Assisted migration (S6)</span>
-                          </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "6px 16px" }}>
+                          {v.extras.map((x) => (
+                            <div key={x.code} className="chk" role="checkbox" aria-checked={x.on ? "true" : "false"} tabIndex="0" onClick={x.pick} onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); x.pick(); } }} style={{ cursor: "pointer" }}>
+                              <span className={x.on ? "cb on" : "cb"}>{x.on ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg> : null}</span>
+                              <span className="ell">{x.label}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -664,45 +449,27 @@ export default class FormProvisionScreen extends Component {
                       <h2 className="fsh">Where they came from</h2>
                       <p className="fsd">Used for commissions and for the source reports.</p>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                      <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
-                        <label className="fld">
-                          <span className="flab">Came from<span className="req" aria-hidden="true">*</span></span>
-                          <select defaultValue="Physical visit" className="in">
-                            <option>Physical visit</option>
-                            <option>Meta ads</option>
-                            <option>YouTube ads</option>
-                            <option>Reference</option>
-                            <option>Affiliate</option>
-                            <option>Website</option>
-                            <option>Event</option>
-                          </select>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Onboarded by<span className="req" aria-hidden="true">*</span></span>
-                          <select defaultValue="Rakib Hasan" className="in">
-                            <option>Rakib Hasan</option>
-                            <option>Farhana Akter</option>
-                            <option>Tania Sultana</option>
-                            <option>Mahin Khan</option>
-                          </select>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Onboarding helper</span>
-                          <select defaultValue="Tania Sultana" className="in">
-                            <option>Tania Sultana</option>
-                            <option>Unassigned</option>
-                          </select>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">Campaign</span>
-                          <input className="in " type="text" defaultValue="Bashundhara City jewellery floor" placeholder="" />
-                        </label>
-                        <label className="fld" style={{ gridColumn: "1 / -1" }}>
-                          <span className="flab">Referral or affiliate code</span>
-                          <input className="in " type="text" defaultValue="" placeholder="e.g. DGH-ARIF" />
-                        </label>
-                      </div>
+                    <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
+                      <label className="fld">
+                        <span className="flab">Came from<span className="req" aria-hidden="true">*</span></span>
+                        <select value={v.f.src} onChange={v.on.src} className="in">{v.sources.map((x) => <option key={x}>{x}</option>)}</select>
+                      </label>
+                      <label className="fld">
+                        <span className="flab">Onboarded by<span className="req" aria-hidden="true">*</span></span>
+                        <select value={v.f.by} onChange={v.on.by} className="in">{v.onboarders.map((x) => <option key={x}>{x}</option>)}</select>
+                      </label>
+                      <label className="fld">
+                        <span className="flab">Onboarding helper</span>
+                        <select value={v.f.helper} onChange={v.on.helper} className="in">{[...v.onboarders, "Unassigned"].map((x) => <option key={x}>{x}</option>)}</select>
+                      </label>
+                      <label className="fld">
+                        <span className="flab">Campaign</span>
+                        <input className="in " type="text" value={v.f.campaign} onChange={v.on.campaign} placeholder="Optional" />
+                      </label>
+                      <label className="fld">
+                        <span className="flab">Referral or affiliate code</span>
+                        <input className="in " type="text" value={v.f.refCode} onChange={v.on.refCode} placeholder="e.g. DHAKAG-ARIF" />
+                      </label>
                     </div>
                   </section>
                   <section className="fsec">
@@ -710,60 +477,45 @@ export default class FormProvisionScreen extends Component {
                       <h2 className="fsh">Bring existing data</h2>
                       <p className="fsd">Optional. Runs after the store is live.</p>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                      <div className="rgrid" role="radiogroup" style={{ gridTemplateColumns: "repeat(1,minmax(0,1fr))" }}>
-                        <div className="rc" role="radio" aria-checked="false" tabIndex="0">
+                    <div className="rgrid" role="radiogroup" aria-label="Bring existing data">
+                      {v.migrates.map((x) => (
+                        <div key={x.k} className={x.cls} role="radio" aria-checked={x.on} tabIndex="0" onClick={x.pick} onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); x.pick(); } }} style={{ cursor: "pointer" }}>
                           <span className="rdot" aria-hidden="true" />
                           <div style={{ minWidth: "0" }}>
-                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Start empty</div>
-                            <div className="fhelp" style={{ marginTop: "2px" }}>The owner adds products in the setup wizard.</div>
+                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>{x.label}</div>
+                            <div className="fhelp" style={{ marginTop: "2px" }}>{x.help}</div>
                           </div>
                         </div>
-                        <div className="rc" role="radio" aria-checked="false" tabIndex="0">
-                          <span className="rdot" aria-hidden="true" />
-                          <div style={{ minWidth: "0" }}>
-                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Import a CSV</div>
-                            <div className="fhelp" style={{ marginTop: "2px" }}>Products and stock from a spreadsheet.</div>
-                          </div>
-                        </div>
-                        <div className="rc on" role="radio" aria-checked="true" tabIndex="0">
-                          <span className="rdot" aria-hidden="true" />
-                          <div style={{ minWidth: "0" }}>
-                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Migrate from WordPress</div>
-                            <div className="fhelp" style={{ marginTop: "2px" }}>Products, customers and orders; assisted.</div>
-                          </div>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </section>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>What happens next</h2>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
+                  <section className="panel" style={PANEL}>
+                    <div style={PHEAD}>
+                      <h2 style={H2}>What happens next</h2>
+                      <div style={PSIDE} />
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "32px", fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}><span className="dot d-todo" style={{ width: "14px", height: "14px" }} />Create store and owner<span className="num" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--muted)" }}>3 s</span></div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "32px", fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}><span className="dot d-todo" style={{ width: "14px", height: "14px" }} />Default theme and settings<span className="num" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--muted)" }}>6 s</span></div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "32px", fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}><span className="dot d-todo" style={{ width: "14px", height: "14px" }} />Search index<span className="num" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--muted)" }}>14 s</span></div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "32px", fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}><span className="dot d-todo" style={{ width: "14px", height: "14px" }} />Free address and certificate<span className="num" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--muted)" }}>40 s</span></div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "32px", fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}><span className="dot d-todo" style={{ width: "14px", height: "14px" }} />Billing account and trial<span className="num" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--muted)" }}>3 s</span></div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "32px", fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}><span className="dot d-todo" style={{ width: "14px", height: "14px" }} />Hand over to setup wizard<span className="num" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--muted)" }}>1 s</span></div>
+                    {v.steps.map(([label, secs]) => (
+                      <div key={label} style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "34px", fontSize: "var(--text-xs-plus)", color: "var(--ink)" }}><span className="dot d-todo" style={{ width: "14px", height: "14px", flex: "none" }} />{label}<span className="num" style={{ marginLeft: "auto", color: "var(--muted)" }}>{secs} s</span></div>
+                    ))}
                     <div style={{ marginTop: "8px", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Usually live in under 3 minutes. You can watch it in Provisioning.</div>
                   </section>
-                  <div className="note n-ok"><strong>ruposhijewels</strong> is free. The old reserved name is no longer used.</div>
+                  {v.slug ? <div className={v.free.ok ? "note n-ok" : "note n-err"}><strong>{v.slug}</strong> {v.free.ok ? "is free." : v.free.why}</div> : null}
                 </div>
               </div>
             </div>
             <div className="formbar">
               <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Fields marked <span style={{ color: "#c2410c" }}>*</span> are required · every save is written to the audit log</span>
               <span style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
-                <__Link href="/merchants" className="btn btng" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Cancel</__Link>
-                <button className="btn btng" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Save and finish later</button>
-                <button className="btn btnp" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Create store</button>
+                <__Link href="/merchants" className="btn btng" style={BTN}>Cancel</__Link>
+                <button className="btn btng" type="button" onClick={v.saveLater} style={BTN}>Save and finish later</button>
+                <button className="btn btnp" type="button" onClick={v.create} style={BTN}>Create store</button>
               </span>
             </div>
           </main>
+          <ConsoleToast text={v.toast} tone={v.toastTone} onClose={v.hideToast} />
+          <Go to={v.go} />
         </div>
       </div>
     );

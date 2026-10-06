@@ -100,7 +100,7 @@ export class SettingsLogic extends DCLogic {
       saveMine: () => { self.setState({ guard: null }); self.save({ riskOk: true, force: true }); },
       formId: () => self.formId || 'set',
       savedBy: () => self.state.savedBy,
-      shopName: () => String(readSettings('general').values.store_name || 'GridShop'),
+      shopName: () => String(readSettings('general').values.store_name || 'Dazzle Shop'),
     };
   }
 

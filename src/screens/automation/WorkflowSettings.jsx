@@ -14,7 +14,8 @@ import { toast, confirmDialog } from '@/runtime/ui';
 import { InfoTip, StatusBadge, Dialog } from '@/components/ui';
 import { RecordHeader } from '@/components/ui/IndexKit';
 import { CLASSES, CLASS_INFO, DEFAULT_POLICY, getPolicy, savePolicy, quietText, inQuietHours } from '@/lib/messagePolicy';
-import { AI_MODES, AI_INTENTS, DEFAULT_AI, getAiSettings, saveAiSettings, inOfficeHours, aiAction, AI_ACT_WORD } from '@/lib/aiReply';
+import Link from 'next/link';
+import { DEFAULT_AI, getAiSettings, aiAction, AI_ACT_WORD, AI_CONTROL_WORD, shopControl } from '@/lib/aiReply';
 import { getSuppressions, suppress, unsuppress, REASONS } from '@/lib/suppression';
 import { formatDate } from '@/lib/format';
 import { clockNow } from '@/lib/settlements';
@@ -25,9 +26,8 @@ const ROLES = ['Manager', 'Order team', 'Marketing', 'Branch staff'];
 const RIGHTS = ['See runs', 'Turn rules on or off', 'Build workflows'];
 const DEF = { Manager: [1, 1, 1], 'Order team': [1, 1, 0], Marketing: [1, 1, 1], 'Branch staff': [1, 0, 0] };
 const SW = { apBulk: true, apRefund: true, apTransfer: true, failNotify: true };
-const SENDERS = [{ l: 'SMS name', v: 'GridShop', s: 'Approved' }, { l: 'WhatsApp', v: '+880 1711-482093', s: 'Verified business' }, { l: 'Email', v: 'hello@gridshop.com.bd', s: 'Verified' }];
+const SENDERS = [{ l: 'SMS name', v: 'Dazzle Shop', s: 'Approved' }, { l: 'WhatsApp', v: '+880 1711-482093', s: 'Verified business' }, { l: 'Email', v: 'hello@dazzleshop.com.bd', s: 'Verified' }];
 const CH_WORD = { sms: 'SMS', whatsapp: 'WhatsApp', email: 'Email' };
-const DAYS = [[6, 'Sat'], [0, 'Sun'], [1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri']];
 const hh = (n) => (((n % 24) + 24) % 24 % 12 || 12) + ' ' + ((((n % 24) + 24) % 24) >= 12 ? 'pm' : 'am');
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -116,7 +116,8 @@ export default function WorkflowSettingsScreen() {
 
   const quiet = (patch) => setP((x) => ({ ...x, quiet: { ...x.quiet, ...patch } }));
   const cls = (c, patch) => setP((x) => ({ ...x, classes: { ...x.classes, [c]: { ...x.classes[c], ...patch } } }));
-  const save = () => { savePolicy(p); saveAiSettings(ai); toast('Settings saved. Every sender uses them from now.'); };
+  // AI replies are changed in Grid AI › Behaviour (lib/aiReply.js has one owner); this page only shows them
+  const save = () => { savePolicy(p); toast('Settings saved. Every sender uses them from now.'); };
   const headline = (p.quiet.on ? 'Quiet ' + hh(p.quiet.from) + ' to ' + hh(p.quiet.to) : 'No quiet hours') + ' · daily limit ৳' + Number(p.dailySpend || 0).toLocaleString('en-IN');
   const act = now ? aiAction({ at: now, intent: 'price' }, ai) : null;
   const addSup = (e) => {
@@ -192,33 +193,9 @@ export default function WorkflowSettingsScreen() {
                   </section>
 
                   <section className="ix-card ix-card--open" aria-labelledby="ws-ai">
-                    <header className="ix-card__head"><h2 id="ws-ai">AI replies <InfoTip text="How the AI answers chats in the Inbox. The AI provider, model and budget are in Settings › AI." /></h2></header>
+                    <header className="ix-card__head"><h2 id="ws-ai">AI replies</h2><Link href="/ai-behaviour" className="ix-btn ix-btn--sm">Change in Grid AI</Link></header>
                     <div className="ix-card__body ws-body">
-                      <div className="ws-modes" role="group" aria-label="AI replies">
-                        {AI_MODES.map((m) => <button key={m.k} type="button" className="ws-mode" aria-pressed={ai.mode === m.k} onClick={() => setAi({ ...ai, mode: m.k })}><b>{m.label}</b><small>{m.sub}</small></button>)}
-                      </div>
-                      {ai.mode === 'auto-hours' || ai.mode === 'auto' ? (<>
-                        <div className="ws-field">
-                          <span className="gc-label">The AI may answer by itself <InfoTip text="Anything else gets a suggested reply for a person to send." /></span>
-                          <div className="ix-chips" role="group" aria-label="Questions the AI may answer">
-                            {AI_INTENTS.map(([k, l]) => { const on = ai.intents.includes(k); return <button key={k} type="button" className="ix-chip" aria-pressed={on} onClick={() => setAi({ ...ai, intents: on ? ai.intents.filter((x) => x !== k) : [...ai.intents, k] })}>{on ? <Icon name="check" width="14" height="14" aria-hidden="true" /> : null}{l}</button>; })}
-                          </div>
-                        </div>
-                        <div className="ws-field"><span className="gc-label">Hand to a person after</span><Stepper v={ai.escalateAfter} label="AI replies before a person" unit="AI replies without a fix" onDec={() => setAi({ ...ai, escalateAfter: clamp(ai.escalateAfter - 1, 1, 5) })} onInc={() => setAi({ ...ai, escalateAfter: clamp(ai.escalateAfter + 1, 1, 5) })} /></div>
-                      </>) : null}
-                      {ai.mode === 'auto-hours' ? (<>
-                        <div className="ws-grid">
-                          <div className="ws-field"><label className="gc-label" htmlFor="ai-from">Office hours from</label><input id="ai-from" type="time" className="gc-input" value={ai.hours.from} onChange={(e) => setAi({ ...ai, hours: { ...ai.hours, from: e.target.value } })} /></div>
-                          <div className="ws-field"><label className="gc-label" htmlFor="ai-to">Until <InfoTip text="May run past midnight, e.g. 10 PM to 6 AM." /></label><input id="ai-to" type="time" className="gc-input" value={ai.hours.to} onChange={(e) => setAi({ ...ai, hours: { ...ai.hours, to: e.target.value } })} /></div>
-                        </div>
-                        <div className="ws-field">
-                          <span className="gc-label">Work days</span>
-                          <div className="ix-chips" role="group" aria-label="Work days">
-                            {DAYS.map(([d, l]) => { const on = ai.hours.days.includes(d); return <button key={d} type="button" className="ix-chip" aria-pressed={on} onClick={() => setAi({ ...ai, hours: { ...ai.hours, days: on ? ai.hours.days.filter((x) => x !== d) : [...ai.hours.days, d] } })}>{l}</button>; })}
-                          </div>
-                        </div>
-                      </>) : null}
-                      {act ? <p className="ws-now">Now, for a price question: <StatusBadge tone={act.act === 'auto' ? 'success' : act.act === 'off' ? 'neutral' : 'info'}>{AI_ACT_WORD[act.act]}</StatusBadge>{ai.mode === 'auto-hours' ? <span>{inOfficeHours(now, ai) ? 'Office hours' : 'Outside office hours'}</span> : null}</p> : null}
+                      {act ? <p className="ws-now">Shop default: <StatusBadge tone={shopControl(ai) === 'auto' ? 'success' : shopControl(ai) === 'off' ? 'neutral' : 'info'}>{AI_CONTROL_WORD[shopControl(ai)]}</StatusBadge> · now, for a price question: <StatusBadge tone={act.act === 'auto' ? 'success' : act.act === 'off' ? 'neutral' : 'info'}>{AI_ACT_WORD[act.act]}</StatusBadge></p> : null}
                     </div>
                   </section>
 

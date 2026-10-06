@@ -14,10 +14,13 @@ import { Sidebar, Topbar } from '@/shell/Shell';
 import { EmptyState, StatusBadge } from '@/components/ui';
 import { ShopHeader, IndexTabs, SearchField, LearnMore } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate } from '@/lib/format';
-import { getInvoices, isPaid, statusOf } from '@/lib/invoices';
+import { getInvoices, isPaid, statusOf, stageOf, STAGES } from '@/lib/invoices';
+import { wholesaleOn } from '@/lib/edition';
 
-const TABS = [['all', 'All'], ['unpaid', 'Unpaid'], ['partial', 'Partly paid'], ['paid', 'Paid']];
-const STATUS = { paid: ['Paid', 'success'], partial: ['Partly paid', 'info'], unpaid: ['Unpaid', 'warning'] };
+const TABS = [['all', 'All'], ['review', 'To accept'], ['unpaid', 'Unpaid'], ['partial', 'Partly paid'], ['paid', 'Paid']];
+const STATUS = { paid: ['Paid', 'success'], partial: ['Partly paid', 'info'], unpaid: ['Unpaid', 'warning'], review: ['To accept', 'warning'] };
+// an unpaid invoice is accepted by staff before money is recorded against it (invoices.js › acceptInvoice)
+const Stage = ({ r }) => (stageOf(r) === 'review' ? <StatusBadge tone={STAGES.review.tone} icon={STAGES.review.icon}>{STAGES.review.label}</StatusBadge> : null);
 const money = (n) => formatBDT(n, { decimals: Number.isInteger(n) ? 0 : 2 });
 const hrefOf = (r) => '/sales-invoice?id=' + encodeURIComponent(r.id);
 const unitsOf = (r) => r.lines.reduce((a, l) => a + l.qty, 0);
@@ -40,8 +43,8 @@ export default function SalesInvoices() {
     if (TABS.some((x) => x[0] === want)) setTab(want);
   }, []);
 
-  const by = (st) => rows.filter((r) => statusOf(r) === st);
-  const counts = { all: rows.length, unpaid: by('unpaid').length, partial: by('partial').length, paid: by('paid').length };
+  const by = (st) => rows.filter((r) => (st === 'review' ? stageOf(r) === 'review' : statusOf(r) === st));
+  const counts = { all: rows.length, review: by('review').length, unpaid: by('unpaid').length, partial: by('partial').length, paid: by('paid').length };
   const shown = useMemo(() => {
     const text = q.trim().toLowerCase();
     return (tab === 'all' ? rows : by(tab))
@@ -67,8 +70,8 @@ export default function SalesInvoices() {
           <div className="gc-shell__content">
             <div className="ix-page">
               <ShopHeader icon="file-text" title="Invoices"
-                about="Every sale made out to a customer: paid, partly paid or unpaid. Open an invoice to take a payment, edit it, hold its stock or send it."
-                more={[{ label: 'Wholesale orders', href: '/wholesale-orders' }, { label: 'Return & exchange', href: '/return-exchange' }]}
+                about="Every sale made out to a customer: paid, partly paid or unpaid. An unpaid invoice is accepted by staff first, then its payment is recorded. Open an invoice to accept it, take a payment, edit it or send it."
+                more={[...(wholesaleOn() ? [{ label: 'Wholesale orders', href: '/wholesale-orders' }] : []), { label: 'Dues', href: '/dues' }, { label: 'Return & exchange', href: '/return-exchange' }]}
                 primary={{ label: 'New sale', href: '/pos' }} />
 
               <section className="ix-card" aria-label="Invoices">
@@ -85,9 +88,9 @@ export default function SalesInvoices() {
                 </div>
                 {searching ? (
                   <div className="ix-filters" role="group" aria-label="Filters">
-                    <select aria-label="Customer type" className={'ix-filter' + (kind ? ' is-set' : '')} value={kind} onChange={(e) => setKind(e.target.value)}>
+                    {wholesaleOn() ? <select aria-label="Customer type" className={'ix-filter' + (kind ? ' is-set' : '')} value={kind} onChange={(e) => setKind(e.target.value)}>
                       <option value="">Customer type</option><option value="retail">Retail</option><option value="wholesale">Wholesale</option>
-                    </select>
+                    </select> : null}
                     {q || kind ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => { setQ(''); setKind(''); }}>Clear all</button> : null}
                   </div>
                 ) : null}
@@ -101,7 +104,7 @@ export default function SalesInvoices() {
                         <Link href={hrefOf(r)} className="ix-pitem">
                           <span className="ix-pitem__top"><b>{who(r)}</b><span>{money(r.totals.total)}</span></span>
                           <span className="ix-pitem__mid"><span className="iv-id">{r.id}</span> · {formatDate(r.at)}{isPaid(r) ? '' : ' · ' + money(r.due) + ' due'}</span>
-                          <span className="ix-pitem__tags"><StatusBadge tone={STATUS[statusOf(r)][1]}>{STATUS[statusOf(r)][0]}</StatusBadge></span>
+                          <span className="ix-pitem__tags"><StatusBadge tone={STATUS[statusOf(r)][1]}>{STATUS[statusOf(r)][0]}</StatusBadge><Stage r={r} /></span>
                         </Link>
                       </li>
                     ))}
@@ -118,7 +121,7 @@ export default function SalesInvoices() {
                             <td>{who(r)}</td>
                             <td className="ix-num">{money(r.totals.total)}</td>
                             <td className={'ix-num' + (isPaid(r) ? ' ix-muted' : ' iv-due')}>{isPaid(r) ? '—' : money(r.due)}</td>
-                            <td><StatusBadge tone={STATUS[statusOf(r)][1]}>{STATUS[statusOf(r)][0]}</StatusBadge></td>
+                            <td><span style={{ display: 'inline-flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}><StatusBadge tone={STATUS[statusOf(r)][1]}>{STATUS[statusOf(r)][0]}</StatusBadge><Stage r={r} /></span></td>
                             <td className="ix-num ix-muted">{unitsOf(r)}</td>
                           </tr>
                         ))}

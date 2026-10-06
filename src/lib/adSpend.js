@@ -24,11 +24,11 @@ const S = (id, day, platform, campaign, amount, note) => {
 };
 /** Demo September campaigns: they add up to the ledger's Meta payments (৳15,000 + ৳12,000). */
 export const AD_SEED = [
-  S('AD-0901', 7, 'Facebook', 'Eid collection · Facebook feed', 8000, 'Eid sarees and kurtis, Dhaka and Chattogram'),
-  S('AD-0902', 7, 'Instagram', 'Eid collection · Instagram reels', 4500, 'Reels with the new Jamdani sarees'),
+  S('AD-0901', 7, 'Facebook', 'Eid phones · Facebook feed', 8000, 'Eid phone offers, Dhaka'),
+  S('AD-0902', 7, 'Instagram', 'Eid phones · Instagram reels', 4500, 'Unboxing reels of the new phones'),
   S('AD-0903', 7, 'Facebook', 'Retargeting · cart visitors', 2500, 'People who added to cart and left'),
   S('AD-0904', 18, 'Facebook', 'Weekend Mega Sale · Facebook', 7000, 'Flash sale 18–20 Sep'),
-  S('AD-0905', 18, 'Instagram', 'Sunscreen routine · Instagram', 5000, 'Skin care reel boost'),
+  S('AD-0905', 18, 'Instagram', 'Fast charging guide · Instagram', 5000, 'Charger reel boost'),
 ];
 
 const read = () => { try { return JSON.parse(window.localStorage.getItem(KEY)) || []; } catch { return []; } };

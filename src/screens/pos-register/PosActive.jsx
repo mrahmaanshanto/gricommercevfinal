@@ -211,7 +211,7 @@ export default class PosActiveScreen extends Component {
                 {this.props.banner}
                 <div style={{ flex: "none", display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
                   <span style={{ position: "relative", display: "block", flex: "1 1 200px", minWidth: "0" }}>
-                    <input aria-label="Search products by name, SKU or brand" defaultValue="rice" placeholder="Search products by name, SKU or brand" style={{ width: "100%", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px 0 40px", fontFamily: "inherit", fontSize: "var(--text-sm)", color: "#1e293b" }} />
+                    <input aria-label="Search products by name, SKU or brand" defaultValue="charger" placeholder="Search products by name, SKU or brand" style={{ width: "100%", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px 0 40px", fontFamily: "inherit", fontSize: "var(--text-sm)", color: "#1e293b" }} />
                     <span style={{ position: "absolute", left: "0", top: "0", width: "40px", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>
                       <__Icon name="search" strokeWidth="1.75" width="18" height="18" />
                     </span>
@@ -219,12 +219,12 @@ export default class PosActiveScreen extends Component {
                   <select aria-label="Category" style={{ height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", backgroundColor: "#fff", padding: "0 34px 0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", appearance: "none", backgroundImage: "linear-gradient(45deg,transparent 50%,var(--text-muted) 50%),linear-gradient(135deg,var(--text-muted) 50%,transparent 50%)", backgroundPosition: "calc(100% - 17px) 21px,calc(100% - 12px) 21px", backgroundSize: "5px 5px,5px 5px", backgroundRepeat: "no-repeat" }}>
                     <option>All categories</option>
                     <option>Apparel</option>
-                    <option>Grocery</option>
+                    <option>Accessories</option>
                   </select>
                   <select aria-label="Brand" style={{ height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", backgroundColor: "#fff", padding: "0 34px 0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", appearance: "none", backgroundImage: "linear-gradient(45deg,transparent 50%,var(--text-muted) 50%),linear-gradient(135deg,var(--text-muted) 50%,transparent 50%)", backgroundPosition: "calc(100% - 17px) 21px,calc(100% - 12px) 21px", backgroundSize: "5px 5px,5px 5px", backgroundRepeat: "no-repeat" }}>
                     <option>All brands</option>
-                    <option>Aarong</option>
-                    <option>Walton</option>
+                    <option>Samsung</option>
+                    <option>Xiaomi</option>
                   </select>
                   <span role="group" aria-label="Product view" style={{ display: "flex", height: "50px", padding: "3px", borderRadius: "var(--radius-lg)", background: "#e9eef5", flex: "none" }}>
                     <button type="button" aria-label="Grid view" aria-pressed="true" style={{ width: "44px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#fff", color: "#003087", cursor: "pointer", boxShadow: "0 1px 2px rgba(48,46,56,.1)" }}>
@@ -243,9 +243,9 @@ export default class PosActiveScreen extends Component {
                       <span style={{ position: "absolute", top: "6px", right: "6px", display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>2</span>
                     </span>
                     {" "}
-                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Premium Miniket Rice 5kg</span>
+                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Baseus USB-C Cable 100W 1m</span>
                     {" "}
-                    <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Sack · 5kg</span>
+                    <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Black · 1m</span>
                     {" "}
                     <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "6px" }}>
                       <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#003087", fontVariantNumeric: "tabular-nums" }}>৳780.00</span>
@@ -260,9 +260,9 @@ export default class PosActiveScreen extends Component {
                       <span style={{ position: "absolute", top: "6px", left: "6px", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.14)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-success)" }}>64 in stock</span>
                     </span>
                     {" "}
-                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Chickpeas Boot Dal 1kg</span>
+                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Screen Cleaning Kit</span>
                     {" "}
-                    <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Loose · 1kg</span>
+                    <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Spray · 50ml</span>
                     {" "}
                     <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "6px" }}>
                       <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#003087", fontVariantNumeric: "tabular-nums" }}>৳165.00</span>
@@ -277,9 +277,9 @@ export default class PosActiveScreen extends Component {
                       <span style={{ position: "absolute", top: "6px", left: "6px", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.14)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-success)" }}>54 in stock</span>
                     </span>
                     {" "}
-                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Soybean Cooking Oil 2L</span>
+                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Tempered Glass 9H</span>
                     {" "}
-                    <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Bottle · 2L</span>
+                    <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Universal 6.7 inch</span>
                     {" "}
                     <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "6px" }}>
                       <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#003087", fontVariantNumeric: "tabular-nums" }}>৳390.00</span>
@@ -295,7 +295,7 @@ export default class PosActiveScreen extends Component {
                       <span style={{ position: "absolute", top: "6px", right: "6px", display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>2</span>
                     </span>
                     {" "}
-                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Premium Cotton Oversized T-Shirt</span>
+                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Spigen Tough Armor Case · Galaxy A55</span>
                     {" "}
                     <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Black · M</span>
                     {" "}
@@ -312,7 +312,7 @@ export default class PosActiveScreen extends Component {
                       <span style={{ position: "absolute", top: "6px", left: "6px", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", background: "rgba(255,152,0,.16)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-warning)" }}>Low · 6 left</span>
                     </span>
                     {" "}
-                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Compression Leggings</span>
+                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Samsung 25W Fast Charger</span>
                     {" "}
                     <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Charcoal · L</span>
                     {" "}
@@ -330,7 +330,7 @@ export default class PosActiveScreen extends Component {
                       <span style={{ position: "absolute", top: "6px", right: "6px", display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>1</span>
                     </span>
                     {" "}
-                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Daily Care Shampoo 340ml</span>
+                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Lightning Cable 1m</span>
                     {" "}
                     <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Anti-dandruff</span>
                     {" "}
@@ -349,7 +349,7 @@ export default class PosActiveScreen extends Component {
                     {" "}
                     <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Budget Android Phone</span>
                     {" "}
-                    <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Midnight · 128GB</span>
+                    <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Midnight Black · 128GB</span>
                     {" "}
                     <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "6px" }}>
                       <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#003087", fontVariantNumeric: "tabular-nums" }}>৳14,990.00</span>
@@ -364,7 +364,7 @@ export default class PosActiveScreen extends Component {
                       <span style={{ position: "absolute", top: "6px", left: "6px", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", background: "rgba(255,87,36,.16)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-danger)" }}>Out of stock</span>
                     </span>
                     {" "}
-                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Classic White Sneakers</span>
+                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Xiaomi Smart Band 8</span>
                     {" "}
                     <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>White · 42</span>
                     {" "}
@@ -381,7 +381,7 @@ export default class PosActiveScreen extends Component {
                       <span style={{ position: "absolute", top: "6px", left: "6px", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.14)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-success)" }}>31 in stock</span>
                     </span>
                     {" "}
-                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Steel Water Bottle 750ml</span>
+                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Foldable Phone Stand</span>
                     {" "}
                     <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Brushed steel</span>
                     {" "}
@@ -398,9 +398,9 @@ export default class PosActiveScreen extends Component {
                       <span style={{ position: "absolute", top: "6px", left: "6px", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.14)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-success)" }}>26 in stock</span>
                     </span>
                     {" "}
-                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Mustard Oil 1L Pure Ghani</span>
+                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>USB-C OTG Adapter</span>
                     {" "}
-                    <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Bottle · 1L</span>
+                    <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Silver</span>
                     {" "}
                     <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "6px" }}>
                       <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#003087", fontVariantNumeric: "tabular-nums" }}>৳340.00</span>
@@ -415,9 +415,9 @@ export default class PosActiveScreen extends Component {
                       <span style={{ position: "absolute", top: "6px", left: "6px", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.14)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-success)" }}>73 in stock</span>
                     </span>
                     {" "}
-                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Atta Wheat Flour 2kg</span>
+                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Camera Lens Protector</span>
                     {" "}
-                    <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Pack · 2kg</span>
+                    <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Clear</span>
                     {" "}
                     <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "6px" }}>
                       <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#003087", fontVariantNumeric: "tabular-nums" }}>৳150.00</span>
@@ -432,7 +432,7 @@ export default class PosActiveScreen extends Component {
                       <span style={{ position: "absolute", top: "6px", left: "6px", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", background: "rgba(255,152,0,.16)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-warning)" }}>Low · 4 left</span>
                     </span>
                     {" "}
-                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Rice Cooker 1.8L Walton</span>
+                    <span style={{ display: "block", marginTop: "8px", minHeight: "36px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Anker Power Bank 10000mAh</span>
                     {" "}
                     <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>White · 700W</span>
                     {" "}
@@ -446,7 +446,7 @@ export default class PosActiveScreen extends Component {
                 </div>
                 <div className="pos-gridfoot">
                   <span>Showing 12 of 486 products · Central Warehouse</span>
-                  <span>Grocery · “rice” · 12 matches</span>
+                  <span>Accessories · “charger” · 12 matches</span>
                 </div>
               </main>
               <button type="button" className="pos-cartbar" ref={this.cartBar} aria-expanded={this.state.cartOpen} onClick={this.openCart}>
@@ -487,7 +487,7 @@ export default class PosActiveScreen extends Component {
                     <div className="dc-h268 pos-line" role="listitem" style={{ flex: "none", display: "flex", alignItems: "center", columnGap: "10px", padding: "6px 6px 6px 10px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff" }}>
                       <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: "36px", height: "36px", flex: "none", borderRadius: "var(--radius-lg)", background: "#eef2f7", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#a9b8d4" }}>T</span>
                       <span className="pos-line__name" style={{ display: "block", minWidth: "0" }}>
-                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Premium Cotton Oversized T-Shirt</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Spigen Tough Armor Case · Galaxy A55</span>
                         <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Black · M · ৳1,240.00</span>
                       </span>
                       <span className="pos-line__qty" style={{ display: "flex", alignItems: "center", gap: "2px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)" }}>
@@ -503,8 +503,8 @@ export default class PosActiveScreen extends Component {
                     <div className="dc-h272 pos-line" role="listitem" style={{ flex: "none", display: "flex", alignItems: "center", columnGap: "10px", padding: "6px 6px 6px 10px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff" }}>
                       <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: "36px", height: "36px", flex: "none", borderRadius: "var(--radius-lg)", background: "#eef2f7", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#a9b8d4" }}>P</span>
                       <span className="pos-line__name" style={{ display: "block", minWidth: "0" }}>
-                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Premium Miniket Rice 5kg</span>
-                        <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Sack · 5kg · ৳780.00</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Baseus USB-C Cable 100W 1m</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Black · 1m · ৳780.00</span>
                       </span>
                       <span className="pos-line__qty" style={{ display: "flex", alignItems: "center", gap: "2px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)" }}>
                         <button type="button" className="dc-h273" aria-label="Decrease quantity" style={{ width: "44px", height: "44px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", fontFamily: "inherit", fontSize: "var(--text-sm-plus)", color: "#475569", cursor: "pointer" }}><__Icon name="minus" strokeWidth="1.75" width="16" height="16" /></button>
@@ -519,7 +519,7 @@ export default class PosActiveScreen extends Component {
                     <div className="dc-h276 pos-line" role="listitem" style={{ flex: "none", display: "flex", alignItems: "center", columnGap: "10px", padding: "6px 6px 6px 10px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff" }}>
                       <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: "36px", height: "36px", flex: "none", borderRadius: "var(--radius-lg)", background: "#eef2f7", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#a9b8d4" }}>D</span>
                       <span className="pos-line__name" style={{ display: "block", minWidth: "0" }}>
-                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Daily Care Shampoo 340ml</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Lightning Cable 1m</span>
                         <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Anti-dandruff · ৳420.00</span>
                       </span>
                       <span className="pos-line__qty" style={{ display: "flex", alignItems: "center", gap: "2px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)" }}>
@@ -535,8 +535,8 @@ export default class PosActiveScreen extends Component {
                     <div className="dc-h280 pos-line" role="listitem" style={{ flex: "none", display: "flex", alignItems: "center", columnGap: "10px", padding: "6px 6px 6px 10px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff" }}>
                       <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: "36px", height: "36px", flex: "none", borderRadius: "var(--radius-lg)", background: "#eef2f7", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#a9b8d4" }}>C</span>
                       <span className="pos-line__name" style={{ display: "block", minWidth: "0" }}>
-                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Chickpeas Boot Dal 1kg</span>
-                        <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Loose · 1kg · ৳165.00</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Screen Cleaning Kit</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Spray · 50ml · ৳165.00</span>
                       </span>
                       <span className="pos-line__qty" style={{ display: "flex", alignItems: "center", gap: "2px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)" }}>
                         <button type="button" className="dc-h281" aria-label="Decrease quantity" style={{ width: "44px", height: "44px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", fontFamily: "inherit", fontSize: "var(--text-sm-plus)", color: "#475569", cursor: "pointer" }}><__Icon name="minus" strokeWidth="1.75" width="16" height="16" /></button>
@@ -551,7 +551,7 @@ export default class PosActiveScreen extends Component {
                     <div className="dc-h284 pos-line" role="listitem" style={{ flex: "none", display: "flex", alignItems: "center", columnGap: "10px", padding: "6px 6px 6px 10px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff" }}>
                       <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: "36px", height: "36px", flex: "none", borderRadius: "var(--radius-lg)", background: "#eef2f7", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#a9b8d4" }}>S</span>
                       <span className="pos-line__name" style={{ display: "block", minWidth: "0" }}>
-                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Steel Water Bottle 750ml</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Foldable Phone Stand</span>
                         <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Brushed steel · ৳650.00</span>
                       </span>
                       <span className="pos-line__qty" style={{ display: "flex", alignItems: "center", gap: "2px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)" }}>
@@ -567,8 +567,8 @@ export default class PosActiveScreen extends Component {
                     <div className="dc-h288 pos-line" role="listitem" style={{ flex: "none", display: "flex", alignItems: "center", columnGap: "10px", padding: "6px 6px 6px 10px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff" }}>
                       <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: "36px", height: "36px", flex: "none", borderRadius: "var(--radius-lg)", background: "#eef2f7", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#a9b8d4" }}>A</span>
                       <span className="pos-line__name" style={{ display: "block", minWidth: "0" }}>
-                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Atta Wheat Flour 2kg</span>
-                        <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Pack · 2kg · ৳150.00</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Camera Lens Protector</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Clear · ৳150.00</span>
                       </span>
                       <span className="pos-line__qty" style={{ display: "flex", alignItems: "center", gap: "2px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)" }}>
                         <button type="button" className="dc-h289" aria-label="Decrease quantity" style={{ width: "44px", height: "44px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", fontFamily: "inherit", fontSize: "var(--text-sm-plus)", color: "#475569", cursor: "pointer" }}><__Icon name="minus" strokeWidth="1.75" width="16" height="16" /></button>
@@ -619,7 +619,7 @@ export default class PosActiveScreen extends Component {
                       <span style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b", whiteSpace: "nowrap" }}>Tax · 5% VAT<__Icon name="info" strokeWidth="1.75" width="12" height="12" style={{ color: "#003087", flex: "none" }} /></span>
                       <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>＋ ৳248.60</span>
                     </span>
-                    <span style={{ gridColumn: "1/-1", display: "flex", alignItems: "flex-start", gap: "7px", padding: "6px 9px", borderRadius: "var(--radius-md)", background: "#f8fafc", fontSize: "var(--text-xs)", lineHeight: "17px", color: "#475569" }}><__Icon name="info" strokeWidth="1.75" width="13" height="13" style={{ color: "var(--text-muted)", flex: "none", marginTop: "2px" }} />Tax: 5% VAT on ৳4,972.00 taxable — subtotal less every discount. Grocery lines are zero-rated.</span>
+                    <span style={{ gridColumn: "1/-1", display: "flex", alignItems: "flex-start", gap: "7px", padding: "6px 9px", borderRadius: "var(--radius-md)", background: "#f8fafc", fontSize: "var(--text-xs)", lineHeight: "17px", color: "#475569" }}><__Icon name="info" strokeWidth="1.75" width="13" height="13" style={{ color: "var(--text-muted)", flex: "none", marginTop: "2px" }} />Tax: 5% VAT on ৳4,972.00 taxable — subtotal less every discount. Repair lines are zero-rated.</span>
                   </div>
                   <div style={{ height: "1px", background: "#e2e8f0" }} />
                   <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "12px" }}>

@@ -29,11 +29,11 @@ const DEMO_EXTRA = {
     invoice: 'NF-2231', terms: 30, dueAt: at(10, 12, 12, 0), paidText: 'Paid (15 Sep, bKash)',
     deliveries: [
       { grn: 'GRN-0112', at: at(9, 15, 11, 5), qty: 80, by: 'Karim (store)', note: 'Challan photo attached' },
-      { grn: 'GRN-0118', at: at(9, 17, 16, 10), qty: 60, by: 'Karim (store)', note: '2 jeans had loose stitching — kept, noted' },
+      { grn: 'GRN-0118', at: at(9, 17, 16, 10), qty: 60, by: 'Karim (store)', note: '2 cases had scratches — kept, noted' },
     ],
     costs: [{ label: 'Transport · GRN-0112', amt: 1200 }, { label: 'Labour · GRN-0118', amt: 300 }],
     files: [{ name: 'supplier-invoice-NF-2231.pdf', size: '1.2 MB', icon: 'file-text' }, { name: 'challan-15-sep.jpg', size: '860 KB', icon: 'image' }],
-    note: 'Supplier will send the T-shirts with the next batch, before 22 Sep.',
+    note: 'Supplier will send the lens protectors with the next batch, before 22 Sep.',
     history: [
       { at: at(9, 17, 16, 10), text: 'Second delivery received (60 pcs)', ok: true },
       { at: at(9, 15, 18, 32), text: 'Paid ৳50,000 by bKash', ok: true },

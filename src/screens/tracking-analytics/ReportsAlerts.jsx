@@ -9,6 +9,7 @@
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
+import { wholesaleOn } from '@/lib/edition';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { toast as __toast } from '@/runtime/ui';
@@ -55,7 +56,7 @@ class Component extends DCLogic {
     if (now) {
       if (dim === 'week') { var ws = weekStart(now); for (var i = 3; i >= 0; i--) { var f = addDays(ws, -7 * i); rows.push({ n: fmt(f, 'date').replace(/ \d{4}$/, '') + ' week', ctx: { from: f, to: addDays(f, 7) }, prev: { from: addDays(f, -7), to: f } }); } }
       else if (dim === 'day') { var d0 = startOfDay(now); for (var j = 6; j >= 0; j--) { var fd = addDays(d0, -j); rows.push({ n: fmt(fd, 'date').replace(/ \d{4}$/, ''), ctx: { from: fd, to: addDays(fd, 1) }, prev: { from: addDays(fd, -7), to: addDays(fd, -6) } }); } }
-      else { var pr = periodRange(per, now), len = pr.to - pr.from; ['', 'Online', 'Retail', 'Wholesale'].forEach(function (c) { rows.push({ n: c || 'All channels', ch: c, ctx: { from: pr.from, to: pr.to, channel: c }, prev: { from: cmp === 'year' ? addDays(pr.from, -364) : pr.from - len, to: cmp === 'year' ? addDays(pr.to, -364) : pr.from, channel: c } }); }); }
+      else { var pr = periodRange(per, now), len = pr.to - pr.from; ['', 'Online', 'Retail'].concat(wholesaleOn() ? ['Wholesale'] : []).forEach(function (c) { rows.push({ n: c || 'All channels', ch: c, ctx: { from: pr.from, to: pr.to, channel: c }, prev: { from: cmp === 'year' ? addDays(pr.from, -364) : pr.from - len, to: cmp === 'year' ? addDays(pr.to, -364) : pr.from, channel: c } }); }); }
     }
     var cellOf = function (id, r) {
       var m = metricBy(id);

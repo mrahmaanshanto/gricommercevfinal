@@ -15,6 +15,7 @@ import { getTransfers } from '../../transfers';
 import { getCounters, POS_KEYS, load } from '../../posStore';
 import { namesOf } from '../../locations';
 import { partnerBy } from '../../settlements';
+import { wholesaleOn } from '../../edition';
 import { CHANNELS } from '../../categories';
 import { bucketsOf, sum, groupBy, fmt, addDays, startOfDay } from '../period';
 
@@ -55,7 +56,7 @@ function returnsIn(from, to, f = {}) {
 /** Money given back (or taken off a due) on returns — the rule salesBook.returnsIn uses. */
 const isMoneyBack = (r) => r.type === 'return' && num(r.amount) > 0;
 
-/** "Name × 2, Other × 1" → [{ name, qty }] (an exchange like "Polo T-shirt M → L" counts as one piece). */
+/** "Name × 2, Other × 1" → [{ name, qty }] (an exchange like "Case Galaxy A35 → A55" counts as one piece). */
 function itemsOf(text) {
   return String(text || '').split(/,\s+(?=[^,]*×\s*\d+\s*$)|,\s+(?=[^,]*×\s*\d+\s*,)/).map((s) => s.trim()).filter(Boolean).map((s) => {
     const m = /^(.*?)\s*×\s*(\d+)\s*$/.exec(s);
@@ -198,7 +199,7 @@ const salesByBranch = {
     const byPlace = [...groupBy(lines, (l) => l.place)].map(([place, list]) => ({ place, revenue: sum(list, (l) => l.revenue) })).sort((a, b) => b.revenue - a.revenue);
     const orders = saleCount(lines);
     const top = rows.slice(0, 10);
-    const chans = (f.channel ? [f.channel] : ['Retail', 'Wholesale']).filter((c) => c !== 'Online');
+    const chans = (f.channel ? [f.channel] : ['Retail', ...(wholesaleOn() ? ['Wholesale'] : [])]).filter((c) => c !== 'Online');
     return {
       kpis: [
         { key: 'net', label: 'Sales at branches', value: total, format: 'money', good: 'up', sub: `${byPlace.length} place${byPlace.length === 1 ? '' : 's'} · ${rows.length} counter${rows.length === 1 ? '' : 's'}` },
@@ -215,7 +216,7 @@ const salesByBranch = {
           { key: 'orders', label: 'Sales', format: 'int', total: 'sum' },
           { key: 'units', label: 'Pieces', format: 'int', total: 'sum' },
           { key: 'retail', label: 'Retail', format: 'money', total: 'sum' },
-          { key: 'wholesale', label: 'Wholesale', format: 'money', total: 'sum' },
+          ...(wholesaleOn() ? [{ key: 'wholesale', label: 'Wholesale', format: 'money', total: 'sum' }] : []),
           { key: 'revenue', label: 'Net sales', format: 'money', total: 'sum' },
           { key: 'aov', label: 'Average sale', format: 'money', total: orders ? r2(total / orders) : 0 },
           { key: 'share', label: 'Share', format: 'pct', total: total ? 1 : 0 },
@@ -302,7 +303,7 @@ const salesByCategory = {
   title: 'Sales by category',
   description: 'Which category drives sales and profit, with its ABC class, returns and the stock left.',
   icon: 'layout-grid',
-  keywords: 'category department abc analysis pareto profit margin grocery clothing skin care electronics',
+  keywords: 'category department abc analysis pareto profit margin phones accessories audio wearables',
   filters: ['channel', 'place'],
   defaultPeriod: 'lastmonth',
   compute({ from, to, now, filters }) {

@@ -38,7 +38,9 @@ import { hasModule } from '@/lib/edition';
 import { downloadCsv } from '@/lib/reports/period';
 import { trackItems, ACTIONS_EVENT, SEVERITY, ageOf, ageText } from '@/lib/actionItems';
 import { formatDate } from '@/lib/format';
-import { PILLS_CSS } from './ActionPills';
+import { PILLS_CSS, ActionPills } from './ActionPills';
+import { HomeWidgets, WIDGETS_CSS } from '@/components/dashboard/HomeWidgets';
+import { getMeetings, needsNote } from '@/lib/meetings';
 import { AsOf, Readiness, InsightsCard, changeInsight, isNewShop, EXTRAS_CSS } from './HomeExtras';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -119,8 +121,7 @@ export function Fig({ label, value, sub, spark, href, onClick }) {
   return href ? <Link href={href} className="hk-fig">{body}</Link> : <button type="button" className="hk-fig" onClick={onClick}>{body}</button>;
 }
 
-/** The greeting (the page's h1) and "Ask GridAI". The day's to-do still syncs to the action items (`todo` sets the line
- *  under the greeting); the pills are not shown on Home.
+/** The greeting (the page's h1) and "Ask GridAI". The day's to-do shows in the "Needs you" panel (ActionPills).
  *  todo: trackItems() rows { key, label, n, href, severity, item } (null while loading); source: the action-item source. */
 export function Hero({ greeting, todo, source, placeholder = 'Ask GridAI about sales, orders or stock…' }) {
   const [ask, setAsk] = useState('');
@@ -213,6 +214,8 @@ function build() {
   const liabList = safe(() => getLiabilities(), []).filter((l) => leftOf(l) > 0 && liabStatus(l, now) === 'Overdue');
   const adjList = safe(() => getAdjustments(), []).filter((a) => a.status === 'waiting');
   const recList = safe(() => courierReturns(orders).filter((o) => rtoState(o).left > 0), []);
+  // meetings with leads and customers that ended without a note (lib/meetings.js), as on the full Home
+  const meetNotes = safe(() => getMeetings().filter((mt) => needsNote(mt)), []);
   const todo = [
     pendingList.length > 0 && { key: 'orders:verify', label: 'Verify orders', n: pendingList.length, href: '/merchant-orders?status=onhold', severity: 'high', area: 'area-orders', owner: ['orders', 'comms', 'online-sales'], since: oldest(pendingList) },
     readyList.length > 0 && { key: 'orders:to-courier', label: 'Send to courier', n: readyList.length, href: '/merchant-orders?status=ready', severity: 'high', area: 'area-orders', owner: ['orders', 'wh-manager', 'wh-supervisor'], since: oldest(readyList) },
@@ -221,6 +224,7 @@ function build() {
     billList.length > 0 && { key: 'finance:supplier-bills', label: 'Pay suppliers', n: billList.length, href: '/dues?tab=owe', severity: 'high', area: 'area-finances', owner: ['ceo', 'wh-manager'], since: oldest(billList, (b) => b.due) },
     liabList.length > 0 && { key: 'finance:bills', label: 'Pay bills', n: liabList.length, href: '/liabilities', severity: 'high', area: 'area-finances', owner: ['ceo', 'hr'], since: oldest(liabList, (l) => l.due) },
     low > 0 && { key: 'stock:restock', label: 'Restock', n: low, href: '/stock', severity: 'low', area: 'area-inventory', owner: ['wh-manager', 'shop-manager'] },
+    hasModule('comms') && meetNotes.length > 0 && { key: 'meetings:notes', label: 'Write meeting notes', n: meetNotes.length, href: '/meetings?tab=note', severity: 'normal', area: 'area-customers', owner: ['ceo', 'online-sales', 'shop-manager'], since: Math.min(...meetNotes.map((m) => m.at || Date.now())) },
     adjList.length > 0 && { key: 'stock:adjustments', label: 'Approve stock adjustments', n: adjList.length, href: '/stock-adjustments', severity: 'normal', area: 'area-inventory', owner: ['wh-manager'], since: oldest(adjList) },
   ].filter(Boolean);
 
@@ -305,7 +309,7 @@ export default function OnlineHome() {
 
   return (
     <div className="dc-screen ds" data-screen="Home">
-      <style dangerouslySetInnerHTML={{ __html: CHART_CSS + HOME_CSS + PILLS_CSS + EXTRAS_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: CHART_CSS + HOME_CSS + PILLS_CSS + EXTRAS_CSS + WIDGETS_CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="home" />
         <main className="gc-shell__main">
@@ -319,6 +323,7 @@ export default function OnlineHome() {
                   <span className="hk-today"><Icon name="calendar" width="16" height="16" aria-hidden="true" />Today</span>
                   {create.length ? <Menu label="Create" icon="plus" cls="ix-btn" align="start" items={create} /> : null}
                   <button type="button" className="ix-btn" onClick={exportCsv} disabled={!d}><Icon name="download" width="16" height="16" aria-hidden="true" />Export</button>
+                  {d && d.todo ? <span className="hm-needs-btn"><ActionPills rows={d.todo} source="home-online" variant="button" label="Needs you" /></span> : null}
                   {d ? <AsOf at={d.now} onRefresh={() => setTick((n) => n + 1)} /> : null}
                 </div>
                 {d ? (
@@ -367,6 +372,8 @@ export default function OnlineHome() {
                   </div>
                 </div>
               )}
+              {/* the same widgets as the full Home (online ones); Latest orders is already the card above */}
+              {d && !d.fresh ? <HomeWidgets has={hasModule} skip={['latest-orders']} /> : null}
             </div>
           </div>
         </main>

@@ -168,11 +168,11 @@ export function applyEdit(o, draft, by = 'Staff') {
 }
 
 // ---- edit requests ------------------------------------------------------------------------------------------
-// a customer asked (on Messenger) to drop the water bottle from a packed, booked order
+// a customer asked (on Messenger) to drop the phone stand from a packed, booked order
 const DEMO_REQUESTS = {
   '#136778': {
-    from: 'Customer', by: 'Mostafizur Rahman', note: 'Please remove the water bottle', at: new Date(2026, 8, 8, 9, 40).getTime(),
-    draft: { lines: [{ name: 'Daily Care Shampoo 340ml', qty: 1, price: 420, orig: 0 }, { name: 'Mustard Oil 1L Pure Ghani', qty: 1, price: 320, orig: 2 }], shipping: 150, zone: 'Outside Dhaka', address: '22 Jubilee Road, Chattogram 4000', reason: 'Customer asked', baseVersion: 1 },
+    from: 'Customer', by: 'Mostafizur Rahman', note: 'Please remove the phone stand', at: new Date(2026, 8, 8, 9, 40).getTime(),
+    draft: { lines: [{ name: 'Lightning Cable 1m', qty: 1, price: 420, orig: 0 }, { name: 'USB-C OTG Adapter', qty: 1, price: 320, orig: 2 }], shipping: 150, zone: 'Outside Dhaka', address: '22 Jubilee Road, Chattogram 4000', reason: 'Customer asked', baseVersion: 1 },
   },
 };
 /** The change waiting for review on this order, or null: { draft, from, by, note, at }. */

@@ -33,9 +33,9 @@ export const RISKY = {
 
 const DEFAULTS = {
   store_name: MERCHANT.name, brand_color: '#003087', brand_accent: '#009cde',
-  legal_name: 'GridShop Trading Ltd.', business_type: 'Private limited company', trade_licence: MERCHANT.licence, bin: MERCHANT.bin, tin: '', registered_address: MERCHANT.address,
-  support_phone: '+8801811843300', support_email: 'info@bugbuild.com', store_address: '4th floor, Feni Center, Feni-3900, Bangladesh', working_hours_text: 'Sat–Thu, 10:00 AM – 8:00 PM',
-  billing_name: 'GridShop Trading Ltd.', billing_address: MERCHANT.address, billing_tax_id: MERCHANT.bin, billing_email: MERCHANT.email,
+  legal_name: 'Dazzle Shop Ltd.', business_type: 'Private limited company', trade_licence: MERCHANT.licence, bin: MERCHANT.bin, tin: '', registered_address: MERCHANT.address,
+  support_phone: '+8801811843300', support_email: 'hello@dazzleshop.com.bd', store_address: 'House 42, Road 27, Dhanmondi, Dhaka 1209', working_hours_text: 'Sat–Thu, 10:00 AM – 8:00 PM',
+  billing_name: 'Dazzle Shop Ltd.', billing_address: MERCHANT.address, billing_tax_id: MERCHANT.bin, billing_email: MERCHANT.email,
   currency: 'Bangladeshi Taka — ৳ (BDT)', default_country: 'Bangladesh', timezone: '(UTC+06:00) Asia/Dhaka',
 };
 

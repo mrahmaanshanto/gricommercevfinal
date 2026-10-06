@@ -26,9 +26,9 @@ export const QUOTE_STATE = {
 };
 
 const SEED = [
-  { id: 'QT-0003', at: at(8, 30, 15), customer: { name: 'Jamal Telecom', phone: '01819447210', tier: 'A' }, lines: [{ name: 'Wireless Earbuds Pro', qty: 20, price: 3141 }, { name: 'Steel Water Bottle 750ml', qty: 48, price: 585 }], vatRate: 5, discount: 2000, validUntil: at(9, 10, 23), note: 'Delivery to Mirpur shop', state: 'sent', sentAt: at(8, 30, 16), by: 'Sadia Akter' },
-  { id: 'QT-0002', at: at(9, 2, 11), customer: { name: 'Habib Telecom', phone: '01715332908', tier: 'A' }, lines: [{ name: 'Budget Android Phone 6/128', qty: 5, price: 13491 }], vatRate: 5, discount: 0, validUntil: at(9, 16, 23), note: '', state: 'draft', by: 'Sadia Akter' },
-  { id: 'QT-0001', at: at(8, 12, 10), customer: { name: 'New Madina Telecom', phone: '01845667302', tier: 'B' }, lines: [{ name: 'Sunscreen SPF 50 · 50ml', qty: 24, price: 1063 }], vatRate: 5, discount: 0, validUntil: at(8, 25, 23), note: '', state: 'sent', sentAt: at(8, 12, 11), by: 'Arif Rahman' },
+  { id: 'QT-0003', at: at(8, 30, 15), customer: { name: 'Jamal Telecom', phone: '01819447210', tier: 'A' }, lines: [{ name: 'Wireless Earbuds Pro', qty: 20, price: 3141 }, { name: 'Foldable Phone Stand', qty: 48, price: 585 }], vatRate: 5, discount: 2000, validUntil: at(9, 10, 23), note: 'Delivery to Mirpur shop', state: 'sent', sentAt: at(8, 30, 16), by: 'Sadia Akter' },
+  { id: 'QT-0002', at: at(9, 2, 11), customer: { name: 'Habib Telecom', phone: '01715332908', tier: 'A' }, lines: [{ name: 'Realme Note 50 6/128GB', qty: 5, price: 13491 }], vatRate: 5, discount: 0, validUntil: at(9, 16, 23), note: '', state: 'draft', by: 'Sadia Akter' },
+  { id: 'QT-0001', at: at(8, 12, 10), customer: { name: 'New Madina Telecom', phone: '01845667302', tier: 'B' }, lines: [{ name: 'Anker 20W USB-C Charger', qty: 24, price: 1063 }], vatRate: 5, discount: 0, validUntil: at(8, 25, 23), note: '', state: 'sent', sentAt: at(8, 12, 11), by: 'Arif Rahman' },
 ];
 
 export function getQuotes() { return typeof window === 'undefined' ? SEED : load(KEY, SEED); }

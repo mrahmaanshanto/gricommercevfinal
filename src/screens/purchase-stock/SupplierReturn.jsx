@@ -6,6 +6,10 @@
 // - Making a return closes those holds (returned when the supplier picks up, delivered when we send
 //   them), takes the pieces off the bay's stock (a 'supplier return' stock move) and adds a credit
 //   note for their value at the order price, which lowers what the shop owes that supplier.
+// - Return bought items: anything bought from a supplier (their bills' item lines), up to what was bought less
+//   what already went back; ?supplier=<id or name>&bill=<bill no> opens it (Supplier ledger › Return goods).
+// - Each return is settled one of two ways: a credit note that lowers what the shop owes, or a replacement the
+//   supplier sends; a waiting replacement is received from the return (stock comes back in at the chosen place).
 // - /supplier-return?hold=<hold id>&product=<name>&qty=<n> (from Damaged & expired) opens the return for
 //   that hold, or the product's first set-aside hold, with that many pieces. A damaged hold that did not
 //   come from a delivery can go back too: the window then asks which supplier takes it.
@@ -20,17 +24,18 @@ import { Dialog, EmptyState, InfoTip } from '@/components/ui';
 import { RecordHeader, MetricStrip, KV } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate } from '@/lib/format';
 import { EMPLOYEES } from '@/lib/posStore';
-import { DAMAGED_PLACE } from '@/lib/locations';
+import { DAMAGED_PLACE, getStockPlaces, STOCK_PLACES } from '@/lib/locations';
 import { productBy, addMove } from '@/lib/stock';
 import { getHolds, addHolds, closeHold } from '@/lib/stockHolds';
 import { getPO, lineCost, unitCost } from '@/lib/purchaseOrders';
-import { getDb, demoDb, supplierByName, payableOf, addSupplierReturn } from '@/lib/supplierBills';
+import { getDb, demoDb, supplierByName, findSupplier, payableOf, addSupplierReturn, boughtFrom, receiveReplacement, settleText } from '@/lib/supplierBills';
 
 const REASONS = ['Damaged', 'Wrong item or size', 'Poor quality', 'Expired', 'Sent too many'];
 const HOW = [['pickup', 'Supplier picks up', 'They collect the goods from the Returns & damaged bay.'], ['send', 'We send them', 'We deliver the goods back to the supplier.']];
 const HOW_LABEL = { pickup: 'Supplier picked up', send: 'We sent them' };
+const SETTLE = [['credit', 'Deduct from what we owe', 'A credit note lowers the supplier’s balance.'], ['replace', 'Send a replacement', 'The supplier sends the same items again. Receive them here.']];
 // the demo purchase orders' suppliers (orders made in this browser carry their own)
-const DEMO_PO_SUPPLIER = { 'PO-2609-0020': 'Nabil Fashion House', 'PO-2609-0019': 'Dhaka Beauty Imports', 'PO-2608-0017': 'Mim Enterprise', 'PO-2608-0015': 'Rahman Traders' };
+const DEMO_PO_SUPPLIER = { 'PO-2609-0020': 'Nabil Mobile House', 'PO-2609-0019': 'Dhaka Audio Imports', 'PO-2608-0017': 'Mim Enterprise', 'PO-2608-0015': 'Rahman Telecom' };
 const num = (v) => Math.max(0, Math.round(Number(v) || 0));
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
@@ -95,13 +100,24 @@ export default function SupplierReturn() {
   const [holds, setHolds] = useState([]);
   const [form, setForm] = useState(null);   // { sup, qty: { holdId: n }, reason, how, note, by }
   const [seen, setSeen] = useState(null);   // a return made, opened from the list
+  const [buy, setBuy] = useState(null);     // { sup, bill, qty: { key: n }, reason, how, settle, from, note, by } — returning bought items
+  const [rep, setRep] = useState({ place: STOCK_PLACES[0], by: EMPLOYEES[2].name });   // receiving a replacement
+  const [places, setPlaces] = useState(STOCK_PLACES);
 
   const reload = () => { const d = getDb(), hs = getHolds(); setDb(d); setHolds(hs); return { d, hs }; };
   useEffect(() => {
     const { d, hs } = reload();
+    setPlaces(getStockPlaces());
     // opened from Damaged & expired: start the return for that hold (or product) and quantity
     const q = new URLSearchParams(window.location.search);
     const holdId = q.get('hold'), product = q.get('product'), want = num(q.get('qty'));
+    const supKey = q.get('supplier'), billNo = q.get('bill');
+    if (supKey || billNo) {
+      const bill = billNo ? d.bills.find((b) => b.no === billNo) : null;
+      const sup = findSupplier(supKey || (bill ? bill.supplier : ''), d.suppliers);
+      if (sup) openBuy(sup, bill ? bill.no : '', d);
+      return;
+    }
     if (!holdId && !product) return;
     const all = setAside(hs, d.suppliers);
     const h = all.find((x) => x.id === holdId) || all.find((x) => x.product === product && x.supName) || all.find((x) => x.product === product);
@@ -109,7 +125,8 @@ export default function SupplierReturn() {
     const name = h.supName;
     const g = name ? groupOf(name, all.filter((x) => x.supName === name), d) : { ...groupOf('', [h], d), pick: true };
     const qty = Object.fromEntries(g.items.map((x) => [x.id, x.id === h.id ? Math.min(h.qty, want || h.qty) : 0]));
-    setForm({ g, qty, reason: /^Wrong/.test(h.note || '') ? REASONS[1] : REASONS[0], how: 'pickup', note: '', by: EMPLOYEES[2].name });
+    setForm({ g, qty, reason: /^Wrong/.test(h.note || '') ? REASONS[1] : REASONS[0], how: 'pickup', settle: 'credit', note: '', by: EMPLOYEES[2].name });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // damaged holds from deliveries, waiting at the bay, grouped by supplier
@@ -122,7 +139,33 @@ export default function SupplierReturn() {
   const totalPieces = waiting.reduce((a, h) => a + h.qty, 0);
   const totalValue = waiting.reduce((a, h) => a + h.qty * h.cost, 0);
 
-  const open = (g) => setForm({ g, qty: Object.fromEntries(g.items.map((h) => [h.id, h.qty])), reason: /^Wrong/.test(g.items[0].note || '') ? REASONS[1] : REASONS[0], how: 'pickup', note: '', by: EMPLOYEES[2].name });
+  const open = (g) => setForm({ g, qty: Object.fromEntries(g.items.map((h) => [h.id, h.qty])), reason: /^Wrong/.test(g.items[0].note || '') ? REASONS[1] : REASONS[0], how: 'pickup', settle: 'credit', note: '', by: EMPLOYEES[2].name });
+  // returning bought items: the supplier's bill lines, up to what was bought less what already went back
+  function openBuy(sup, bill = '', d = db) { setBuy({ sup: sup ? sup.id : '', bill, qty: {}, reason: REASONS[0], how: 'send', settle: 'credit', from: STOCK_PLACES[0], note: '', by: EMPLOYEES[2].name }); }
+  const buySup = buy && buy.sup ? findSupplier(buy.sup, db.suppliers) : null;
+  const buyRows = buySup ? boughtFrom(buySup.id, db, buy.bill).filter((r) => r.left > 0) : [];
+  const buyPicked = buy ? buyRows.filter((r) => num(buy.qty[r.key]) > 0).map((r) => ({ r, qty: Math.min(r.left, num(buy.qty[r.key])) })) : [];
+  const buyValue = buyPicked.reduce((a, x) => a + x.qty * x.r.cost, 0);
+  const buyPieces = buyPicked.reduce((a, x) => a + x.qty, 0);
+  const saveBuy = (e) => {
+    e.preventDefault();
+    if (!buySup) { toast('Choose the supplier', { tone: 'error' }); return; }
+    if (!buyPicked.length) { toast('Enter how many of an item go back', { tone: 'error' }); return; }
+    const lines = buyPicked.map(({ r, qty }) => ({ name: r.name, sku: r.sku, qty, cost: r.cost, bill: buy.bill || r.bills[r.bills.length - 1] }));
+    const { ret, credit: cn } = addSupplierReturn({ supplier: buySup.id, lines, reason: buy.reason, how: buy.how, settle: buy.settle, from: buy.from, note: buy.note.trim(), by: buy.by });
+    lines.forEach((l) => addMove({ sku: l.sku || l.name, place: buy.from, qty: -l.qty, kind: 'supplier return', reason: `Returned to ${buySup.name} · ${buy.reason}`, by: buy.by, ref: ret.no }));
+    reload(); setBuy(null);
+    toast(`${ret.no}: ${plural(buyPieces, 'piece')} back to ${buySup.name}${cn ? ` · credit note ${cn.no} for ${formatBDT(cn.amount)}` : ' · replacement to come'}`);
+  };
+  // a replacement arrived: the pieces come back into stock at the chosen place, against the return's number
+  const receiveRep = () => {
+    const r = seen;
+    r.lines.forEach((l) => addMove({ sku: l.sku || productBy(l.name)?.sku || l.name, place: rep.place, qty: l.qty, kind: 'receive', reason: `Replacement from ${supName(r.supplier)} for ${r.no}`, by: rep.by, ref: r.no }));
+    receiveReplacement(r.no, { place: rep.place, by: rep.by });
+    const { d } = reload();
+    setSeen(d.returns.find((x) => x.no === r.no) || null);
+    toast(`Replacement for ${r.no} received at ${rep.place}`);
+  };
   const picked = form ? form.g.items.filter((h) => num(form.qty[h.id]) > 0).map((h) => ({ h, qty: Math.min(h.qty, num(form.qty[h.id])) })) : [];
   const credit = picked.reduce((a, x) => a + x.qty * x.h.cost, 0);
   const pieces = picked.reduce((a, x) => a + x.qty, 0);
@@ -135,7 +178,7 @@ export default function SupplierReturn() {
     const note = form.note.trim();
     const closeNote = `${HOW_LABEL[form.how]} · ${form.reason}${note ? ' · ' + note : ''}`;
     const lines = picked.map(({ h, qty }) => ({ holdId: h.id, name: h.product, sku: productBy(h.product)?.sku || '', qty, cost: h.cost, po: h.po }));
-    const { ret, credit: cn } = addSupplierReturn({ supplier: g.sup ? g.sup.id : g.name, lines, reason: form.reason, how: form.how, note, by: form.by });
+    const { ret, credit: cn } = addSupplierReturn({ supplier: g.sup ? g.sup.id : g.name, lines, reason: form.reason, how: form.how, settle: form.settle, note, by: form.by });
     picked.forEach(({ h, qty }) => {
       closeHold(h.id, form.how === 'pickup' ? 'returned' : 'delivered', `${closeNote} · ${ret.no}`);
       // part of a hold goes back: the rest stays set aside at the bay (still counted off the shelf it came from)
@@ -147,7 +190,7 @@ export default function SupplierReturn() {
     });
     reload();
     setForm(null);
-    toast(`${ret.no}: ${plural(pieces, 'piece')} back to ${g.name}${cn ? ` · credit note ${cn.no} for ${formatBDT(cn.amount)}` : ''}`);
+    toast(`${ret.no}: ${plural(pieces, 'piece')} back to ${g.name}${cn ? ` · credit note ${cn.no} for ${formatBDT(cn.amount)}` : form.settle === 'replace' ? ' · replacement to come' : ''}`);
   };
 
   const ledgerOf = (id) => `/supplier-detail?id=${encodeURIComponent(id)}`;
@@ -162,8 +205,9 @@ export default function SupplierReturn() {
           <div className="gc-shell__content">
             <div className="ix-page ix-page--narrow">
               <RecordHeader back="/suppliers" backLabel="Back to Suppliers & payables" title="Return goods to supplier"
-                about="Damaged or wrong items from deliveries wait here. Sending them back takes them off stock and lowers what you owe."
-                more={[{ label: 'Receive goods', href: '/receive-goods' }, { label: 'Suppliers & payables', href: '/suppliers' }]} />
+                about="Send anything you bought back to its supplier, or the damaged and wrong items from deliveries that wait here. A return takes the pieces off stock and either lowers what you owe (credit note) or waits for a replacement."
+                more={[{ label: 'Receive goods', href: '/receive-goods' }, { label: 'Suppliers & payables', href: '/suppliers' }]}
+                primary={{ label: 'Return bought items', onClick: () => openBuy(null) }} />
 
               <MetricStrip label="Returns" items={[
                 { label: 'Waiting to go back', value: plural(totalPieces, 'piece'), sub: plural(groups.length, 'supplier') },
@@ -210,7 +254,7 @@ export default function SupplierReturn() {
                   <div className="sr-tw sr-tw--link">
                     <table className="ix-table">
                       <caption className="sr-only">Returns made</caption>
-                      <thead><tr><th scope="col">Return</th><th scope="col">Date</th><th scope="col">Supplier</th><th scope="col">Reason</th><th scope="col" className="ix-num">Pieces</th><th scope="col" className="ix-num">Credit note</th></tr></thead>
+                      <thead><tr><th scope="col">Return</th><th scope="col">Date</th><th scope="col">Supplier</th><th scope="col">Reason</th><th scope="col" className="ix-num">Pieces</th><th scope="col">Settled</th><th scope="col" className="ix-num">Value</th></tr></thead>
                       <tbody>
                         {returns.map((r) => (
                           <tr key={r.no} onClick={(e) => { if (!e.target.closest('a,button')) setSeen(r); }}>
@@ -219,6 +263,7 @@ export default function SupplierReturn() {
                             <td><Link href={ledgerOf(r.supplier)}>{supName(r.supplier)}</Link></td>
                             <td>{r.reason}</td>
                             <td className="ix-num">{r.lines.reduce((n, l) => n + l.qty, 0)}</td>
+                            <td>{r.settle === 'replace' && !(r.replacement && r.replacement.status === 'received') ? <span className="gc-badge gc-badge--warning">{settleText(r)}</span> : settleText(r)}</td>
                             <td className="ix-num">{formatBDT(r.value)}</td>
                           </tr>
                         ))}
@@ -243,9 +288,59 @@ export default function SupplierReturn() {
               ['How', HOW_LABEL[seen.how]],
               seen.note ? ['Note', seen.note] : null,
               ['Handled by', seen.by],
-              ['Credit note', <span key="cn"><span className="sr-id">{seen.credit || '—'}</span> · {formatBDT(seen.value)}</span>],
+              seen.settle === 'replace' ? ['Settled', settleText(seen) + (seen.replacement && seen.replacement.at ? ' · ' + formatDate(seen.replacement.at) + ' at ' + seen.replacement.place : '')] : ['Credit note', <span key="cn"><span className="sr-id">{seen.credit || '—'}</span> · {formatBDT(seen.value)}</span>],
             ]} />
+            {seen.settle === 'replace' && seen.replacement && seen.replacement.status !== 'received' ? (
+              <div className="sr-form" style={{ gap: 'var(--space-3)' }}>
+                <h3 className="sr-section">Receive the replacement</h3>
+                <div className="sr-two">
+                  <div><label className="gc-label" htmlFor="sr-rep-place">Put it at</label><select id="sr-rep-place" className="gc-input gc-select" value={rep.place} onChange={(e) => setRep({ ...rep, place: e.target.value })}>{places.map((p) => <option key={p}>{p}</option>)}</select></div>
+                  <div><label className="gc-label" htmlFor="sr-rep-by">Received by</label><select id="sr-rep-by" className="gc-input gc-select" value={rep.by} onChange={(e) => setRep({ ...rep, by: e.target.value })}>{EMPLOYEES.map((m) => <option key={m.name}>{m.name}</option>)}</select></div>
+                </div>
+                <span><button type="button" className="gc-btn gc-btn--solid" onClick={receiveRep}><Icon name="package-check" width="16" height="16" aria-hidden="true" />Receive {plural(seen.lines.reduce((n, l) => n + l.qty, 0), 'piece')}</button></span>
+              </div>
+            ) : null}
           </div>
+        ) : null}
+      </Dialog>
+
+      <Dialog open={!!buy} title={buySup ? `Return to ${buySup.name}` : 'Return bought items'} onClose={() => setBuy(null)} width={620}>
+        {buy ? (
+          <form className="sr-form" onSubmit={saveBuy}>
+            <div className="sr-two">
+              <div><label className="gc-label" htmlFor="sr-b-sup">Supplier *</label><select id="sr-b-sup" className="gc-input gc-select" aria-required="true" value={buy.sup} onChange={(e) => setBuy({ ...buy, sup: e.target.value, bill: '', qty: {} })}><option value="">Choose a supplier</option>{db.suppliers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
+              <div><label className="gc-label" htmlFor="sr-b-bill">From bill</label><select id="sr-b-bill" className="gc-input gc-select" value={buy.bill} disabled={!buySup} onChange={(e) => setBuy({ ...buy, bill: e.target.value, qty: {} })}><option value="">Any bill</option>{buySup ? db.bills.filter((b) => b.supplier === buySup.id && (b.lines || []).length).sort((a, b) => b.at - a.at).map((b) => <option key={b.no} value={b.no}>{b.no} · {formatDate(b.at)}</option>) : null}</select></div>
+            </div>
+            {!buySup ? <p className="gc-help" style={{ margin: 0 }}>Choose who the goods go back to. Everything you bought from them is listed.</p> : buyRows.length === 0 ? <p className="gc-help" style={{ margin: 0 }}>Nothing left to return: every item on {buy.bill || 'their bills'} has gone back already, or the bills have no item lines.</p> : (
+              <ul className="sr-lines" aria-label="Items bought">
+                {buyRows.map((r) => (
+                  <li key={r.key}>
+                    <span style={{ flex: 1, minWidth: 0 }}><span className="sr-strong">{r.name}</span><span className="sr-sub">{r.bought} bought{r.returned ? ` · ${r.returned} returned` : ''} · {formatBDT(r.cost)} each · {r.bills.slice(-2).join(', ')}</span></span>
+                    <input className="gc-input" type="number" min="0" max={r.left} inputMode="numeric" placeholder="0" aria-label={`Pieces of ${r.name} going back, up to ${r.left}`} value={buy.qty[r.key] || ''} onChange={(e) => setBuy({ ...buy, qty: { ...buy.qty, [r.key]: Math.min(r.left, num(e.target.value)) } })} />
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="sr-two">
+              <div><label className="gc-label" htmlFor="sr-b-from">Take from</label><select id="sr-b-from" className="gc-input gc-select" value={buy.from} onChange={(e) => setBuy({ ...buy, from: e.target.value })}>{places.map((p) => <option key={p}>{p}</option>)}</select></div>
+              <div><label className="gc-label" htmlFor="sr-b-reason">Reason</label><select id="sr-b-reason" className="gc-input gc-select" value={buy.reason} onChange={(e) => setBuy({ ...buy, reason: e.target.value })}>{REASONS.map((x) => <option key={x}>{x}</option>)}</select></div>
+            </div>
+            <div className="sr-opts" role="radiogroup" aria-label="How the supplier settles it">
+              {SETTLE.map(([k, label, sub]) => (
+                <label key={k} className={'sr-opt' + (buy.settle === k ? ' is-on' : '')}>
+                  <input type="radio" name="sr-b-settle" checked={buy.settle === k} onChange={() => setBuy({ ...buy, settle: k })} />
+                  <span><b>{label}</b><small>{sub}</small></span>
+                </label>
+              ))}
+            </div>
+            <div className="sr-two">
+              <div><label className="gc-label" htmlFor="sr-b-how">How they go back</label><select id="sr-b-how" className="gc-input gc-select" value={buy.how} onChange={(e) => setBuy({ ...buy, how: e.target.value })}>{HOW.map(([k, label]) => <option key={k} value={k}>{label}</option>)}</select></div>
+              <div><label className="gc-label" htmlFor="sr-b-by">Handled by</label><select id="sr-b-by" className="gc-input gc-select" value={buy.by} onChange={(e) => setBuy({ ...buy, by: e.target.value })}>{EMPLOYEES.map((m) => <option key={m.name}>{m.name}</option>)}</select></div>
+            </div>
+            <div><label className="gc-label" htmlFor="sr-b-note">Note</label><textarea id="sr-b-note" className="gc-input" rows="2" placeholder="For example: 2 screens dead out of the box" value={buy.note} onChange={(e) => setBuy({ ...buy, note: e.target.value })} /></div>
+            <div className="sr-total" role="status"><span>{plural(buyPieces, 'piece')}{buySup && buy.settle === 'credit' ? ` · you will owe ${buySup.name} ${formatBDT(Math.max(0, payableOf(buySup.id, db) - buyValue))}` : ''}</span><b>{buy.settle === 'replace' ? 'Replacement' : formatBDT(buyValue) + ' credit'}</b></div>
+            <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setBuy(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid" disabled={!buyPieces}>Return {plural(buyPieces, 'piece')}</button></div>
+          </form>
         ) : null}
       </Dialog>
 
@@ -288,8 +383,16 @@ export default function SupplierReturn() {
                 </label>
               ))}
             </div>
-            <div><label className="gc-label" htmlFor="sr-note">Note</label><textarea id="sr-note" className="gc-input" rows="2" placeholder="For example: 2 jeans are size 36 instead of 34" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
-            <div className="sr-total" role="status"><span>{plural(pieces, 'piece')}{form.g.name ? ` · you will owe ${form.g.name} ${formatBDT(Math.max(0, form.g.owe - credit))}` : ''}</span><b>{formatBDT(credit)} credit</b></div>
+            <div className="sr-opts" role="radiogroup" aria-label="How the supplier settles it">
+              {SETTLE.map(([k, label, sub]) => (
+                <label key={k} className={'sr-opt' + (form.settle === k ? ' is-on' : '')}>
+                  <input type="radio" name="sr-settle" checked={form.settle === k} onChange={() => setForm({ ...form, settle: k })} />
+                  <span><b>{label}</b><small>{sub}</small></span>
+                </label>
+              ))}
+            </div>
+            <div><label className="gc-label" htmlFor="sr-note">Note</label><textarea id="sr-note" className="gc-input" rows="2" placeholder="For example: 2 chargers are 18W instead of 20W" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
+            <div className="sr-total" role="status"><span>{plural(pieces, 'piece')}{form.g.name && form.settle !== 'replace' ? ` · you will owe ${form.g.name} ${formatBDT(Math.max(0, form.g.owe - credit))}` : ''}</span><b>{form.settle === 'replace' ? 'Replacement' : formatBDT(credit) + ' credit'}</b></div>
             <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setForm(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid" disabled={!pieces}>Return {plural(pieces, 'piece')}</button></div>
           </form>
         ) : null}

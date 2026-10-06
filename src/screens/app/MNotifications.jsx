@@ -161,7 +161,7 @@ export default class MNotificationsScreen extends Component {
                   </svg>
                 </span>
                 <span className="m">
-                  <span className="t" style={{ display: "block" }}>Low stock: Sunscreen SPF 50</span>
+                  <span className="t" style={{ display: "block" }}>Low stock: Anker 20W charger</span>
                   <span className="s" style={{ display: "block" }}>4 left at Dhanmondi branch</span>
                   <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: "4px" }}>18 min</span>
                 </span>

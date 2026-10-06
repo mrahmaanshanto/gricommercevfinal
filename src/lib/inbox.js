@@ -111,21 +111,21 @@ function seedConvs(now) {
   const C = (id, ch, name, more, messages) => ({ id, ch, name, handle: '', phone: '', avatar: '', pos: '', status: 'open', assignee: '', tags: [], unread: 0, snoozeUntil: null, blocked: false, note: '', links: [], ...more, messages });
   return [
     C('c-nusrat', 'instagram', 'Nusrat Jahan', { handle: '@nusrat.wears', phone: '01553336655', avatar: '/assets/9f66d32bb99031029a6fbcfd91e221f2.png', pos: '52% 22%', assignee: 'rina', tags: ['VIP'], unread: 2, note: 'Prefers Bangla replies. Asked about bulk pricing for 20+ pieces — follow up before Eid.' }, [
-      cu(1522, 'Apu, sunscreen ta ki stock e ache? 2 ta nite chai'),
+      cu(1522, 'Apu, Anker 20W charger ta ki stock e ache? 2 ta nite chai'),
       ag(1515, 'rina', 'Assalamu alaikum! Ji apu, stock e ache. Uttara te next-day delivery, COD o nite paren.'),
-      ag(1514, 'rina', '', { type: 'product', sku: 'SK-SUN-50' }),
-      cu(1490, 'Ok, order korlam. Toner o add korechi'),
+      ag(1514, 'rina', '', { type: 'product', sku: 'AC-CHG-20' }),
+      cu(1490, 'Ok, order korlam. Earphone o add korechi'),
       sys(1488, 'shopping-bag', 'Order #136811 created from this chat by Rina Ahmed'),
       ag(1487, 'rina', '', { type: 'order', order: '#136811' }),
       sys(190, 'corner-up-right', 'Moved to DM from a comment on “Eid collection drop” by Rina Ahmed'),
       cu(38, 'Apu amar order duplicate hoye geche mone hoy — #136811 ar #136812 duto e ami korechi'),
       cu(37, '', { type: 'voice', dur: 14 }),
-      note(30, 'rina', 'Duplicate pair: same phone, same sunscreen. Merge #136811 into #136812 on the order page before approving.'),
+      note(30, 'rina', 'Duplicate pair: same phone, same charger. Merge #136811 into #136812 on the order page before approving.'),
     ]),
     C('c-rakib', 'whatsapp', 'Rakib Uddin', { phone: '01677220945', tags: ['Payment claim'], unread: 2 }, [
-      cu(4410, 'Sneakers ta order korte chai, size 42'),
+      cu(4410, 'Smart Band 8 ta order korte chai, black colour'),
       ag(4400, 'mehedi', 'Ji vai, 42 stock e ache. ৳3,450 + delivery ৳70.'),
-      cu(96, 'Assalamu alaikum, sneakers er payment korechi bKash e'),
+      cu(96, 'Assalamu alaikum, Smart Band er payment korechi bKash e'),
       cu(95, 'TrxID 8FJ2K4LP · ৳3,520'),
     ]),
     C('c-sadia', 'facebook', 'Sadia Afrin', { phone: '01966330012', avatar: '/assets/48a47ed6468079a61846b91934211c40.png', pos: '55% 18%', status: 'pending', assignee: 'mehedi', tags: ['Delivery'] }, [
@@ -139,7 +139,7 @@ function seedConvs(now) {
       cu(68, 'Price koto vai? Link den. Earbuds ta nibo'),
     ]),
     C('c-farhana', 'telegram', 'Farhana Islam', { handle: '@farhana_islam', phone: '01744556677', avatar: '/assets/25e820cfa3e50978f934abe93e0c3db7.png', pos: '50% 20%', assignee: 'rina', tags: ['Refund'], unread: 2 }, [
-      cu(2900, 'Rice cooker ta return hoye geche, wrong address chilo. Refund kobe pabo?'),
+      cu(2900, 'Power bank ta return hoye geche, wrong address chilo. Refund kobe pabo?'),
       ag(2880, 'tasnim', 'Sorry apu! Parcel ta warehouse e fire asche. 3–5 working days e bKash e refund pouche jabe.'),
       cu(330, '3 din hoye gelo, refund ekhono paini'),
       cu(325, 'Please update din #136742'),
@@ -156,11 +156,11 @@ function seedConvs(now) {
       ag(140, 'tasnim', 'Ji, abar pathano jabe. Notun delivery charge ৳70 lagbe. Confirm korben?', { status: 'delivered' }),
     ]),
     C('c-jamal', 'whatsapp', 'Jamal Telecom', { phone: '01819447210', status: 'pending', assignee: 'mehedi', tags: ['Wholesale'] }, [
-      cu(4400, 'Bhai, 24 ta water bottle er invoice ta pathan'),
+      cu(4400, 'Bhai, 24 ta phone stand er invoice ta pathan'),
       ag(4380, 'mehedi', 'Invoice INV-0231 ready. Stock Central Warehouse e hold kora ache — collect korar somoy payment diben.'),
     ]),
     C('c-salma', 'instagram', 'Salma Begum', { handle: '@salma.b', phone: '01912330845', status: 'snoozed', snoozeUntil: now + 20 * HOUR, assignee: 'tasnim', tags: ['Exchange'] }, [
-      cu(600, 'Jeans er size 32 boro hoyeche, 30 e exchange kora jabe?'),
+      cu(600, 'Case ta Galaxy A55 er, A35 er sathe exchange kora jabe?'),
       ag(580, 'tasnim', 'Ji apu, 7 diner moddhe exchange hoy. Kal courier pickup pathabo.'),
       sys(575, 'alarm-clock', 'Snoozed until tomorrow by Tasnim Ara'),
     ]),
@@ -176,10 +176,10 @@ function seedConvs(now) {
       cu(22, 'Size chart ta diben? Kameez M size ache?'),
     ]),
     C('c-arafat', 'telegram', 'Arafat Hossain', { handle: '@arafat_h', phone: '01798112233', tags: ['New lead'], unread: 1 }, [
-      cu(8, 'Rice cooker 1.8L er warranty koto din?'),
+      cu(8, 'Redmi Note 13 er warranty koto din?'),
     ]),
     C('c-shirin', 'facebook', 'Shirin Akter', { phone: '01811843300', status: 'closed', assignee: 'rina', tags: ['VIP'] }, [
-      cu(3000, 'Toner ta khub valo. Arekta nibo'),
+      cu(3000, 'Earphone ta khub valo. Arekta nibo'),
       ag(2990, 'rina', 'Dhonnobad apu! Ekhon order korle Dhaka te free delivery.'),
       sys(2980, 'circle-check', 'Closed by Rina Ahmed'),
     ]),
@@ -205,7 +205,7 @@ function withMessenger(list, now) {
     const m = c.messages.find((x) => x.from === 'agent' && x.type === 'text');
     if (m) m.reactions = { customer: '❤️' };
     const last = c.messages.filter((x) => x.from === 'customer' && x.type === 'text').pop();
-    if (last && !c.messages.some((x) => x.type === 'story')) c.messages.splice(c.messages.indexOf(last), 0, { id: 'm-story1', at: last.at - 60000, from: 'customer', type: 'story', story: 'mention', img: '/assets/dec2496b57e91a856eaa9f8fd17d9124.webp', text: 'Got my sunscreen from @gridshop 😍' });
+    if (last && !c.messages.some((x) => x.type === 'story')) c.messages.splice(c.messages.indexOf(last), 0, { id: 'm-story1', at: last.at - 60000, from: 'customer', type: 'story', story: 'mention', img: '/assets/dec2496b57e91a856eaa9f8fd17d9124.webp', text: 'Got my new iPhone 15 from @dazzleshop 😍' });
   });
   add('c-mostafiz', (c) => {
     const q = c.messages.find((x) => x.from === 'customer');
@@ -390,16 +390,16 @@ export const INTENTS = {
 };
 export const SENTIMENTS = { positive: ['Positive', 'var(--success)'], neutral: ['Neutral', 'var(--slate-400)'], negative: ['Negative', 'var(--error)'] };
 export const POSTS = [
-  { id: 'p-eid', ch: 'instagram', kind: 'Post', title: 'Eid collection drop — 12 new sarees', caption: 'Twelve new Jamdani and cotton sarees, woven in Narayanganj. Free delivery inside Dhaka until Friday. Sizes and prices in the comments.', date: '4 Sep 2026', reactions: 2140, shares: 61, views: 0, sales: 86400 },
+  { id: 'p-eid', ch: 'instagram', kind: 'Post', title: 'Eid drop — 12 new phones in stock', caption: 'Galaxy, Redmi, Realme and iPhone, all official with warranty. Free delivery inside Dhaka until Friday. Sizes and prices in the comments.', date: '4 Sep 2026', reactions: 2140, shares: 61, views: 0, sales: 86400 },
   { id: 'p-earbuds', ch: 'tiktok', kind: 'Reel', title: 'Wireless Earbuds Pro — unboxing', caption: 'Unboxing the Earbuds Pro: 30-hour battery, noise cancelling, one-year warranty. ৳3,490 with free delivery this week.', date: '28 Sep 2026', reactions: 5300, shares: 410, views: 41200, sales: 52350 },
-  { id: 'p-skin', ch: 'instagram', kind: 'Reel', title: 'Sunscreen routine for humid days', caption: 'Three steps for Dhaka weather: cleanse, toner, SPF 50. Everything in this reel ships today.', date: '25 Sep 2026', reactions: 1820, shares: 96, views: 18300, sales: 31240 },
+  { id: 'p-skin', ch: 'instagram', kind: 'Reel', title: 'Fast charging: which charger for your phone?', caption: '20W for iPhone, 25W for Galaxy, 33W for Redmi. Everything in this reel ships today.', date: '25 Sep 2026', reactions: 1820, shares: 96, views: 18300, sales: 31240 },
   { id: 'p-delivery', ch: 'facebook', kind: 'Post', title: 'Free delivery inside Dhaka this week', caption: 'Order anything above ৳999 until Friday and delivery inside Dhaka is free. Outside Dhaka ৳150.', date: '22 Sep 2026', reactions: 940, shares: 38, views: 0, sales: 22100 },
   { id: 'p-live', ch: 'facebook', kind: 'Live', title: 'Friday live sale replay — 9 PM', caption: 'Replay of Friday’s live sale. Comment the product code to order.', date: '19 Sep 2026', reactions: 1310, shares: 44, views: 9600, sales: 114800 },
   { id: 'p-hiring', ch: 'linkedin', kind: 'Post', title: 'We are hiring two fulfilment leads', caption: 'Join our Tejgaon warehouse team. Experience with courier handover and stock counts preferred.', date: '17 Sep 2026', reactions: 210, shares: 12, views: 0, sales: 0 },
   { id: 'p-yt-phone', ch: 'youtube', kind: 'Video', title: '5G Smartphone Pro — 7-day review', caption: 'A week with the 5G Smartphone Pro: camera at night, battery on a full day of Dhaka traffic, and gaming. Links in the description.', date: '26 Sep 2026', reactions: 640, shares: 22, views: 12400, sales: 389940 },
-  { id: 'p-threads', ch: 'threads', kind: 'Post', title: 'Which colour for the new polo?', caption: 'Navy, white or maroon? The most-asked colour gets restocked first.', date: '24 Sep 2026', reactions: 310, shares: 12, views: 0, sales: 0 },
-  { id: 'p-pin', ch: 'pinterest', kind: 'Pin', title: 'Everyday kurti — 8 prints', caption: 'Cotton kurtis for daily wear in eight prints, sizes S to XL.', date: '20 Sep 2026', reactions: 190, shares: 64, views: 5400, sales: 7740 },
-  { id: 'p-x', ch: 'x', kind: 'Post', title: 'Flash sale tonight 9 PM', caption: 'Flash sale tonight at 9 PM: earbuds, sunscreen and rice cookers. Set a reminder.', date: '18 Sep 2026', reactions: 120, shares: 35, views: 8100, sales: 0 },
+  { id: 'p-threads', ch: 'threads', kind: 'Post', title: 'Which colour for the new silicone case?', caption: 'Black, navy or red? The most-asked colour gets restocked first.', date: '24 Sep 2026', reactions: 310, shares: 12, views: 0, sales: 0 },
+  { id: 'p-pin', ch: 'pinterest', kind: 'Pin', title: 'Car phone holders — 8 styles', caption: 'Dashboard, vent and magnetic holders for every phone size.', date: '20 Sep 2026', reactions: 190, shares: 64, views: 5400, sales: 7740 },
+  { id: 'p-x', ch: 'x', kind: 'Post', title: 'Flash sale tonight 9 PM', caption: 'Flash sale tonight at 9 PM: earbuds, chargers and power banks. Set a reminder.', date: '18 Sep 2026', reactions: 120, shares: 35, views: 8100, sales: 0 },
 ];
 export const postBy = (id) => POSTS.find((p) => p.id === id) || null;
 function seedComments(now) {
@@ -415,7 +415,7 @@ function seedComments(now) {
     cm('p-eid', 60, 'Arif Karim', 'Refund ta ekhono paini. Ei niye 3 bar likhlam.', 'complaint', 'negative'),
     cm('p-eid', 75, 'Sabbir Hossain', 'Cumilla te COD ache?', 'question', 'neutral'),
     cm('p-eid', 90, '@mim.official', 'Beautiful colours 😍', 'praise', 'positive'),
-    cm('p-eid', 120, '@shop_promo_bd', 'Cheaper saree available, call 017xxxxxxxx', 'spam', 'neutral', { status: 'hidden', hiddenBy: 'Hide phone numbers' }),
+    cm('p-eid', 120, '@shop_promo_bd', 'Cheaper iPhone available, call 017xxxxxxxx', 'spam', 'neutral', { status: 'hidden', hiddenBy: 'Hide phone numbers' }),
     cm('p-eid', 140, '@growfast_bd', 'Follow us for 10k free followers!!', 'spam', 'neutral'),
     cm('p-earbuds', 69, '@tanvir.rides', 'Price koto vai? Link den', 'price', 'neutral', { status: 'answered', dm: 'c-tanvir', replies: [pr(69, 'rina', 'Sent you the link in DM!')] }),
     cm('p-earbuds', 12, '@gadget_guru', 'Battery backup koto ghonta?', 'question', 'neutral'),
@@ -424,11 +424,11 @@ function seedComments(now) {
     cm('p-earbuds', 52, '@nabila.r', 'Order dite chai, Chattogram e COD hobe?', 'order', 'positive'),
     cm('p-earbuds', 210, '@rafi.tech', 'Price ta bolen, 2 ta nibo', 'price', 'neutral'),
     cm('p-skin', 64, '@glowwithlamia', 'Oily skin e use kora jabe?', 'question', 'neutral'),
-    cm('p-skin', 300, '@nusrat.wears', 'Ami niyechi, best sunscreen!', 'praise', 'positive', { status: 'answered', liked: true, replies: [pr(290, 'rina', 'Thank you Nusrat apu 💛')] }),
+    cm('p-skin', 300, '@nusrat.wears', 'Ami niyechi, best charger!', 'praise', 'positive', { status: 'answered', liked: true, replies: [pr(290, 'rina', 'Thank you Nusrat apu 💛')] }),
     cm('p-skin', 400, '@beauty_bd_offer', 'DM for 50% off on all brands', 'spam', 'neutral', { status: 'hidden', hiddenBy: 'Hide competitor links' }),
     cm('p-delivery', 180, 'Hasan Mahmud', 'Sylhet e free delivery hobe na?', 'question', 'neutral'),
     cm('p-delivery', 260, 'Tania Akter', 'Delivery man khub bhalo chilo, thanks', 'praise', 'positive', { status: 'answered', liked: true, replies: [pr(250, 'tasnim', 'Thank you Tania! 😊')] }),
-    cm('p-delivery', 330, 'Rafiq Mia', 'Parcel damaged ashche, toner leak korche', 'complaint', 'negative', { assignee: 'tasnim' }),
+    cm('p-delivery', 330, 'Rafiq Mia', 'Parcel damaged ashche, screen protector bhanga', 'complaint', 'negative', { assignee: 'tasnim' }),
     cm('p-live', 5800, 'Lipi Das', 'Code SR-12 nibo', 'order', 'positive', { status: 'answered', replies: [pr(5790, 'mehedi', 'Booked, Lipi! We sent the payment link in Messenger.')] }),
     cm('p-live', 5900, 'Kamrul Islam', 'Replay ta valo laglo', 'praise', 'positive', { status: 'answered', liked: true, replies: [pr(5880, 'mehedi', 'Thank you Kamrul!')] }),
     cm('p-hiring', 900, 'Shahriar Kabir', 'Is this role open for Chattogram?', 'question', 'neutral'),
@@ -507,7 +507,7 @@ function seedCalls(now) {
     call('in', 4300, '01718445120', 'Karim Saheb', { dur: 75, wait: 9, agent: 'tasnim', reason: 'Delivery', result: 'Resolved', order: '#136810' }),
     call('missed', 3100, '01676221904', 'Rafiq Mia', { wait: 35, callback: 'done', doneAt: a(3050) }),
     call('out', 3000, '01815667723', 'Mahmudul Hasan', { dur: 190, agent: 'rina', reason: 'Complaint', result: 'Escalated', order: '#136795', rec: true, transcript: 'Rina: Assalamu alaikum, ami GridCommerce theke Rina bolchi. Courier er bishoye apnar complaint peyechi… Mahmudul: Ji, delivery man khub rude chilo. Ami parcel nei ni.' }),
-    call('in', 2900, '01822771190', 'Tanvir Hasan', { dur: 140, wait: 14, agent: 'tasnim', reason: 'Order status', result: 'Resolved', order: '#136771', rec: true, transcript: 'Tanvir: Amar dal er parcel ta kothay? Tasnim: Pathao te shipped, aaj bikel er moddhe pouche jabe. Tracking PT-4471203.' }),
+    call('in', 2900, '01822771190', 'Tanvir Hasan', { dur: 140, wait: 14, agent: 'tasnim', reason: 'Order status', result: 'Resolved', order: '#136771', rec: true, transcript: 'Tanvir: Amar charger er parcel ta kothay? Tasnim: Pathao te shipped, aaj bikel er moddhe pouche jabe. Tracking PT-4471203.' }),
     call('in', 1700, '01811843300', 'Shirin Akter', { dur: 88, wait: 6, agent: 'rina', reason: 'Product question', result: 'Order created' }),
     call('missed', 1560, '01912330845', 'Salma Begum', { wait: 28, callback: 'done', doneAt: a(1540) }),
     call('out', 1540, '01912330845', 'Salma Begum', { dur: 96, agent: 'tasnim', reason: 'Return or exchange', result: 'Resolved', order: '#136804' }),
@@ -640,12 +640,12 @@ function seedMentions(now) {
   const a = (min) => now - min * MIN;
   const M = (id, ch, kind, who, min, text, more) => ({ id, ch, kind, who, at: a(min), text, img: '', avatar: '', handle: who.startsWith('@') ? who : '', reach: 0, sentiment: 'positive', status: 'new', convId: '', ...more });
   return [
-    M('mn-1', 'instagram', 'story', '@nusrat.wears', 45, 'Got my sunscreen from @gridshop 😍', { img: '/assets/dec2496b57e91a856eaa9f8fd17d9124.webp', avatar: '/assets/9f66d32bb99031029a6fbcfd91e221f2.png', reach: 1240, convId: 'c-nusrat' }),
-    M('mn-2', 'instagram', 'story', '@glowwithlamia', 180, 'Morning routine ft. @gridshop toner ✨', { img: '/assets/cfbbbbd758347fbb3f71590345d24674.webp', reach: 3800 }),
-    M('mn-3', 'x', 'post', '@deal_hunter_bd', 360, '@gridshop my order is 3 days late. Anyone else? 😠', { sentiment: 'negative', reach: 640 }),
-    M('mn-4', 'facebook', 'post', 'Tania Akter', 300, 'Fastest delivery in Dhaka 🙌 thanks GridShop!', { img: '/assets/901f735d539a8b71fb8e8162bb755ec3.webp', reach: 2100, avatar: '' }),
-    M('mn-5', 'tiktok', 'post', '@tanvir.rides', 1440, 'Unboxing the earbuds from @gridshop — 30 hours battery for real', { img: '/assets/99e39eac40a8abf8968649c253b23f9e.webp', reach: 8400, convId: 'c-tanvir' }),
-    M('mn-6', 'facebook', 'comment', 'Sabbir Hossain', 2900, 'Try GridShop, they have cash on delivery all over Bangladesh.', { reach: 0, where: 'Dhaka Deals & Offers (group)', status: 'done' }),
+    M('mn-1', 'instagram', 'story', '@nusrat.wears', 45, 'Got my new iPhone 15 from @dazzleshop 😍', { img: '/assets/dec2496b57e91a856eaa9f8fd17d9124.webp', avatar: '/assets/9f66d32bb99031029a6fbcfd91e221f2.png', reach: 1240, convId: 'c-nusrat' }),
+    M('mn-2', 'instagram', 'story', '@glowwithlamia', 180, 'Unboxing ft. @dazzleshop Redmi Note 13 ✨', { img: '/assets/cfbbbbd758347fbb3f71590345d24674.webp', reach: 3800 }),
+    M('mn-3', 'x', 'post', '@deal_hunter_bd', 360, '@dazzleshop my order is 3 days late. Anyone else? 😠', { sentiment: 'negative', reach: 640 }),
+    M('mn-4', 'facebook', 'post', 'Tania Akter', 300, 'Fastest delivery in Dhaka 🙌 thanks Dazzle Shop!', { img: '/assets/901f735d539a8b71fb8e8162bb755ec3.webp', reach: 2100, avatar: '' }),
+    M('mn-5', 'tiktok', 'post', '@tanvir.rides', 1440, 'Unboxing the earbuds from @dazzleshop — 30 hours battery for real', { img: '/assets/99e39eac40a8abf8968649c253b23f9e.webp', reach: 8400, convId: 'c-tanvir' }),
+    M('mn-6', 'facebook', 'comment', 'Sabbir Hossain', 2900, 'Try Dazzle Shop, they have cash on delivery all over Bangladesh.', { reach: 0, where: 'Dhaka Deals & Offers (group)', status: 'done' }),
   ];
 }
 export const MENTION_KIND = { story: 'Story', post: 'Post', comment: 'Comment', team: 'Team' };

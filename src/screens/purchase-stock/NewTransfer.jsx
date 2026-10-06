@@ -35,7 +35,7 @@ function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 // sell at the sender. Sending saves the transfer (src/lib/transfers.js); it is scanned in on Transfers.
 var LOCS = STOCK_PLACES;
 var TP = CATALOG.map(function (p) { return { sku: p.sku, name: p.name, code: p.sku + ' · ' + p.variant, barcode: p.barcode, cost: p.wholesale }; });
-var SCAN = ['SK-SUN-50', 'CL-TEE-BM', 'SK-SUN-50', 'EL-EAR-PRO'].map(function (sku) { return TP.findIndex(function (x) { return x.sku === sku; }); });
+var SCAN = ['AC-CHG-20', 'AC-CSE-A55', 'AC-CHG-20', 'AU-EAR-PRO'].map(function (sku) { return TP.findIndex(function (x) { return x.sku === sku; }); });
 class Component extends DCLogic {
   componentDidMount() {
     // live places, and ?from=<place> / ?to=<place> from a link (Warehouses, Branches: "New transfer")

@@ -18,16 +18,18 @@ function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 function toast(self, m, bad) { __toast(m, bad ? { tone: 'error' } : undefined); }
 function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
 var T = [
-  { id: 'skin', name: 'Skin care', lv: 0, n: 64, kids: ['sun', 'ton', 'cle', 'ser'], tax: 'Standard VAT 15%', wp: 'No warranty', sg: 'No size guide', track: 'Expiry date', unit: 'Piece', comm: '12%' },
-  { id: 'sun', name: 'Sunscreen', lv: 1, n: 12, p: 'skin' }, { id: 'ton', name: 'Toner', lv: 1, n: 9, p: 'skin' }, { id: 'cle', name: 'Cleanser', lv: 1, n: 14, p: 'skin' }, { id: 'ser', name: 'Serum', lv: 1, n: 11, p: 'skin', hidden: true },
-  { id: 'clo', name: 'Clothing', lv: 0, n: 118, kids: ['men', 'wom'], tax: 'Standard VAT 15%', wp: 'No warranty', sg: 'Men’s shirts and polos', track: 'No tracking', unit: 'Piece', comm: '15%' },
-  { id: 'men', name: 'Men', lv: 1, n: 52, p: 'clo', kids: ['polo', 'jean'] }, { id: 'polo', name: 'Polo shirts', lv: 2, n: 18, p: 'men' }, { id: 'jean', name: 'Jeans', lv: 2, n: 21, p: 'men' }, { id: 'wom', name: 'Women', lv: 1, n: 66, p: 'clo' },
-  { id: 'ele', name: 'Electronics', lv: 0, n: 41, kids: ['ph', 'lap', 'aud'], tax: 'Standard VAT 15%', wp: '1 year official brand warranty', sg: 'No size guide', track: 'IMEI (phones)', unit: 'Piece', comm: '6%' },
-  { id: 'ph', name: 'Phones', lv: 1, n: 18, p: 'ele' }, { id: 'lap', name: 'Laptops', lv: 1, n: 7, p: 'ele' }, { id: 'aud', name: 'Audio', lv: 1, n: 16, p: 'ele' },
-  { id: 'gro', name: 'Grocery', lv: 0, n: 89, kids: [], tax: 'No VAT', wp: 'No warranty', sg: 'No size guide', track: 'Expiry date', unit: 'kg', comm: '8%' }
+  { id: 'ph', name: 'Phones', lv: 0, n: 46, kids: ['sm', 'fp'], tax: 'Standard VAT 15%', wp: '1 year official brand warranty', sg: 'No size guide', track: 'IMEI', unit: 'Piece', comm: '6%' },
+  { id: 'sm', name: 'Smartphones', lv: 1, n: 38, p: 'ph' }, { id: 'fp', name: 'Feature phones', lv: 1, n: 8, p: 'ph' },
+  { id: 'acc', name: 'Accessories', lv: 0, n: 142, kids: ['cse', 'chg', 'scr', 'hld', 'bat'], tax: 'Standard VAT 15%', wp: '6 months shop warranty', sg: 'Case sizes by model', track: 'No tracking', unit: 'Piece', comm: '15%' },
+  { id: 'cse', name: 'Cases & covers', lv: 1, n: 54, p: 'acc', kids: ['sil', 'arm'] }, { id: 'sil', name: 'Silicone cases', lv: 2, n: 30, p: 'cse' }, { id: 'arm', name: 'Rugged cases', lv: 2, n: 24, p: 'cse' },
+  { id: 'chg', name: 'Chargers & cables', lv: 1, n: 41, p: 'acc' }, { id: 'scr', name: 'Screen protection', lv: 1, n: 22, p: 'acc' }, { id: 'hld', name: 'Holders & stands', lv: 1, n: 17, p: 'acc' }, { id: 'bat', name: 'Batteries', lv: 1, n: 8, p: 'acc', hidden: true },
+  { id: 'aud', name: 'Audio', lv: 0, n: 28, kids: ['ebd', 'eph'], tax: 'Standard VAT 15%', wp: '6 months shop warranty', sg: 'No size guide', track: 'Serial number', unit: 'Piece', comm: '10%' },
+  { id: 'ebd', name: 'Earbuds', lv: 1, n: 16, p: 'aud' }, { id: 'eph', name: 'Earphones', lv: 1, n: 12, p: 'aud' },
+  { id: 'wr', name: 'Wearables', lv: 0, n: 14, kids: [], tax: 'Standard VAT 15%', wp: '1 year official brand warranty', sg: 'Strap sizes', track: 'Serial number', unit: 'Piece', comm: '8%' },
+  { id: 'pb', name: 'Power banks', lv: 0, n: 11, kids: [], tax: 'Standard VAT 15%', wp: '6 months shop warranty', sg: 'No size guide', track: 'No tracking', unit: 'Piece', comm: '10%' }
 ];
 var BY = {}; T.forEach(function (t) { BY[t.id] = t; });
-var FIELDS = { ele: [['RAM', 'dropdown', true], ['Network', 'dropdown', true], ['Display size', 'number', false], ['Battery', 'number', false], ['PTA approved', 'yes / no', true], ['Country of origin', 'text', false]], skin: [['Skin type', 'dropdown', true], ['Expiry date', 'date', true], ['Key ingredients', 'text', false], ['Volume', 'number', false], ['Country of origin', 'text', true]], clo: [['Material', 'text', true], ['Fit', 'dropdown', false], ['Care instructions', 'text', false]], gro: [['Weight', 'number', true], ['Expiry date', 'date', true]] };
+var FIELDS = { ph: [['RAM', 'dropdown', true], ['Storage', 'dropdown', true], ['Network', 'dropdown', true], ['Display size', 'number', false], ['Battery', 'number', false], ['Official / unofficial', 'dropdown', true]], acc: [['Compatible models', 'text', true], ['Material', 'text', false], ['Colour', 'dropdown', false]], aud: [['Connection', 'dropdown', true], ['Battery life', 'number', false], ['Noise cancelling', 'yes / no', false]], wr: [['Display', 'text', false], ['Strap size', 'dropdown', true]], pb: [['Capacity (mAh)', 'number', true], ['Output', 'text', true]] };
 // A category name: required, 2 to 60 letters, and not already used next to it.
 function nameError(name, siblings) {
   var n = String(name || '').trim();
@@ -42,7 +44,7 @@ class Component extends DCLogic {
   // saved category templates are read after mount (localStorage), so the first render matches the server
   componentDidMount() { this.setState({ tplTick: 1 }); }
   renderVals() {
-    var self = this, s = this.state || {}, open = s.open || { skin: true, clo: true, ele: true, men: false };
+    var self = this, s = this.state || {}, open = s.open || { ph: true, acc: true, aud: true, cse: false };
     var names = s.names || {}, all = T.concat(s.extra || []), by = {};
     all.forEach(function (t) { by[t.id] = t; });
     var nm = function (t) { return names[t.id] || t.name; };
@@ -116,7 +118,7 @@ class Component extends DCLogic {
         self.setState({ imp: null }); toast(self, 'Importing categories from ' + imp.file + '. New ones appear in the tree when it finishes.');
       },
       downloadTemplate: function () {
-        var csv = 'name,parent,description,show_in_menu\nSkin care,,Everyday skin care,yes\nSunscreen,Skin care,SPF 30 and above,yes\n';
+        var csv = 'name,parent,description,show_in_menu\nPhones,,Smartphones and feature phones,yes\nSmartphones,Phones,Android and iPhone,yes\n';
         var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'categories-template.csv';
         document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
       }
@@ -252,9 +254,9 @@ export default class CategoriesScreen extends Component {
                 <select className="gc-input gc-select" aria-label="Parent category">
                   <option>{v.sel?.parent}</option>
                   <option>Top level</option>
-                  <option>Skin care</option>
-                  <option>Clothing</option>
-                  <option>Electronics</option>
+                  <option>Phones</option>
+                  <option>Accessories</option>
+                  <option>Audio</option>
                 </select>
               </label>
             </div>
@@ -308,8 +310,8 @@ export default class CategoriesScreen extends Component {
                 <span className="gc-label">Size guide</span>
                 <select className="gc-input gc-select" aria-label="Size guide">
                   <option>{v.sel?.sg}</option>
-                  <option>Men’s shirts and polos</option>
-                  <option>Women’s kurti</option>
+                  <option>Case sizes by model</option>
+                  <option>Strap sizes</option>
                 </select>
               </label>
               <label className="ct-field">
@@ -367,7 +369,7 @@ export default class CategoriesScreen extends Component {
           <form id="cat-add-form" onSubmit={submitAdd} noValidate style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             <div className="ct-field">
               <label className="gc-label" htmlFor="cat-add-name">Name <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></label>
-              <input id="cat-add-name" className={'gc-input' + (v.addErr ? ' gc-input--error' : '')} value={v.addName} onChange={v.typeAddName} placeholder="For example: Face wash" aria-required="true" aria-invalid={v.addErr ? "true" : undefined} aria-describedby={v.addErr ? "cat-add-name-err" : undefined} />
+              <input id="cat-add-name" className={'gc-input' + (v.addErr ? ' gc-input--error' : '')} value={v.addName} onChange={v.typeAddName} placeholder="For example: Car chargers" aria-required="true" aria-invalid={v.addErr ? "true" : undefined} aria-describedby={v.addErr ? "cat-add-name-err" : undefined} />
               {v.addErr ? (<p id="cat-add-name-err" className="ct-err" role="alert">{v.addErr}</p>) : null}
             </div>
             <div className="ct-field">

@@ -98,18 +98,18 @@ const PAY_ACC = { bank: 'brac', bkash: 'bkash', cash: 'cash-shop' };
 // profile: [Bangla name, email, year born, gender, blood, area, emergency [name, relation, phone], reports to,
 //           bank [bank, branch, account no, routing] | null, check-in, enrolment [fingers, face, card]]
 const PROFILE = {
-  'EMP-0118': ['রাকিব হাসান', 'rakib.hasan@gridshop.com.bd', 1990, 'Male', 'B+', 'Road 4, Dhanmondi, Dhaka 1205', ['Shirin Hasan', 'Wife', '01711-XX2210'], '', ['BRAC Bank', 'Dhanmondi', '1501204414410', '060261726'], 'Fingerprint', [2, true, '0004410']],
+  'EMP-0118': ['রাকিব হাসান', 'rakib.hasan@dazzleshop.com.bd', 1990, 'Male', 'B+', 'Road 4, Dhanmondi, Dhaka 1205', ['Shirin Hasan', 'Wife', '01711-XX2210'], '', ['BRAC Bank', 'Dhanmondi', '1501204414410', '060261726'], 'Fingerprint', [2, true, '0004410']],
   'EMP-0142': ['সাদিয়া আক্তার', 'sadia.akter@gmail.com', 2001, 'Female', 'O+', 'House 42, Road 8, Dhanmondi, Dhaka 1209', ['Rahim Akter', 'Father', '01911-XX6045'], 'EMP-0118', null, 'POS log-in', [2, true, '0008821']],
   'EMP-0151': ['রাফি আহমেদ', 'rafi.ahmed@gmail.com', 2000, 'Male', 'A+', 'Kalabagan, Dhaka 1205', ['Salma Begum', 'Mother', '01819-XX7741'], 'EMP-0118', null, 'Staff app', [1, false, '']],
-  'EMP-0121': ['নাবিলা রহমান', 'nabila.rahman@gridshop.com.bd', 1992, 'Female', 'AB+', 'Section 10, Mirpur, Dhaka 1216', ['Farhan Rahman', 'Husband', '01715-XX9031'], '', ['BRAC Bank', 'Mirpur', '1501206636630', '060262938'], 'Fingerprint', [2, false, '0006630']],
+  'EMP-0121': ['নাবিলা রহমান', 'nabila.rahman@dazzleshop.com.bd', 1992, 'Female', 'AB+', 'Section 10, Mirpur, Dhaka 1216', ['Farhan Rahman', 'Husband', '01715-XX9031'], '', ['BRAC Bank', 'Mirpur', '1501206636630', '060262938'], 'Fingerprint', [2, false, '0006630']],
   'EMP-0149': ['মৌমিতা দাস', 'moumita.das@gmail.com', 1998, 'Female', 'B-', 'Pallabi, Mirpur, Dhaka 1216', ['Shyamal Das', 'Father', '01911-XX5512'], 'EMP-0121', ['City Bank', 'Mirpur', '2302960190194', '225262935'], 'POS log-in', [2, false, '0000194']],
   'EMP-0160': ['আরিফ রহমান', 'arif.rahman@gmail.com', 2003, 'Male', 'O+', 'Kazipara, Mirpur, Dhaka 1216', ['Abdur Rahman', 'Father', '01633-XX1190'], 'EMP-0121', null, 'POS log-in', [0, false, '']],
   'EMP-0133': ['তারেক আজিজ', 'tareq.aziz@gmail.com', 1994, 'Male', 'B+', 'Tejgaon I/A, Dhaka 1208', ['Rokeya Aziz', 'Mother', '01556-XX3302'], '', null, 'Face', [1, true, '0007713']],
   'EMP-0155': ['সাব্বির হোসেন', '', 2002, 'Male', 'A-', 'Nakhalpara, Tejgaon, Dhaka 1215', ['Delwar Hossain', 'Brother', '01798-XX5521'], 'EMP-0133', null, 'Face', [0, true, '']],
   'EMP-0145': ['জাহিদ হাসান', 'jahid.rider@gmail.com', 1997, 'Male', 'O-', 'Rampura, Dhaka 1219', ['Nasima Begum', 'Mother', '01877-XX4402'], 'EMP-0133', null, 'Rider app', [1, true, '0009046']],
   'EMP-0163': ['সোহেল রানা', '', 1985, 'Male', 'B+', 'Begunbari, Tejgaon, Dhaka 1208', ['Rehana Rana', 'Wife', '01309-XX6670'], 'EMP-0133', null, 'Face', [1, true, '']],
-  'EMP-0137': ['লামিয়া সুলতানা', 'lamia.sultana@gridshop.com.bd', 1996, 'Female', 'A+', 'Shyamoli, Dhaka 1207', ['Kamal Sultan', 'Father', '01521-XX0081'], '', ['BRAC Bank', 'Gulshan', '1501208854467', '060261355'], 'Staff app', [2, false, '0004467']],
-  'EMP-0158': ['রুমানা ইসলাম', 'rumana.islam@gridshop.com.bd', 1989, 'Female', 'O+', 'Banani DOHS, Dhaka 1206', ['Mahbub Islam', 'Husband', '01711-XX3390'], '', ['BRAC Bank', 'Banani', '1501203300625', '060260435'], 'Staff app', [2, false, '0000625']],
+  'EMP-0137': ['লামিয়া সুলতানা', 'lamia.sultana@dazzleshop.com.bd', 1996, 'Female', 'A+', 'Shyamoli, Dhaka 1207', ['Kamal Sultan', 'Father', '01521-XX0081'], '', ['BRAC Bank', 'Gulshan', '1501208854467', '060261355'], 'Staff app', [2, false, '0004467']],
+  'EMP-0158': ['রুমানা ইসলাম', 'rumana.islam@dazzleshop.com.bd', 1989, 'Female', 'O+', 'Banani DOHS, Dhaka 1206', ['Mahbub Islam', 'Husband', '01711-XX3390'], '', ['BRAC Bank', 'Banani', '1501203300625', '060260435'], 'Staff app', [2, false, '0000625']],
   'EMP-0161': ['জান্নাতুল ফেরদৌস', 'jannatul.f@gmail.com', 2003, 'Female', 'AB-', 'Mohammadpur, Dhaka 1207', ['Firoza Begum', 'Mother', '01404-XX1902'], 'EMP-0158', ['Dutch-Bangla Bank', 'Mohammadpur', '', '090262691'], 'Staff app', [0, false, '']],
   'EMP-0112': ['কামরুল ইসলাম', '', 1988, 'Male', 'B+', 'Jigatola, Dhanmondi, Dhaka 1209', ['Shahana Islam', 'Wife', '01670-XX8812'], 'EMP-0118', null, 'Fingerprint', [2, false, '0002254']],
 };
@@ -1264,7 +1264,7 @@ export function punchesOn(S, key) {
 
 // ---- ID card, documents, checks ------------------------------------------------------------------
 /** What the QR on the ID card holds. */
-export function qrTextOf(S, st, web = 'www.gridshop.com.bd') {
+export function qrTextOf(S, st, web = 'www.dazzleshop.com.bd') {
   return (S.settings.idCard || {}).qr === 'link' ? `https://${web}/staff/${st.code}` : st.code;
 }
 export function saveDoc(code, doc) {

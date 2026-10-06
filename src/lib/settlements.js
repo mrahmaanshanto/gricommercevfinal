@@ -15,6 +15,7 @@
 
 import { postEntry, balanceOf, accountBy, addAccount, ACCOUNTS } from './ledger';
 import { ITEM_SEED, PAYOUT_SEED, HOLDING_OF, ITEMS_KEY } from './settlementSeed';
+import { hasModule } from './edition';
 
 const K_ITEMS = ITEMS_KEY;
 const K_PAYOUTS = 'gc.settle.payouts';
@@ -118,8 +119,12 @@ function asOf(p, t, cfg) {
   if (!p || !(cfg.history || {})[p.id]) return p;
   return { ...p, ...pickSettings(versionAt(p.id, t, cfg)) };
 }
+/** Online gateways (bKash / Nagad checkout, SSLCOMMERZ, EPS) and couriers only work with online selling: a Retail
+ *  shop (no 'online' module) has the card machine and the gateways it added itself. */
+export const ONLINE_ONLY = PARTNERS.filter((p) => p.kind === 'Courier' || (p.kind === 'Gateway' && p.id !== 'card')).map((p) => p.id);
+export const partnerInEdition = (p) => !!p && (hasModule('online') || (p.kind !== 'Courier' && !ONLINE_ONLY.includes(p.id)));
 /** Every gateway, card machine and courier set up, including ones that pay straight into an account. */
-export const getAllPartners = (cfg = getConfig()) => [...PARTNERS, ...(cfg.custom || [])].filter((p) => !(cfg.removed || []).includes(p.id)).map((p) => partnerBy(p.id, cfg));
+export const getAllPartners = (cfg = getConfig()) => [...PARTNERS, ...(cfg.custom || [])].filter((p) => !(cfg.removed || []).includes(p.id) && partnerInEdition(p)).map((p) => partnerBy(p.id, cfg));
 /** Partners that hold money and settle it later (the ones Settlements tracks). */
 export const getPartners = (cfg = getConfig()) => getAllPartners(cfg).filter((p) => p.mode !== 'direct');
 /** The holding account of a partner that settles later. */
@@ -264,12 +269,12 @@ export function getPayouts(now = clockNow(), cfg = getConfig()) {
     const days = [...new Set(list.map((i) => dayKey(i.at)))].sort();
     return { id, partner, p, date, due, items: list, gross: r2(sums.gross), fee: r2(sums.fee), charge: r2(sums.charge), net: r2(sums.net), status, received: rec ? rec.received : null, reason: rec ? rec.reason : '', account: (rec && rec.account) || (asOf(p, date == null ? Date.now() : date, cfg) || p).to, at: rec ? rec.at : null, late, days };
   };
-  records.filter((r) => r.status === 'received' || r.status === 'review').forEach((r) => out.push(pack(r.id, r.partner, fromKey(r.date), r.items.map((x) => byId[x]).filter(Boolean), r)));
+  records.filter((r) => (r.status === 'received' || r.status === 'review') && partnerInEdition(partnerBy(r.partner, cfg))).forEach((r) => out.push(pack(r.id, r.partner, fromKey(r.date), r.items.map((x) => byId[x]).filter(Boolean), r)));
   // open items → expected payouts
   const groups = {};
   items.filter((i) => !i.settled && !i.removed && !inRecord.has(i.id)).forEach((i) => {
     const p = partnerBy(i.partner, cfg);
-    if (!p) return;
+    if (!p || !partnerInEdition(p)) return;
     const d = expectedDayOf(i, p, cfg);
     const key = i.partner + ':' + (d === null ? 'wallet' : dayKey(d));
     (groups[key] = groups[key] || { partner: i.partner, date: d, list: [] }).list.push(i);

@@ -30,9 +30,9 @@ export const HELP = {
     related: ['/tasks'],
   },
   '/merchant-orders': {
-    en: E('Every order, from new to delivered.', ['New orders start On hold (COD), Processing (paid) or Pending (payment due).', 'Open an order to verify it by call, then approve, take an advance or cancel.', 'Pack it, print the slip, then send it to the courier. It is In transit until delivered.'], ['Approved orders hold their stock.', 'Order SMS and email: Settings › Order notifications.'], ['Process an order start to finish', '3:40']),
-    bn: E('সব Order — নতুন থেকে Delivered পর্যন্ত।', ['নতুন Order শুরু হয় হোল্ডে (COD), প্রসেসিং (Paid) বা Pending (Payment বাকি) হয়ে।', 'Order খুলে Call করে যাচাই করুন, তারপর Approve, Advance নিন বা Cancel করুন।', 'Pack করুন, Slip Print করুন, তারপর Courier-এ পাঠান। Delivered না হওয়া পর্যন্ত এটি পথে আছে।'], ['Approved Order-এর Stock আলাদা রাখা থাকে।', 'Order SMS ও Email: Settings › Order notifications।'], ['একটি Order শুরু থেকে শেষ', '3:40']),
-    related: ['/new-order', '/courier-returns', '/wholesale-orders', '/return-exchange'],
+    en: E('Every order, from new to delivered.', ['New orders start On hold (COD), Processing (paid) or Pending (payment due).', 'Open an order to verify it by call, then approve, take an advance or cancel.', 'Pack it, print the slip, then send it to the courier. It shows Sent to courier until it is delivered.'], ['Approved orders hold their stock.', 'Order SMS and email: Settings › Order notifications.'], ['Process an order start to finish', '3:40']),
+    bn: E('সব Order — নতুন থেকে Delivered পর্যন্ত।', ['নতুন Order শুরু হয় হোল্ডে (COD), প্রসেসিং (Paid) বা Pending (Payment বাকি) হয়ে।', 'Order খুলে Call করে যাচাই করুন, তারপর Approve, Advance নিন বা Cancel করুন।', 'Pack করুন, Slip Print করুন, তারপর Courier-এ পাঠান। Delivered না হওয়া পর্যন্ত এটি Courier-এ পাঠানো দেখায়।'], ['Approved Order-এর Stock আলাদা রাখা থাকে।', 'Order SMS ও Email: Settings › Order notifications।'], ['একটি Order শুরু থেকে শেষ', '3:40']),
+    related: ['/new-order', '/courier-returns', '/return-exchange'],
   },
   '/order-detail': {
     en: E('One order: items, customer, payment, courier and its history.', ['Move the order to the next step with the main button.', 'Print the invoice or POS memo from More.', 'Use Return if the customer sends items back.'], ['Every change is saved in the order history.'], ['Order details', '2:20']),
@@ -45,8 +45,8 @@ export const HELP = {
     related: ['/merchant-orders', '/all-customers'],
   },
   '/pos': {
-    en: E('The shop counter: sell, take payment and print the memo. Wholesale customers get their prices here too.', ['Scan or search products to add them.', 'Choose the customer (or walk-in).', 'Press Pay, take cash, bKash or card, then print.'], ['Press F1 for keyboard shortcuts.', 'A wholesale sale can be left unpaid as an invoice.'], ['Make a sale at the counter', '3:00']),
-    bn: E('দোকানের Counter: বিক্রি করুন, Payment নিন, Memo Print করুন। Wholesale Customer-এর দামও এখানেই।', ['Scan বা Search করে Product যোগ করুন।', 'Customer বাছুন (বা Walk-in)।', 'Pay চাপুন, Cash, bKash বা Card নিন, তারপর Print।'], ['Keyboard shortcut দেখতে F1 চাপুন।', 'Wholesale বিক্রি বাকিতে Invoice হিসেবে রাখা যায়।'], ['Counter-এ বিক্রি', '3:00']),
+    en: E('The shop counter: sell, take payment and print the memo.', ['Scan or search products to add them.', 'Choose the customer (or walk-in).', 'Press Pay, take cash, bKash or card, then print.'], ['Press F1 for keyboard shortcuts.', 'When customer dues are on (Settings › Customers), a sale can be left as Due on an invoice.'], ['Make a sale at the counter', '3:00']),
+    bn: E('দোকানের Counter: বিক্রি করুন, Payment নিন, Memo Print করুন।', ['Scan বা Search করে Product যোগ করুন।', 'Customer বাছুন (বা Walk-in)।', 'Pay চাপুন, Cash, bKash বা Card নিন, তারপর Print।'], ['Keyboard shortcut দেখতে F1 চাপুন।', 'Customer-এর বাকি চালু থাকলে (Settings › Customers) বিক্রি Invoice-এ বাকি রাখা যায়।'], ['Counter-এ বিক্রি', '3:00']),
     related: ['/pos-manage', '/sales-invoices', '/return-exchange'],
   },
   '/pos-manage': {
@@ -55,19 +55,29 @@ export const HELP = {
     related: ['/pos', '/daily-summary'],
   },
   '/sales-invoices': {
-    en: E('Invoices for wholesale and credit sales: who has paid, who has not.', ['Open an invoice to record a payment.', 'Recording the full payment completes the sale and its order.'], ['Partly paid invoices show what is still due.'], ['Collect an invoice payment', '2:00']),
-    bn: E('Wholesale আর বাকির বিক্রির Invoice: কে টাকা দিয়েছে, কে দেয়নি।', ['Invoice খুলে Payment লিখুন।', 'পুরো Payment দিলে বিক্রি আর Order শেষ হয়।'], ['আংশিক দেওয়া Invoice-এ কত Due আছে দেখায়।'], ['Invoice-এর টাকা তোলা', '2:00']),
-    related: ['/dues', '/wholesale-orders', '/pos'],
+    en: E('Invoices for sales on due: who has paid, who has not.', ['Open an invoice and check it, then press Accept invoice.', 'Once accepted, record the payment. The full payment completes the sale and its order.', 'Edit an unpaid invoice with a reason: it becomes a new revision that is accepted again.'], ['To accept lists invoices nobody has checked yet. Each customer’s page has the same list under Invoices.'], ['Collect an invoice payment', '2:00']),
+    bn: E('বাকির বিক্রির Invoice: কে টাকা দিয়েছে, কে দেয়নি।', ['Invoice খুলে দেখে Accept invoice চাপুন।', 'গ্রহণের পর Payment লিখুন। পুরো Payment দিলে বিক্রি আর Order শেষ হয়।', 'কারণ লিখে বাকি Invoice বদলান: নতুন সংশোধন হয়, আবার গ্রহণ করতে হয়।'], ['গ্রহণ বাকি তালিকায় যেগুলো কেউ দেখেনি। প্রতিটি Customer-এর পাতায় Invoices-এ একই তালিকা আছে।'], ['Invoice-এর টাকা তোলা', '2:00']),
+    related: ['/dues', '/pos', '/all-customers'],
   },
   '/return-exchange': {
-    en: E('Take back items from any sale — online, counter or wholesale — and refund or exchange.', ['Find the sale by memo, order or phone.', 'Choose items and the reason, then refund or exchange.'], ['Good items go back to stock; damaged ones go to the damaged bay.'], ['Returns and exchanges', '2:30']),
-    bn: E('যেকোনো বিক্রি — Online, Counter বা Wholesale — থেকে পণ্য ফেরত নিন, টাকা ফেরত বা Exchange করুন।', ['Memo, Order বা Phone দিয়ে বিক্রি খুঁজুন।', 'পণ্য আর কারণ বাছুন, তারপর Refund বা Exchange।'], ['ভালো পণ্য Stock-এ ফেরে; নষ্ট পণ্য Damaged-এ যায়।'], ['Return আর Exchange', '2:30']),
+    en: E('Take back items from any sale — online or counter — and refund or exchange.', ['Find the sale by memo, order or phone.', 'Choose items and the reason, then refund or exchange.'], ['Good items go back to stock; damaged ones go to the damaged bay.'], ['Returns and exchanges', '2:30']),
+    bn: E('যেকোনো বিক্রি — Online বা Counter — থেকে পণ্য ফেরত নিন, টাকা ফেরত বা Exchange করুন।', ['Memo, Order বা Phone দিয়ে বিক্রি খুঁজুন।', 'পণ্য আর কারণ বাছুন, তারপর Refund বা Exchange।'], ['ভালো পণ্য Stock-এ ফেরে; নষ্ট পণ্য Damaged-এ যায়।'], ['Return আর Exchange', '2:30']),
     related: ['/return-history', '/merchant-orders'],
   },
   '/all-customers': {
-    en: E('Everyone who bought or signed up, with their orders, spending and dues.', ['Search by name or phone.', 'Open a customer to see orders, payments and notes.', 'Add a wholesale customer with their price list.'], ['Customers with the same phone can be merged.'], ['Customers', '2:00']),
-    bn: E('যারা কিনেছেন বা Sign up করেছেন — তাদের Order, খরচ আর Due।', ['নাম বা Phone দিয়ে Search করুন।', 'Customer খুলে Order, Payment আর Note দেখুন।', 'Wholesale Customer যোগ করার সময় তার Price list দিন।'], ['একই Phone-এর Customer একসাথে করা যায়।'], ['Customer', '2:00']),
+    en: E('Everyone who bought or signed up, with their orders, spending and dues.', ['Search by name or phone.', 'Open a customer to see orders, payments and notes.', 'Add a customer with their phone; set a credit limit if they may buy on due.'], ['Customers with the same phone can be merged.'], ['Customers', '2:00']),
+    bn: E('যারা কিনেছেন বা Sign up করেছেন — তাদের Order, খরচ আর Due।', ['নাম বা Phone দিয়ে Search করুন।', 'Customer খুলে Order, Payment আর Note দেখুন।', 'Phone দিয়ে Customer যোগ করুন; বাকিতে কিনলে Credit limit দিন।'], ['একই Phone-এর Customer একসাথে করা যায়।'], ['Customer', '2:00']),
     related: ['/sales-leads', '/dues'],
+  },
+  '/meetings': {
+    en: E('Meetings with leads and customers on Zoom, Google Meet, by phone or at the shop.', ['Press New meeting: choose who, when, how long and where.', 'The link is made and the invite goes by WhatsApp or SMS; a reminder goes an hour before.', 'After the meeting, open it and write a short note, the outcome and the next follow-up.'], ['Needs a note lists meetings that ended without one. Connect Zoom or Google Meet in Connections.']),
+    bn: E('Lead আর Customer-এর সাথে Meeting — Zoom, Google Meet, ফোনে বা দোকানে।', ['New meeting চাপুন: কার সাথে, কখন, কতক্ষণ আর কোথায় বাছুন।', 'Link তৈরি হয়, WhatsApp বা SMS-এ Invite যায়; এক ঘণ্টা আগে মনে করিয়ে দেওয়া হয়।', 'Meeting শেষে খুলে ছোট Note, ফলাফল আর পরের Follow-up লিখুন।'], ['Needs a note-এ Note ছাড়া শেষ হওয়া Meeting থাকে। Connections-এ Zoom বা Google Meet যুক্ত করুন।']),
+    related: ['/sales-leads', '/all-customers', '/connections'],
+  },
+  '/supplier-return': {
+    en: E('Send goods back to a supplier: anything you bought from them, or damaged items from deliveries.', ['Press Return bought items, choose the supplier and how many go back.', 'Choose Deduct from what we owe (a credit note) or Send a replacement.', 'When a replacement arrives, open the return and press Receive.'], ['A return takes the pieces off stock at the place you choose.']),
+    bn: E('Supplier-কে মাল ফেরত দিন: তাদের কাছ থেকে কেনা যেকোনো পণ্য, বা ডেলিভারিতে আসা নষ্ট পণ্য।', ['Return bought items চাপুন, Supplier আর কয়টি ফেরত যাবে বাছুন।', 'Deduct from what we owe (Credit note) বা Send a replacement বাছুন।', 'বদলি মাল এলে Return খুলে Receive চাপুন।'], ['Return বাছাই করা জায়গার Stock থেকে পণ্য কমায়।']),
+    related: ['/purchases', '/suppliers', '/receive-goods'],
   },
   '/sales-leads': {
     en: E('People and shops who might buy, and when to call them back.', ['Add a lead from a call, message or walk-in.', 'After each call press Log it and set the next follow-up.', 'Mark Won when they buy — they become a customer.'], ['Overdue follow-ups are at the top.'], ['Leads and follow-ups', '2:30']),
@@ -78,6 +88,16 @@ export const HELP = {
     en: E('Every product you sell, with price, stock and photos.', ['Add product for a new item.', 'Search by name, SKU or barcode; open a product to edit it.', 'Fix the "missing information" list so products sell better online.'], ['Stock numbers come from your warehouses and branches.'], ['Products', '2:30']),
     bn: E('যা যা বিক্রি করেন — দাম, Stock আর ছবি সহ।', ['নতুন পণ্যের জন্য Add product।', 'নাম, SKU বা Barcode দিয়ে Search করুন; Product খুলে Edit করুন।', 'Online-এ ভালো বিক্রির জন্য তথ্য কম থাকা Product ঠিক করুন।'], ['Stock-এর হিসাব Warehouse আর Branch থেকে আসে।'], ['Product', '2:30']),
     related: ['/add-product', '/stock', '/categories', '/brands'],
+  },
+  '/ai-knowledge': {
+    en: E('What Grid AI knows about your shop. Shop data is read live; add files, your website, FAQs and instructions.', ['Press Add knowledge: upload a PDF, DOCX, TXT or CSV, add your website, or write an entry.', 'Wait for Ready. Open a source to see what the AI learned, change its category or sync it again.', 'Switch a source off to stop the AI using it.'], ['Sources that failed or need review are not used until fixed.', 'Temporary campaigns stop on their end date.'], ['Teach Grid AI', '2:30']),
+    bn: E('আপনার দোকান সম্পর্কে Grid AI যা জানে। দোকানের তথ্য সরাসরি পড়া হয়; File, Website, FAQ আর নির্দেশনা যোগ করুন।', ['Add knowledge চাপুন: PDF, DOCX, TXT বা CSV দিন, Website যোগ করুন, বা নিজে লিখুন।', 'Ready হওয়া পর্যন্ত অপেক্ষা করুন। Source খুলে দেখুন AI কী শিখল, Category বদলান বা আবার Sync করুন।', 'AI যেন ব্যবহার না করে, তাহলে Source বন্ধ করুন।'], ['Failed বা Needs review Source ঠিক না হওয়া পর্যন্ত ব্যবহার হয় না।', 'Temporary campaign শেষের তারিখে থেমে যায়।'], ['Grid AI-কে শেখানো', '2:30']),
+    related: ['/ai-behaviour', '/connections'],
+  },
+  '/ai-behaviour': {
+    en: E('How Grid AI answers and what it may say: Auto, Assist or Off per channel, voice and language, your rules and its limits.', ['Pick the shop default: Auto, Assist or Off, then change any channel.', 'Set office hours and what the AI may answer by itself.', 'Check the voice, rules and limits, then Save.'], ['Customers can never change these rules.', 'Only people with “Configure Grid AI” can change this page; Auto also needs “Enable auto reply”.'], ['Control Grid AI', '3:00']),
+    bn: E('Grid AI কীভাবে উত্তর দেবে আর কী বলতে পারবে: প্রতিটি Channel-এ Auto, Assist বা Off, ভাষা, আপনার নিয়ম আর সীমা।', ['দোকানের Default বাছুন: Auto, Assist বা Off, তারপর দরকার হলে Channel আলাদা করুন।', 'Office hours আর AI নিজে কোন প্রশ্নের উত্তর দেবে তা ঠিক করুন।', 'ভাষা, নিয়ম আর সীমা দেখে Save করুন।'], ['Customer কখনো এই নিয়ম বদলাতে পারে না।', 'শুধু “Configure Grid AI” অনুমতি থাকলে এই পাতা বদলানো যায়; Auto-র জন্য “Enable auto reply” লাগে।'], ['Grid AI নিয়ন্ত্রণ', '3:00']),
+    related: ['/ai-knowledge', '/set-ai', '/merchant-inbox'],
   },
   '/smart-offers': {
     en: E('Offers that go out by themselves when a customer does something, or that you send to a group. Each customer gets their own one-time code.', ['Press New smart offer.', 'Choose when it goes out (a customer buys, stops buying, looks without buying …) and what they get.', 'Pick how to send it, check the message has {code}, and turn it on.'], ['Send rules keep anyone from getting too many offers: one every few days, only in the daytime.', 'Send now sends a turned-on offer at once; messages are paid from your GridCommerce credits.'], ['Smart offers', '2:30']),
@@ -311,8 +331,8 @@ export const HELP = {
     related: ['/automations', '/merchant-inbox'],
   },
   '/customer-settings': {
-    en: E('How customer records work: custom fields, segments, consent, restrictions and who can see what.', ['Add the fields your team needs on a customer.', 'Build segments from rules; they update by themselves.', 'Set who can see phone numbers and export lists.'], ['Restrictions (no COD, prepaid only, blocked) stop orders at POS and Create order.']),
-    bn: E('Customer রেকর্ড কীভাবে চলবে: নিজস্ব Field, Segment, সম্মতি, নিষেধ আর কে কী দেখবে।', ['Customer-এ টিমের দরকারি Field যোগ করুন।', 'নিয়ম দিয়ে Segment বানান; নিজে থেকে আপডেট হয়।', 'কে Phone নম্বর দেখবে আর তালিকা Export করবে ঠিক করুন।'], ['নিষেধ (COD নয়, আগে Payment, Blocked) POS আর Create order-এ Order আটকায়।']),
+    en: E('How customer records work: selling on due, custom fields, segments, consent, restrictions and who can see what.', ['Credit & dues: turn on selling on due, set the default credit limit and the days to pay.', 'Add the fields your team needs on a customer.', 'Build segments from rules; they update by themselves.', 'Set who can see phone numbers and export lists.'], ['Restrictions (no COD, prepaid only, blocked) stop orders at POS and Create order.']),
+    bn: E('Customer রেকর্ড কীভাবে চলবে: বাকিতে বিক্রি, নিজস্ব Field, Segment, সম্মতি, নিষেধ আর কে কী দেখবে।', ['Credit & dues: বাকিতে বিক্রি চালু করুন, Credit limit আর শোধের দিন ঠিক করুন।', 'Customer-এ টিমের দরকারি Field যোগ করুন।', 'নিয়ম দিয়ে Segment বানান; নিজে থেকে আপডেট হয়।', 'কে Phone নম্বর দেখবে আর তালিকা Export করবে ঠিক করুন।'], ['নিষেধ (COD নয়, আগে Payment, Blocked) POS আর Create order-এ Order আটকায়।']),
     related: ['/all-customers'],
   },
   '/ad-audiences': {

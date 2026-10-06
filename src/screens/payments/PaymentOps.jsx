@@ -25,6 +25,7 @@ import { getLinks, linkStatus, STATUS_TEXT, STATUS_TONE } from '@/lib/paymentLin
 import { batchRows, needsLook, BATCH_STATUS } from '@/lib/terminalBatches';
 import { AccPage, useBooks, money, shortDate } from '@/screens/accounts/accShared';
 import { PaymentReview, RefundPanel, LinkPanel, BatchPanel, LinkDialog, RefundDialog, BatchDialog, PAY_CSS } from './payShared';
+import { ModuleSetup } from '@/components/ModuleSetup';
 
 const TABS = [['tx', 'Transactions'], ['refunds', 'Refunds'], ['links', 'Payment links'], ['batches', 'Card batches']];
 const VIEWS = {
@@ -211,6 +212,7 @@ export default function PaymentOps() {
   const f = d && d.fig;
   return (
     <AccPage screen="PaymentOps" active="acc-payments" page="Payments" title="Payments" css={PAY_CSS + CSS} {...head}>
+      <ModuleSetup area="area-payments" />
       <MetricStrip label="Payments" items={[
         { label: 'To check', value: f ? String(f.check) : '—', sub: f ? money(f.checkAmt) : '', onClick: () => pick('tx', 'check'), on: tab === 'tx' && view === 'check' },
         { label: 'Used before', value: f ? String(f.dups) : '—', sub: 'Transaction IDs', onClick: () => pick('tx', 'check') },

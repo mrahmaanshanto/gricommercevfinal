@@ -35,7 +35,7 @@ import { currentUser, USERS } from '@/lib/team';
 function flashMsg(self, msg, bad, patch) { clearTimeout(self.t); var p = patch || {}; p.msg = msg; p.bad = !!bad; self.setState(p); self.t = setTimeout(function () { self.setState({ flash: null }); }, 900); }
 function msgVals(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBad: !!s.bad }; }
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-var RACK = { Grocery: 'G', Clothing: 'C', 'Skin care': 'A', Electronics: 'E', Home: 'H' };
+var RACK = { Phones: 'P', Accessories: 'A', Audio: 'D', Wearables: 'W', 'Power banks': 'B' };
 var CATS = CATALOG.reduce(function (a, p) { if (a.indexOf(p.cat) < 0) a.push(p.cat); return a; }, []);
 var AREAS = [{ k: 'all', label: 'Whole place' }].concat(CATS.map(function (c) { return { k: c, label: c }; }));
 function cost(p) { return productCostOf(p.sku) || Math.round((Number(p.wholesale) || 0) * 0.85); }

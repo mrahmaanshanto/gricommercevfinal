@@ -18,10 +18,6 @@ import __SetTopbar from '@/screens/settings-console/SetTopbar';
 class Component extends __SettingsLogic {
   formId = "ai";
   fields = {
-    enable_ai_auto_reply: {l: "Enable AI auto-reply", d: true},
-    website_chat_widget: {l: "Website chat widget", d: true},
-    whatsapp_cloud_api: {l: "WhatsApp Cloud API", d: true},
-    facebook_messenger: {l: "Facebook Messenger", d: false},
     provider: {l: "Provider", d: "Anthropic", req: true},
     anthropic_api_key: {l: "Anthropic API key", d: "sk-ant-••••••••••••7f31", req: true},
     model: {l: "Model", d: "Claude Sonnet 5"},
@@ -32,16 +28,12 @@ class Component extends __SettingsLogic {
     custom_price_out: {l: "Price / 1M output", d: "$0.90"},
     monthly_budget_cap: {l: "Monthly budget cap", d: "$120.00", req: true, check: (x) => (/^\$?\d+(\.\d{1,2})?$/.test(x) ? "" : "Enter the cap as an amount in US dollars, like $120.00.")},
     when_the_cap_is_reached: {l: "When the cap is reached", d: "Stop replying and alert admins", req: true},
-    office_hours: {l: "Office hours", d: "10:00", k: "time"},
-    office_hours_to: {l: "Office hours (to)", d: "20:00", k: "time", check: (x, f) => (x <= f.get("office_hours", "") ? "Office hours must end after they start." : "")},
-    escalation: {l: "Escalation", d: "After 2 unresolved turns"},
   };
   renderVals() {
     const f = this.f;
     return {
       f,
       custom: f.get("provider", "Anthropic") === "Custom",
-      channels: ["website_chat_widget", "whatsapp_cloud_api", "facebook_messenger"].filter((n) => f.get(n, false)).length,
       test: () => {
         const e = this.check("anthropic_api_key", f.get("anthropic_api_key", ""));
         if (e) { this.setState((st) => ({ errs: { ...st.errs, anthropic_api_key: e } }), () => f.focus("anthropic_api_key")); toast("Enter the API key before testing.", { tone: "error" }); return; }
@@ -69,7 +61,7 @@ export default class SetAiScreen extends Component {
         <div className={"set-shell" + (this.props.embedded ? " set-shell--embedded" : "")}>
           <div data-dc-import="SetChrome" className="set-shell__rail"><__SetChrome embedded /></div>
           <div className="set-shell__main">
-            <div data-dc-import="SetTopbar" className="set-shell__top"><__SetTopbar embedded crumb="AI Auto-Reply" /></div>
+            <div data-dc-import="SetTopbar" className="set-shell__top"><__SetTopbar embedded crumb="AI provider" /></div>
             <div className="set-shell__body">
               <div data-dc-import="SetRail" className="set-shell__nav"><__SetRail embedded active="ai" /></div>
               <form className="set-shell__col" noValidate onSubmit={v.f.submit}>
@@ -77,12 +69,12 @@ export default class SetAiScreen extends Component {
                   <main className="set-main">
                     <header className="set-pagehead">
                       <span className="set-pagehead__text">
-                        <h1 className="ix-head__title">AI Auto-Reply</h1>
+                        <h1 className="ix-head__title">AI provider</h1>
                         <__SetTips />
-                        <span className="gc-pagehead__about" hidden>Model and budget changes take effect on the next incoming message.</span>
+                        <span className="gc-pagehead__about" hidden>The AI provider, model and monthly budget. How the AI replies, on which channels, in which hours and when it hands over to a person is set in Grid AI › Behaviour.</span>
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>{v.channels === 0 ? "Not live on any channel" : "Live on " + v.channels + (v.channels === 1 ? " channel" : " channels")}</span>
+                        <__Link href="/ai-behaviour" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--primary)", textDecoration: "none" }}>Replies and channels: Grid AI › Behaviour</__Link>
                         <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>$42.18 spent in September</span>
                       </span>
                     </header>
@@ -96,14 +88,7 @@ export default class SetAiScreen extends Component {
                         </span>
                       </div>
                       <div style={{ padding: "6px 18px 18px" }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0" }}>
-                          <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Enable AI auto-reply</span>
-                            <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>When off, unanswered messages simply sit in the inbox — nothing is generated and nothing is billed.</span>
-                          </span>
-                          <__Sw f={v.f} n="enable_ai_auto_reply" />
-                        </div>
-                        <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px", borderTop: "1px solid #f1f5f9", padding: "14px 0 0" }}>
+                        <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px", padding: "8px 0 0" }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                             <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <label htmlFor={v.f.id("provider")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Provider <span className="set-req" aria-hidden="true">*</span></label>
@@ -258,46 +243,10 @@ export default class SetAiScreen extends Component {
                         </div>
                       </div>
                     </section>
-                    <section id="s2" className="ix-card set-card">
-                      <div className="set-head">
-                        <span style={{ display: "block" }}>
-                          <h2 className="set-title">Channels</h2>
-                        </span>
-                        <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>{v.channels} of 3 on</span>
-                        </span>
-                      </div>
-                      <div style={{ padding: "6px 18px 18px" }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0" }}>
-                          <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Website chat widget</span>
-                            <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>412 replies this month · median first response 4 seconds.</span>
-                          </span>
-                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", paddingRight: "12px" }}>412 replies</span>
-                          <__Sw f={v.f} n="website_chat_widget" />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
-                          <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>WhatsApp Cloud API</span>
-                            <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>806 replies this month. Requires the WhatsApp token in Social Integrations.</span>
-                          </span>
-                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", paddingRight: "12px" }}>806 replies</span>
-                          <__Sw f={v.f} n="whatsapp_cloud_api" />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
-                          <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Facebook Messenger</span>
-                            <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Page token is saved but the AI is not answering there yet.</span>
-                          </span>
-                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", paddingRight: "12px" }}>0 replies</span>
-                          <__Sw f={v.f} n="facebook_messenger" />
-                        </div>
-                      </div>
-                    </section>
                     <section id="s3" className="ix-card set-card">
                       <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <h2 className="set-title">{"Budget & office hours"}</h2>
+                          <h2 className="set-title">Budget</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <__Link href="/set-usage" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#003087", textDecoration: "none" }}>Open AI Usage</__Link>
@@ -340,37 +289,6 @@ export default class SetAiScreen extends Component {
                           </span>
                           <__Err f={v.f} n="when_the_cap_is_reached" />
                           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Alerts go to info@bugbuild.com and the admin inbox.</span>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                            <label htmlFor={v.f.id("office_hours")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Office hours</label>
-                          </span>
-                          <span id={v.f.id("office_hours") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Inside these hours the AI drafts and a human sends. Outside them it replies directly.</span>
-                          <span style={{ display: "flex", alignItems: "center", gap: "8px", maxWidth: "340px" }}>
-                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                              <__Icon name="clock" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
-                              <__In f={v.f} n="office_hours" labelled desc />
-                            </span>
-                            <__Err f={v.f} n="office_hours" />
-                            <span style={{ flex: "none", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>to</span>
-                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                              <__Icon name="clock" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
-                              <__In f={v.f} n="office_hours_to" />
-                            </span>
-                            <__Err f={v.f} n="office_hours_to" />
-                          </span>
-                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Asia/Dhaka · Friday is treated as a weekend for the support rota.</span>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                            <label htmlFor={v.f.id("escalation")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Escalation</label>
-                          </span>
-                          <span id={v.f.id("escalation") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Hands the thread to a human when the customer asks twice or mentions a refund.</span>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
-                            <__In f={v.f} n="escalation" labelled desc opts={["After 1 unresolved turn","After 2 unresolved turns","After 3 unresolved turns","Never hand over"]} />
-                            <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
-                          </span>
-                          <__Err f={v.f} n="escalation" />
                         </div>
                       </div>
                     </section>

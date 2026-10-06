@@ -22,13 +22,13 @@ export const HOLD_TYPES = { online: 'Online order', retail: 'Retail order', dama
 
 const at = (day, h, m) => new Date(2026, 8, day, h, m).getTime();
 const SEED = [
-  { id: 'HLD-0012', type: 'online', ref: '#136812', who: 'Nusrat Jahan', product: 'Sunscreen SPF 50 · 50ml', qty: 2, place: 'Central Warehouse', status: 'held', note: 'Order approved', at: at(30, 10, 12), by: 'System' },
+  { id: 'HLD-0012', type: 'online', ref: '#136812', who: 'Nusrat Jahan', product: 'Anker 20W USB-C Charger', qty: 2, place: 'Central Warehouse', status: 'held', note: 'Order approved', at: at(30, 10, 12), by: 'System' },
   { id: 'HLD-0011', type: 'online', ref: '#136810', who: 'Karim Saheb', product: 'Wireless Earbuds Pro', qty: 1, place: 'Central Warehouse', status: 'held', note: 'Order approved · with courier', at: at(29, 17, 40), by: 'System' },
-  { id: 'HLD-0010', type: 'online', ref: '#136804', who: 'Salma Begum', product: 'Denim Jeans · Blue · 32', qty: 1, place: 'Central Warehouse', status: 'released', note: 'Returned without damage', at: at(27, 12, 5), closedAt: at(30, 9, 30), by: 'System' },
-  { id: 'HLD-0009', type: 'online', ref: '#136799', who: 'Rafiq Mia', product: 'Hyaluronic Toner 150ml', qty: 1, place: DAMAGED_PLACE, status: 'damaged', from: 'Central Warehouse', note: 'Returned damaged: bottle leaked', at: at(26, 15, 20), closedAt: at(29, 11, 0), by: 'System' },
-  { id: 'HLD-0008', type: 'retail', ref: 'INV-0231', who: 'Jamal Telecom', product: 'Steel Water Bottle 750ml', qty: 24, place: 'Central Warehouse', status: 'held', note: 'Held until the invoice is collected', at: at(25, 11, 25), by: 'Sadia Akter' },
-  { id: 'HLD-0007', type: 'retail', ref: 'Counter', who: 'Walk-in · will collect Friday', product: 'Rice Cooker 1.8L Walton', qty: 1, place: 'Dhanmondi branch', status: 'held', note: 'Advance ৳500 taken', at: at(29, 18, 10), by: 'Rafi Ahmed' },
-  { id: 'HLD-0006', type: 'damaged', ref: '—', who: '—', product: 'Daily Care Shampoo 340ml', qty: 3, place: DAMAGED_PLACE, from: 'Mirpur branch', status: 'damaged', note: 'Cap broken on the shelf', at: at(28, 13, 0), closedAt: at(28, 13, 0), by: 'Moumita Das' },
+  { id: 'HLD-0010', type: 'online', ref: '#136804', who: 'Salma Begum', product: 'Baseus Car Phone Holder', qty: 1, place: 'Central Warehouse', status: 'released', note: 'Returned without damage', at: at(27, 12, 5), closedAt: at(30, 9, 30), by: 'System' },
+  { id: 'HLD-0009', type: 'online', ref: '#136799', who: 'Rafiq Mia', product: 'Type-C Wired Earphones', qty: 1, place: DAMAGED_PLACE, status: 'damaged', from: 'Central Warehouse', note: 'Returned damaged: bottle leaked', at: at(26, 15, 20), closedAt: at(29, 11, 0), by: 'System' },
+  { id: 'HLD-0008', type: 'retail', ref: 'INV-0231', who: 'Jamal Telecom', product: 'Foldable Phone Stand', qty: 24, place: 'Central Warehouse', status: 'held', note: 'Held until the invoice is collected', at: at(25, 11, 25), by: 'Sadia Akter' },
+  { id: 'HLD-0007', type: 'retail', ref: 'Counter', who: 'Walk-in · will collect Friday', product: 'Anker Power Bank 10000mAh', qty: 1, place: 'Dhanmondi branch', status: 'held', note: 'Advance ৳500 taken', at: at(29, 18, 10), by: 'Rafi Ahmed' },
+  { id: 'HLD-0006', type: 'damaged', ref: '—', who: '—', product: 'Lightning Cable 1m', qty: 3, place: DAMAGED_PLACE, from: 'Mirpur branch', status: 'damaged', note: 'Cap broken on the shelf', at: at(28, 13, 0), closedAt: at(28, 13, 0), by: 'Moumita Das' },
 ];
 
 /** Old place names become today's; damaged stock saved at a shelf moves to the damaged bay. */

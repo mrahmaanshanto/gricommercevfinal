@@ -30,6 +30,8 @@ import { CATALOG, productBy, addMove, stockAt } from '@/lib/stock';
 import { addHolds, holdsFor, closeHold } from '@/lib/stockHolds';
 import { DAMAGED_PLACE, onlinePlace } from '@/lib/locations';
 import { postEntry, accountForMethod, accountBy } from '@/lib/ledger';
+import { claimRef, refMessage } from '@/lib/paymentRefs';
+import { getCreditRules } from '@/lib/creditRules';
 import { requestRefund } from '@/lib/refunds';
 import { issueCredit } from '@/lib/storeCredit';
 import { returnSerial } from '@/lib/serials';
@@ -46,9 +48,9 @@ const memoAt = (day, h, m) => new Date(2026, 8, day, h, m).getTime();
 const memoLine = (memo, i, name, qty) => ({ id: memo + '-' + i, name, price: (productBy(name) || { price: 0 }).price, qty, disc: 0 });
 const MEMOS = [
   { id: '1038', at: memoAt(29, 9, 55), customer: { name: '', phone: '' }, cashier: 'Moumita Das', place: 'Mirpur branch', due: 0,
-    lines: [memoLine('1038', 1, 'Premium Cotton Oversized T-Shirt', 1), memoLine('1038', 2, 'Daily Care Shampoo 340ml', 1), memoLine('1038', 3, 'Steel Water Bottle 750ml', 1), memoLine('1038', 4, 'Hyaluronic Toner 150ml', 1)] },
+    lines: [memoLine('1038', 1, 'Spigen Tough Armor Case · Galaxy A55', 1), memoLine('1038', 2, 'Lightning Cable 1m', 1), memoLine('1038', 3, 'Foldable Phone Stand', 1), memoLine('1038', 4, 'Type-C Wired Earphones', 1)] },
   { id: '1040', at: memoAt(29, 10, 21), customer: { name: 'Karim Saheb', phone: '01711234567' }, cashier: 'Arif Rahman', place: 'Mirpur branch', due: -1,
-    lines: [memoLine('1040', 1, 'Premium Miniket Rice 5kg', 1), memoLine('1040', 2, 'Soybean Cooking Oil 2L', 2), memoLine('1040', 3, 'Atta Wheat Flour 2kg', 5), memoLine('1040', 4, 'Chickpeas Boot Dal 1kg', 5), memoLine('1040', 5, 'Wireless Earbuds Pro', 1)] },
+    lines: [memoLine('1040', 1, 'Baseus USB-C Cable 100W 1m', 1), memoLine('1040', 2, 'Tempered Glass 9H', 2), memoLine('1040', 3, 'Camera Lens Protector', 5), memoLine('1040', 4, 'Screen Cleaning Kit', 5), memoLine('1040', 5, 'Wireless Earbuds Pro', 1)] },
 ];
 
 const REASONS = [['bad', 'Faulty item', 'triangle-alert'], ['size', 'Wrong size', 'ruler'], ['wrong', 'Wrong item given', 'repeat'], ['mind', 'Changed mind', 'user-round'], ['exp', 'Expired', 'calendar-x']];
@@ -92,7 +94,7 @@ function buildSources() {
     byWallet: (s.tenders || []).some((x) => x.method === 'Wallet'),
   }));
   getInvoices().filter((inv) => inv.src !== 'pos').forEach((inv) => out.push(shape({
-    key: 'inv:' + inv.id, kind: 'invoice', id: inv.id, ref: inv.id, label: inv.id, at: inv.at, channel: 'Wholesale',
+    key: 'inv:' + inv.id, kind: 'invoice', id: inv.id, ref: inv.id, label: inv.id, at: inv.at, channel: inv.wholesale ? 'Wholesale' : 'Retail',
     customer: inv.customer || {}, lines: inv.lines, totals: inv.totals, due: inv.due || 0, place: placeOf(inv.counter), cashier: inv.cashier,
     returned: inv.returned || {}, orderId: '',
   })));
@@ -161,6 +163,18 @@ const CSS = `
 .re-stepper b{min-width:24px;text-align:center;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);font-variant-numeric:tabular-nums}
 .re-cap{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body)}
 .re-block{display:flex;flex-direction:column;gap:var(--space-2)}
+.re-pay{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card)}
+.re-paygrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3);align-items:end}
+.re-paygrid__btn{grid-column:1/-1}
+.re-parts{margin:0;padding:0;list-style:none;display:flex;flex-direction:column}
+.re-parts li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:var(--space-2);min-height:40px;border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.re-mono{font-family:var(--font-data)}
+.re-paysum{display:grid;grid-template-columns:1fr auto;gap:4px var(--space-3);margin:0;font-size:var(--text-sm)}
+.re-paysum dt{color:var(--text-body)}
+.re-paysum dd{margin:0;text-align:right;font-family:var(--font-data);color:var(--text-heading)}
+.re-paysum .is-due{color:var(--text-danger);font-weight:var(--weight-semibold)}
+.re-check{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}
+@media (max-width:640px){.re-paygrid{grid-template-columns:1fr}}
 .re-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
 .re-lock{display:flex;flex-direction:column;gap:var(--space-4);min-width:0;margin:0;padding:0;border:0}
 .re-seg{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px;border-radius:var(--radius-lg);background:var(--surface-subtle)}
@@ -215,6 +229,11 @@ export default function ReturnExchange() {
   const [resellPick, setResellPick] = useState(null);  // null: suggested by the reason
   const [mode, setMode] = useState('ret');             // ret | exch
   const [method, setMethod] = useState('');            // '' = the suggested one
+  // the customer paying extra on an exchange: one payment or several (split), each with its own reference
+  const [parts, setParts] = useState([]);              // [{ method, amount, ref, received, change }] payments added
+  const [pd, setPd] = useState({ method: 'Cash', amount: '', ref: '' });   // the payment being typed
+  const [restDue, setRestDue] = useState(false);       // leave what is left as due on the sale
+  const [refundTo, setRefundTo] = useState('');        // the bKash / Nagad number a refund goes to
   const [newSku, setNewSku] = useState('');
   const [newQty, setNewQty] = useState(1);
   const [nq, setNq] = useState('');
@@ -255,7 +274,7 @@ export default function ReturnExchange() {
   }).slice(0, 8);
 
   const choose = (s) => {
-    setSelKey(s.key); setPicks({}); setMode('ret'); setMethod(''); setNewSku(''); setNewQty(1); setNq('');
+    setSelKey(s.key); setPicks({}); setMode('ret'); setMethod(''); setNewSku(''); setNewQty(1); setNq(''); setParts([]); setPd({ method: 'Cash', amount: '', ref: '' }); setRestDue(false); setRefundTo('');
     setReason('bad'); setResellPick(null); setApprovedBy(''); setBy('');
   };
   const find = (e) => {
@@ -301,7 +320,30 @@ export default function ReturnExchange() {
   const cut = m === 'Cut from due' ? r2(Math.min(due, amt)) : 0;
   const rest = m === 'Cut from due' ? r2(amt - cut) : 0;
   const credits = sel && phone ? storeCreditFor(phone) : 0;
-  const big = dir === 'in' ? ['in', 'Customer pays extra', amt, `The new item costs more · into ${(accountBy(accountForMethod(m, true)) || { name: m }).name}`, 'arrow-down-to-line']
+  // ---- paying the difference (exchange, customer pays extra): split payments, references, change, the rest as due
+  const numOf = (v) => Math.max(0, Math.round((Number(v) || 0) * 100) / 100);
+  const paidParts = r2(parts.reduce((a, p) => a + p.amount, 0));
+  const remaining = dir === 'in' ? r2(Math.max(0, amt - paidParts)) : 0;
+  const typed = pd.amount === '' ? remaining : numOf(pd.amount);
+  const applied = r2(Math.min(typed, remaining));
+  const change = pd.method === 'Cash' ? r2(Math.max(0, typed - remaining)) : 0;
+  const leftAfter = r2(remaining - applied);
+  const REF_LABEL = { bKash: 'bKash transaction ID', Nagad: 'Nagad transaction ID', Card: 'Card slip no. or last 4 digits' };
+  const needsRef = pd.method !== 'Cash';
+  const refProblem = needsRef && pd.ref.trim() ? refMessage(pd.ref.trim(), sel ? sel.ref : '') : '';
+  const canDue = dir === 'in' && !!sel && sel.kind === 'pos' && !!phone && getCreditRules().allowRetailDue;
+  /** Add the typed payment as one part (a split payment). Returns the part, or null when something is missing. */
+  const addPart = () => {
+    if (!(typed > 0) || !remaining) return null;
+    if (pd.method !== 'Cash' && typed > remaining + 0.001) { toast(`${pd.method} cannot be more than the ${money(remaining)} left`, { tone: 'error' }); return null; }
+    if (needsRef && !pd.ref.trim()) { toast(`Type the ${REF_LABEL[pd.method].toLowerCase()}`, { tone: 'error' }); return null; }
+    if (refProblem) { toast(`${pd.ref.trim()}: ${refProblem}`, { tone: 'error' }); return null; }
+    const part = { method: pd.method, amount: applied, ref: pd.ref.trim(), received: pd.method === 'Cash' ? typed : applied, change };
+    setParts([...parts, part]);
+    setPd({ method: pd.method, amount: '', ref: '' });
+    return part;
+  };
+  const big = dir === 'in' ? ['in', 'Customer pays extra', amt, `The new item costs more · paid by ${[...new Set([...parts.map((p) => p.method), pd.method])].join(' + ')}`, 'arrow-down-to-line']
     : dir === 'even' ? ['even', mode === 'ret' ? 'Nothing to give back' : 'Even swap', 0, 'Nobody pays anything', 'equal']
       : m === 'Cut from due' ? ['due', `Taken off ${custName}’s due`, amt, rest ? `Only ${money(cut)} was due · give ${money(rest)} back in cash` : `No cash goes out · ${money(due - cut)} still due`, 'wallet']
         : m === 'Store credit' ? ['due', 'Kept as store credit', amt, `${custName} can spend it on a later purchase`, 'wallet']
@@ -317,11 +359,23 @@ export default function ReturnExchange() {
     if (!sel) { toast('Find the sale first.', { tone: 'error' }); return; }
     if (!pcs) { toast('Tick the items coming back first.', { tone: 'error' }); return; }
     if (mode === 'exch' && !newAvail) { toast(`${newP.name} is out of stock at ${sel.place}. Pick another item.`, { tone: 'error' }); return; }
+    if (dir === 'in') {
+      const draft = typed > 0 && remaining ? { method: pd.method, amount: applied, ref: pd.ref.trim(), received: pd.method === 'Cash' ? typed : applied, change } : null;
+      if (draft && needsRef && !draft.ref) { toast(`Type the ${REF_LABEL[pd.method].toLowerCase()}`, { tone: 'error' }); return; }
+      if (draft && refProblem) { toast(`${draft.ref}: ${refProblem}`, { tone: 'error' }); return; }
+      const all = draft ? [...parts, draft] : parts;
+      const left = r2(amt - all.reduce((a, p) => a + p.amount, 0));
+      if (left > 0.009 && !(restDue && canDue)) { toast(`${money(left)} is still to pay. Add another payment${canDue ? ' or leave it as due' : ''}.`, { tone: 'error' }); return; }
+      if (draft) setParts(all);
+      if (outside && !approvedBy) { setPinOpen(true); return; }
+      doSave(approvedBy, all);
+      return;
+    }
     if (outside && !approvedBy) { setPinOpen(true); return; }
     doSave(approvedBy);
   };
 
-  const doSave = (approver) => {
+  const doSave = (approver, payParts = parts) => {
     const now = Date.now();
     const exch = mode === 'exch';
     const qtyMap = Object.fromEntries(back.map((l) => [l.id, picks[l.id]]));
@@ -339,17 +393,26 @@ export default function ReturnExchange() {
       const e = postEntry({ account, amount, kind, ref: sel.ref, party: custName, note: `${kindWord} on ${sel.label}`, by: staff });
       if (e) posts.push(e);
     };
-    if (dir === 'in') post(m, amt, 'sale');
+    // each part of the payment lands in its own account (Money), with its reference; what is left stays due on the sale
+    const dueAdd = dir === 'in' ? r2(Math.max(0, amt - payParts.reduce((a, p) => a + p.amount, 0))) : 0;
+    if (dir === 'in') payParts.forEach((p, i) => {
+      const account = accountForMethod(p.method, true);
+      if (!account || !p.amount) return;
+      const e = postEntry({ account, amount: p.amount, kind: 'sale', ref: sel.ref, party: custName, txn: p.ref || undefined, note: `${kindWord} on ${sel.label}${payParts.length > 1 ? ` · part ${i + 1} of ${payParts.length}` : ''}${p.ref ? ' · ' + p.ref : ''}${p.change ? ` · ${money(p.received)} received, ${money(p.change)} change` : ''}`, by: staff });
+      if (e) posts.push(e);
+      if (p.ref) claimRef(p.ref, sel.ref, { by: staff, what: kindWord.toLowerCase() + ' payment' });
+    });
     // cash goes back over the counter now; a bKash / Nagad / card refund becomes a tracked refund (lib/refunds) that is
     // sent, and posted, from Payments › Operations (over the refund limit it waits for approval first)
     let refund = null;
     if (dir === 'out' && m === 'Cash') post(m, -amt, 'refund');
-    else if (dir === 'out' && PAY_METHODS.includes(m)) refund = requestRefund({ ref: sel.ref, customer: custName, phone, amount: amt, method: m, reason: reasonLabel, source: kindWord });
+    else if (dir === 'out' && PAY_METHODS.includes(m)) refund = requestRefund({ ref: sel.ref, customer: custName, phone: (m === 'bKash' || m === 'Nagad') && refundTo.trim() ? refundTo.trim() : phone, amount: amt, method: m, reason: reasonLabel + ((m === 'bKash' || m === 'Nagad') && refundTo.trim() ? ` · send to ${refundTo.trim()}` : ''), source: kindWord });
     else if (dir === 'out' && m === 'Cut from due' && rest) post('Cash', -rest, 'refund');
     const row = addReturn({
       at: now, channel: sel.channel, ref: sel.ref, source: sel.kind, customer: custName, phone,
       items: items + (exch ? ` → ${given}` : ''), returned: qtyMap, type: exch ? 'exchange' : 'return',
-      amount: amt, credit, money: moneyKind, method: m, cut, stock: resell ? 'restock' : 'damaged', reason: reasonLabel,
+      amount: amt, credit, money: moneyKind, method: dir === 'in' ? (payParts.length > 1 ? 'Split' : (payParts[0] || {}).method || 'Due') : m, cut,
+      ...(dir === 'in' ? { payments: payParts, dueAdded: dueAdd } : {}), stock: resell ? 'restock' : 'damaged', reason: reasonLabel,
       place: stockPlace, by: staff, approvedBy: approver || '',
       account: posts.length ? posts[0].account : '', ledger: posts.map((e) => e.id),
     });
@@ -362,7 +425,7 @@ export default function ReturnExchange() {
     // mark the quantities on the sale itself so they cannot come back twice, and take money off the due
     if (sel.kind === 'pos') {
       const base = { type: exch ? 'exchange' : 'return', reason: reasonLabel, at: now, items, rt: row.id, ...(exch ? { given: [`${qtyNew} × ${newP.name}`] } : {}) };
-      const entries = dir === 'in' ? [{ ...base, amount: 0, collected: amt, method: m }]
+      const entries = dir === 'in' ? [...payParts.map((p) => ({ ...base, amount: 0, collected: p.amount, method: p.method, ...(p.ref ? { txn: p.ref } : {}) })), ...(dueAdd ? [{ ...base, amount: 0, collected: 0, method: 'Due', due: dueAdd }] : [])]
         : cut && rest ? [{ ...base, amount: cut, method: 'Cut from due' }, { ...base, amount: rest, method: 'Cash' }]
           : [{ ...base, amount: dir === 'out' ? amt : 0, method: m }];
       let paidOff = false;
@@ -371,7 +434,7 @@ export default function ReturnExchange() {
         const had = x.returned || {};
         const returned = { ...had };
         Object.entries(qtyMap).forEach(([id, n]) => { returned[id] = (had[id] || 0) + n; });
-        const newDue = Math.max(0, r2((x.due || 0) - cut));
+        const newDue = Math.max(0, r2((x.due || 0) - cut + dueAdd));
         paidOff = cut > 0 && newDue === 0;
         return { ...x, returned, refunds: [...(x.refunds || []), ...entries], due: newDue };
       });
@@ -418,7 +481,7 @@ export default function ReturnExchange() {
     }
     if (exch) addMove({ sku: newP.sku, place: sel.place, qty: -qtyNew, kind: 'exchange', reason: 'Given in exchange', by: staff, ref: sel.ref });
 
-    const moneyText = (dir === 'in' ? `${money(amt)} collected by ${m}` : dir === 'even' ? 'Even swap, nothing paid'
+    const moneyText = (dir === 'in' ? `${money(r2(amt - dueAdd))} collected · ${payParts.map((p) => `${p.method} ${money(p.amount)}${p.ref ? ' (' + p.ref + ')' : ''}`).join(' + ') || 'nothing yet'}${dueAdd ? ` · ${money(dueAdd)} left as due` : ''}` : dir === 'even' ? 'Even swap, nothing paid'
       : m === 'Cut from due' ? `${money(cut)} taken off the due${rest ? ` · ${money(rest)} given back in cash` : ''}`
         : m === 'Store credit' ? `${money(amt)} kept as store credit` : refund ? `Refund ${refund.id} of ${money(amt)} by ${m} ${refund.stage === 'requested' ? 'waits for approval' : 'is ready to send'}` : `${money(amt)} given back by ${m}`)
       + (posts.length ? ` · ${posts.map((e) => (accountBy(e.account) || {}).name).join(', ')} updated` : '');
@@ -431,7 +494,7 @@ export default function ReturnExchange() {
     toast(`${exch ? 'Exchange' : 'Return'} ${row.id} saved · ${moneyText}.${slip ? ' Return slip sent to the printer.' : ''}`);
   };
 
-  const newReturn = () => { setSaved(null); setSelKey(''); setQ(''); setPicks({}); setApprovedBy(''); setMethod(''); setMode('ret'); setNewSku(''); setNewQty(1); setNq(''); };
+  const newReturn = () => { setSaved(null); setSelKey(''); setQ(''); setPicks({}); setApprovedBy(''); setMethod(''); setParts([]); setPd({ method: 'Cash', amount: '', ref: '' }); setRestDue(false); setRefundTo(''); setMode('ret'); setNewSku(''); setNewQty(1); setNq(''); };
 
   const lock = !!saved;
 
@@ -570,9 +633,42 @@ export default function ReturnExchange() {
                                 <span className="re-sub">{dir === 'in' ? 'Customer pays by:' : 'Refund by:'}</span>
                                 {methods.map((id) => {
                                   const off = id === 'Store credit' && !phone;
-                                  return <button key={id} type="button" className={'re-chip' + (m === id ? ' is-on' : '')} aria-pressed={m === id} disabled={off} title={off ? 'Store credit needs the customer’s mobile number' : undefined} onClick={() => setMethod(id)}>{id === 'Cut from due' ? `Cut from due (${money(due)})` : id}</button>;
+                                  const on = dir === 'in' ? pd.method === id : m === id;
+                                  return <button key={id} type="button" className={'re-chip' + (on ? ' is-on' : '')} aria-pressed={on} disabled={off} title={off ? 'Store credit needs the customer’s mobile number' : undefined} onClick={() => (dir === 'in' ? setPd({ method: id, amount: pd.amount, ref: '' }) : setMethod(id))}>{id === 'Cut from due' ? `Cut from due (${money(due)})` : id}</button>;
                                 })}
                               </div>
+                              {dir === 'in' ? (
+                                <div className="re-pay">
+                                  {parts.length ? (
+                                    <ul className="re-parts" aria-label="Payments added">
+                                      {parts.map((p, i) => (
+                                        <li key={i}>
+                                          <span><b>{p.method}</b>{p.ref ? <span className="re-sub re-mono"> · {p.ref}</span> : null}{p.change ? <span className="re-sub"> · {money(p.received)} received, {money(p.change)} change</span> : null}</span>
+                                          <span className="re-mono">{money(p.amount)}</span>
+                                          <button type="button" className="gc-iconbtn" aria-label={`Remove the ${p.method} payment of ${money(p.amount)}`} onClick={() => setParts(parts.filter((_, j) => j !== i))}><Icon name="x" width="14" height="14" aria-hidden="true" /></button>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : null}
+                                  {remaining > 0 ? (
+                                    <div className="re-paygrid">
+                                      <div><label className="gc-label" htmlFor="re-pay-amt">{pd.method === 'Cash' ? 'Cash received (৳)' : pd.method + ' amount (৳)'}</label><input id="re-pay-amt" className="gc-input" type="number" min="0" step="0.01" inputMode="decimal" placeholder={String(remaining)} value={pd.amount} onChange={(e) => setPd({ ...pd, amount: e.target.value })} /></div>
+                                      {needsRef ? <div><label className="gc-label" htmlFor="re-pay-ref">{REF_LABEL[pd.method]}</label><input id="re-pay-ref" className={'gc-input' + (refProblem ? ' gc-input--error' : '')} value={pd.ref} onChange={(e) => setPd({ ...pd, ref: e.target.value })} placeholder={pd.method === 'Card' ? 'e.g. 004512 or 4421' : 'e.g. 9KX2M7QP1A'} aria-invalid={refProblem ? 'true' : undefined} />{refProblem ? <span className="re-sub" style={{ color: 'var(--text-danger)' }}>{refProblem}</span> : null}</div> : null}
+                                      {applied < remaining && typed > 0 ? <div className="re-paygrid__btn"><button type="button" className="gc-btn gc-btn--neutral" onClick={addPart}><Icon name="plus" width="16" height="16" aria-hidden="true" />Add {money(applied)} · pay the rest another way</button></div> : null}
+                                    </div>
+                                  ) : null}
+                                  <dl className="re-paysum">
+                                    <dt>To pay</dt><dd>{money(amt)}</dd>
+                                    {paidParts ? <><dt>Paid so far</dt><dd>{money(paidParts)}</dd></> : null}
+                                    {remaining > 0 ? <><dt>{pd.method} now</dt><dd>{money(applied)}</dd></> : null}
+                                    {change ? <><dt>Change to give</dt><dd>{money(change)}</dd></> : null}
+                                    <dt className={leftAfter > 0 ? 'is-due' : ''}>Still to pay</dt><dd className={leftAfter > 0 ? 'is-due' : ''}>{money(leftAfter)}</dd>
+                                  </dl>
+                                  {leftAfter > 0 && canDue ? <label className="re-check"><input type="checkbox" className="gc-check" checked={restDue} onChange={(e) => setRestDue(e.target.checked)} /><span>Leave {money(leftAfter)} as due on this sale ({custName})</span></label> : null}
+                                  {leftAfter > 0 && !canDue ? <p className="gc-help" style={{ margin: 0 }}>Take the rest another way: add this payment, then choose the next method.{sel && sel.kind === 'pos' && phone ? ' To leave it as due, turn on selling on due in Customer settings.' : ''}</p> : null}
+                                </div>
+                              ) : null}
+                              {dir === 'out' && (m === 'bKash' || m === 'Nagad') ? <div style={{ maxWidth: 320 }}><label className="gc-label" htmlFor="re-refund-to">Send the refund to ({m} number)</label><input id="re-refund-to" className="gc-input" inputMode="tel" value={refundTo || phone || ''} onChange={(e) => setRefundTo(e.target.value)} placeholder="01XXXXXXXXX" /></div> : null}
                               {m === 'Store credit' ? <p className="gc-help" style={{ margin: 0 }}>{sel && sel.byWallet ? 'The sale was paid from the customer’s wallet, so it goes back to the wallet. ' : ''}{custName} has {money(credits)} store credit now; this adds {money(amt)}.</p> : null}
                               {!phone && dir === 'out' ? <p className="gc-help" style={{ margin: 0 }}>Store credit needs the customer’s mobile number on the sale.</p> : null}
                             </div>

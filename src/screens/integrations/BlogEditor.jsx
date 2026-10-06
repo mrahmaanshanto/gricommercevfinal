@@ -792,7 +792,7 @@ export default function BlogEditor() {
                 <div className="gc-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={seo.score} aria-label="SEO score"><div className="gc-progress__fill" style={{ width: seo.score + '%', background: `var(--${seo.tone === 'success' ? 'success' : seo.tone === 'warning' ? 'warning' : 'error'})` }} /></div>
                 <span className="bl-strong" style={{ fontFamily: 'var(--font-data)' }}>{seo.score}/100 · {seo.label}</span>
               </div>
-              <div><label className="gc-label" htmlFor="bl-kw">Focus keyword</label><input id="bl-kw" className="gc-input" value={post.seo.focusKeyword} placeholder="e.g. sunscreen for oily skin" onChange={(e) => setSeo({ focusKeyword: e.target.value })} /></div>
+              <div><label className="gc-label" htmlFor="bl-kw">Focus keyword</label><input id="bl-kw" className="gc-input" value={post.seo.focusKeyword} placeholder="e.g. best phone under 20000" onChange={(e) => setSeo({ focusKeyword: e.target.value })} /></div>
               <div><label className="gc-label" htmlFor="bl-kws">More keywords</label><ChipsInput id="bl-kws" label="More keywords" value={post.seo.keywords || []} onChange={(keywords) => setSeo({ keywords })} placeholder="Related phrases, Bangla too" suggestions={allKeywords} /></div>
               <div>
                 <label className="gc-label" htmlFor="bl-meta-title">SEO title</label>
@@ -817,7 +817,7 @@ export default function BlogEditor() {
               <div>
                 <span className="gc-label">Google preview</span>
                 <div className="be-serp" aria-label="Google result preview">
-                  <div className="be-serp-site"><span className="be-fav" aria-hidden="true">G</span><div style={{ minWidth: 0 }}><span>GridShop</span><small>https://{SITE} › blog › {post.slug || '…'}</small></div></div>
+                  <div className="be-serp-site"><span className="be-fav" aria-hidden="true">G</span><div style={{ minWidth: 0 }}><span>Dazzle Shop</span><small>https://{SITE} › blog › {post.slug || '…'}</small></div></div>
                   <div className="be-serp-title">{serpTitle}</div>
                   <div className="be-serp-desc">{serpDesc}</div>
                 </div>

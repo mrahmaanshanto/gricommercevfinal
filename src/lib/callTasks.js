@@ -31,7 +31,7 @@ function seed(t) {
   const h = (n) => t - n * 36e5;
   const S = (id, source, reason, name, phone, amount, ref, at, more = {}) => ({ id, source, reason, customer: { name, phone }, amount, ref, at, due: at + 4 * 36e5, priority: 'normal', status: 'open', note: '', attempts: 0, ...more });
   return [
-    S('CT-101', 'Recovery', 'Cart above ৳5,000', 'Tasnim Ahmed', '01716223419', 8450, 'CART-2291', h(1), { priority: 'high', check: { kind: 'cart-ordered', ref: 'CART-2291' }, note: 'Wireless Earbuds Pro, Sunscreen ×2' }),
+    S('CT-101', 'Recovery', 'Cart above ৳5,000', 'Tasnim Ahmed', '01716223419', 8450, 'CART-2291', h(1), { priority: 'high', check: { kind: 'cart-ordered', ref: 'CART-2291' }, note: 'Wireless Earbuds Pro, Anker 20W Charger ×2' }),
     S('CT-102', 'Accounts', 'Payment follow-up', 'Jamal Telecom', '01819447210', 24600, 'INV-0042', h(26), { priority: 'high', due: h(2), check: { kind: 'due-paid', ref: 'INV-0042' }, attempts: 1, note: 'Promised to pay by Friday' }),
     S('CT-103', 'Recovery', 'Cart above ৳5,000', 'Anika Tabassum', '01911874503', 15990, 'CART-2287', h(3), { check: { kind: 'cart-ordered', ref: 'CART-2287' }, note: 'Budget Android Phone' }),
     S('CT-104', 'Orders', 'Confirm delivery address', 'Sadia Afrin', '01966330012', 10140, '#136764', h(5), { check: { kind: 'order-delivered', ref: '#136764' }, note: 'Sylhet · RedX' }),

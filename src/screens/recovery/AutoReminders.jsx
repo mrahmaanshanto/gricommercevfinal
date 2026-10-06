@@ -47,7 +47,7 @@ class Component extends DCLogic {
     var pch = s.pch && P.ch[s.pch] ? s.pch : (chOn[0] || 'sms');
     var master = mkSw(this, 'master', true);
     var pOffer = P.offerId ? offerBy(P.offerId) : null;
-    var fill = function (t, o) { return t.replace(/\{name\}/g, 'Nusrat').replace(/\{link\}/g, 'gridshop.com.bd/c/8K2Q').replace(/\{code\}/g, o ? (o.code || 'CART') + '-7QX2' : ''); };
+    var fill = function (t, o) { return t.replace(/\{name\}/g, 'Nusrat').replace(/\{link\}/g, 'dazzleshop.com.bd/c/8K2Q').replace(/\{code\}/g, o ? (o.code || 'CART') + '-7QX2' : ''); };
     var sentBy = function (n) { var all = [], won = 0; opps.forEach(function (o) { var hit = o.contacts.filter(function (c) { return c.step === n; }); if (hit.length) { all.push(o); if (o.state === 'recovered') won += 1; } }); return { sent: all.length, won: won }; };
     var open = opps.filter(function (o) { return ['waiting', 'contactable'].indexOf(o.state) >= 0; }).length;
     return assign({
@@ -69,7 +69,7 @@ class Component extends DCLogic {
       pv: { n: pv + 1 },
       pvTabs: chOn.map(function (k) { var on = k === pch; return { label: CHN[k][0], on: on, pick: function () { self.setState({ pch: k }); } }; }),
       pvPhone: pch !== 'email', pvEmail: pch === 'email', pvWa: pch === 'wa',
-      pvFrom: pch === 'wa' ? 'GridShop (WhatsApp)' : 'GridShop',
+      pvFrom: pch === 'wa' ? 'Dazzle Shop (WhatsApp)' : 'Dazzle Shop',
       pvText: fill(P.text, pOffer), pvSubject: pOffer ? 'Your cart + an offer inside' : 'You left something behind',
       minCart: stepN(this, 'minCart', 500, 100, 0, 5000), bigCart: stepN(this, 'bigCart', 5000, 1000, 1000, 50000),
       skipRepeat: mkSw(this, 'skipRepeat', true), skipBlocked: mkSw(this, 'skipBlocked', true), backStock: mkSw(this, 'backStock', true),
@@ -229,10 +229,10 @@ export default class AutoRemindersScreen extends Component {
                         ) : null}
                         {v.pvEmail ? (
                           <div className="ar-mail">
-                            <div>From GridShop · <b>{v.pvSubject}</b></div>
+                            <div>From Dazzle Shop · <b>{v.pvSubject}</b></div>
                             <div>
                               <div style={{ fontFamily: 'var(--font-bn)' }}>{v.pvText}</div>
-                              <div className="ar-item"><__Icon name="package" width="16" height="16" aria-hidden="true" /><span>Sunscreen SPF 50 · 50ml · <b>৳1,250</b></span></div>
+                              <div className="ar-item"><__Icon name="package" width="16" height="16" aria-hidden="true" /><span>Anker 20W USB-C Charger · <b>৳1,250</b></span></div>
                               <span className="ar-cta">Finish my order</span>
                             </div>
                           </div>

@@ -10,17 +10,18 @@
 
 import { POS_KEYS, load } from './posStore';
 import { accountForMethod } from './ledger';
+import { wholesaleOn } from './edition';
 
 const KEY = 'gc.returns';
-export const RETURN_CHANNELS = ['Online', 'Retail', 'Wholesale'];
+export const RETURN_CHANNELS = ['Online', 'Retail', 'Wholesale'].filter((c) => c !== 'Wholesale' || wholesaleOn());
 const at = (day, h, m) => new Date(2026, 8, day, h, m).getTime();
 const SEED = [
-  { id: 'RT-0009', at: at(30, 9, 30), channel: 'Online', ref: '#136804', customer: 'Salma Begum', items: 'Denim Jeans · Blue · 32 × 1', type: 'return', amount: 1890, money: 'refunded', method: 'bKash', stock: 'restock', reason: 'Returned without damage', place: 'Central Warehouse', by: 'System' },
-  { id: 'RT-0008', at: at(29, 11, 0), channel: 'Online', ref: '#136799', customer: 'Rafiq Mia', items: 'Hyaluronic Toner 150ml × 1', type: 'return', amount: 990, money: 'refunded', method: 'bKash', stock: 'damaged', reason: 'Returned damaged: bottle leaked', place: 'Central Warehouse', by: 'System' },
+  { id: 'RT-0009', at: at(30, 9, 30), channel: 'Online', ref: '#136804', customer: 'Salma Begum', items: 'Baseus Car Phone Holder × 1', type: 'return', amount: 1890, money: 'refunded', method: 'bKash', stock: 'restock', reason: 'Returned without damage', place: 'Central Warehouse', by: 'System' },
+  { id: 'RT-0008', at: at(29, 11, 0), channel: 'Online', ref: '#136799', customer: 'Rafiq Mia', items: 'Type-C Wired Earphones × 1', type: 'return', amount: 990, money: 'refunded', method: 'bKash', stock: 'damaged', reason: 'Returned damaged: bottle leaked', place: 'Central Warehouse', by: 'System' },
   { id: 'RT-0007', at: at(29, 16, 45), channel: 'Wholesale', ref: 'INV-0230', customer: 'Habib Telecom', items: 'Wireless Earbuds Pro × 1', type: 'exchange', amount: 0, money: 'even', method: '', stock: 'damaged', reason: 'Faulty item', place: 'Dhanmondi branch', by: 'Rafi Ahmed' },
-  { id: 'RT-0006', at: at(28, 13, 10), channel: 'Wholesale', ref: 'INV-0228', customer: 'Bismillah Mobile Corner', items: 'Steel Water Bottle 750ml × 4', type: 'return', amount: 2212, money: 'credited', method: 'Cut from due', stock: 'restock', reason: 'Wrong item given', place: 'Central Warehouse', by: 'Sadia Akter' },
+  { id: 'RT-0006', at: at(28, 13, 10), channel: 'Wholesale', ref: 'INV-0228', customer: 'Bismillah Mobile Corner', items: 'Foldable Phone Stand × 4', type: 'return', amount: 2212, money: 'credited', method: 'Cut from due', stock: 'restock', reason: 'Wrong item given', place: 'Central Warehouse', by: 'Sadia Akter' },
   { id: 'RT-0005', at: at(29, 12, 20), channel: 'Retail', ref: 'Memo #1031', customer: 'Salma Begum', items: 'Cleaning spray 100 ml × 1', type: 'return', amount: 240, money: 'refunded', method: 'Cash', stock: 'damaged', reason: 'Faulty item', place: 'Mirpur branch', by: 'Babu' },
-  { id: 'RT-0004', at: at(29, 10, 5), channel: 'Retail', ref: 'Memo #1024', customer: 'Nasrin Akter', items: 'Polo T-shirt M → L', type: 'exchange', amount: 0, money: 'even', method: '', stock: 'restock', reason: 'Wrong size', place: 'Mirpur branch', by: 'Rina' },
+  { id: 'RT-0004', at: at(29, 10, 5), channel: 'Retail', ref: 'Memo #1024', customer: 'Nasrin Akter', items: 'Case Galaxy A35 → A55', type: 'exchange', amount: 0, money: 'even', method: '', stock: 'restock', reason: 'Wrong size', place: 'Mirpur branch', by: 'Rina' },
 ];
 
 const saved = () => { try { return JSON.parse(window.localStorage.getItem(KEY)) || []; } catch { return []; } };
@@ -50,7 +51,8 @@ export function getReturns() {
       account: accountForMethod(r.method, true) || '',
     })));
   const seed = SEED.map((r) => ({ ...r, account: r.money === 'refunded' ? accountForMethod(r.method, false) || '' : '' }));
-  return [...mine.map((r) => ({ account: '', ledger: [], ...r })), ...pos, ...seed].sort((a, b) => b.at - a.at);
+  // wholesale returns show only while wholesale is on (edition.js; off for now)
+  return [...mine.map((r) => ({ account: '', ledger: [], ...r })), ...pos, ...seed].filter((r) => r.channel !== 'Wholesale' || wholesaleOn()).sort((a, b) => b.at - a.at);
 }
 
 /** Put the money given back on the history rows saved for `ref` since `since` (the newest one carries it).

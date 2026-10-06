@@ -17,12 +17,9 @@
 import { isOnePlace, getStockSetup, DEFAULT_HOME_ID } from './stockSetup';
 export const LOCATIONS = [
   { id: 'cw', name: 'Central Warehouse', type: 'Warehouse', address: 'Plot 12, Tejgaon I/A, Dhaka', code: 'CW', area: 'Tejgaon, Dhaka', phone: '01556-XX7713', manager: 'Tareq Aziz', role: 'Main' },
-  { id: 'ctg', name: 'Chattogram hub', type: 'Warehouse', address: 'Agrabad C/A, Chattogram', code: 'CH', area: 'Agrabad, Chattogram', phone: '01798-XX3301', manager: 'Sabbir Hossain', role: 'Hub' },
   { id: 'rd', name: 'Returns & damaged', type: 'Warehouse', address: 'Central Warehouse, bay 7', noSale: true, code: 'RD', area: 'Tejgaon, Dhaka', manager: 'Tareq Aziz', role: 'Returns', fixed: true },
   { id: 'dh', name: 'Dhanmondi branch', type: 'Branch', address: 'House 42, Road 27, Dhanmondi, Dhaka', code: 'DH-1', area: 'Dhanmondi, Dhaka', phone: '01712-XX4410', manager: 'Rakib Hasan', hours: 'Sat–Thu 10:00 AM – 10:00 PM' },
   { id: 'mp', name: 'Mirpur branch', type: 'Branch', address: 'Plot 8, Section 10, Mirpur, Dhaka', code: 'MP-1', area: 'Mirpur, Dhaka', phone: '01715-XX6630', manager: 'Nabila Rahman', hours: 'Sat–Thu 10:00 AM – 9:00 PM' },
-  { id: 'gl', name: 'Gulshan-1 branch', type: 'Branch', address: 'Road 11, Gulshan-1, Dhaka', code: 'GL-1', area: 'Gulshan, Dhaka', phone: '01713-XX2215', manager: 'Rakib Hasan', hours: 'Sat–Thu 11:00 AM – 9:00 PM' },
-  { id: 'ut', name: 'Uttara branch', type: 'Branch', address: 'Sector 7, Uttara, Dhaka', opening: '1 Nov 2026', code: 'UT-1', area: 'Uttara, Dhaka', hours: 'From 1 Nov 2026', counter: false },
 ];
 export const PLACE_NAMES = LOCATIONS.map((l) => l.name);
 /** Places whose stock can be sold or held for an order (not the damaged bay, not a branch still opening). */
@@ -30,7 +27,8 @@ export const STOCK_PLACES = LOCATIONS.filter((l) => !l.noSale && !l.opening).map
 export const WAREHOUSE_NAMES = LOCATIONS.filter((l) => l.type === 'Warehouse').map((l) => l.name);
 export const BRANCH_NAMES = LOCATIONS.filter((l) => l.type === 'Branch').map((l) => l.name);
 export const DAMAGED_PLACE = 'Returns & damaged';
-const OLD = { 'Dhanmondi branch': 'Dhanmondi branch', 'Mirpur branch': 'Mirpur branch', 'Gulshan-1 branch': 'Gulshan-1 branch' };
+// Dazzle Shop has one warehouse and two branches; rows saved under the places it no longer has count at these
+const OLD = { 'Mirpur branch': 'Mirpur branch', 'Central Warehouse': 'Central Warehouse', 'Uttara branch': 'Dhanmondi branch' };
 /** Older saved rows may still carry an old name (also a name the merchant has since changed). */
 export const placeName = (name) => {
   if (OLD[name] && OLD[name] !== name) return OLD[name];

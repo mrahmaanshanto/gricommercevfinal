@@ -9,12 +9,13 @@
 // Front end only: products are saved through products.js › saveProduct (each one gets a version); the last imports are
 // kept in gc.products.imports.
 
+import { wholesaleOn } from './edition';
 import { allProducts, saveProduct, newProductId, codeOwner } from './products';
 import { gtinOk } from './identifiers';
 import { UNITS } from './units';
 
 const KEY = 'gc.products.imports';
-export const IMPORT_FIELDS = [
+const ALL_FIELDS = [
   { k: 'name', label: 'Title', need: true, alias: ['title', 'name', 'product', 'product name', 'item'] },
   { k: 'sku', label: 'SKU', alias: ['sku', 'code', 'item code', 'product code'] },
   { k: 'barcode', label: 'Barcode', alias: ['barcode', 'ean', 'gtin', 'upc', 'ean-13'] },
@@ -31,6 +32,8 @@ export const IMPORT_FIELDS = [
   { k: 'short', label: 'Short description', alias: ['short description', 'summary'] },
   { k: 'long', label: 'Description', alias: ['description', 'long description', 'body', 'details'] },
 ];
+// wholesale price and minimum order are imported only while wholesale is on (edition.js; off for now)
+export const IMPORT_FIELDS = ALL_FIELDS.filter((f) => !['wholesale', 'moq'].includes(f.k) || wholesaleOn());
 export const STATUS_OK = { active: 'active', draft: 'draft', archived: 'archived', published: 'active', live: 'active', hidden: 'draft' };
 
 /** CSV text → rows of cells. */
@@ -133,7 +136,7 @@ export const recentImports = () => { try { return JSON.parse(window.localStorage
 export function templateCsv() {
   return [
     ['Title', 'SKU', 'Barcode', 'Selling price', 'MRP', 'Cost', 'Wholesale price', 'Minimum order', 'Category', 'Brand', 'Status', 'Tags', 'Unit'],
-    ['Cotton Panjabi · White', 'CL-PNJ-WH', '', '1890', '2200', '1100', '', '', 'Clothing › Men', 'GridShop', 'Active', 'Eid, Cotton', 'Piece'],
+    ['Cotton Panjabi · White', 'CL-PNJ-WH', '', '1890', '2200', '1100', '', '', 'Clothing › Men', 'Dazzle Shop', 'Active', 'Eid, Cotton', 'Piece'],
     ['Basin Mixer Tap', 'HW-MIX-01', '8941600100014', '4500', '5200', '3100', '3900', '6', 'Home', 'RAK', 'Draft', 'Bathroom', 'Piece'],
   ];
 }

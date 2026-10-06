@@ -367,7 +367,7 @@ export function AuthorDialog({ author, onClose, onSaved }) {
           </div>
           <div className="bl-two">
             <div><label className="gc-label" htmlFor="ad-name">Name *</label><input id="ad-name" className={'gc-input' + (err && !f.name.trim() ? ' gc-input--error' : '')} data-autofocus value={f.name} onChange={(e) => set({ name: e.target.value })} aria-required="true" /></div>
-            <div><label className="gc-label" htmlFor="ad-email">Email</label><input id="ad-email" type="email" className="gc-input" value={f.email} onChange={(e) => set({ email: e.target.value })} placeholder="name@gridshop.com.bd" /></div>
+            <div><label className="gc-label" htmlFor="ad-email">Email</label><input id="ad-email" type="email" className="gc-input" value={f.email} onChange={(e) => set({ email: e.target.value })} placeholder="name@dazzleshop.com.bd" /></div>
           </div>
           <div className="bl-two">
             <div><label className="gc-label" htmlFor="ad-phone">Phone</label><input id="ad-phone" type="tel" inputMode="tel" className="gc-input" value={f.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="01XXX-XXXXXX" style={{ fontFamily: 'var(--font-data)' }} /></div>

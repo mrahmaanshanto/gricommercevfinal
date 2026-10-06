@@ -16,12 +16,12 @@ export const needsApproval = (qty) => qty < 0 || Math.abs(qty) > APPROVAL_LIMIT;
 
 const at = (day, h, m) => new Date(2026, 8, day, h, m).getTime();
 const SEED = [
-  { id: 'ADJ-0014', sku: 'SK-SUN-50', place: 'Mirpur branch', qty: -2, reason: 'Damaged', note: 'Tubes split in the carton', by: 'Moumita Das', at: at(30, 11, 40), status: 'waiting' },
-  { id: 'ADJ-0013', sku: 'GR-RICE-5', place: 'Central Warehouse', qty: 24, reason: 'Count correction', note: 'Pallet behind rack B-4 was not in the system', by: 'Karim', at: at(29, 16, 5), status: 'waiting' },
-  { id: 'ADJ-0012', sku: 'EL-EAR-PRO', place: 'Dhanmondi branch', qty: -1, reason: 'Gift/sample', note: 'Demo unit for the counter', by: 'Rafi Ahmed', at: at(28, 12, 30), status: 'approved', decidedBy: 'Rakib Hasan', decidedAt: at(28, 12, 32) },
-  { id: 'ADJ-0011', sku: 'HM-BTL-750', place: 'Mirpur branch', qty: 3, reason: 'Found', note: 'Found in the back store', by: 'Arif Rahman', at: at(26, 10, 15), status: 'approved', decidedBy: 'Auto', decidedAt: at(26, 10, 15) },
-  { id: 'ADJ-0010', sku: 'GR-ATTA-2', place: 'Central Warehouse', qty: -6, reason: 'Expired', note: 'Best before 20 Sep', by: 'Karim', at: at(22, 9, 50), status: 'approved', decidedBy: 'Nabila Rahman', decidedAt: at(22, 14, 0) },
-  { id: 'ADJ-0009', sku: 'CL-TEE-BM', place: 'Dhanmondi branch', qty: -4, reason: 'Lost', note: 'Not found after the weekend sale', by: 'Sadia Akter', at: at(20, 19, 10), status: 'rejected', decidedBy: 'Rakib Hasan', decidedAt: at(21, 10, 0), decisionNote: 'Count the shelf first' },
+  { id: 'ADJ-0014', sku: 'AC-CHG-20', place: 'Mirpur branch', qty: -2, reason: 'Damaged', note: 'Tubes split in the carton', by: 'Moumita Das', at: at(30, 11, 40), status: 'waiting' },
+  { id: 'ADJ-0013', sku: 'AC-CBL-100', place: 'Central Warehouse', qty: 24, reason: 'Count correction', note: 'Pallet behind rack B-4 was not in the system', by: 'Karim', at: at(29, 16, 5), status: 'waiting' },
+  { id: 'ADJ-0012', sku: 'AU-EAR-PRO', place: 'Dhanmondi branch', qty: -1, reason: 'Gift/sample', note: 'Demo unit for the counter', by: 'Rafi Ahmed', at: at(28, 12, 30), status: 'approved', decidedBy: 'Rakib Hasan', decidedAt: at(28, 12, 32) },
+  { id: 'ADJ-0011', sku: 'AC-STD-FLD', place: 'Mirpur branch', qty: 3, reason: 'Found', note: 'Found in the back store', by: 'Arif Rahman', at: at(26, 10, 15), status: 'approved', decidedBy: 'Auto', decidedAt: at(26, 10, 15) },
+  { id: 'ADJ-0010', sku: 'AC-LNS-PR', place: 'Central Warehouse', qty: -6, reason: 'Expired', note: 'Best before 20 Sep', by: 'Karim', at: at(22, 9, 50), status: 'approved', decidedBy: 'Nabila Rahman', decidedAt: at(22, 14, 0) },
+  { id: 'ADJ-0009', sku: 'AC-CSE-A55', place: 'Dhanmondi branch', qty: -4, reason: 'Lost', note: 'Not found after the weekend sale', by: 'Sadia Akter', at: at(20, 19, 10), status: 'rejected', decidedBy: 'Rakib Hasan', decidedAt: at(21, 10, 0), decisionNote: 'Count the shelf first' },
 ];
 
 const read = () => { try { return JSON.parse(window.localStorage.getItem(KEY)) || SEED; } catch { return SEED; } };

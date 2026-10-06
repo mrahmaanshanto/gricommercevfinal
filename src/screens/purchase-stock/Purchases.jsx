@@ -15,6 +15,7 @@ import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, KV } from '
 import { formatBDT, formatDate } from '@/lib/format';
 import { getDb, billLeft, billStatus, BILL_TONE, supplierById, paySupplier, dayStart, daysFrom } from '@/lib/supplierBills';
 import { accountsForMethod, balanceOf, getEntries } from '@/lib/ledger';
+import { ModuleSetup } from '@/components/ModuleSetup';
 
 const TABS = [['all', 'All'], ['open', 'To pay'], ['overdue', 'Overdue'], ['paid', 'Paid']];
 const METHODS = ['Cash', 'bKash', 'Nagad', 'Bank'];
@@ -102,10 +103,11 @@ export default function Purchases() {
             <div className="ix-page">
               <ShopHeader icon="shopping-bag" title="Purchases"
                 about="What you bought and what you still owe."
-                more={[{ label: 'Suppliers & payables', href: '/suppliers' }]}
+                more={[{ label: 'Suppliers & payables', href: '/suppliers' }, { label: 'Return goods', href: '/supplier-return' }]}
                 primary={{ label: 'New purchase', href: '/buy-goods' }} />
 
               {db ? (<>
+                <ModuleSetup area="purchases" />
                 <MetricStrip label="What you owe" items={[
                   { label: 'To pay', value: money(owed.reduce((a, r) => a + r.left, 0)), sub: plural(owed.length, 'bill') },
                   { label: 'Overdue', value: money(late.reduce((a, r) => a + r.left, 0)), sub: plural(late.length, 'bill') },

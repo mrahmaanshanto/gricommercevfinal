@@ -15,7 +15,7 @@ const KEY = 'gc.serials';
 export const SERIAL_STATES = { stock: 'In stock', sold: 'Sold', returned: 'Returned' };
 
 /** Products the catalogue knows as tracked even without a flag (the demo phone of the POS). */
-const TRACKED = { 'EL-PHN-128': 'imei' };
+const TRACKED = { 'PH-RLM-N50': 'imei' };
 
 // ---- IMEI check digit (Luhn) ----------------------------------------------------------------------
 const luhnDigit = (body) => {
@@ -32,19 +32,24 @@ const at = (d, h, m) => new Date(2026, 8, d, h, m).getTime();
 const unit = (serial, sku, product, kind, place, extra = {}) => ({ serial, sku, product, kind, place, state: 'stock', at: at(20, 10, 0), ...extra });
 function seed() {
   const out = [];
-  const PH = 'Budget Android Phone 6/128';
+  const PH = 'Realme Note 50 6/128GB';
   [['Dhanmondi branch', '35867411020', 6], ['Mirpur branch', '35867411030', 3], ['Central Warehouse', '35867411040', 5]].forEach(([place, base, n]) => {
-    for (let i = 1; i <= n; i += 1) out.push(unit(imei(base + String(i).padStart(3, '0')), 'EL-PHN-128', PH, 'imei', place));
+    for (let i = 1; i <= n; i += 1) out.push(unit(imei(base + String(i).padStart(3, '0')), 'PH-RLM-N50', PH, 'imei', place));
   });
   [['PH-5GP-256-BK', 'Phantom Black / 256 GB', '3542871200'], ['PH-5GP-256-SV', 'Silver / 256 GB', '3542871201'], ['PH-5GP-256-BL', 'Ocean Blue / 256 GB', '3542871202'], ['PH-5GP-512-BK', 'Phantom Black / 512 GB', '3542871203']].forEach(([sku, v, base]) => {
     for (let i = 1; i <= 4; i += 1) out.push(unit(imei(base + String(i).padStart(4, '0')), sku, '5G Smartphone Pro 256GB · ' + v, 'imei', 'Central Warehouse'));
   });
   [['Dhanmondi branch', 'SMX-EP-24A0', 5], ['Mirpur branch', 'SMX-EP-24B0', 3], ['Central Warehouse', 'SMX-EP-24C0', 6]].forEach(([place, base, n]) => {
-    for (let i = 1; i <= n; i += 1) out.push(unit(base + String(i).padStart(3, '0'), 'EL-EAR-PRO', 'Wireless Earbuds Pro', 'serial', place));
+    for (let i = 1; i <= n; i += 1) out.push(unit(base + String(i).padStart(3, '0'), 'AU-EAR-PRO', 'Wireless Earbuds Pro', 'serial', place));
   });
   // one phone already sold and one earbuds returned, so the checks have something to find
-  out.push(unit(imei('35867411020900'), 'EL-PHN-128', PH, 'imei', 'Dhanmondi branch', { state: 'sold', saleId: 'ORD-20260928-0014', soldAt: at(28, 15, 12), customer: 'Karim Saheb' }));
-  out.push(unit('SMX-EP-24A0900', 'EL-EAR-PRO', 'Wireless Earbuds Pro', 'serial', 'Dhanmondi branch', { state: 'returned', saleId: 'ORD-20260921-0007', soldAt: at(21, 12, 40), returnedAt: at(24, 11, 5) }));
+  out.push(unit(imei('35867411020900'), 'PH-RLM-N50', PH, 'imei', 'Dhanmondi branch', { state: 'sold', saleId: 'ORD-20260928-0014', soldAt: at(28, 15, 12), customer: 'Karim Saheb' }));
+  // Nusrat Jahan's earlier online orders (orders.js #136410, #136301): the customer portal shows them under warranty
+  out.push(unit(imei('86429105731840'), 'PH-RDM-N13', 'Redmi Note 13 8/256GB', 'imei', 'Central Warehouse', { state: 'sold', saleId: '#136410', soldAt: new Date(2026, 1, 14, 12, 20).getTime(), customer: 'Nusrat Jahan' }));
+  out.push(unit('SMX-EP-23Z0007', 'AU-EAR-PRO', 'Wireless Earbuds Pro', 'serial', 'Central Warehouse', { state: 'sold', saleId: '#136301', soldAt: new Date(2025, 11, 10, 15, 40).getTime(), customer: 'Nusrat Jahan' }));
+  // the demo counter sale #136776 (Orders) sold this phone
+  out.push(unit(imei('35867411020901'), 'PH-RLM-N50', PH, 'imei', 'Dhanmondi branch', { state: 'sold', saleId: '#136776', soldAt: at(7, 16, 3), customer: 'Walk-in customer', by: 'Sadia Akter' }));
+  out.push(unit('SMX-EP-24A0900', 'AU-EAR-PRO', 'Wireless Earbuds Pro', 'serial', 'Dhanmondi branch', { state: 'returned', saleId: 'ORD-20260921-0007', soldAt: at(21, 12, 40), returnedAt: at(24, 11, 5) }));
   return out;
 }
 const SEED = seed();

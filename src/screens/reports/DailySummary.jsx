@@ -15,6 +15,7 @@ import { MetricStrip } from '@/components/ui/IndexKit';
 import { ReportsShell, useDataTick } from '@/components/reports/ReportsShell';
 import { PrintLetterhead, PrintSignOff, LETTERHEAD_CSS, savePdf } from '@/components/reports/PrintLetterhead';
 import { dailySummary } from '@/lib/reports/dailySummary';
+import { hasModule } from '@/lib/edition';
 import { fmt, downloadCsv, csvValue, clockNow, dayKey, fromKey, addDays, startOfDay } from '@/lib/reports/period';
 
 const LIMIT = 5;   // rows a card shows on screen; the rest print (the PDF carries every row) and open from the card's link
@@ -83,6 +84,8 @@ export default function DailySummary() {
   const s = useMemo(() => (day == null || !tick ? null : dailySummary(day)), [day, tick]);
   const today = startOfDay(clockNow());
   const isToday = day === today;
+  // a shop without online selling (Retail) has counter bills only: no online orders card or rows (read after mount, with s)
+  const online = !!s && hasModule('online');
   const range = s ? `&p=custom&from=${dayKey(s.from)}&to=${dayKey(s.from)}` : '';
 
   const csv = () => {
@@ -92,7 +95,7 @@ export default function DailySummary() {
     s.sales.byChannel.forEach((c) => rows.push([c.channel, csvValue(c.revenue, 'money'), csvValue(c.returns, 'money'), c.orders]));
     rows.push(['All channels', csvValue(s.sales.total, 'money'), csvValue(s.sales.returns, 'money'), s.sales.orders], []);
     if (s.sales.byPlace.length) { rows.push(['Sales by branch', 'Sales', 'Bills']); s.sales.byPlace.forEach((p) => rows.push([p.place, csvValue(p.revenue, 'money'), p.bills])); rows.push([]); }
-    rows.push(['Online orders', 'Count'], ['Placed', s.orders.placed], ['Delivered', s.orders.delivered], ['Returned', s.orders.returned], ['Cancelled', s.orders.cancelled], ['Waiting to approve (now)', s.orders.waiting], []);
+    if (online) rows.push(['Online orders', 'Count'], ['Placed', s.orders.placed], ['Delivered', s.orders.delivered], ['Returned', s.orders.returned], ['Cancelled', s.orders.cancelled], ['Waiting to approve (now)', s.orders.waiting], []);
     rows.push(['Money at closing', 'Opening', 'In', 'Out', 'Closing']);
     s.cash.forEach((c) => rows.push([c.label, csvValue(c.opening, 'money'), csvValue(c.in, 'money'), csvValue(c.out, 'money'), csvValue(c.closing, 'money')]));
     rows.push(['Total', '', '', '', csvValue(s.cashTotal, 'money')], []);
@@ -115,7 +118,7 @@ export default function DailySummary() {
       {day != null ? <PrintLetterhead kind="Daily report" title="Daily summary" meta={[['Day', longDay(day)], ['Prepared', fmt(clockNow(), 'datetime')], ['Prepared by', 'Mehedi Rahman · Owner']]} /> : null}
       <div className="ds-day rp-noprint" role="group" aria-label="Day">
         <button type="button" className="ix-btn ix-btn--icon" aria-label="Day before" onClick={() => pick(addDays(day, -1))} disabled={day == null}><Icon name="chevron-left" width="16" height="16" aria-hidden="true" /></button>
-        <input id="ds-date" type="date" className="ix-date" aria-label="Day" value={day == null ? '' : dayKey(day)} max={dayKey(today)} onChange={(e) => { if (e.target.value) pick(fromKey(e.target.value)); }} />
+        <input id="ds-date" type="date" className="ix-date" aria-label="Day" value={day == null ? '' : dayKey(day)} max={day == null ? undefined : dayKey(today)} onChange={(e) => { if (e.target.value) pick(fromKey(e.target.value)); }} />
         <button type="button" className="ix-btn ix-btn--icon" aria-label="Next day" onClick={() => pick(addDays(day, 1))} disabled={day == null || day >= today}><Icon name="chevron-right" width="16" height="16" aria-hidden="true" /></button>
         {day != null && !isToday ? <button type="button" className="ix-btn" onClick={() => pick(today)}>Today</button> : null}
         <span className="ds-when" aria-live="polite">{day != null ? <>{isToday ? `So far today, as of ${fmt(clockNow(), 'datetime').split(', ')[1]}` : 'The whole day'}{s && s.sales.est ? ' · demo September figures' : ''}</> : null}</span>
@@ -125,7 +128,7 @@ export default function DailySummary() {
         <>
           <MetricStrip label="Key figures" items={[
             { label: 'Sales', value: money(s.sales.total), href: '/sales-profit' },
-            { label: 'Online orders placed', value: String(s.orders.placed), href: '/merchant-orders' },
+            online ? { label: 'Online orders placed', value: String(s.orders.placed), href: '/merchant-orders' } : { label: 'Bills', value: String(s.sales.orders), href: '/sales-book' },
             { label: 'Money at closing', value: money(s.cashTotal), href: '/money-book' },
             { label: 'Dues collected', value: money(s.dues.collected), href: '/dues' },
             { label: 'Expenses', value: money(s.expenses.total), href: '/report?id=expenses-by-category' + range },
@@ -139,7 +142,7 @@ export default function DailySummary() {
               </ul>
             </Block>
 
-            <Block title="Online orders" href="/merchant-orders" more="Orders">
+            {online ? <Block title="Online orders" href="/merchant-orders" more="Orders">
               <ul className="ds-list">
                 <Row label="Placed" value={s.orders.placed} />
                 <Row label="Delivered" value={s.orders.delivered} />
@@ -147,7 +150,7 @@ export default function DailySummary() {
                 <Row label="Cancelled" value={s.orders.cancelled} />
                 <Row label="Waiting to approve (now)" value={s.orders.waiting} />
               </ul>
-            </Block>
+            </Block> : null}
 
             <Block title="Sales by branch" href="/sales-book" more="Sales book">
               {s.sales.byPlace.length ? (
@@ -165,7 +168,7 @@ export default function DailySummary() {
               </div>
             </Block>
 
-            <Block title="Payouts" href="/settlements" more="Settlements">
+            <Block title="Payouts" href="/settlements" more="Payouts">
               {s.payouts.arrived.length ? <><p className="ds-sub">Arrived</p><ul className="ds-list">{s.payouts.arrived.map((p, i) => <Row key={p.id} label={p.partner} note={p.short ? `Expected ${money(p.expected)} · needs a look` : ''} value={money(p.amount)} cls={extra(i, p.short ? 'is-warn' : '')} />)}</ul></> : null}
               {s.payouts.late.length ? <><p className="ds-sub">Running late</p><ul className="ds-list">{s.payouts.late.map((p, i) => <Row key={p.id} label={p.partner} note={`Was due ${fmt(p.due, 'date')}`} value={money(p.amount)} cls={extra(i, 'is-warn')} />)}</ul></> : null}
               {s.payouts.dueToday.length ? <><p className="ds-sub">Expected this day</p><ul className="ds-list">{s.payouts.dueToday.map((p, i) => <Row key={p.id} cls={extra(i)} label={p.partner} value={money(p.amount)} />)}</ul></> : null}

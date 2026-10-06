@@ -64,7 +64,10 @@ export function defineGcSidebar() {
 .gc-sub .gc-navitem--active .gc-navitem__count{background:var(--surface-card,#fff);color:var(--primary,#003087)}
 .gc-sidebar--collapsed .gc-sidebar__body{padding-left:8px;padding-right:8px;scrollbar-width:none}
 .gc-sidebar--collapsed .gc-sidebar__body::-webkit-scrollbar{display:none}
-.gc-sidebar--collapsed .gc-navitem{justify-content:center;gap:0;padding:0;min-height:40px}
+.gc-sidebar--collapsed .gc-navitem{flex-direction:column;justify-content:center;gap:2px;padding:4px 0;min-height:52px}
+/* the rail keeps a short name under each icon, so a new cashier doesn't have to guess (UX fix S3-B) */
+.gc-navitem__mini{max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;line-height:11px;font-weight:500;color:var(--text-muted,#64748b)}
+.gc-navitem--active .gc-navitem__mini,.gc-navitem--open .gc-navitem__mini{color:var(--text-heading,#0f172a)}
 .gc-sidebar--collapsed .gc-navitem--active{background:none}
 .gc-sidebar--collapsed .gc-navitem__label,.gc-sidebar--collapsed .gc-navitem__chev,.gc-sidebar--collapsed .gc-navitem__count{display:none}
 :host([theme="dark"]) .gc-sidebar{background:#222e45;border-color:#384766}
@@ -366,13 +369,13 @@ nav{display:block}
       const label = L(it.label) + (it.suffix ? ' ' + L(it.suffix) : '');
       const state = it.locked ? L('Upgrade') : it.setup ? L('Set up') : '';
       const inner = `<span class="gc-navitem__icon" aria-hidden="true">${glyph(it.icon, 17)}</span>`
-        + (collapsed ? '' : `<span class="gc-navitem__label">${esc(label)}</span>`)
+        + (collapsed ? `<span class="gc-navitem__mini" aria-hidden="true">${esc(label)}</span>` : `<span class="gc-navitem__label">${esc(label)}</span>`)
         + (it.locked ? `<span class="gc-navitem__up">${esc(state)}</span>` : it.setup ? `<span class="gc-navitem__setup">${esc(state)}</span>` : '')
         + (!collapsed && countOf(it) != null && !state ? `<span class="gc-navitem__count${it.live ? ' gc-navitem__count--live' : ''}">${countOf(it)}</span>` : '')
         + (!collapsed && it.children && !single && !state ? `<span class="gc-navitem__chev" aria-hidden="true">${glyph('chevron-right', 15)}</span>` : '')
         + (collapsed && it.setup ? '<span class="gc-navitem__dot" aria-hidden="true"></span>' : '')
         + (collapsed && !it.setup && it.live && countOf(it) ? '<span class="gc-navitem__dot gc-navitem__dot--live" aria-hidden="true"></span>' : '');
-      const name = collapsed ? ` aria-label="${esc(label + (state ? ' · ' + state : ''))}"` : state ? ` aria-label="${esc(label + ', ' + state)}"` : '';
+      const name = collapsed ? ` title="${esc(label)}" aria-label="${esc(label + (state ? ' · ' + state : ''))}"` : state ? ` aria-label="${esc(label + ', ' + state)}"` : '';
       // an area opens the page last used in it (lib/navProfile.js), else its first page; a locked area opens Upgrade
       const pagesOf = it.children ? it.children.filter((c) => !c.hidden && c.to && !c.locked) : [];
       const last = it.children ? lastTabOf(currentUser().id, it.id) : '';

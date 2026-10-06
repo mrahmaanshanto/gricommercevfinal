@@ -197,7 +197,7 @@ export default class MPurchaseScreen extends Component {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "10px", marginTop: "6px" }}>
                 <div style={{ minWidth: "0" }}>
-                  <div className="ell" style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>Dhaka Denim Works</div>
+                  <div className="ell" style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>Dhaka Mobile Accessories</div>
                   <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Arrived today</div>
                 </div>
                 <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", flex: "none" }}>৳3,12,000</div>

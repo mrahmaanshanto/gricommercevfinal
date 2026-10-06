@@ -150,7 +150,7 @@ export default class MScanScreen extends Component {
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ok)" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M20 6 9 17l-5-5" />
 </svg>Found</div>
-                <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Denim Jeans · Blue · 32</div>
+                <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Baseus Car Phone Holder</div>
                 <div className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>8941200200214</div>
               </div>
             </div>

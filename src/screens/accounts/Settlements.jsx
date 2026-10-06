@@ -12,6 +12,7 @@
 // Front end only: rules and items live in src/lib/settlements.js.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { EmptyState, InfoTip, StatusBadge } from '@/components/ui';
 import { MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
@@ -22,6 +23,10 @@ const TABS = [['coming', 'Coming in'], ['review', 'Needs a look'], ['paid', 'Pai
 const ABOUT = 'Money that payment gateways, the card machine and couriers collected for you and pay out later. See what arrives when, and tick it off when it lands.';
 const REASON = { fee: 'Higher fee', charge: 'Extra charge', later: 'Rest later' };
 const CSS = `
+.st-kind{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.st-kind button{height:var(--control-height,32px);padding:0 14px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
+.st-kind button[aria-pressed="true"]{background:var(--text-heading);border-color:var(--text-heading);color:var(--surface-card)}
+.st-kind__link{margin-left:auto;font-size:var(--text-sm)}
 .st-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums}
 .st-out{color:var(--text-danger)}
 .st-in{color:var(--text-success)}
@@ -39,14 +44,21 @@ export default function Settlements() {
   const tick = useBooks();
   const [now, setNow] = useState(0);
   const [tab, setTab] = useState('coming');
+  const [kind, setKind] = useState('Courier');   // Courier COD | Gateway payouts (when the shop has both)
   const [open, setOpen] = useState(null);      // { pay, mode }
   const [wallet, setWallet] = useState(null);
 
-  const data = useMemo(() => {
+  const all = useMemo(() => {
     if (!tick) return { pays: [], wallets: [], partners: [] };
     const t = clockNow();
     return { pays: getPayouts(t), wallets: getWallets(), partners: getPartners(), t };
   }, [tick]);
+  // couriers' COD apart from gateway payouts: COD is where money goes missing. Retail has no couriers, so no switch.
+  const kinds = ['Courier', 'Gateway'].filter((k) => all.partners.some((p) => p.kind === k));
+  const split = kinds.length > 1;
+  const shownKind = split ? kind : kinds[0] || '';
+  const ofKind = (p) => !split || (p && p.kind === shownKind);
+  const data = { ...all, pays: all.pays.filter((x) => ofKind(x.p)), wallets: all.wallets.filter((w) => ofKind(w.p)), partners: all.partners.filter(ofKind) };
   useEffect(() => { if (data.t) setNow(data.t); }, [data.t]);
 
   // ?payout=<id>, ?withdraw=<partner> and ?tab=, once the books are read
@@ -286,6 +298,12 @@ export default function Settlements() {
         { label: 'Waiting to withdraw', value: money(walletNet), sub: wallets.map((w) => w.p.short).join(', ') || 'Nothing waiting' },
       ]} />
 
+      {split ? (
+        <div className="st-kind" role="group" aria-label="Payout type">
+          {[['Courier', 'Courier COD'], ['Gateway', 'Gateway payouts']].map(([k, label]) => <button key={k} type="button" aria-pressed={shownKind === k} onClick={() => setKind(k)}>{label}</button>)}
+          {shownKind === 'Courier' ? <Link href="/courier-statement" className="st-kind__link">Check each parcel in Courier statement</Link> : null}
+        </div>
+      ) : null}
       <section className="ix-card" aria-label="Payouts">
         <div className="ix-bar">
           <IndexTabs tabs={tabs} label="Payouts" />

@@ -36,13 +36,13 @@ export const unitOf = (key) => {
 // Packs of stock-catalogue items that have no product record of their own (stock.js CATALOG). A product's own
 // packs (product.packs) always win.
 export const DEMO_PACKS = {
-  'GR-RICE-5': [{ id: 'bale10', name: 'Bale of 10', qty: 10, barcode: '18941100100018' }],
-  'GR-SOY-2': [{ id: 'ctn12', name: 'Carton of 12', qty: 12, barcode: '18941100100032' }],
-  'GR-ATTA-2': [{ id: 'bag20', name: 'Sack of 20', qty: 20, barcode: '18941100100056' }],
-  'SK-SUN-50': [{ id: 'box12', name: 'Box of 12', qty: 12, barcode: '18941300300021' }, { id: 'ctn48', name: 'Carton of 48', qty: 48, barcode: '28941300300028' }],
-  'SK-SHA-340': [{ id: 'ctn24', name: 'Carton of 24', qty: 24, barcode: '18941300300014' }],
-  'HM-BTL-750': [{ id: 'ctn24', name: 'Carton of 24', qty: 24, barcode: '18941500500016' }],
-  'EL-EAR-PRO': [{ id: 'ctn20', name: 'Carton of 20', qty: 20, barcode: '18941400400022' }],
+  'AC-CBL-100': [{ id: 'bale10', name: 'Bale of 10', qty: 10, barcode: '18941100100018' }],
+  'AC-GLS-9H': [{ id: 'ctn12', name: 'Carton of 12', qty: 12, barcode: '18941100100032' }],
+  'AC-LNS-PR': [{ id: 'bag20', name: 'Sack of 20', qty: 20, barcode: '18941100100056' }],
+  'AC-CHG-20': [{ id: 'box12', name: 'Box of 12', qty: 12, barcode: '18941300300021' }, { id: 'ctn48', name: 'Carton of 48', qty: 48, barcode: '28941300300028' }],
+  'AC-CBL-LTG': [{ id: 'ctn24', name: 'Carton of 24', qty: 24, barcode: '18941300300014' }],
+  'AC-STD-FLD': [{ id: 'ctn24', name: 'Carton of 24', qty: 24, barcode: '18941500500016' }],
+  'AU-EAR-PRO': [{ id: 'ctn20', name: 'Carton of 20', qty: 20, barcode: '18941400400022' }],
 };
 
 const clean = (list) => (Array.isArray(list) ? list : []).filter((x) => x && x.name && Number(x.qty) > 0).map((x, i) => ({ id: x.id || 'pk' + (i + 1), name: String(x.name), qty: Number(x.qty), barcode: x.barcode ? String(x.barcode) : '' }));

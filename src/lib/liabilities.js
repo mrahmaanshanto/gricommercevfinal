@@ -41,17 +41,17 @@ export const LIAB_SEED = [
     line('Sadia Akter', '0.5% of ৳1,48,200 wholesale invoices', 741, 'bkash', { channel: 'Wholesale' }),
   ], { at: at(9, 30, 18) }),
   L('LB-0003', 'affiliate', 'Affiliate payouts · September', '3 affiliates', '2026-09', at(10, 5), [
-    line('Nabila Style (Instagram)', '42 orders · 8% commission', 8450, 'bkash'),
+    line('Nabila Tech Reviews (Instagram)', '42 orders · 8% commission', 8450, 'bkash'),
     line('TechReview BD (YouTube)', '31 orders · 6% commission', 12300, 'brac'),
     line('Deal Hunters BD (Facebook group)', '18 orders · 5% commission', 3960, 'bkash'),
   ], { channel: 'Online', at: at(9, 30, 18) }),
   L('LB-0004', 'promotion', 'Facebook boost · September', 'Clickbox Digital (agency)', '2026-09', at(10, 7), [line('Clickbox Digital', 'Ad management + boost top-ups', 22000, 'citybank')], { channel: 'Online', at: at(9, 28, 15) }),
-  L('LB-0005', 'promotion', 'Influencer shoot · Eid collection', 'Nabila Style', '2026-09', at(10, 3), [line('Nabila Style', '2 reels + 4 stories', 15000, 'bkash', { paid: 5000 })], { channel: 'Online', at: at(9, 18, 12) }),
+  L('LB-0005', 'promotion', 'Unboxing video · Eid phones', 'Nabila Tech Reviews', '2026-09', at(10, 3), [line('Nabila Tech Reviews', '2 reels + 4 stories', 15000, 'bkash', { paid: 5000 })], { channel: 'Online', at: at(9, 18, 12) }),
   L('LB-0006', 'promotion', 'Printed leaflets', 'Dhaka Print House', '2026-09', at(9, 25), [line('Dhaka Print House', '10,000 leaflets for the shops', 6800, 'cash-shop')], { channel: 'Retail', at: at(9, 15, 12) }),
   L('LB-0007', 'promotion', 'Stall at Bashundhara fair', 'Bashundhara City', '2026-10', at(10, 10), [line('Bashundhara City', 'Stall rent · 3 days', 18000, 'brac')], { channel: 'Retail', at: at(10, 1, 11) }),
 ];
 // the part of the influencer fee paid in advance
-LIAB_SEED[4].payments = [{ at: at(9, 18, 14), amount: 5000, account: 'bkash', by: 'Rumana Islam', lines: ['Nabila Style'] }];
+LIAB_SEED[4].payments = [{ at: at(9, 18, 14), amount: 5000, account: 'bkash', by: 'Rumana Islam', lines: ['Nabila Tech Reviews'] }];
 
 const read = () => { try { return JSON.parse(window.localStorage.getItem(KEY)); } catch { return null; } };
 const write = (list) => { try { window.localStorage.setItem(KEY, JSON.stringify(list)); window.dispatchEvent(new CustomEvent('gc:ledger')); } catch { /* ignore */ } };

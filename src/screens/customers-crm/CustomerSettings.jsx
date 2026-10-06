@@ -21,7 +21,8 @@ import { getRetention, saveRetention, applyRetention, RETENTION_CHOICES } from '
 import { snapshotCount } from '@/lib/customerSignals';
 import { pendingRemovals } from '@/lib/audiences';
 import { ROLES, currentUser } from '@/lib/team';
-import { FORM_CSS } from '@/screens/loyalty-promo/loyShared';
+import { FORM_CSS, Switch } from '@/screens/loyalty-promo/loyShared';
+import { getCreditRules, saveCreditRules, DEFAULT_CREDIT_RULES } from '@/lib/creditRules';
 import { SegmentBuilder, CRM_PARTS_CSS } from './crmParts';
 
 const CSS = `
@@ -54,6 +55,8 @@ export default function CustomerSettingsScreen() {
   const segs = ready ? getSegments() : [];
   const roles = ready ? getDeviceRoles() : ['ceo', 'cto'];
   const ret = ready ? getRetention() : { signalsDays: 90, recoveryDays: 180 };
+  const credit = ready ? getCreditRules() : DEFAULT_CREDIT_RULES;
+  const setCredit = (patch, msg) => { saveCreditRules(patch); bump(); toast(msg || 'Saved.'); };
   const me = (currentUser() || {}).name || 'Staff';
 
   const saveField = () => {
@@ -82,7 +85,23 @@ export default function CustomerSettingsScreen() {
           <div className="gc-shell__content">
             <div className="ix-page ix-page--narrow">
               <RecordHeader back="/all-customers" backLabel="All customers" title="Customer settings"
-                about="Your own customer fields, saved segments, who can see IP addresses and devices, and how long insight data is kept." />
+                about="Selling on due (credit limit and days to pay), your own customer fields, saved segments, who can see IP addresses and devices, and how long insight data is kept." />
+
+              <section className="ix-card cs-card" id="credit" aria-labelledby="cs-credit">
+                <header className="ix-card__head"><h2 id="cs-credit">Credit & dues</h2></header>
+                <div className="ix-card__body">
+                  <div className="ly-set"><div><b>Let retail customers buy on due</b><small>The POS “Due” button leaves the rest unpaid as an invoice</small></div><Switch label="Let retail customers buy on due" on={credit.allowRetailDue} onToggle={() => setCredit({ allowRetailDue: !credit.allowRetailDue }, credit.allowRetailDue ? 'Selling on due is off. Every retail sale is paid in full.' : 'Selling on due is on.')} /></div>
+                  {credit.allowRetailDue ? (<>
+                    <div className="ly-two">
+                      <div className="ly-field"><label className="gc-label" htmlFor="cs-limit">Default credit limit (৳)</label><input id="cs-limit" className="gc-input" type="number" min="0" step="500" inputMode="numeric" defaultValue={credit.defaultLimit} key={'l' + ver} onBlur={(e) => { if (Number(e.target.value) !== credit.defaultLimit) setCredit({ defaultLimit: e.target.value }); }} /><small className="ly-help">For customers without their own limit. 0 = no limit.</small></div>
+                      <div className="ly-field"><label className="gc-label" htmlFor="cs-days">Days to pay</label><input id="cs-days" className="gc-input" type="number" min="1" max="180" inputMode="numeric" defaultValue={credit.dueDays} key={'d' + ver} onBlur={(e) => { if (Number(e.target.value) !== credit.dueDays) setCredit({ dueDays: e.target.value }); }} /><small className="ly-help">After this the invoice is overdue.</small></div>
+                    </div>
+                    <div className="ly-set"><div><b>Need the customer’s mobile number</b><small>So the due can be followed up</small></div><Switch label="Need the customer’s mobile number" on={credit.needPhone} onToggle={() => setCredit({ needPhone: !credit.needPhone })} /></div>
+                    <div className="ly-set"><div><b>Over the limit, a manager approves</b><small>{credit.managerAboveLimit ? 'With their PIN at the counter' : 'Off: a sale over the limit is refused'}</small></div><Switch label="Over the limit, a manager approves" on={credit.managerAboveLimit} onToggle={() => setCredit({ managerAboveLimit: !credit.managerAboveLimit })} /></div>
+                    <p className="ly-help set-help--keep">A sale on due becomes an unpaid invoice. Staff accept it, then record the payment (Customers › a customer › Invoices).</p>
+                  </>) : <p className="ly-help">Off: every retail sale is paid in full at the counter.</p>}
+                </div>
+              </section>
 
               <section className="ix-card cs-card" aria-labelledby="cs-fields">
                 <header className="ix-card__head"><h2 id="cs-fields">Custom fields</h2><button type="button" className="ix-btn ix-btn--sm ix-btn--plain" aria-haspopup="dialog" onClick={() => { setFd({ ...BLANK }); setErr(''); }}>Add field</button></header>

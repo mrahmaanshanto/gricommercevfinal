@@ -19,7 +19,7 @@ export const TARGET_IP = '76.76.21.21';
 export const TARGET_HOST = 'shops.gridcommerce.com.bd';
 const MIN = 60 * 1000;
 
-const SEED = { sub: 'gridshop', list: [] };
+const SEED = { sub: 'dazzleshop', list: [] };
 const ssr = () => typeof window === 'undefined';
 function load() { if (ssr()) return SEED; try { return { ...SEED, ...(JSON.parse(window.localStorage.getItem(KEY)) || {}) }; } catch { return SEED; } }
 function save(st) { try { window.localStorage.setItem(KEY, JSON.stringify(st)); window.dispatchEvent(new CustomEvent(DOMAINS_EVENT)); } catch { /* ignore */ } }
@@ -63,7 +63,7 @@ export function getDomains(now = Date.now()) {
 /** Add a custom domain. → '' or why it can't be added. */
 export function addDomain(input) {
   const host = String(input || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '');
-  if (!/^([a-z0-9-]+\.)+[a-z]{2,}$/.test(host)) return 'Enter a domain like gridshop.com.bd.';
+  if (!/^([a-z0-9-]+\.)+[a-z]{2,}$/.test(host)) return 'Enter a domain like dazzleshop.com.bd.';
   if (host.endsWith('.' + SUBDOMAIN_BASE)) return 'That is a GridCommerce address. Change it above.';
   const st = load();
   if (st.list.some((d) => d.host === host)) return 'This domain is already added.';

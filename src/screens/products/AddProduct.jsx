@@ -157,29 +157,32 @@ var AI_TXT = {
   short: '6.7-inch AMOLED, 5000 mAh battery and a 50 MP camera — with 1 year official Samsung warranty in Bangladesh.',
   long: '<p>Meet the 5G Smartphone Pro — a big, bright 6.7-inch AMOLED screen that stays sharp in the sun, and a 5000 mAh battery that lasts a full day and more.</p><h3>What you get</h3><ul><li>256 GB or 512 GB storage, 8 GB RAM</li><li>50 MP main camera with night mode</li><li>Fast 45 W charging</li><li>Dual SIM, 5G ready for Grameenphone and Robi</li></ul><p>Every phone is official, PTA approved and comes with a 1-year brand warranty. The IMEI is printed on your invoice.</p>',
   bangla: '<p>বাংলায়: ৬.৭ ইঞ্চি AMOLED স্ক্রিন, ৫০০০ mAh ব্যাটারি ও ৫০ MP ক্যামেরা। অফিসিয়াল ১ বছরের ওয়ারেন্টি।</p>',
-  seoT: '5G Smartphone Pro 256GB Price in Bangladesh | GridShop',
+  seoT: '5G Smartphone Pro 256GB Price in Bangladesh | Dazzle Shop',
   seoD: 'Buy the 5G Smartphone Pro 256GB at the best price in BD. Official warranty, 6.7" AMOLED, 5000 mAh. Cash on delivery all over Bangladesh.'
 };
 var FAQ_AI = [['Is this the official version?', 'Yes. Every phone is official and PTA approved, with a 1-year brand warranty.'], ['Does it support 5G in Bangladesh?', 'Yes, it works on 5G where Grameenphone and Robi have it, and on 4G everywhere else.'], ['Can I pay by EMI?', 'Yes, 3 to 12 months EMI on most bank cards.']];
 // the shop's categories (Products › Categories): main categories and their subcategories
-var CATS = [['Skin care', 0], ['Sunscreen', 1], ['Toner', 1], ['Gel', 1], ['Clothing', 0], ['Men', 1], ['Women', 1], ['Electronics', 0], ['Phones', 1], ['Laptops', 1], ['Audio', 1], ['Grocery', 0], ['Rice', 1], ['Fresh', 1], ['Home', 0], ['Books', 0], ['Software', 0], ['Digital', 0], ['Gifts', 0]];
-var PARENT = { Sunscreen: 'Skin care', Toner: 'Skin care', Gel: 'Skin care', Men: 'Clothing', Women: 'Clothing', Phones: 'Electronics', Laptops: 'Electronics', Audio: 'Electronics', Rice: 'Grocery', Fresh: 'Grocery' };
+var CATS = [['Phones', 0], ['Smartphones', 1], ['Feature phones', 1], ['Tablets', 0], ['Accessories', 0], ['Cases & covers', 1], ['Chargers & cables', 1], ['Screen protection', 1], ['Holders & stands', 1], ['Batteries', 1], ['Audio', 0], ['Earbuds', 1], ['Earphones', 1], ['Wearables', 0], ['Power banks', 0], ['Services', 0], ['Repairs', 1], ['Software', 0], ['Digital', 0], ['Gifts', 0]];
+var PARENT = { Smartphones: 'Phones', 'Feature phones': 'Phones', 'Cases & covers': 'Accessories', 'Chargers & cables': 'Accessories', 'Screen protection': 'Accessories', 'Holders & stands': 'Accessories', Batteries: 'Accessories', Earbuds: 'Audio', Earphones: 'Audio', Repairs: 'Services' };
 var MAIN_CATS = CATS.filter(function (c) { return !c[1]; }).map(function (c) { return c[0]; });
 // the brand list is Products › Brands (lib/brands.js): the demo brands until the browser's list is read after mount
 var BRANDS = DEMO_BRANDS.map(function (b) { return b.name; });
 var COLLECTIONS = ['New arrivals', 'Best sellers', 'Eid picks', 'Smartphones', 'Gift ideas', 'Clearance'];
 // Google product category, mapped from our category (Product data › Google product data: "Auto mapping")
-var GOOGLE_CAT = { Electronics: 'Electronics', Phones: 'Electronics > Communications > Telephony > Mobile Phones', Laptops: 'Electronics > Computers > Laptops', Audio: 'Electronics > Audio',
-  'Skin care': 'Health & Beauty > Personal Care > Cosmetics > Skin Care', Clothing: 'Apparel & Accessories > Clothing', Men: 'Apparel & Accessories > Clothing', Women: 'Apparel & Accessories > Clothing',
-  Grocery: 'Food, Beverages & Tobacco > Food Items', Rice: 'Food, Beverages & Tobacco > Food Items > Grains, Rice & Cereal', Fresh: 'Food, Beverages & Tobacco > Food Items > Meat, Seafood & Eggs',
-  Home: 'Home & Garden', Books: 'Media > Books', Software: 'Software', Digital: 'Media', Gifts: 'Arts & Entertainment > Party & Celebration > Gift Giving' };
+var GOOGLE_CAT = { Phones: 'Electronics > Communications > Telephony > Mobile Phones', Smartphones: 'Electronics > Communications > Telephony > Mobile Phones', 'Feature phones': 'Electronics > Communications > Telephony > Mobile Phones',
+  Tablets: 'Electronics > Computers > Tablet Computers', Accessories: 'Electronics > Communications > Telephony > Mobile Phone Accessories', 'Cases & covers': 'Electronics > Communications > Telephony > Mobile Phone Accessories > Mobile Phone Cases',
+  'Chargers & cables': 'Electronics > Electronics Accessories > Power > Power Adapters & Chargers', 'Screen protection': 'Electronics > Electronics Accessories > Screen Protectors', 'Holders & stands': 'Electronics > Communications > Telephony > Mobile Phone Accessories > Mobile Phone Stands',
+  Batteries: 'Electronics > Electronics Accessories > Power > Batteries', Audio: 'Electronics > Audio', Earbuds: 'Electronics > Audio > Audio Components > Headphones & Headsets', Earphones: 'Electronics > Audio > Audio Components > Headphones & Headsets',
+  Wearables: 'Electronics > Electronics Accessories > Wearable Technology', 'Power banks': 'Electronics > Electronics Accessories > Power > Power Banks', Services: 'Business & Industrial', Repairs: 'Business & Industrial', Software: 'Software', Digital: 'Media', Gifts: 'Arts & Entertainment > Party & Celebration > Gift Giving' };
 var WP = { brand1y: [['Period', '12 months'], ['Proof needed', 'Invoice + IMEI'], ['Claim at', 'Service centre, Mirpur 10']], shop6m: [['Period', '6 months'], ['Type', 'Shop service'], ['Claim at', 'Your shop']], rep7d: [['Period', '7 days'], ['Type', 'Replacement'], ['Claim at', 'Your shop']], elec2y: [['Period', '2 years'], ['Type', 'Parts + service'], ['Claim at', 'Brand centre']] };
 var WP_LINE = { brand1y: '12 months brand warranty', shop6m: '6 months shop service', rep7d: '7-day replacement', elec2y: '2 years parts, 1 year service' };
 var WPS = { brand1y: 'Delivery date', shop6m: 'Delivery date', rep7d: 'Delivery date', elec2y: 'Invoice date' };
 var WPT = { brand1y: '12 months brand warranty. Covers manufacturing defects, battery below 80% health, and motherboard or display faults. Not covered: physical or liquid damage, phones opened by a third party, software issues after rooting. Repair first; replaced if it cannot be repaired within 15 days.', shop6m: 'We repair or replace parts at no cost for 6 months.', rep7d: 'Swap for a new piece within 7 days if faulty.', elec2y: 'Parts are free for 2 years; service is free for the first year.' };
-var SG = { shirt: [['Size', 'Chest (in)', 'Length (in)', 'Shoulder (in)', 'Sleeve (in)'], [['S', '38', '27', '17', '8'], ['M', '40', '28', '18', '8.5'], ['L', '42', '29', '19', '9'], ['XL', '44', '30', '20', '9.5']]], kurti: [['Size', 'Bust (in)', 'Length (in)', 'Waist (in)', 'Hip (in)'], [['S', '34', '42', '30', '38'], ['M', '36', '43', '32', '40'], ['L', '38', '44', '34', '42'], ['XL', '40', '45', '36', '44']]], shoe: [['BD', 'EU', 'UK', 'Foot length (cm)', 'Width'], [['39', '39', '6', '24.5', 'Regular'], ['40', '40', '6.5', '25.1', 'Regular'], ['41', '41', '7.5', '25.8', 'Regular'], ['42', '42', '8', '26.4', 'Wide']]] };
+var SG = { case: [['Case size', 'Fits', 'Height (mm)', 'Width (mm)', 'Camera cut-out'], [['S', 'iPhone 15', '147.6', '71.6', 'Square'], ['M', 'Galaxy A55, A35', '161.1', '77.4', 'Triple'], ['L', 'Redmi Note 13, Galaxy A15', '163.3', '78.2', 'Triple'], ['XL', 'iPhone 15 Pro Max', '159.9', '76.7', 'Square']]], strap: [['Strap', 'Wrist (mm)', 'Width (mm)', 'Fits'], [['S', '130–180', '18', 'Smart Band 8'], ['M', '150–200', '20', 'Galaxy Watch FE'], ['L', '170–220', '22', 'Smart Watch S2']]] };
 var AIF = [['short', 'Short description'], ['long', 'Long description'], ['seo', 'SEO title and description'], ['tags', 'Tags'], ['faq', 'FAQ'], ['alt', 'Photo alt text']];
 var ALT_VIEWS = ['front view', 'back view', 'side view', 'in the box', 'in hand'];
+// Product relationships (accessories, substitutes, successor, components, bundles): kept in the code, not shown on the form
+var SHOW_RELATIONS = false;
 var PUB_CHANNELS = [['online', 'Online store'], ['pos', 'POS'], ['meta', 'Meta'], ['gmc', 'Google'], ['wholesale', 'Wholesale']];
 
 class Component extends DCLogic {
@@ -261,6 +264,8 @@ class Component extends DCLogic {
   renderVals() {
     var self = this, s = this.state || {};
     var live = !!s.savedList;   // browser data is read after mount (the first render matches the server's)
+    // Retail (no online selling): no long description, shipping, search listing, publishing or Google readiness
+    var online = !live || hasModule('online') || hasModule('channels');
     var ai = s.ai || {}, prev = s.prev || {};
     var f = function (k, d) { return s[k] != null ? s[k] : d; };
     var editing = !!s.editId, orig = s.orig || null;
@@ -456,7 +461,7 @@ class Component extends DCLogic {
     var setSell = function (k) { var e = {}; Object.keys(errs).forEach(function (x) { if (!/^(wholesale|moq|vw\d+|vm\d+|price)$/.test(x)) e[x] = errs[x]; }); self.setState({ sell: k, errors: Object.keys(e).length ? e : null }); };
     assign(v, {
       price: String(price).replace(/^৳/, ''), typePrice: function (e) { self.setState({ price: e.target.value }); }, cost: String(cost).replace(/^৳/, ''), typeCost: function (e) { self.setState({ cost: e.target.value }); },
-      mrp: String(mrp).replace(/^৳/, ''), typeMrp: function (e) { self.setState({ mrp: e.target.value }); }, priceReq: sell !== 'wholesale', wsOn: wsOn, costReq: !wsOn,
+      mrp: String(mrp).replace(/^৳/, ''), typeMrp: function (e) { self.setState({ mrp: e.target.value }); }, priceReq: sell !== 'wholesale', wsOn: wsOn, online: online, costReq: !wsOn,
       margin: pr ? Math.round(prof / pr * 100) + '% est. margin' : '0% est. margin', marginBad: pr > 0 && prof < 0,
       profit: pr && co ? bdt(prof) : '—', saves: mr > pr && pr > 0 ? bdt(mr - pr) + ' (' + Math.round((mr - pr) / mr * 100) + '%)' : '—',
       lastBuy: lastBuy ? bdt(lastBuy.cost) : '—', lastBuyRef: lastBuy ? lastBuy.ref : '', invCost: invCost ? bdt(invCost) : '—',
@@ -1343,7 +1348,7 @@ export default class AddProductScreen extends Component {
                           <p className="ap-help">Concise copy for product cards, feeds and quick previews.</p>
                           {v.ai?.short ? <AiCheck onKeep={v.keep_short} onUndo={v.undo_short} /> : null}
                         </div>
-                        <div className="ap-field">
+                        {v.online ? <div className="ap-field">
                           <div className="ap-lbl">
                             <span className="gc-label" id="ap-l-long">Long description</span>
                             <span className="ap-push" />
@@ -1353,7 +1358,7 @@ export default class AddProductScreen extends Component {
                           </div>
                           <RichText id="pf-long" value={v.long} onChange={v.typeLong} labelledBy="ap-l-long" aiOn={v.ai?.long} onError={v.rteError} />
                           {v.ai?.long ? <AiCheck onKeep={v.keep_long} onUndo={v.undo_long} /> : null}
-                        </div>
+                        </div> : null}
                       </div>
                     </section>
 
@@ -1672,15 +1677,15 @@ export default class AddProductScreen extends Component {
                       <button type="button" className="ix-btn" onClick={v.open('ids')}>Manage</button>
                     </section>
 
-                    <section className="ix-card ap-one" aria-labelledby="ap-h-ship">
+                    {v.online ? <section className="ix-card ap-one" aria-labelledby="ap-h-ship">
                       <div>
                         <h2 id="ap-h-ship">Shipping & fulfilment</h2>
                         <p className="ix-card__sub">{v.shipLine}</p>
                       </div>
                       <button type="button" className="ix-btn" onClick={v.open('ship')}>Edit</button>
-                    </section>
+                    </section> : null}
 
-                    <section className="ix-card" aria-labelledby="ap-h-seo">
+                    {v.online ? <section className="ix-card" aria-labelledby="ap-h-seo">
                       <div className="ix-card__head ap-head">
                         <div><h2 id="ap-h-seo">Search engine listing</h2><p className="ix-card__sub">Website SEO is separate from Product Data and Google listing data.</p></div>
                         <button type="button" className="ix-btn" aria-expanded={v.seoOpen} onClick={v.toggleSeo}>{v.seoOpen ? 'Hide advanced' : 'Edit SEO'}</button>
@@ -1688,7 +1693,7 @@ export default class AddProductScreen extends Component {
                       <div className="ix-card__body ap-body">
                         <div className="ap-serp">
                           <b>{v.serpTitle}</b>
-                          <small>{'gridshop.com.bd/products/' + v.handle}</small>
+                          <small>{'dazzleshop.com.bd/products/' + v.handle}</small>
                           <span>{v.serpDesc}</span>
                         </div>
                         {v.seoOpen ? (
@@ -1726,9 +1731,9 @@ export default class AddProductScreen extends Component {
                           </div>
                         ) : null}
                       </div>
-                    </section>
+                    </section> : null}
 
-                    <section className="ix-card ap-one" aria-labelledby="ap-h-rel">
+                    {SHOW_RELATIONS ? <section className="ix-card ap-one" aria-labelledby="ap-h-rel">
                       <div>
                         <h2 id="ap-h-rel">Product relationships</h2>
                         <p className="ix-card__sub">Compatible accessories · substitutes · successor/predecessor · components · frequently bought together.</p>
@@ -1736,7 +1741,7 @@ export default class AddProductScreen extends Component {
                         {v.bundleErr ? <p className="ap-one__err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" />{v.bundleErr}</p> : null}
                       </div>
                       <button type="button" className="ix-btn" onClick={v.open('rel')}>Manage</button>
-                    </section>
+                    </section> : null}
 
                     {/* ---- the save bar, while there is something to save or fix ---- */}
                     {v.dirty || v.hasErr ? (
@@ -1765,7 +1770,7 @@ export default class AddProductScreen extends Component {
                       </div>
                     </section>
 
-                    <section className="ix-card" aria-labelledby="ap-h-pub">
+                    {v.online ? <section className="ix-card" aria-labelledby="ap-h-pub">
                       <div className="ix-card__head ap-head">
                         <div><h2 id="ap-h-pub">Publishing</h2><p className="ix-card__sub">Channels and catalogues</p></div>
                         <button type="button" className="ap-linkbtn" onClick={v.open('pub')}>Manage</button>
@@ -1773,7 +1778,7 @@ export default class AddProductScreen extends Component {
                       <div className="ix-card__body">
                         {v.pubPills.length ? <div className="ap-chips">{v.pubPills.map((p) => <span key={p} className="ap-chip">{p}</span>)}</div> : <p className="ap-help">Not published yet</p>}
                       </div>
-                    </section>
+                    </section> : null}
 
                     <section className="ix-card" aria-labelledby="ap-h-org">
                       <div className="ix-card__head"><h2 id="ap-h-org">Organization</h2></div>
@@ -1815,7 +1820,7 @@ export default class AddProductScreen extends Component {
                       </div>
                     </section>
 
-                    <section className="ix-card" aria-labelledby="ap-h-gready">
+                    {v.online ? <section className="ix-card" aria-labelledby="ap-h-gready">
                       <div className="ix-card__head">
                         <h2 id="ap-h-gready">Google listing readiness</h2>
                         <button type="button" className="ap-linkbtn" onClick={v.open('data')}>Edit</button>
@@ -1827,7 +1832,7 @@ export default class AddProductScreen extends Component {
                           ))}
                         </div>
                       </div>
-                    </section>
+                    </section> : null}
 
                     <section className="ix-card" aria-labelledby="ap-h-war">
                       <div className="ix-card__head ap-head">
@@ -2271,9 +2276,8 @@ export default class AddProductScreen extends Component {
             <h3 className="ap-dh">Size guide<span className="ap-push" /><__Link href="/catalog-setup" className="ap-src">Make a size chart</__Link></h3>
             <select className="gc-input gc-select" value={v.sg} onChange={v.setSg} aria-label="Size guide">
               <option value="none">No size guide</option>
-              <option value="shirt">Men’s shirts and polos</option>
-              <option value="kurti">Women’s kurti</option>
-              <option value="shoe">Shoes (BD / EU / UK)</option>
+              <option value="case">Case sizes by model</option>
+              <option value="strap">Watch and band straps</option>
             </select>
             {v.hasSg ? (
               <div className="ap-twrap">

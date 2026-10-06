@@ -23,7 +23,7 @@ function saveUsage(u) { try { window.localStorage.setItem(KEY, JSON.stringify(u)
 
 const ANSWERS = [
   [/sale|sold|revenue|বিক্রি/i, 'Sales today are ৳1,42,330 from 77 orders, up 11% on yesterday. Online brought 38 orders and the shops 39.'],
-  [/stock|inventory|low|স্টক/i, '7 products are low on stock. The most urgent is Sunscreen SPF 50 with 4 left at the Dhanmondi branch.'],
+  [/stock|inventory|low|স্টক/i, '7 products are low on stock. The most urgent is the Anker 20W USB-C Charger with 4 left at the Dhanmondi branch.'],
   [/order|pending|অর্ডার/i, '128 orders are pending and 42 of them have waited more than 6 hours. Want me to open the pending list?'],
   [/customer|গ্রাহক/i, 'You have 2,452 customers. 14 signed up today and 312 are repeat buyers.'],
   [/courier|deliver|ডেলিভারি/i, 'Delivery success is 87.4% this month. Steadfast has 23 parcels waiting for tracking numbers.'],

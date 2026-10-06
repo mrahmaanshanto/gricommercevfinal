@@ -195,7 +195,7 @@ export function EveningCheck() {
                 </div>
               ))}
             </div>
-            <p className="gc-help" style={{ margin: 0 }}>Change the check time in <Link href="/account-setup?tab=check" onClick={() => setOpen(false)}>Accounts setup</Link>. All payouts are on the <Link href="/settlements" onClick={() => setOpen(false)}>Settlements</Link> page.</p>
+            <p className="gc-help" style={{ margin: 0 }}>Change the check time in <Link href="/account-setup?tab=check" onClick={() => setOpen(false)}>Accounts setup</Link>. All payouts are on the <Link href="/settlements" onClick={() => setOpen(false)}>Payouts</Link> page.</p>
           </div>
         </Dialog>
       ) : null}

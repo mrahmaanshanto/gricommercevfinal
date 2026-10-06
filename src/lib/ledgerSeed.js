@@ -12,7 +12,7 @@ const E = (d, h, account, amount, kind, party, note = '', extra = {}) => ({ id: 
 
 const rows = [];
 for (let d = 1; d <= 30; d++) {
-  const cash = rnd(16000, 31000), bk = rnd(3500, 9000), ng = rnd(800, 3200);
+  const cash = rnd(42000, 96000), bk = rnd(12000, 34000), ng = rnd(3000, 11000);
   rows.push(E(d, 21, 'drawer', cash, 'sale', 'Counter sales', 'Cash · Dhanmondi and Mirpur counters', { ref: 'Z-' + String(d).padStart(2, '0') + '09' }));
   rows.push(E(d, 21, 'bkash', bk, 'sale', 'Counter sales', 'bKash · counters', { ref: 'Z-' + String(d).padStart(2, '0') + '09' }));
   rows.push(E(d, 21, 'nagad', ng, 'sale', 'Counter sales', 'Nagad · counters', { ref: 'Z-' + String(d).padStart(2, '0') + '09' }));
@@ -22,7 +22,7 @@ for (let d = 1; d <= 30; d++) {
 }
 // the safe goes to the bank every Sunday and Wednesday
 [2, 6, 9, 13, 16, 20, 23, 27, 30].forEach((d) => {
-  const amt = d === 2 ? 60000 : 95000;
+  const amt = d === 2 ? 180000 : 260000;
   rows.push(E(d, 11, 'safe', -amt, 'transfer', 'BRAC Bank current', 'Cash deposit'));
   rows.push(E(d, 11, 'brac', amt, 'transfer', 'Shop safe', 'Cash deposit'));
 });
@@ -32,21 +32,21 @@ rows.push(
   E(4, 12, 'cash-shop', -3250, 'expense', 'Pathao Parcel', 'Van hire for stock move', { cat: 'Transport' }),
   E(7, 16, 'citybank', -15000, 'expense', 'Meta Platforms', 'Facebook ads', { cat: 'Marketing' }),
   E(10, 11, 'bkash', -8420, 'expense', 'DESCO', 'Electricity · August', { cat: 'Utilities' }),
-  E(12, 13, 'cash-shop', -6350, 'expense', 'Dhaka Packaging', 'Poly mailers and boxes', { cat: 'Packaging' }),
+  E(12, 13, 'cash-shop', -6350, 'expense', 'Dhaka Packaging', 'Phone boxes and carry bags', { cat: 'Packaging' }),
   E(14, 18, 'cash-shop', -1800, 'expense', 'Tea and snacks', 'Staff tea', { cat: 'Office' }),
   E(18, 14, 'citybank', -12000, 'expense', 'Meta Platforms', 'Facebook ads', { cat: 'Marketing' }),
-  E(21, 12, 'cash-shop', -4200, 'expense', 'Rafiq Electric', 'AC repair · Dhanmondi', { cat: 'Repairs' }),
+  E(21, 12, 'cash-shop', -4200, 'expense', 'Rafiq Electric', 'Display light repair · Dhanmondi', { cat: 'Repairs' }),
   E(24, 17, 'cash-shop', -2600, 'expense', 'Pathao Parcel', 'Van hire', { cat: 'Transport' }),
-  E(8, 12, 'brac', -85000, 'supplier payment', 'Karim Traders', 'PAY-0141', { ref: 'BILL-0917' }),
-  E(15, 12, 'citybank', -42500, 'supplier payment', 'Sunrise Distributors', 'PAY-0144', { ref: 'BILL-0921' }),
-  E(26, 12, 'brac', -28000, 'supplier payment', 'Bengal Packaging', 'PAY-0149', { ref: 'BILL-0930' }),
+  E(8, 12, 'brac', -385000, 'supplier payment', 'Rahman Telecom', 'PAY-0141', { ref: 'BILL-0917' }),
+  E(15, 12, 'citybank', -142500, 'supplier payment', 'Techland Imports', 'PAY-0144', { ref: 'BILL-0921' }),
+  E(26, 12, 'brac', -28000, 'supplier payment', 'PackRight Supplies', 'PAY-0149', { ref: 'BILL-0930' }),
   E(20, 19, 'brac', -30000, 'owner withdraw', 'Mehedi Rahman', 'Owner draw'),
   // August salaries were paid on 1 Sep (a liability of August); September's are owed, paid on 1 Oct (liabilities.js)
   E(1, 11, 'brac', -294180, 'salary', 'Staff salaries', 'August salaries · 13 staff', { cat: 'Salary', liab: 'LB-AUG' }),
-  E(18, 14, 'bkash', -5000, 'promotion', 'Nabila Style', 'Influencer shoot · Eid collection · advance', { cat: 'Promotion', liab: 'LB-0005', ref: 'LB-0005' }),
+  E(18, 14, 'bkash', -5000, 'promotion', 'Nabila Tech Reviews', 'Unboxing video · Eid phones · advance', { cat: 'Promotion', liab: 'LB-0005', ref: 'LB-0005' }),
   // money that is not from sales
-  E(11, 13, 'brac', 12500, 'income', 'Sunrise Distributors', 'Target bonus · August', { cat: 'Bonus from suppliers' }),
-  E(19, 17, 'cash-shop', 1850, 'income', 'Kabari shop', 'Old cartons and packing', { cat: 'Scrap and carton sale' }),
+  E(11, 13, 'brac', 32500, 'income', 'Techland Imports', 'Target bonus · August', { cat: 'Bonus from suppliers' }),
+  E(19, 17, 'cash-shop', 1850, 'income', 'Kabari shop', 'Old phone boxes and cartons', { cat: 'Scrap and carton sale' }),
   E(25, 10, 'dbbl', 1573, 'income', 'Dutch-Bangla Bank', 'Savings interest · Q3', { cat: 'Bank interest' }),
   E(30, 16, 'brac', 4442.35, 'settlement', 'bKash Payment Gateway', 'From bKash', { ref: 'bkash-pgw:2026-09-30' }),
   E(30, 17, 'citybank', 3108.38, 'settlement', 'Steadfast Courier', 'From Steadfast', { ref: 'steadfast:2026-09-30' }),

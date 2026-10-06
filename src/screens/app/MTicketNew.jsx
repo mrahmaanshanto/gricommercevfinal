@@ -186,7 +186,7 @@ export default class MTicketNewScreen extends Component {
             </div>
             <div className="field">
               <span className="lab">Details</span>
-              <div className="inp" style={{ height: "76px", alignItems: "flex-start", paddingTop: "12px", fontSize: "var(--text-sm-plus)", lineHeight: "21px" }}>Wants one more Sunscreen SPF 50 added before dispatch.</div>
+              <div className="inp" style={{ height: "76px", alignItems: "flex-start", paddingTop: "12px", fontSize: "var(--text-sm-plus)", lineHeight: "21px" }}>Wants one more Anker 20W charger added before dispatch.</div>
             </div>
             <div className="field">
               <span className="lab">Priority</span>

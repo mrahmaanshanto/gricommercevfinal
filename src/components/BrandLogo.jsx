@@ -49,6 +49,8 @@ export const BRANDS = {
   backup: { name: 'Backup', icon: 'database-backup', bg: 'var(--surface-subtle)', fg: 'var(--text-body)' },
   attendance: { name: 'Attendance machine', icon: 'fingerprint', bg: 'var(--fill-success-soft)', fg: 'var(--text-success)' },
   printer: { name: 'Printer', icon: 'printer', bg: 'var(--surface-subtle)', fg: 'var(--text-body)' },
+  zoom: { name: 'Zoom', icon: 'video', bg: '#0b5cff', fg: '#fff' },
+  'google-meet': { name: 'Google Meet', icon: 'video', bg: '#00897b', fg: '#fff' },
 };
 
 export function BrandLogo({ brand, size = 36, variant = 'tile', decorative = false, style }) {

@@ -190,7 +190,7 @@ function partnerFeesOf(from, to) {
 
 // ---- VAT ----------------------------------------------------------------------------------------
 // the categories and starting rates of the VAT page (Accounts › VAT); the merchant's own rates win
-const VAT_CATS = [['rice', 'Cables & chargers', 0], ['oil', 'Cases & covers', 5], ['soap', 'Screen care', 7.5], ['snack', 'Audio', 5], ['drink', 'Power banks', 5], ['cloth', 'Clothing', 7.5], ['elec', 'Electronics', 15]];
+const VAT_CATS = [['rice', 'Cables & chargers', 0], ['oil', 'Cases & covers', 5], ['soap', 'Screen care', 7.5], ['snack', 'Audio', 5], ['drink', 'Power banks', 5], ['cloth', 'Wearables', 7.5], ['elec', 'Phones', 15]];
 function vatOf(salesIn) {
   const vat = loadVat();
   const cats = VAT_CATS.map(([key, label, def]) => ({ key, label, rate: Number(vat.rates && vat.rates[key] != null ? vat.rates[key] : def) || 0 }));

@@ -27,7 +27,7 @@ const RTO_RATE = { 'Inside Dhaka': 0.05, 'Sub-Dhaka': 0.08, 'Outside Dhaka': 0.1
 const RTO_REASONS = ['Customer refused the parcel', 'Customer not reachable', 'Wrong address', 'Customer cancelled at the door', 'Parcel damaged in transit'];
 // when people order (hour → weight): quiet at night, a lunch bump, busiest after dinner
 const HOURS = { 0: 2, 1: 1, 7: 1, 8: 2, 9: 3, 10: 4, 11: 5, 12: 5, 13: 6, 14: 5, 15: 4, 16: 4, 17: 4, 18: 5, 19: 6, 20: 8, 21: 9, 22: 8, 23: 5 };
-const CAT_WEIGHT = { 'Skin care': 3, Clothing: 3, Electronics: 1.6, Home: 1.2, Grocery: 1 };
+const CAT_WEIGHT = { Accessories: 3, Audio: 3, Phones: 2, Wearables: 1.2, 'Power banks': 1.2 };
 
 function seeded(n) {
   let a = n >>> 0;
@@ -128,7 +128,7 @@ function daysUpTo(now) {
 function asAt(o, now) {
   const t = {};
   Object.keys(o.plan).forEach((k) => { t[k] = o.plan[k] != null && o.plan[k] <= now ? o.plan[k] : null; });
-  const status = t.cancelled ? 'Cancelled' : t.returned ? 'Returned' : t.delivered ? 'Delivered' : t.shipped ? 'In transit' : t.ready ? 'Ready for courier' : t.approved ? 'Approved' : 'New';
+  const status = t.cancelled ? 'Cancelled' : t.returned ? 'Returned' : t.delivered ? 'Delivered' : t.shipped ? 'Sent to courier' : t.ready ? 'Ready for courier' : t.approved ? 'Approved' : 'New';
   const { plan, rtoReason, courier, consignment, advance, ...rest } = o;
   const out = { ...rest, status, times: t, courier: t.shipped ? courier : 'Not assigned', consignment: t.shipped ? consignment : '—' };
   if (status === 'Returned') out.rtoReason = rtoReason;
@@ -137,7 +137,7 @@ function asAt(o, now) {
   else if (o.payment === 'COD') out.codAmount = o.total;
   // packing: the slip is printed an hour after approval; packed and attached when it is ready for the courier
   if (t.approved && !t.cancelled) out.prep = { courier, addressOk: true, amountsOk: true, slipPrinted: !!t.ready || now - t.approved > HOUR, packed: !!t.ready, slipAttached: !!t.ready };
-  if (t.shipped) Object.assign(out, { trackingUrl: 'https://gridshop.com.bd/track/' + consignment, sentAt: t.shipped });
+  if (t.shipped) Object.assign(out, { trackingUrl: 'https://dazzleshop.com.bd/track/' + consignment, sentAt: t.shipped });
   return out;
 }
 

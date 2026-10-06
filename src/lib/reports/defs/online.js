@@ -108,7 +108,7 @@ const orderFunnel = {
     const count = (step) => list.filter((o) => reached(o, step)).length;
     const value = (step) => sum(list.filter((o) => reached(o, step)), (o) => o.amount);
     const placed = list.length;
-    const LABEL = { placed: 'Placed', approved: 'Approved', shipped: 'In transit', delivered: 'Delivered', returned: 'Returned by the courier', cancelled: 'Cancelled' };
+    const LABEL = { placed: 'Placed', approved: 'Approved', shipped: 'Sent to courier', delivered: 'Delivered', returned: 'Returned by the courier', cancelled: 'Cancelled' };
     const rows = steps.map((s, i) => ({
       step: LABEL[s], orders: count(s), value: value(s), ofPlaced: rate(count(s), placed),
       ofBefore: i ? rate(count(s), count(steps[i - 1])) : null, hours: i ? hoursBetween(steps[i - 1], s) : null, _order: i,

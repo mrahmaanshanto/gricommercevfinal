@@ -181,7 +181,7 @@ export default class MPurchaseNewScreen extends Component {
               <div className="card" style={{ boxShadow: "none", border: "1px solid var(--line)" }}>
                 <div className="lrow">
                   <span style={{ flex: "1", minWidth: "0" }}>
-                    <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Sunscreen SPF 50 · 50ml</span>
+                    <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Anker 20W USB-C Charger</span>
                     <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>4 in stock · sells 3 a day</span>
                     <span className="num" style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--ink)", marginTop: "2px" }}>৳936 each</span>
                   </span>
@@ -201,7 +201,7 @@ export default class MPurchaseNewScreen extends Component {
                 </div>
                 <div className="lrow">
                   <span style={{ flex: "1", minWidth: "0" }}>
-                    <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Vitamin C Serum 30ml</span>
+                    <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Galaxy A35 Clear Case</span>
                     <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Out of stock · sells 2 a day</span>
                     <span className="num" style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--ink)", marginTop: "2px" }}>৳1,120 each</span>
                   </span>

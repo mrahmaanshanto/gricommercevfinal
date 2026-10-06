@@ -1,5 +1,5 @@
 'use client';
-// Blog posts — every post on the storefront blog (gridshop.com.bd/blog), laid out like Shopify's Blog posts list:
+// Blog posts — every post on the storefront blog (dazzleshop.com.bd/blog), laid out like Shopify's Blog posts list:
 //   Header     New post; Categories, Authors and WordPress sync under More actions
 //   Figures    views this month and the next scheduled post
 //   The list   status views with counts, sort, table or cards, search with category and author filters; tick posts

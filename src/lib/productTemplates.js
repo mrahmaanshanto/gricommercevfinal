@@ -190,20 +190,19 @@ export const CAP_LABEL = { imei: 'IMEI', serial: 'Serial number', warranty: 'War
 
 // Category defaults (Categories › a category › Template): demo values for the shop's own categories.
 const CAT_SEED = {
-  Electronics: { template: 'consumer', values: { warrantyM: '12' } },
-  'Electronics › Phones': { template: 'mobile', values: { network: '5G', warrantyM: '12', sim: 'Dual SIM' } },
-  'Electronics › Laptops': { template: 'computer', values: { warrantyM: '24' } },
-  'Electronics › Audio': { template: 'gadgets', values: { warrantyM: '6', warrantyType: 'Shop' } },
-  'Skin care': { template: 'beauty', values: { origin: 'South Korea' } },
-  'Skin care › Sunscreen': { template: 'beauty', values: { concern: 'Sun protection' } },
-  Clothing: { template: 'fashion', values: { origin: 'Bangladesh' } },
-  Grocery: { template: 'grocery', values: { origin: 'Bangladesh' } },
-  'Grocery › Fresh': { template: 'fresh', values: { keepCold: 'Yes' } },
-  Home: { template: 'home', values: {} },
+  Phones: { template: 'mobile', values: { warrantyM: '12' } },
+  'Phones › Smartphones': { template: 'mobile', values: { network: '5G', warrantyM: '12', sim: 'Dual SIM' } },
+  'Phones › Feature phones': { template: 'mobile', values: { network: '2G', warrantyM: '6', sim: 'Dual SIM' } },
+  Tablets: { template: 'mobile', values: { warrantyM: '12' } },
+  Accessories: { template: 'gadgets', values: { warrantyM: '6', warrantyType: 'Shop' } },
+  'Accessories › Chargers & cables': { template: 'gadgets', values: { warrantyM: '6', warrantyType: 'Shop' } },
+  Audio: { template: 'gadgets', values: { warrantyM: '6', warrantyType: 'Shop' } },
+  Wearables: { template: 'gadgets', values: { warrantyM: '12' } },
+  'Power banks': { template: 'gadgets', values: { warrantyM: '6' } },
   Software: { template: 'licence', values: {} },
   Digital: { template: 'digital', values: {} },
-  Books: { template: 'books', values: { language: 'Bangla' } },
   Gifts: { template: 'general', values: {} },
+  'Services › Repairs': { template: 'general', values: {} },
 };
 
 const ssr = () => typeof window === 'undefined';

@@ -250,7 +250,7 @@ export default class SupplierDetailScreen extends Component {
                     meta={t.hsub}
                     about={t.ledgerNote}
                     secondary={[{ label: t.print, icon: 'printer', onClick: v.print }]}
-                    more={[{ label: 'New purchase order', href: '/new-po' }, { label: 'Return goods', href: '/supplier-return' }]}
+                    more={[{ label: 'New purchase order', href: '/new-po' }, { label: 'Return goods', href: '/supplier-return?supplier=' + encodeURIComponent(t.name || '') }]}
                     primary={{ label: t.pay, icon: 'hand-coins', onClick: v.openPay }} />
 
                   <MetricStrip label="Supplier totals" items={[

@@ -12,7 +12,10 @@
 // midnight (22:00 – 06:00) could not be set. Now the mode decides; office hours are one input, they may run over
 // midnight, and they follow the shop's work days (Bangladesh: Friday off by default).
 //
-//   getAiSettings() / saveAiSettings(s)   { mode, hours: { from, to, days }, intents, escalateAfter }
+//   getAiSettings() / saveAiSettings(s)   { mode, hours: { from, to, days }, intents, escalateAfter, channels }
+//   controlFor({ channel, conv }) → { mode: 'auto' | 'assist' | 'off', from: 'conversation' | 'channel' | 'shop' }
+//     Auto / Assist / Off is what people pick (Grid AI › Behaviour per channel, the conversation header per chat);
+//     the shop default is `mode` (Assist = suggest, Auto = auto-hours or auto).
 //   inOfficeHours(at, s)                  true / false
 //   aiAction({ at, intent, aiTurns }) → { act: 'off' | 'suggest' | 'auto' | 'person', reason }
 // Front end only: kept in this browser.
@@ -33,10 +36,10 @@ export const AI_INTENTS = [
   ['payment', 'How to pay'], ['return', 'Return rules'], ['complaint', 'Complaints'], ['refund', 'Refunds'],
 ];
 const DAYS = [0, 1, 2, 3, 4, 6];   // Sunday–Thursday and Saturday; Friday off
-export const DEFAULT_AI = { mode: 'suggest', hours: { from: '10:00', to: '20:00', days: DAYS }, intents: ['price', 'stock', 'delivery', 'order-status', 'payment'], escalateAfter: 2 };
+export const DEFAULT_AI = { mode: 'suggest', hours: { from: '10:00', to: '20:00', days: DAYS }, intents: ['price', 'stock', 'delivery', 'order-status', 'payment'], escalateAfter: 2, channels: {} };
 export function getAiSettings() {
   if (!isBrowser) return DEFAULT_AI;
-  try { const s = JSON.parse(window.localStorage.getItem(KEY)) || {}; return { ...DEFAULT_AI, ...s, hours: { ...DEFAULT_AI.hours, ...(s.hours || {}) } }; } catch { return DEFAULT_AI; }
+  try { const s = JSON.parse(window.localStorage.getItem(KEY)) || {}; return { ...DEFAULT_AI, ...s, hours: { ...DEFAULT_AI.hours, ...(s.hours || {}) }, channels: { ...(s.channels || {}) } }; } catch { return DEFAULT_AI; }
 }
 export function saveAiSettings(s) { try { window.localStorage.setItem(KEY, JSON.stringify(s)); window.dispatchEvent(new CustomEvent(AI_EVENT)); } catch { /* ignore */ } }
 
@@ -64,3 +67,20 @@ export function aiAction({ at = isBrowser ? clockNow() : Date.now(), intent = ''
   return { act: 'auto', reason: s.mode === 'auto' ? 'Auto always' : 'Office hours' };
 }
 export const AI_ACT_WORD = { off: 'AI off', suggest: 'AI suggests', auto: 'AI replies', person: 'Needs a person' };
+
+// ---- Auto / Assist / Off ---------------------------------------------------------------------------------------
+export const AI_CONTROLS = [
+  ['auto', 'Auto', 'The AI replies by itself (simple questions; the rest go to a person).'],
+  ['assist', 'Assist', 'The AI writes a reply. A person sends it.'],
+  ['off', 'Off', 'The AI stays out of it.'],
+];
+export const AI_CONTROL_WORD = { auto: 'Auto', assist: 'Assist', off: 'Off' };
+/** The shop default as Auto / Assist / Off. */
+export const shopControl = (s = getAiSettings()) => (s.mode === 'off' ? 'off' : s.mode === 'suggest' ? 'assist' : 'auto');
+/** The control for a conversation: its own choice, else its channel's, else the shop's. */
+export function controlFor({ channel, conv } = {}, s = getAiSettings()) {
+  if (conv && conv.aiMode) return { mode: conv.aiMode, from: 'conversation' };
+  const ch = (s.channels || {})[channel || (conv && conv.ch)];
+  if (ch) return { mode: ch, from: 'channel' };
+  return { mode: shopControl(s), from: 'shop' };
+}

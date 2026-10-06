@@ -20,6 +20,9 @@ import { RESTRICTION_TYPES } from '@/lib/restrictions';
 import { startJob, consentSummary } from '@/lib/bulkJobs';
 import { applyRetention } from '@/lib/crmPrivacy';
 import { currentUser } from '@/lib/team';
+import { wholesaleOn } from '@/lib/edition';
+// wholesale customers, price lists and the Wholesale view show only while wholesale is on (edition.js; off for now)
+var WS = wholesaleOn();
 import CustomerEditDialog from './CustomerEditDialog';
 import { SegmentBuilder, JobsCard, CRM_PARTS_CSS } from './crmParts';
 import __Link from 'next/link';
@@ -29,6 +32,7 @@ import { Dialog as __Dialog, EmptyState as __EmptyState, StatusBadge as __Status
 import { ShopHeader, IndexTabs, SearchField, Pager, LearnMore, Menu } from '@/components/ui/IndexKit';
 import { toast as uiToast } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
+import { ModuleSetup } from '@/components/ModuleSetup';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -40,6 +44,7 @@ var VIEWS = [
   { k: 'pts', label: 'Points expiring', n: 64 }, { k: 'bday', label: 'Birthday this month', n: 97 }, { k: 'codBlock', label: 'COD blocked', n: 3 }, { k: 'restricted', label: 'Restrictions', n: 0 }, { k: 'suspended', label: 'Suspended', n: 6 },
   { k: 'cleanup', label: 'Needs cleanup', n: 0 }, { k: 'dupes', label: 'Possible duplicates', n: 0 }
 ];
+VIEWS = VIEWS.filter(function (v) { return v.k !== 'wholesale' || WS; });
 // Columns of the list, in order. The main ones always show (Shopify's Customers list: customer, status, location,
 // orders, amount spent, and what they still owe); the extra ones are picked in Columns.
 var COLS = [
@@ -51,14 +56,14 @@ var COLS = [
 var STONE = { 'Active': 'success', 'Suspended': 'error', 'Closed': 'neutral' };
 var LTONE = { Member: 'neutral', Silver: 'neutral', Gold: 'warning', Platinum: 'primary' };
 // Views shown as tabs, in priority order; the rest are in "More views" (the one picked from there shows as a tab).
-var PRIMARY = ['all', 'wholesale', 'company', 'signToday', 'orderToday', 'week', 'repeat', 'big'];
+var PRIMARY = ['all', 'wholesale', 'company', 'signToday', 'orderToday', 'week', 'repeat', 'big'].filter(function (k) { return k !== 'wholesale' || WS; });
 var CITIES = ['Dhaka', 'Chattogram', 'Sylhet', 'Khulna', 'Rajshahi', 'Outside Dhaka'];
 var NO_PILLS = { fCity: '', fStatus: '', fLevel: '', fSrc: '', fRestr: '', fKind: '', fConsent: '', fSeg: '' };
 var PILL_KEYS = Object.keys(NO_PILLS);
 var TODAY = '19 Sep 2026'; // "today" in the demo data
 var EMPTY_FORM = { kind: 'person', name: '', phone: '', area: '', types: ['Online'], tier: 'A', credit: '', email: '', bin: '', terms: 'Net 30' };
-var CUST_TYPES = ['Online', 'Retail', 'Wholesale'];   // how the customer buys; one, two or all three
-var TAG_CHOICES = ['VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up', 'Eid buyer'];
+var CUST_TYPES = ['Online', 'Retail', 'Wholesale'].filter(function (t) { return t !== 'Wholesale' || WS; });   // how the customer buys; one, two or all three
+var TAG_CHOICES = ['VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up', 'Eid buyer'].filter(function (t) { return t !== 'Wholesale' || WS; });
 function compact(x) { return String(x || '').replace(/[\s\-().]/g, '').toLowerCase(); }
 /** Bangladeshi mobile as 11 digits (01XXXXXXXXX), or '' when it is not one. Accepts +88 / 88 prefixes. */
 function bdMobile(x) { var d = compact(x); if (d.indexOf('+88') === 0) d = d.slice(3); else if (d.indexOf('88') === 0 && d.length === 13) d = d.slice(2); return /^01[3-9]\d{8}$/.test(d) ? d : ''; }
@@ -90,7 +95,7 @@ function findPairs(rows, notDupes) {
 }
 function typesText(types) { return (types || []).length ? types.join(', ') : '—'; }
 /** Wholesale buyers open the wholesale profile; everyone else (and companies) the customer profile. */
-function hrefOf(c) { return c.wholesale && c.kind !== 'company' && c.origin !== 'party' ? '/wholesale-customer?phone=' + (c.bookPhone || phoneDigits(c.phone)) + (c.book ? '' : '&demo=' + c.demoId) : '/customer-crm?id=' + encodeURIComponent(c.id); }
+function hrefOf(c) { return WS && c.wholesale && c.kind !== 'company' && c.origin !== 'party' ? '/wholesale-customer?phone=' + (c.bookPhone || phoneDigits(c.phone)) + (c.book ? '' : '&demo=' + c.demoId) : '/customer-crm?id=' + encodeURIComponent(c.id); }
 /** One side of a duplicate pair, as shown in the list and the merge dialog. */
 function sideOf(c) {
   return { name: c.name, phone: c.phone, initial: c.name.charAt(0).toUpperCase(), href: hrefOf(c), orders: c.orders.toLocaleString('en-IN'), spent: c.spent ? bdt(c.spent) : '—', due: c.due ? bdt(c.due) : '—', hasDue: !!c.due,
@@ -187,7 +192,7 @@ class Component extends DCLogic {
     f[e.target.name] = e.target.value; delete er[e.target.name];
     this.setState({ form: f, errs: er, dupe: e.target.name === 'phone' ? null : s.dupe });
   };
-  setKind = (k) => { var s = this.state || {}; this.setState({ form: assign(assign({}, s.form || EMPTY_FORM), { kind: k, types: k === 'company' ? ['Wholesale'] : ['Online'] }), errs: {}, dupe: null }); };
+  setKind = (k) => { var s = this.state || {}; this.setState({ form: assign(assign({}, s.form || EMPTY_FORM), { kind: k, types: k === 'company' ? [WS ? 'Wholesale' : 'Retail'] : ['Online'] }), errs: {}, dupe: null }); };
   toggleType = (type) => {
     var s = this.state || {}, f = assign({}, s.form || EMPTY_FORM), er = assign({}, s.errs || {});
     var cur = f.types || [];
@@ -210,7 +215,7 @@ class Component extends DCLogic {
     if (f.email && f.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) er.email = 'Enter an email like name@example.com.';
     else if (f.email && f.email.trim() && !dupe) { dupe = resolveCustomer(f.email.trim()); if (dupe) er.email = 'A customer with this email already exists.'; }
     var types = f.types || [], whole = types.indexOf('Wholesale') >= 0;
-    if (!types.length) er.types = 'Choose at least one: Online, Retail or Wholesale.';
+    if (!types.length) er.types = WS ? 'Choose at least one: Online, Retail or Wholesale.' : 'Choose at least one: Online or Retail.';
     var credit = String(f.credit || '').trim() === '' ? 0 : Number(f.credit);
     if (whole && (!isFinite(credit) || credit < 0)) er.credit = 'Enter 0 or more. 0 means no limit.';
     var first = er.name ? 'name' : er.phone ? 'phone' : er.email ? 'email' : er.types ? 'type-Online' : er.credit ? 'credit' : '';
@@ -344,7 +349,7 @@ class Component extends DCLogic {
       print: function () { uiToast('Opening a print-ready list of ' + outN.toLocaleString('en-IN') + ' customers with the columns you see.'); },
       csv: function () { var ids = (selN ? selRows : list).map(function (c) { return c.id; }); if (!ids.length) { uiToast('No customers to export.', { tone: 'info' }); return; } self.bulk('export', ids, {}); },
       heads: cols.map(function (c) { return { k: c.k, l: c.l, al: c.al || 'left' }; }),
-      rows: list.map(function (c) { var on = !!sel[c.key], href = hrefOf(c), st = statusCell(c); return { key: c.key, href: href, wholesale: !!c.wholesale && c.kind !== 'company', company: c.kind === 'company', name: c.name, city: c.city, orders: c.orders, spent: c.spent ? bdt(c.spent) : '—', due: c.due ? bdt(c.due) : '', status: st.v, statusTone: st.tone, sel: on, isNew: !!c.isNew, merged: c.mergedFrom ? 'Merged with ' + c.mergedFrom.join(', ') : '',
+      rows: list.map(function (c) { var on = !!sel[c.key], href = hrefOf(c), st = statusCell(c); return { key: c.key, href: href, wholesale: WS && !!c.wholesale && c.kind !== 'company', company: c.kind === 'company', name: c.name, city: c.city, orders: c.orders, spent: c.spent ? bdt(c.spent) : '—', due: c.due ? bdt(c.due) : '', status: st.v, statusTone: st.tone, sel: on, isNew: !!c.isNew, merged: c.mergedFrom ? 'Merged with ' + c.mergedFrom.join(', ') : '',
         sub: c.kind === 'company' ? (c.locationsCount || 0) + (c.locationsCount === 1 ? ' location · ' : ' locations · ') + (c.contactsCount || 0) + (c.contactsCount === 1 ? ' contact' : ' contacts') : c.companyName ? c.role + ' · ' + c.companyName : '',
         cells: cols.map(function (k) { return assign({ k: k.k }, cell(c, k.k)); }),
         onRowClick: function (e) { if (e.target.closest('a,button,input,label,select')) return; navigate(href); },
@@ -445,7 +450,7 @@ const FILTERS_MORE = [
   ['Number of orders', ['Any', '0 orders', '1 order', '2–4 orders', '5+ orders']],
   ['Paid with', ['Any', 'Cash on delivery', 'bKash', 'Nagad', 'Card', 'Wallet']],
   ['Has', ['Anything', 'Abandoned cart', 'Unused coupon', 'Points expiring', 'Open support ticket', 'Items in wishlist']],
-  ['Tag', ['Any', 'VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up']],
+  ['Tag', ['Any', 'VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up'].filter(function (t) { return t !== 'Wholesale' || WS; })],
   ['Birthday', ['Any', 'This week', 'This month']],
 ];
 const ERR = (id, text) => (<p id={id} className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{text}</span></p>);
@@ -467,6 +472,7 @@ export default class AllCustomersScreen extends Component {
                   secondary={[{ label: 'Export', onClick: v.csv }]}
                   more={[{ label: 'Add company', onClick: v.openAddCompany }, { label: 'New segment', onClick: () => this.setState({ segOpen: true, segEdit: null }) }, { label: 'Print', onClick: v.print }, { label: 'Customer settings', href: '/customer-settings' }, { label: 'Members', href: '/members' }, { label: 'Abandoned carts', href: '/abandoned-carts' }]}
                   primary={{ label: 'Add customer', onClick: v.openAdd }} />
+                <ModuleSetup area="area-customers" />
 
                 <JobsCard onChanged={v.reload} />
 

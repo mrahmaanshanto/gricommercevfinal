@@ -18,25 +18,31 @@ import { navigate } from '@/runtime/routes';
 import { formatBDT } from '@/lib/format';
 import { Dialog as __Dialog, EmptyState as __EmptyState, StatusBadge as __StatusBadge } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, Pager, LearnMore, Menu } from '@/components/ui/IndexKit';
-import { ORDER_STATUSES, ORDER_TOTAL, orderStatus } from '@/lib/orderStatus';
+import { ORDER_STATUSES, ORDER_TOTAL, orderStatus, ORDER_TABS, tabKeys } from '@/lib/orderStatus';
 import { getStockPlaces, onlinePlace } from '@/lib/locations';
 import { holdsFor } from '@/lib/stockHolds';
 import { demoOrders, getOrders, duplicatesOf, orderHref, invoiceHref, availability, approveOrder, cancelOrder, heldText, CAN_APPROVE, CAN_CANCEL, DEFAULT_HOLD_PLACE } from '@/lib/orders';
 import { syncCourier } from '@/lib/orderFlow';
-import { holdsStock } from '@/lib/edition';
+import { holdsStock, wholesaleOn, hasModule } from '@/lib/edition';
 import { orderStates } from '@/lib/orderStates';
 import { getOrderRules, customStatusOf, completionOf } from '@/lib/orderRules';
 import { proofToReview } from '@/lib/paymentProof';
 import { startJob } from '@/lib/orderJobs';
 import { OrderJobs } from '@/screens/merchant-orders/OrderJobs';
+import { sendReceipt } from '@/lib/receipts';
+import { invoiceFromOrder } from '@/components/SaleInvoice';
+import { saleOfOrder } from '@/lib/customerWarranty';
+import { ModuleSetup } from '@/components/ModuleSetup';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 const PAGE_SIZE = 20;
-// The tabs are the shared status list, so labels, order and counts match the sidebar.
+// The tabs are the shop's standard statuses (orderStatus.js › ORDER_TABS): each groups one or more saved statuses.
 // Two more views are worked out, not saved statuses: a payment proof waiting, and Completed by the shop's rule.
 const VIEWS = [{ key: 'review', label: 'Payment to review' }, { key: 'completed', label: 'Completed' }];
-const TABS = [{ key: 'all', label: 'All', count: ORDER_TOTAL }, ...ORDER_STATUSES, ...VIEWS];
+const TABS = [{ key: 'all', label: 'All', count: ORDER_TOTAL }, ...ORDER_TABS, ...VIEWS];
+// Retail (no online module): every order is a counter sale, finished or on due, so the courier steps don't apply.
+const RETAIL_TABS = [{ key: 'all', label: 'All' }, { key: 'pending', label: 'Payment due' }, { key: 'delivered', label: 'Completed' }, orderStatus('cancelled'), orderStatus('returned')];
 const isView = (k) => VIEWS.some((v) => v.key === k);
 /** The worked-out facts the list filters on: proof to review, completed, sub-status (read in the browser only). */
 const annotate = (list) => { const rules = getOrderRules(); return list.map((o) => ({ ...o, toReview: !!proofToReview(o), done: completionOf(o, { rules }).done, sub2: customStatusOf(o, rules) })); };
@@ -54,7 +60,7 @@ const digits = (t) => String(t).replace(/[^0-9]/g, '');
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
 class Component extends DCLogic {
-  state = { all: DEMO_ORDERS, status: 'all', q: '', courier: '', payment: '', zone: '', sub: '', page: 1, sel: {}, find: false, filtersOpen: false, extra: NO_EXTRA, draft: NO_EXTRA, approve: null };
+  state = { online: true, all: DEMO_ORDERS, status: 'all', q: '', courier: '', payment: '', zone: '', sub: '', page: 1, sel: {}, find: false, filtersOpen: false, extra: NO_EXTRA, draft: NO_EXTRA, approve: null };
   componentDidMount() {
     this.paint();
     this.readUrl();
@@ -65,7 +71,7 @@ class Component extends DCLogic {
     window.addEventListener('popstate', this._onPop);
     this._watch = setInterval(() => { if (window.location.search !== this._search) this.readUrl(); }, 400);
   }
-  reload() { syncCourier(); this.setState({ all: annotate(getOrders()), rules: getOrderRules() }); }
+  reload() { syncCourier(); this.setState({ ready: true, online: hasModule('online'), all: annotate(getOrders()), rules: getOrderRules() }); }
   /** Selected orders split into the ones the action applies to and the ones it skips. */
   pick(allowed) {
     const chosen = this.filtered().filter(o => this.state.sel[o.id]);
@@ -114,6 +120,15 @@ class Component extends DCLogic {
     toast('Booking ' + plural(valid.length, 'order') + ' in the background', { tone: 'info' });
   }
   /** Make the labels of the selected orders in the background; they print together when ready. */
+  /** Send the receipt by SMS to every selected order that has a mobile number. */
+  bulkReceipts() {
+    const list = this.state.all.filter((o) => this.state.sel[o.id]);
+    const ok = list.filter((o) => digits(o.phone).length >= 10);
+    let sent = 0;
+    ok.forEach((o) => { if (sendReceipt(invoiceFromOrder(o, saleOfOrder(o)), { via: 'sms', to: o.phone }).ok) sent += 1; });
+    const skipped = list.length - ok.length;
+    toast(`Receipts sent by SMS: ${sent}${skipped ? ` · ${skipped} without a mobile number` : ''}`, sent ? undefined : { tone: 'error' });
+  }
   bulkPrint() {
     const chosen = this.filtered().filter(o => this.state.sel[o.id]);
     if (!chosen.length) return;
@@ -173,7 +188,7 @@ class Component extends DCLogic {
     const min = Number(extra.minTotal) || 0;
     // orders made on the Create order page or sent in through an order link come first
     return this.state.all.filter(o => {
-      if (status === 'review' ? !o.toReview : status === 'completed' ? !o.done : status !== 'all' && o.statusKey !== status) return false;
+      if (status === 'review' ? !o.toReview : status === 'completed' ? !o.done : status !== 'all' && !tabKeys(status).includes(o.statusKey)) return false;
       if (sub && !(o.sub2 && o.sub2.id === sub)) return false;
       if (courier && o.courier !== courier) return false;
       if (payment && o.payment !== payment) return false;
@@ -215,11 +230,13 @@ class Component extends DCLogic {
     const selCount = found.filter(o => sel[o.id]).length;
     const pageAllChecked = rows.length > 0 && rows.every(o => sel[o.id]);
     const from = encodeURIComponent(this.listUrl(st, page));
-    const tabLabel = st.status === 'all' ? 'All orders' : isView(st.status) ? VIEWS.find(x => x.key === st.status).label : orderStatus(st.status).label + ' orders';
+    const tabLabel = st.status === 'all' ? 'All orders' : isView(st.status) ? VIEWS.find(x => x.key === st.status).label : ((st.online && ORDER_TABS.find(x => x.key === st.status)) || orderStatus(st.status) || { label: 'Matching' }).label + ' orders';
     // tab and card counts come from the orders themselves (channel view applied, search and filters not)
     const inView = st.all.filter(o => st.extra.channel === 'online' ? !/^(POS|Wholesale)/.test(o.channel) : st.extra.channel === 'pos' ? o.channel.startsWith('POS') : st.extra.channel === 'wholesale' ? o.channel.startsWith('Wholesale') : true);
     const counts = { all: inView.length };
     ORDER_STATUSES.forEach(x => { counts[x.key] = inView.filter(o => o.statusKey === x.key).length; });
+    // a grouped tab counts every status in it (Retail's own tabs are single statuses)
+    if (st.online) ORDER_TABS.forEach(t => { counts[t.key] = t.keys.reduce((n, k) => n + inView.filter(o => o.statusKey === k).length, 0); });
     counts.review = inView.filter(o => o.toReview).length;
     counts.completed = inView.filter(o => o.done).length;
     const dayFrom = new Date(); dayFrom.setHours(0, 0, 0, 0);
@@ -244,11 +261,12 @@ class Component extends DCLogic {
       };
     }
     return {
-      tabs: TABS.map(t => ({ ...t, count: counts[t.key] || 0, id: 'orders-tab-' + t.key, on: st.status === t.key, onClick: () => this.view({ status: t.key }) })),
+      online: st.online, ready: !!st.ready,
+      tabs: (st.online ? TABS : RETAIL_TABS).map(t => ({ ...t, count: counts[t.key] || 0, id: 'orders-tab-' + t.key, on: st.status === t.key, onClick: () => this.view({ status: t.key }) })),
       tabLabel,
       kpiPending: counts.pending,
       pageTitle: { pos: 'Retail orders', online: 'Online orders', wholesale: 'Wholesale orders' }[st.extra.channel] || 'Orders',
-      newOrderHref: st.extra.channel === 'pos' || st.extra.channel === 'wholesale' ? '/pos' : '/new-order',
+      newOrderHref: !st.online || st.extra.channel === 'pos' || st.extra.channel === 'wholesale' ? '/pos' : '/new-order',
       sparkOrders: Array.from({ length: 7 }, (_, i) => { const a = dayFrom.getTime() - (6 - i) * 864e5; return inView.filter(o => (o.at || 0) >= a && (o.at || 0) < a + 864e5).length; }),
       sparkValue: Array.from({ length: 7 }, (_, i) => { const a = dayFrom.getTime() - (6 - i) * 864e5; return inView.filter(o => (o.at || 0) >= a && (o.at || 0) < a + 864e5).reduce((n, o) => n + (o.amount || 0), 0); }),
       find: !!(st.find || st.q || st.courier || st.payment || st.zone || st.sub || extraCount),
@@ -260,6 +278,8 @@ class Component extends DCLogic {
       kpiCodCount: inView.filter(o => o.payment === 'COD' && ['approved', 'ready', 'shipped'].includes(o.statusKey)).length,
       kpiReturnRate: (counts.delivered + counts.returned) ? Math.round((counts.returned / (counts.delivered + counts.returned)) * 100) + '%' : '—',
       kpiCourier: counts.ready + counts.shipped,
+      kpiDue: formatBDT(inView.filter(o => o.statusKey === 'pending').reduce((a, o) => a + Math.max(0, (o.amount || 0) - (o.paid || 0)), 0)),
+      kpiDueCount: counts.pending,
       total: counts.all,
       q: st.q, courier: st.courier, payment: st.payment, zone: st.zone, sub: st.sub,
       subs: (st.rules || { custom: [] }).custom.map(c => ({ ...c, base: (orderStatus(c.base) || {}).label || c.base })),
@@ -298,6 +318,7 @@ class Component extends DCLogic {
       clearSelection: () => this.setState({ sel: {} }),
       sendToCourier: () => this.bulkSend(),
       printLabels: () => this.bulkPrint(),
+      sendReceipts: () => this.bulkReceipts(),
       bulkApprove: () => this.startApprove(),
       bulkCancel: () => this.bulkCancel(),
       approve: approveVals,
@@ -347,11 +368,12 @@ const items = (o) => String(o.itemMeta || '').split(' · ')[0];
 export default class MerchantOrdersScreen extends Component {
   render() {
     const v = this.renderVals() || {};
-    const bulk = [
+    const bulk = v.online ? [
       { label: 'Approve', icon: 'check', onClick: v.bulkApprove },
       { label: 'Send to courier', icon: 'truck', onClick: v.sendToCourier },
       { label: 'Print labels', icon: 'printer', onClick: v.printLabels },
-    ];
+      { label: 'Send receipts', icon: 'send', onClick: v.sendReceipts },
+    ] : [{ label: 'Send receipts', icon: 'send', onClick: v.sendReceipts }];
     return (
       <div className="dc-screen ds" data-screen="MerchantOrders">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -364,16 +386,20 @@ export default class MerchantOrdersScreen extends Component {
                 <ShopHeader icon="inbox" title={v.pageTitle}
                   about="Every order in one list: online, counter and wholesale. Open an order to verify, approve, pack and send it."
                   secondary={[{ label: 'Export', onClick: v.exportCsv }]}
-                  more={[{ label: 'Order work', href: '/order-work' }, { label: 'Quotes', href: '/order-work?q=quotes' }, { label: 'Courier returns', href: '/courier-returns' }, { label: 'Wholesale orders', href: '/wholesale-orders' }, { label: 'Order settings', href: '/order-settings' }, { label: 'Order notifications', href: '/set-notifications' }]}
+                  more={!v.online ? [{ label: 'Return history', href: '/return-history' }] : [{ label: 'Order work', href: '/order-work' }, ...(wholesaleOn() ? [{ label: 'Quotes', href: '/order-work?q=quotes' }] : []), { label: 'Courier returns', href: '/courier-returns' }, ...(wholesaleOn() ? [{ label: 'Wholesale orders', href: '/wholesale-orders' }] : []), { label: 'Order settings', href: '/order-settings' }, { label: 'Order notifications', href: '/set-notifications' }]}
                   primary={{ label: 'Create order', href: v.newOrderHref }} />
 
+                <ModuleSetup area="area-orders" />
                 <MetricStrip label="Today's orders"
                   lead={<span className="mo-today"><__Icon name="calendar" width="16" height="16" aria-hidden="true" />Today</span>}
                   items={[
-                    { label: 'Orders', value: String(v.kpiToday), spark: v.sparkOrders },
-                    { label: 'Order value', value: v.kpiTodayValue, spark: v.sparkValue },
-                    { label: 'COD to collect', value: v.kpiCod, sub: v.kpiCodCount + ' orders' },
-                    { label: 'With courier', value: String(v.kpiCourier), href: '/merchant-orders?status=shipped' },
+                    // today's figures follow the browser's clock and time zone: worked out after mount (the page is prerendered in UTC)
+                    { label: 'Orders', value: v.ready ? String(v.kpiToday) : '—', spark: v.ready ? v.sparkOrders : undefined },
+                    { label: 'Order value', value: v.ready ? v.kpiTodayValue : '—', spark: v.ready ? v.sparkValue : undefined },
+                    ...(v.online ? [
+                      { label: 'COD to collect', value: v.kpiCod, sub: v.kpiCodCount + ' orders' },
+                      { label: 'With courier', value: String(v.kpiCourier), href: '/merchant-orders?status=shipped' },
+                    ] : [{ label: 'Payment due', value: v.kpiDue, sub: v.kpiDueCount + ' orders', href: '/dues' }]),
                     { label: 'Return rate', value: v.kpiReturnRate },
                   ]} />
 
@@ -402,15 +428,15 @@ export default class MerchantOrdersScreen extends Component {
                   )}
                   {v.find && !v.hasSelection ? (
                     <div className="ix-filters" role="group" aria-label="Filters">
-                      <select aria-label="Courier" className={'ix-filter' + (v.courier ? ' is-set' : '')} value={v.courier} onChange={v.onCourier}>
+                      {v.online ? <select aria-label="Courier" className={'ix-filter' + (v.courier ? ' is-set' : '')} value={v.courier} onChange={v.onCourier}>
                         <option value="">Courier</option><option>Steadfast</option><option>Pathao</option><option>Carrybee</option><option>RedX</option>
-                      </select>
+                      </select> : null}
                       <select aria-label="Payment" className={'ix-filter' + (v.payment ? ' is-set' : '')} value={v.payment} onChange={v.onPayment}>
-                        <option value="">Payment</option><option value="Paid">Paid</option><option value="Unpaid">Unpaid</option><option value="Partial">Partly paid</option><option value="COD">Cash on delivery</option>
+                        <option value="">Payment</option><option value="Paid">Paid</option><option value="Unpaid">Unpaid</option><option value="Partial">Partly paid</option>{v.online ? <option value="COD">Cash on delivery</option> : null}
                       </select>
-                      <select aria-label="Delivery zone" className={'ix-filter' + (v.zone ? ' is-set' : '')} value={v.zone} onChange={v.onZone}>
+                      {v.online ? <select aria-label="Delivery zone" className={'ix-filter' + (v.zone ? ' is-set' : '')} value={v.zone} onChange={v.onZone}>
                         <option value="">Delivery zone</option><option>Inside Dhaka</option><option>Sub-Dhaka</option><option>Outside Dhaka</option>
-                      </select>
+                      </select> : null}
                       {v.subs.length ? <select aria-label="Sub-status" className={'ix-filter' + (v.sub ? ' is-set' : '')} value={v.sub} onChange={v.onSub}>
                         <option value="">Sub-status</option>{v.subs.map((c) => <option key={c.id} value={c.id}>{c.label} · {c.base}</option>)}
                       </select> : null}
@@ -525,7 +551,7 @@ export default class MerchantOrdersScreen extends Component {
                 <option value="">All channels</option>
                 <option value="online">Online store</option>
                 <option value="pos">Retail (POS)</option>
-                <option value="wholesale">Wholesale</option>
+                {wholesaleOn() ? <option value="wholesale">Wholesale</option> : null}
               </select>
             </div>
             <div>

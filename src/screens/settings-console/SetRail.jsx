@@ -11,13 +11,16 @@ import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { SetFragment as __SetFragment } from '@/screens/settings-console/SetChrome';
-import { hasModule, currentEditionId, LOCKED } from '@/lib/edition';
+import { hasModule, currentEditionId, LOCKED, routeInEdition } from '@/lib/edition';
 import { searchSettings } from '@/lib/settingsRegistry';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 // Sections that have a screen in this build. The rest say so when chosen.
 const ROUTES = {
+  // Business setup: each area's own setup page, listed here too (the pages keep their addresses)
+  'set-orders': '/order-settings', 'set-catalog': '/catalog-setup', 'set-customers': '/customer-settings', 'set-channels': '/channel-settings', 'set-autocall': '/auto-call-settings',
+  'set-comms': '/workflow-settings', 'set-staff': '/hr-setup', 'set-accounts': '/account-setup', 'set-pos': '/pos-manage',
   general: '/set-general', preference: '/set-preference', payment: '/set-payments', delivery: '/set-delivery',
   ai: '/set-ai', rules: '/set-rules', notifications: '/set-notifications', stocksetup: '/stock-setup', profile: '/set-profile', usage: '/set-usage', seo: '/set-seo', storage: '/set-storage',
   apisec: '/set-security', dbbackup: '/set-security#s1', filebackup: '/set-security#s2',
@@ -29,9 +32,10 @@ const ROUTES = {
 
 const GROUPS = [
   ['Store', [['connections', 'Connections', 'ok'], ['general', 'General', 'ok'], ['profile', 'Profile type', 'ok'], ['stocksetup', 'Stock setup', 'ok'], ['preference', 'Preference', 'ok'], ['privacy', 'Privacy & consent', 'ok'], ['domains', 'Domains', 'ok'], ['pos', 'POS', 'ok'], ['report', 'Report Settings', 'none']]],
+  ['Business setup', [['set-orders', 'Orders', 'ok'], ['set-catalog', 'Products & catalog', 'ok'], ['set-customers', 'Customers', 'ok'], ['set-channels', 'Sales channels', 'ok'], ['set-autocall', 'Auto-call', 'ok'], ['set-comms', 'Communications', 'ok'], ['set-staff', 'Staff & HR', 'ok'], ['set-accounts', 'Accounts', 'ok'], ['set-pos', 'POS counters', 'ok']]],
   ['Commerce', [['payment', 'Payment Gateway', 'ok'], ['delivery', 'Delivery Settings', 'ok'], ['courier', 'Courier Settings', 'warn', '1']]],
   ['Notifications', [['notifications', 'Order notifications', 'ok']]],
-  ['Communication', [['mail', 'Mail', 'ok'], ['sms', 'SMS', 'warn', '1'], ['push', 'Push Notifications', 'off'], ['social', 'Social Integrations', 'ok'], ['ai', 'AI Auto-Reply', 'ok'], ['rules', 'Auto-Reply Rules', 'ok'], ['usage', 'AI Usage', 'none']]],
+  ['Communication', [['mail', 'Mail', 'ok'], ['sms', 'SMS', 'warn', '1'], ['push', 'Push Notifications', 'off'], ['social', 'Social Integrations', 'ok'], ['ai', 'AI provider', 'ok'], ['rules', 'Auto-Reply Rules', 'ok'], ['usage', 'AI Usage', 'none']]],
   ['Discovery', [['seo', 'SEO', 'ok'], ['smart', 'Smart Search', 'ok'], ['imgsearch', 'Image Search', 'off']]],
   ['Platform', [['storage', 'Storage', 'warn', '1'], ['realtime', 'Realtime (Websocket)', 'ok'], ['apisec', 'API Security', 'ok'], ['recaptcha', 'Recaptcha', 'off'], ['dbbackup', 'Database Backup', 'ok'], ['filebackup', 'File Backup', 'warn', '1'], ['history', 'Settings history', 'none']]],
   ['Account & billing', [['billing', 'Plan & billing', 'ok'], ['usagelimits', 'Usage & limits', 'none'], ['wallet', 'Wallet & credits', 'none']]],
@@ -45,9 +49,11 @@ const ICON = {
   social: 'share-2', ai: 'bot', rules: 'list-checks', usage: 'gauge', seo: 'search', smart: 'sparkles', imgsearch: 'image', storage: 'hard-drive',
   realtime: 'radio', apisec: 'shield', recaptcha: 'shield-check', dbbackup: 'database', filebackup: 'archive',
   privacy: 'lock', domains: 'globe', history: 'history', billing: 'receipt', usagelimits: 'activity', wallet: 'wallet',
+  'set-orders': 'package', 'set-catalog': 'tag', 'set-customers': 'users', 'set-channels': 'share-2', 'set-autocall': 'phone-call',
+  'set-comms': 'messages-square', 'set-staff': 'contact', 'set-accounts': 'landmark', 'set-pos': 'monitor-smartphone',
 };
 // sections that belong to a module (src/lib/edition.js); the rest are in every edition
-const SECTION_MODULE = { domains: 'online', notifications: 'commerce', stocksetup: 'catalog', pos: 'pos', report: 'reports', payment: 'commerce', delivery: 'online', courier: 'online', social: 'comms', ai: 'comms', rules: 'comms', seo: 'online', smart: 'online', imgsearch: 'online' };
+const SECTION_MODULE = { domains: 'online', notifications: 'online', usage: 'comms', stocksetup: 'catalog', pos: 'pos', report: 'reports', payment: 'commerce', delivery: 'online', courier: 'online', social: 'comms', ai: 'comms', rules: 'comms', seo: 'online', smart: 'online', imgsearch: 'online' };
 
 class Component extends DCLogic {
   constructor(p) {
@@ -74,6 +80,8 @@ class Component extends DCLogic {
       label,
       open: !!q || !this.state.closed[label],
       items: items
+        // an item with no page yet is hidden, and so is a page outside the site's edition (it would say "Not in …")
+        .filter(([id]) => ROUTES[id] && routeInEdition(ROUTES[id].split(/[?#]/)[0], this.state.ed))
         .filter(([id, name]) => (!q || name.toLowerCase().includes(q)) && (!SECTION_MODULE[id] || hasModule(SECTION_MODULE[id], this.state.ed)))
         .map(([id, name, dot, badge]) => ({ id, name, dot, badge: badge || '', href: ROUTES[id] || '', active: id === active })),
     })).map((g) => ({ ...g, count: g.items.length })).filter((g) => g.items.length);

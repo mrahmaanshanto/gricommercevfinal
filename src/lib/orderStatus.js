@@ -6,7 +6,7 @@
 //   → Verification (a manual or an automatic call; a step, not a status)
 //   → Approved (or Cancelled; "Take advance + approve" collects part of a COD order first)
 //   → Ready for courier (packed, shipping slip printed and attached)
-//   → In transit (sent to the courier: the courier accepted the parcel)
+//   → Sent to courier (the courier accepted the parcel; it was called "In transit" before)
 //   → Delivered   (Returned when the courier brings it back)
 // Courier scans (picked up, at the hub, out for delivery …) show in the order's tracking timeline only.
 
@@ -16,7 +16,7 @@ export const ORDER_STATUSES = [
   { key: 'pending', label: 'Pending', bn: 'Pending', tone: 'warning', icon: 'clock', hint: 'Payment due', count: 19 },
   { key: 'approved', label: 'Approved', bn: 'Approved', tone: 'info', icon: 'circle-check', hint: 'Preparing', count: 74 },
   { key: 'ready', label: 'Ready for courier', bn: 'কুরিয়ারের জন্য প্রস্তুত', tone: 'info', icon: 'package', hint: 'Packed', count: 61 },
-  { key: 'shipped', label: 'In transit', bn: 'পথে আছে', tone: 'info', icon: 'truck', hint: 'With courier', count: 182 },
+  { key: 'shipped', label: 'Sent to courier', bn: 'Courier-এ পাঠানো', tone: 'info', icon: 'truck', hint: 'With courier', count: 182 },
   { key: 'delivered', label: 'Delivered', bn: 'Delivered', tone: 'success', icon: 'package-check', hint: 'Done', count: 208 },
   { key: 'cancelled', label: 'Cancelled', bn: 'Cancelled', tone: 'neutral', icon: 'circle-x', hint: 'Stopped', count: 33 },
   { key: 'returned', label: 'Returned', bn: 'Returned', tone: 'error', icon: 'undo-2', hint: 'Came back', count: 10 },
@@ -39,7 +39,7 @@ export function initialStatusKey(payment) {
 }
 
 // labels orders were saved with before (and in demo data) → today's key
-const OLD_LABELS = { 'Ready to ship': 'ready', Shipped: 'shipped', 'Sent to courier': 'shipped', 'On the way': 'shipped' };
+const OLD_LABELS = { 'Ready to ship': 'ready', Shipped: 'shipped', 'In transit': 'shipped', 'On the way': 'shipped' };
 /**
  * The status key of an order from its saved label and payment. 'New' (and the old 'Pending', which meant
  * "waiting for confirmation") become On hold, Processing or Pending by how the order is paid.
@@ -54,4 +54,17 @@ export function statusKeyOf(label, payment) {
 
 /** The steps the order stepper shows, in order. 'new' is On hold / Processing / Pending. */
 export const ORDER_STEPS = ['new', 'verified', 'approved', 'ready', 'shipped', 'delivered'];
-export const STEP_LABEL = { new: 'New order', verified: 'Verification', approved: 'Approved', ready: 'Ready for courier', shipped: 'In transit', delivered: 'Delivered' };
+export const STEP_LABEL = { new: 'New order', verified: 'Verification', approved: 'Approved', ready: 'Ready for courier', shipped: 'Sent to courier', delivered: 'Delivered' };
+
+/** The Orders tabs: the shop's standard statuses. A tab lists one or more saved statuses, so the stepper, badges and
+ *  automation keep their detail while the tab row stays short. Digital orders never reach Sent to courier. */
+export const ORDER_TABS = [
+  { key: 'onhold', label: 'On hold', keys: ['onhold', 'pending'] },
+  { key: 'processing', label: 'Processing', keys: ['processing', 'approved', 'ready'] },
+  { key: 'shipped', label: 'Sent to courier', keys: ['shipped'] },
+  { key: 'delivered', label: 'Delivered', keys: ['delivered'] },
+  { key: 'returned', label: 'Returned', keys: ['returned'] },
+  { key: 'cancelled', label: 'Cancelled', keys: ['cancelled'] },
+];
+/** The saved statuses a tab (or a single status, e.g. ?status=ready from Home) shows. */
+export const tabKeys = (tab) => (ORDER_TABS.find((t) => t.key === tab) || { keys: [tab] }).keys;

@@ -39,7 +39,7 @@ var QA = {
     rows: [['Pathao', '12 booked · 9 picked up', '৳31,200 COD'], ['Steadfast', '8 booked · pickup at 5:00 PM', '৳15,600 COD'], ['RedX', '3 booked · 3 picked up', '৳7,800 COD'], ['Ready to ship', '6 confirmed, not booked yet', 'Central Warehouse']],
     foot: 'Steadfast pickup is late by 40 minutes. The 6 ready orders can be booked now.', footBn: 'স্টেডফাস্টের পিকআপ ৪০ মিনিট দেরি। ৬টি প্রস্তুত অর্ডার এখনই বুক করা যায়।', then: 'book' },
   stock: { q: 'Stock of 20W USB-C charger everywhere', bn: '২০ ওয়াট চার্জারের স্টক কোথায় কত?', kind: 'table', title: '20W USB-C Fast Charger · 20 in stock',
-    rows: [['Central Warehouse', 'Tejgaon · ships online orders', '11'], ['Chattogram hub', 'Agrabad', '4'], ['Dhanmondi branch', 'shop', '5'], ['Mirpur branch', 'shop · alert level 12', '0']],
+    rows: [['Central Warehouse', 'Tejgaon · ships online orders', '11'], ['Central Warehouse', 'Agrabad', '4'], ['Dhanmondi branch', 'shop', '5'], ['Mirpur branch', 'shop · alert level 12', '0']],
     foot: 'Mirpur is out and sold 2 today. Moving 4 from Central Warehouse covers about 3 days.', footBn: 'মিরপুরে স্টক শেষ। সেন্ট্রাল ওয়্যারহাউস থেকে ৪টি পাঠালে ৩ দিন চলবে।', then: 'transfer' },
   sales: { q: 'আজকের বিক্রি কত?', bn: 'আজকের বিক্রি কত?', kind: 'text',
     en: 'Sales today: ৳1,42,330 from 77 orders across all branches. That is 11% more than yesterday. Online leads with ৳62,480.',

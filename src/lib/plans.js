@@ -15,7 +15,7 @@ export const PLAN_KEY = 'gc.plan';
 export const PLAN_EVENT = 'gc:plan';
 
 const STARTER = ['core', 'catalog', 'commerce', 'money', 'reports', 'online', 'pos', 'comms'];
-const GROWTH = [...STARTER, 'places', 'purchasing', 'marketing', 'wholesale', 'channels', 'automation'];
+const GROWTH = [...STARTER, 'places', 'purchasing', 'marketing', 'wholesale', 'channels', 'automation'];   // 'wholesale' is off in every edition for now (edition.js › WHOLESALE)
 
 export const PLANS = {
   starter: { name: 'Starter', modules: STARTER },

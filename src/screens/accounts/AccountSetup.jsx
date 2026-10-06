@@ -29,7 +29,7 @@ import { IndexTabs } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
 import { GatewaySetup } from '@/components/GatewaySetup';
 import { OWN_ACCOUNTS, HOLDING_ACCOUNTS, balanceOf, getEntries, addAccount, isArchived, accountProps } from '@/lib/ledger';
-import { PARTNERS, DEFAULT_CONFIG, getConfig, saveConfig, getAllPartners, ruleText, feeText, weekendText, holidaysOf, HOLIDAYS_2026, COURIER_RATES, heldBy, clockNow, dayKey, fromKey } from '@/lib/settlements';
+import { partnerInEdition, partnerBy, PARTNERS, DEFAULT_CONFIG, getConfig, saveConfig, getAllPartners, ruleText, feeText, weekendText, holidaysOf, HOLIDAYS_2026, COURIER_RATES, heldBy, clockNow, dayKey, fromKey } from '@/lib/settlements';
 import { getCategories, addCategory, editCategory, archiveCategory, COST_HOMES, DEFAULT_EXPENSE, DEFAULT_INCOME } from '@/lib/categories';
 import { AccPage, useBooks, money, shortDate, accName } from './accShared';
 import { AccountSheet, ApprovalsPanel, SETUP_PARTS_CSS } from './setupParts';
@@ -125,9 +125,9 @@ export default function AccountSetup() {
     const today = tick ? dayKey(now) : '';
     return {
       cfg, now, today, holidays,
-      partners: getAllPartners(cfg),
+      partners: tick ? getAllPartners(cfg) : [],
       own: own.map((a) => ({ ...a, balance: balanceOf(a.id, entries), archived: isArchived(a.id), branch: accountProps(a.id).branch })),
-      holding: tick ? HOLDING_ACCOUNTS().map((a) => ({ ...a, held: heldBy(a.partner) })) : [],
+      holding: tick ? HOLDING_ACCOUNTS().filter((a) => !a.partner || partnerInEdition(partnerBy(a.partner))).map((a) => ({ ...a, held: heldBy(a.partner) })) : [],
     };
   }, [tick]);
 
@@ -257,7 +257,7 @@ export default function AccountSetup() {
           {tab === 'partners' ? (<>
             <header className="ix-card__head">
               <h2>Payment partners <InfoTip text="Gateways, the card machine and couriers: how their money reaches you, how it is settled, and their keys." /></h2>
-              <button type="button" className="ix-btn ix-btn--sm" onClick={() => setWizard({ add: true })}><Icon name="plus" width="16" height="16" aria-hidden="true" />Add gateway or courier</button>
+              <button type="button" className="ix-btn ix-btn--sm" onClick={() => setWizard({ add: true })}><Icon name="plus" width="16" height="16" aria-hidden="true" />Add payment partner</button>
             </header>
             <div className="as-body"><p className="as-note">These are common rates in Bangladesh. Check them against your own agreement.</p></div>
             <ul className="ix-plist" aria-label="Payment partners">

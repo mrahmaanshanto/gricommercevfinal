@@ -34,9 +34,9 @@ var O = [
   { id: 'eid', kind: 'code', type: 'DISCOUNT CODE', code: 'EID300', title: '৳300 off on ৳2,000 or more', blurb: 'Festival offer on everything in the shop — website and shop counter.', big: '৳300 OFF', start: T([5, 9]), end: T([20, 9], 23, 59), posted: 'Posted 5 Sep 2026', cover: 'linear-gradient(135deg, #012169, #0a5bd0)' },
   { id: 'bkash', kind: 'pay', type: 'BKASH OFFER', code: 'BKASH10', title: 'Pay with bKash, get 10% off', blurb: 'Up to ৳150 off on bills of ৳500 or more when you pay by bKash.', big: '10% OFF', start: T([10, 9]), end: T([30, 9], 23, 59), posted: 'Posted 10 Sep 2026', cover: 'linear-gradient(135deg, #b0145a, #e2136e)' },
   { id: 'pay', kind: 'pay', type: 'PAYMENT OFFER', code: 'PAYSAVE', title: 'Pay first, save more', blurb: 'Card 12%, shop wallet 10%, bKash and Nagad 8%, cash on delivery 3% — up to ৳500.', big: 'UP TO 12% OFF', start: T([15, 9]), end: T([15, 10], 23, 59), posted: 'Posted 15 Sep 2026', cover: 'linear-gradient(135deg, #075985, #0ea5e9)' },
-  { id: 'skin', kind: 'code', type: 'DISCOUNT CODE', code: 'SKIN15', title: '15% off all skin care', blurb: 'Sunscreen, cleansers, gels and more. Other items are not included.', big: '15% OFF', start: T([10, 9]), end: T([25, 9], 23, 59), posted: 'Posted 10 Sep 2026', cover: 'linear-gradient(135deg, #047857, #10b981)' },
+  { id: 'skin', kind: 'code', type: 'DISCOUNT CODE', code: 'CASE15', title: '15% off all accessories', blurb: 'Cases, chargers, cables and more. Phones are not included.', big: '15% OFF', start: T([10, 9]), end: T([25, 9], 23, 59), posted: 'Posted 10 Sep 2026', cover: 'linear-gradient(135deg, #047857, #10b981)' },
   { id: 'first', kind: 'code', type: 'NEW CUSTOMERS', code: 'FIRST20', title: '20% off your first order', blurb: 'New here? Up to ৳400 off your very first order with us.', big: '20% OFF', start: T([1, 9]), end: T([30, 9], 23, 59), posted: 'Posted 1 Sep 2026', cover: 'linear-gradient(135deg, #6b21a8, #a855f7)' },
-  { id: 'skinweek', kind: 'flash', type: 'FLASH SALE', title: 'Skin care week', blurb: '25% off 8 skin care favourites for one week. Limited pieces at the sale price.', big: '25% OFF', start: T([22, 9]), end: T([28, 9], 23, 59), posted: 'Posted 18 Sep 2026', cover: 'linear-gradient(135deg, #065f46, #10b981)', feat: true },
+  { id: 'skinweek', kind: 'flash', type: 'FLASH SALE', title: 'Audio week', blurb: '25% off 8 earbuds and earphones for one week. Limited pieces at the sale price.', big: '25% OFF', start: T([22, 9]), end: T([28, 9], 23, 59), posted: 'Posted 18 Sep 2026', cover: 'linear-gradient(135deg, #065f46, #10b981)', feat: true },
   { id: 'puja', kind: 'code', type: 'DISCOUNT CODE', code: 'PUJA10', title: 'Puja offer — 10% off', blurb: 'Up to ৳250 off during Puja. Website and shop counter.', big: '10% OFF', start: T([25, 9]), end: T([5, 10], 23, 59), posted: 'Posted 18 Sep 2026', cover: 'linear-gradient(135deg, #7c2d12, #db2777)' },
   { id: 'ship', kind: 'code', type: 'FREE DELIVERY', code: 'FREESHIP', title: 'Free delivery on ৳1,500+', blurb: 'Free delivery anywhere in Bangladesh on bills of ৳1,500 or more.', big: 'FREE DELIVERY', start: T([8, 9]), end: T([14, 9], 23, 59), posted: 'Posted 8 Sep 2026', cover: 'linear-gradient(135deg, #334155, #64748b)' },
   { id: 'clear', kind: 'flash', type: 'FLASH SALE', title: 'Month-end Clearance', blurb: 'Up to 50% off 20 items to clear the shelves.', big: 'UP TO 50% OFF', start: T([28, 8]), end: T([31, 8], 23, 59), posted: 'Posted 27 Aug 2026', cover: 'linear-gradient(135deg, #334155, #64748b)' }
@@ -44,16 +44,16 @@ var O = [
 var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function dstr(t) { var d = new Date(t + 6 * 3600000); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
 var FEAT_SKIN = [
-  { name: 'Sunscreen SPF 50 · 50ml', price: '৳940', mrp: '৳1,250', off: '−25%', sold: 0, bg: '#fff4e0' },
-  { name: 'Rice Water Cleanser 150ml', price: '৳670', mrp: '৳890', off: '−25%', sold: 0, bg: '#e7f8f1' },
-  { name: 'Aloe Soothing Gel 300ml', price: '৳520', mrp: '৳690', off: '−25%', sold: 0, bg: '#e0f3fb' }
+  { name: 'Anker 20W USB-C Charger', price: '৳940', mrp: '৳1,250', off: '−25%', sold: 0, bg: '#fff4e0' },
+  { name: 'Type-C Wired Earphones', price: '৳670', mrp: '৳890', off: '−25%', sold: 0, bg: '#e7f8f1' },
+  { name: 'Micro-USB Cable 1m', price: '৳520', mrp: '৳690', off: '−25%', sold: 0, bg: '#e0f3fb' }
 ];
 var WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function whenStr(t) { var d = new Date(t + 6 * 3600000), h = d.getUTCHours(), m = d.getUTCMinutes(), ap = h < 12 ? 'am' : 'pm', h12 = h % 12 || 12; return WD[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()] + ', ' + h12 + ':' + pad(m) + ' ' + ap; }
 var FEAT = [
-  { name: 'Denim Jeans · Blue', price: '৳1,290', mrp: '৳1,890', off: '−32%', sold: 72, bg: '#e0f3fb' },
-  { name: 'Men’s Polo Shirt · Navy', price: '৳990', mrp: '৳1,450', off: '−32%', sold: 55, bg: '#eef2f6' },
-  { name: 'Sunscreen SPF 50 · 50ml', price: '৳890', mrp: '৳1,250', off: '−29%', sold: 81, bg: '#fff4e0' }
+  { name: 'Baseus Car Phone Holder', price: '৳1,290', mrp: '৳1,890', off: '−32%', sold: 72, bg: '#e0f3fb' },
+  { name: 'Liquid Silicone Case · Navy', price: '৳990', mrp: '৳1,450', off: '−32%', sold: 55, bg: '#eef2f6' },
+  { name: 'Anker 20W USB-C Charger', price: '৳890', mrp: '৳1,250', off: '−29%', sold: 81, bg: '#fff4e0' }
 ];
 class Component extends DCLogic {
   componentDidMount() { var self = this; this.iv = setInterval(function () { self.setState({ tick: ((self.state && self.state.tick) || 0) + 1 }); }, 1000); }
@@ -203,13 +203,13 @@ export default class OffersScreen extends Component {
           <header className="sf-header sf-pad" style={{ minHeight: "76px", background: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "32px", padding: "0 64px" }}>
             <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
               <span style={{ width: "38px", height: "38px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>G</span>
-              <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>GridShop</span>
+              <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Dazzle Shop</span>
             </a>
             <nav aria-label="Shop" className="sf-navrow" style={{ display: "flex", gap: "26px" }}>
               <a className="sf-nav" href="#">Home</a>
-              <a className="sf-nav" href="#">Skin care</a>
-              <a className="sf-nav" href="#">Clothing</a>
-              <a className="sf-nav" href="#">Grocery</a>
+              <a className="sf-nav" href="#">Phones</a>
+              <a className="sf-nav" href="#">Accessories</a>
+              <a className="sf-nav" href="#">Audio</a>
               <__Link href="/offers" className="sf-nav on">Offers</__Link>
             </nav>
             <label className="sf-search" style={{ position: "relative", flexGrow: "1", maxWidth: "420px", marginLeft: "auto" }}>
@@ -490,7 +490,7 @@ export default class OffersScreen extends Component {
             </div>
           </section>
           <footer className="sf-footer sf-pad" style={{ marginTop: "auto", background: "#0f172a", color: "#cbd5e1", padding: "36px 64px", display: "flex", alignItems: "center", gap: "24px", fontSize: "var(--text-sm)" }}>
-            <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#fff" }}>GridShop</span>
+            <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#fff" }}>Dazzle Shop</span>
             <span>House 12, Road 5, Dhanmondi, Dhaka</span>
             <span>Call 09610-XXXXXX</span>
             <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>Powered by <img src="/assets/820d4a69b45ed8fa40c9bc6015985c0e.png" alt="GridCommerce" style={{ height: "18px", objectFit: "contain" }} /></span>
