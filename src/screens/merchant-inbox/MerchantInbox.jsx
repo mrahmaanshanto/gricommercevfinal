@@ -533,12 +533,26 @@ body:has(.ibx) .gc-ai{display:none}
 .ibx-bulk .gc-check{width:16px;height:16px}
 .ibx-rows{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .ibx-loading{margin:0;padding:var(--space-6);text-align:center;font-size:var(--text-sm);color:var(--text-muted)}
-.ibx-ul{list-style:none;margin:0;padding:0}
-.ibx-row{display:flex;align-items:flex-start;gap:10px;width:100%;padding:10px var(--space-3) 10px calc(var(--space-3) - 3px);border:0;border-left:3px solid transparent;border-bottom:1px solid var(--border-subtle);background:none;text-align:left;cursor:pointer;transition:background-color var(--duration-base) var(--ease-out)}
+.ibx-ul{list-style:none;margin:0}
+.ibx-ul{display:flex;flex-direction:column;gap:2px;padding:var(--space-1-5)}
+.ibx-row{display:flex;align-items:flex-start;gap:10px;width:100%;padding:10px var(--space-2-5);border:0;border-radius:var(--radius-lg);background:none;text-align:left;cursor:pointer;transition:background-color var(--duration-base) var(--ease-out),box-shadow var(--duration-base) var(--ease-out)}
 .ibx-row:hover{background:var(--surface-subtle)}
-.ibx-row[aria-current="true"]{border-left-color:var(--primary);background:var(--fill-primary-soft)}
+.ibx-row[aria-current="true"]{background:var(--fill-primary-soft);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary) 18%,transparent)}
+.ibx-row[aria-current="true"] .ibx-row__name{color:var(--text-heading)}
 .ibx-row[aria-pressed="true"]{background:var(--fill-primary-soft)}
 .ibx-row:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring)}
+/* panes: thin scrollbars in the palette; rows that scroll sideways fade at the edge that has more */
+.ibx :is(.ibx-rows,.th-msgs,.ibx-panel,.cm-scroll,.ibx-reviews){scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--text-muted) 35%,transparent) transparent}
+@supports (animation-timeline:scroll()){.ibx .ib-scroll-x{animation:ibx-edges linear both;animation-timeline:scroll(self inline)}}
+@keyframes ibx-edges{
+  0%{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 36px),transparent)}
+  4%,96%{-webkit-mask-image:linear-gradient(to right,transparent,#000 28px,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to right,transparent,#000 28px,#000 calc(100% - 36px),transparent)}
+  100%{-webkit-mask-image:linear-gradient(to right,transparent,#000 28px);mask-image:linear-gradient(to right,transparent,#000 28px)}
+}
+/* the composer: a quiet resting lift, a clear focus */
+.ibx .th-box{box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.ibx .th-box:focus-within{box-shadow:0 0 0 3px var(--focus-ring),0 6px 18px -8px rgba(15,23,42,.16)}
+@media (prefers-reduced-motion:reduce){.ibx-row{transition:none}}
 .ibx-tick{display:grid;place-items:center;flex:none;width:16px;height:16px;margin-top:10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface-card);color:var(--text-inverse)}
 .ibx-tick.is-on{border-color:var(--primary);background:var(--primary)}
 .ibx-row__main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -574,5 +588,7 @@ body:has(.ibx) .gc-ai{display:none}
   .ibx-app[data-pane="list"] .ibx-thread,.ibx-app[data-pane="thread"] .ibx-list,.ibx-app[data-pane="queue"] .ibx-list,.ibx-app[data-pane="list"] .cm-queue{display:none}
   .ibx-list{border-right:0}
   .ibx .th-back{display:inline-flex}
+  /* the reply hint is two lines on a phone: the box shows both instead of clipping the second */
+  .ibx .th-input{min-height:64px}
 }
 `;

@@ -1100,6 +1100,12 @@ body:has(#nl-badge-frame) :is(.gc-phonebar,.set-bar,.ss-bar,.sn-bar,.gb-bar,.no-
   body:has(#nl-badge-frame) .gc-toasts{bottom:calc(16px + var(--host-badge))}
 }
 body:has(#nl-badge-frame) .au-root{padding-bottom:var(--host-badge)}
+/* full-height apps (the Inbox) keep filling the window: only what sits under the badge's corner moves aside */
+body:has(#nl-badge-frame){--host-badge-w:196px}
+body:has(#nl-badge-frame) .ibx .gc-shell__content.ibx-content{padding-bottom:var(--space-3)!important}
+body:has(#nl-badge-frame) :is(.ibx-panel,.ibx-reviews,.cm-scroll,.ibx-page>.mn){padding-bottom:var(--host-badge)}
+body:has(#nl-badge-frame) .ibx-app:not(:has(>.ibx-panel)) .th-tools{padding-right:var(--host-badge-w)}
+@media (max-width:767px){body:has(#nl-badge-frame) .ibx-app .th-composer{padding-bottom:calc(var(--space-4) + var(--host-badge))}body:has(#nl-badge-frame) .ibx-app:not(:has(>.ibx-panel)) .th-tools{padding-right:var(--space-2)}}
 
 /* ---- InfoTip: an explanation one tap away (components/ui InfoTip) ---- */
 .gc-infotip{position:relative;display:inline-flex;vertical-align:middle;margin-left:2px}

@@ -65,7 +65,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   attendance-fix requests open `screens/staff-hr/HrReview.jsx` (summary, facts, cover by day, Approve / Deny in the
   footer, Deny asks for a reason). Settings pages hide field help behind "Show field tips" (`SetTips` in
   `SetChrome.jsx`; `set-help--keep` keeps a line that prevents an error). The Netlify badge (`#nl-badge-frame`) gets
-  space reserved at the bottom (`--host-badge` rules at the end of design-system.css) so it never covers a save bar.
+  space reserved at the bottom (`--host-badge` rules at the end of design-system.css) so it never covers a save bar; full-height apps (the Inbox) fill the window instead and only move what sits under the badge's corner (`--host-badge-w`).
 - Editions (`src/lib/edition.js`): the product is sold as editions, each its own site built with `NEXT_PUBLIC_EDITION`
   = `retail-wholesale` (shown as **Retail**) | `online` | `retail-online` (Retail + Online) | `comms` (GridCommerce Connect:
   communication, CRM, POS, automation).
