@@ -99,6 +99,7 @@ export function defineGcTopbar() {
     camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
     x: '<path d="M18 6 6 18M6 6l12 12"/>',
     menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+    sparkles: '<path d="M9.94 15.5a2 2 0 0 0-1.44-1.44l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/>',
     help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>',
     flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/>',
     alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
@@ -166,6 +167,8 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 .note{display:grid;grid-template-columns:32px minmax(0,1fr) auto 8px;align-items:start;column-gap:10px}.note .t{margin:0}.note .dot{width:8px;height:8px;margin-top:5px;border-radius:var(--radius-full);background:transparent}.note.unread .dot{background:#009cde}
 .foot{display:block;margin:4px 0 0;padding:10px 8px 6px;border-top:1px solid var(--line);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--navy);text-align:center;text-decoration:none}
 .only-narrow{display:none}
+.only-phone{display:none}
+.ib.aibtn{display:none;color:var(--navy)}
 .hr{height:1px;margin:6px 4px;background:var(--line)}
 .chl{display:flex;flex-direction:column;max-height:min(420px,calc(100dvh - 220px));overflow-y:auto}
 .chat{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;column-gap:10px;padding:8px}
@@ -200,7 +203,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 @container (max-width:1180px){.mnm,.kbd{display:none}.me{padding-right:4px}}
 @container (max-width:1060px){.store span,.scanbtn .lbl{display:none}.store{width:38px;padding:0;justify-content:center}.store svg+svg{display:none}}
 @container (max-width:900px){.grp,.sep,.store{display:none}.only-narrow{display:flex}}
-@container (max-width:640px){.helpbtn{width:40px;padding:0;justify-content:center}.helpbtn span{display:none}.pchip{padding:0 10px;gap:4px}.pchip .pl{display:none}.pchip .pn{display:inline}.bar{padding:0 8px 0 12px;gap:6px}.id{display:none}.scope{display:none}.search{min-width:0;flex:1 1 80px}.pop{position:fixed;left:12px!important;right:12px!important;top:72px;width:auto!important}}
+@container (max-width:640px){.helpbtn{display:none}.it.only-phone{display:flex}.ib.aibtn{display:inline-flex}.ib{width:36px;height:36px}.me{height:44px;margin-left:0;padding:0 2px}.me .chev{display:none}.sic{padding:0 4px 0 8px}.scanbtn{padding:0 8px}.pchip{padding:0 10px;gap:4px}.pchip .pl{display:none}.pchip .pn{display:inline}.bar{padding:0 8px 0 12px;gap:6px}.id{display:none}.scope{display:none}.search{min-width:0;flex:1 1 80px}.pop{position:fixed;left:12px!important;right:12px!important;top:72px;width:auto!important}}
 @media (max-width:1023px){.ib.menu{display:inline-flex}.bar{border-radius:0}}
 .lsel{margin-left:auto;max-width:150px;height:28px;padding:0 6px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg);font:inherit;font-size:var(--text-xs);color:var(--body);cursor:pointer}
 .setup{display:flex;align-items:center;gap:10px;min-height:40px;padding:6px 12px 6px 20px;border-bottom:1px solid var(--border-subtle,#e2e8f0);background:var(--fill-warning-soft,#fef3c7);font-size:var(--text-sm);color:var(--text-heading,#0f172a)}
@@ -339,6 +342,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const landingOpts = `<option value=""${landing ? '' : ' selected'}>${L('My dashboard')}</option>` + landingChoices(me, menu).map((a) => `<optgroup label="${esc(L(a.area))}">${a.items.map((x) => `<option value="${esc(x.href)}"${x.href === landing ? ' selected' : ''}>${esc(L(x.label))}</option>`).join('')}</optgroup>`).join('');
       const mePop = `<div style="display:flex;align-items:center;gap:10px;padding:8px"><span class="av">${esc(me.initials)}<i></i></span><span><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr" style="display:block;white-space:normal">${esc(titles.map((x) => L(x)).join(' + '))}</span><span class="mr">${esc(me.email)}</span></span></div>
         <div class="hr"></div>
+        <button class="it only-phone" data-act="help"><span class="ico">${ic('help', 16)}</span><span><b>${L('Help')}</b><small>${L('Help for this page')}</small></span></button>
         <a class="it" href="/my-dashboard"><span class="ico">${ic('user', 16)}</span><span><b>${L('My dashboard')}</b><small>${L('Your tasks, numbers and team for today')}</small></span></a>
         <a class="it" href="/tasks"><span class="ico">${ic('check', 16)}</span><span><b>${L('My tasks')}</b></span></a>
         <a class="it" href="${routeOf('settings-console/SetSecurity.dc.html')}"><span class="ico">${ic('user', 16)}</span><span><b>${L('My profile')}</b><small>${L('Details, password and two-factor sign-in')}</small></span></a>
@@ -372,6 +376,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
   </div>
   <span class="sep" aria-hidden="true"></span>
   ${has('online') ? `<a class="store" href="${routeOf('storefront/Offers.dc.html')}" aria-label="View store (opens the storefront)">${ic('store', 16)}<span>${L('View store')}</span>${ic('ext', 13)}</a>` : ''}
+  <button class="ib aibtn" data-act="gridai" aria-label="${L('Ask GridAI')}">${ic('sparkles')}</button>
   ${showChats ? `<span class="wrap"><button class="ib chatbtn" data-act="chats" ${exp('chats')} aria-label="${L('Chats')}${chatN ? ', ' + L('{n} unread').replace('{n}', chatN) : ''}">${ic('chat')}${chatN ? `<span class="badge chat-n">${chatN}</span>` : ''}<span class="tip">${L('Chats')}</span></button>${pop('chats', chatPop, 'right:-48px;width:360px')}</span>` : ''}
   <span class="wrap"><button class="ib" data-act="notes" ${exp('notes')} aria-label="${L('Notifications')}${unread ? ', ' + unread + ' unread' : ''}">${ic('bell')}${unread ? `<span class="badge">${unread}</span>` : ''}<span class="tip">${L('Notifications')}</span></button>${pop('notes', notePop, 'right:-8px;width:360px')}</span>
   <span class="wrap" style="margin-left:auto"><button class="me" data-act="me" ${exp('me')} aria-label="${L('Account menu')}, ${esc(me.name)}"><span class="av">${esc(me.initials)}<i></i></span><span class="mnm"><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr">${esc(L(titles[0] || myRole.title))}${titles.length > 1 ? ' +' + (titles.length - 1) : ''}</span></span><span class="chev">${ic('chev', 16)}</span></button>${pop('me', mePop, 'right:0;width:300px')}</span>
@@ -393,7 +398,8 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         this.render();
       });
       on('[data-act="me"]', 'click', () => this.toggle('me'));
-      on('[data-act="help"]', 'click', () => { this._open = ''; window.dispatchEvent(new CustomEvent('gc:help')); });
+      on('[data-act="help"]', 'click', () => { this._open = ''; this.render(); window.dispatchEvent(new CustomEvent('gc:help')); });
+      on('[data-act="gridai"]', 'click', () => { this._open = ''; this.render(); window.dispatchEvent(new CustomEvent('gc:gridai', { detail: { q: '' } })); });
       on('[data-act="sfocus"]', 'focus', () => { if (this._open !== 'search') { this._open = 'search'; this.render(); const i = this.root.querySelector('input'); if (i) i.focus(); } });
       on('[data-act="readall"]', 'click', () => { this._unread = 0; this.render(); });
       on('[data-act="upload"]', 'click', () => { this.close(true); toast('Choose a file to upload', { tone: 'info' }); });

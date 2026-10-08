@@ -528,6 +528,7 @@ const CSS = `
 .set-main{flex:1;min-width:0;max-width:840px;display:flex;flex-direction:column;gap:var(--space-4)}
 html:not([data-set-tips]) .set-main .set-help:not(.set-help--keep){display:none}
 .set-tips{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:0;border:0;background:none;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-link);cursor:pointer}
+@media (max-width:640px){.set-tips{min-height:36px}}
 .set-tips:hover{text-decoration:underline}
 /* the title row: the page title (20px) with "Show field tips" under it, the page's status on the right */
 .set-pagehead{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2) var(--space-4)}

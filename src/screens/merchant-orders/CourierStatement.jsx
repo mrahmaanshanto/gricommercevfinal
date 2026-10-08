@@ -84,7 +84,7 @@ function CourierSection({ row, open, onToggle }) {
             </div>
             {list.length ? (
               <div className="ix-table-wrap ix-table-wrap--show">
-                <table className="ix-table ix-table--static gc-table--keep">
+                <table className="ix-table ix-table--static">
                   <caption className="sr-only">{row.name} parcels</caption>
                   <thead><tr><th>Order</th><th>Tracking</th><th>Customer</th><th>Zone</th><th>Dispatched</th><th>State</th><th className="ix-num">Days</th><th className="ix-num">COD</th><th className="ix-num">Charge</th></tr></thead>
                   <tbody>
@@ -187,7 +187,7 @@ export default function CourierStatement() {
                 <section className="ix-card" aria-labelledby="cst-h-all">
                   <div className="ix-card__head"><h2 id="cst-h-all">Courier by courier</h2><span className="ix-muted cst-small">{from ? formatDate(fromIso(from)) : ''} – {to ? formatDate(fromIso(to)) : ''}</span></div>
                   <div className="ix-table-wrap ix-table-wrap--show">
-                    <table className="ix-table ix-table--static gc-table--keep cst-sum">
+                    <table className="ix-table ix-table--static gc-table--keep gc-table--scroll cst-sum">
                       <caption className="sr-only">Courier statement by courier</caption>
                       <thead><tr>
                         <th>Courier</th><th className="ix-num">Dispatched</th><th className="ix-num">Waiting pickup</th><th className="ix-num">On the way</th>

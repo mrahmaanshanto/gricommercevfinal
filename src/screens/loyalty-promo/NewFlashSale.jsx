@@ -349,7 +349,7 @@ export default class NewFlashSaleScreen extends Component {
                                 <span>{v.critHint}</span>
                               </div>
                               <div className="ix-table-wrap ix-table-wrap--show nf-box" role="group" aria-label="Matching products">
-                                <table className="ix-table ix-table--static gc-table--keep">
+                                <table className="ix-table ix-table--static">
                                   <thead><tr><th scope="col" className="ix-check"><input type="checkbox" checked={v.allOn} onChange={v.toggleAll} aria-label="Select all shown" /></th><th scope="col">Product</th><th scope="col">Why it fits</th><th scope="col" className="ix-num">Suggested price</th></tr></thead>
                                   <tbody>
                                     {v.cands.map((r) => (
@@ -378,7 +378,7 @@ export default class NewFlashSaleScreen extends Component {
                           {v.pcts.map((c) => <button key={c.label} type="button" className="ix-chip" onClick={c.pick}>{c.label}</button>)}
                         </div>
                         <div className="ix-table-wrap ix-table-wrap--show nf-box" role="region" aria-label="Products in this sale" tabIndex="0">
-                          <table className="ix-table ix-table--static gc-table--keep nf-items">
+                          <table className="ix-table ix-table--static nf-items">
                             <thead>
                               <tr>
                                 <th scope="col">Product</th>

@@ -364,7 +364,23 @@ a.pos-ic{color:var(--text-muted)}
   .pos-tenders--3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   /* "Open the register": the card keeps a page gutter */
   .pos--closed{padding:var(--space-4)}
+  /* phones: the whole register scrolls as one page (not a short product box under the filters); the header stays on
+     top and "View cart" at the bottom */
+  .pos:not(.pos--closed){height:auto;min-height:100dvh;overflow:visible}
+  .pos:not(.pos--closed) .pos-main{overflow:visible}
+  .pos-top{position:sticky;top:0;z-index:40}
+  .pos-body{flex:none}
+  .pos-grid{flex:none;overflow:visible}
+  .pos-catfoot{padding-bottom:var(--space-2)}
+  .pos-bar{position:sticky;bottom:calc(12px + env(safe-area-inset-bottom));z-index:45;box-shadow:var(--shadow-lg)}
+  /* the selectors: one swipe row that snaps to whole buttons */
+  .pos-selrow{scroll-snap-type:x mandatory;scroll-padding-inline:12px}
+  .pos-sel{scroll-snap-align:start;max-width:220px}
+  .pos-sel__ico{display:none}
+  .pos-sel__value{overflow:hidden;text-overflow:ellipsis}
+  body:has(.pos-bar) .gc-toasts{bottom:calc(76px + env(safe-area-inset-bottom))!important}
 }
+@media (max-width:767px){@supports (animation-timeline:scroll()){.pos-selrow{animation:gc-strip-more linear both;animation-timeline:scroll(self inline)}}}
 @media (max-width:480px){
   .pos-open{padding:var(--space-6) var(--space-4)}
   .pos-open__links{justify-content:center}

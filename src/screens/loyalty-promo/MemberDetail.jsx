@@ -94,7 +94,7 @@ export default function MemberDetail() {
                 <div className="ix-bar"><IndexTabs tabs={histTabs} label="History" /></div>
                 {list.length === 0 ? <div className="ix-empty"><EmptyState icon="history" title={tab === 'points' ? 'No points yet' : 'No store credit yet'} body={tab === 'points' ? 'Points show here from the first order.' : 'Return credit, rewards and sorry gifts show here.'} actionLabel={tab === 'wallet' ? 'Give credit' : 'Give points'} onAction={() => (tab === 'wallet' ? open('credit', 'give') : open('points', 'give'))} /></div> : (
                   <div className="ix-table-wrap ix-table-wrap--show">
-                    <table className="ix-table ix-table--static gc-table--keep">
+                    <table className="ix-table ix-table--static">
                       <thead><tr><th scope="col">Date</th><th scope="col">What happened</th><th scope="col">{tab === 'points' ? 'Channel' : 'Change'}</th><th scope="col" className="ix-num">{tab === 'points' ? 'Points' : 'Amount'}</th><th scope="col" className="ix-num">Balance after</th></tr></thead>
                       <tbody>
                         {list.map((e) => {

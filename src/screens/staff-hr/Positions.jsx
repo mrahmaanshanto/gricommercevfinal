@@ -112,7 +112,7 @@ export default function Positions() {
               <header><span><b>{d.name}</b> <span className="ix-muted">· head {head ? head.name : d.head || 'Owner'} · {n} {n === 1 ? 'person' : 'people'}</span></span><button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => setDept({ name: d.name, head: d.head || 'Owner', was: d.name })} aria-label={`Edit ${d.name}`}><Icon name="pencil" width="16" height="16" aria-hidden="true" />Edit</button></header>
               {rows.length ? (
                 <div className="ix-table-wrap ix-table-wrap--show">
-                  <table className="ix-table gc-table--keep">
+                  <table className="ix-table">
                     <caption className="sr-only">{d.name} positions</caption>
                     <thead><tr><th scope="col">Position</th><th scope="col">Grade</th><th scope="col">Salary band</th><th scope="col">Held by</th><th scope="col" className="ix-num">To hire</th></tr></thead>
                     <tbody>{rows.map((p) => {

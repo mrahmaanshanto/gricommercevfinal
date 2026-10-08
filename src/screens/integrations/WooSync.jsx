@@ -105,7 +105,7 @@ const CSS = `
 .ws-step{display:grid;place-items:center;flex:none;width:20px;height:20px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body)}
 .ws-step--done{background:var(--fill-success-soft);color:var(--text-success)}
 .ws-ok{display:flex;align-items:center;gap:var(--space-2);margin:0;padding:var(--space-3) var(--space-4);font-size:var(--text-sm);color:var(--text-success)}
-@media (max-width:640px){.ws-two{grid-template-columns:minmax(0,1fr)}.ws-row{flex-wrap:wrap}}
+@media (max-width:640px){.ws-two{grid-template-columns:minmax(0,1fr)}.ws-row{display:grid;grid-template-columns:minmax(0,1fr) auto;row-gap:2px}.ws-row>.ws-row__meta{grid-column:1;grid-row:2;white-space:normal}.ws-row>.gc-switch{grid-column:2;grid-row:1}}
 `;
 
 // ---- markup ----

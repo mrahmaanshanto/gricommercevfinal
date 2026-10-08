@@ -86,7 +86,7 @@ export default function PayChanges() {
         <section className="ix-card" aria-labelledby="pc-due">
           <header className="ix-card__head"><h2 id="pc-due">Due for a review <InfoTip text="No raise in 12 months or more, or probation to confirm." /></h2></header>
           <div className="ix-table-wrap ix-table-wrap--show" style={{ marginTop: 'var(--space-2)' }}>
-            <table className="ix-table gc-table--keep ix-table--static">
+            <table className="ix-table ix-table--static">
               <caption className="sr-only">Due for a review</caption>
               <thead><tr><th scope="col">Staff</th><th scope="col">Position</th><th scope="col" className="ix-num">Gross</th><th scope="col">In the band</th><th scope="col">Last raise</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
               <tbody>
@@ -142,7 +142,7 @@ export default function PayChanges() {
               })}
             </ul>
             <div className="ix-table-wrap">
-              <table className="ix-table gc-table--keep">
+              <table className="ix-table">
                 <caption className="sr-only">Pay changes. Click a row for its letter.</caption>
                 <thead><tr><th scope="col">Staff</th><th scope="col">Change</th><th scope="col">From</th><th scope="col">Before → after</th><th scope="col" className="ix-num">Raise</th></tr></thead>
                 <tbody>

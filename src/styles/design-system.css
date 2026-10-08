@@ -836,7 +836,7 @@ body{font-family:var(--font-sans)}
   .gc-pagehead__desc{display:none}
   .gc-pagehead__title{font-size:var(--text-xl);line-height:var(--text-xl-lh)}
   /* statistic cards: one swipeable strip instead of a tall stack */
-  .gc-kpis{display:flex!important;gap:8px!important;overflow-x:auto;scroll-snap-type:x proximity;margin-inline:-14px;padding:0 14px 2px;scrollbar-width:none}
+  .gc-kpis{display:flex!important;gap:8px!important;overflow-x:auto;scroll-snap-type:x mandatory;margin-inline:-14px;padding:0 14px 2px;scrollbar-width:none}
   .gc-kpis::-webkit-scrollbar{display:none}
   .gc-kpis>.gc-kpi{flex:0 0 auto;min-width:150px;max-width:230px;scroll-snap-align:start;padding:10px 12px;gap:10px}
   .gc-kpi__icon{width:32px;height:32px}
@@ -844,7 +844,7 @@ body{font-family:var(--font-sans)}
   .gc-kpi__value{font-size:var(--text-lg);line-height:24px;flex-wrap:wrap;gap:0 6px}
   .gc-kpis .gc-kpi__label,.gc-kpis .gc-kpi__value small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   /* converted pages' statistic rows (gc-cardrow): the same compact strip */
-  .gc-cardrow{flex-wrap:nowrap!important;overflow-x:auto;gap:8px!important;margin-inline:-14px;padding:0 14px 2px;scrollbar-width:none;scroll-snap-type:x proximity}
+  .gc-cardrow{flex-wrap:nowrap!important;overflow-x:auto;gap:8px!important;margin-inline:-14px;padding:0 14px 2px;scrollbar-width:none;scroll-snap-type:x mandatory}
   .gc-cardrow::-webkit-scrollbar{display:none}
   .gc-cardrow>*{flex:0 0 auto!important;min-width:150px;max-width:240px;padding:12px!important;gap:10px!important;scroll-snap-align:start}
   .gc-cardrow>*>span:first-child{width:36px!important;height:36px!important}
@@ -867,6 +867,9 @@ body{font-family:var(--font-sans)}
   .gc-cards-on>*>tr>td[colspan]{text-align:center!important}
   .gc-cards-on>*>tr>td>*{max-width:100%}
   .gc-table-wrap:has(>table.gc-cards-on),:has(>table.gc-cards-on){overflow:visible!important;min-width:0!important}
+  /* a grid of figures that stays a table (gc-table--keep gc-table--scroll) scrolls sideways in its box instead of squeezing */
+  table.gc-table--scroll{width:max-content!important;min-width:100%}
+  table.gc-table--scroll :is(th,td){white-space:nowrap}
 }
 
 /* ---- phone hardening (phone audit, 1 Oct 2026) ---- */
@@ -896,8 +899,11 @@ body{font-family:var(--font-sans)}
   .gc-shell__content :is(button,a)[style*="width:32px"][style*="height:32px"]{width:36px!important;height:36px!important}
   .gc-shell__content input[type=checkbox]:not(.sr-only):not([hidden]),.gc-shell__content input[type=radio]:not(.sr-only){min-width:20px;min-height:20px}
   .gc-btn--sm,.gc-btn--flat{min-height:36px}
+  .gc-shell__content :is(.abtn,button.sc-step,.set-tips){min-height:36px}
   .gc-cards-on>*>tr>.is-actions :is(button,a):not(.gc-btn){min-width:36px;min-height:36px;display:inline-flex;align-items:center;justify-content:center}
 }
+
+@keyframes gc-strip-more{0%,94%{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent)}100%{-webkit-mask-image:none;mask-image:none}}
 
 /* ---- side panel / bottom sheet (Help, phone filters) ---- */
 .gc-sheet__backdrop{position:fixed;inset:0;z-index:var(--z-modal-backdrop);background:rgba(15,23,42,.45);animation:gc-fade var(--duration-base) var(--ease-out)}
@@ -1003,12 +1009,16 @@ body{font-family:var(--font-sans)}
 .gc-phonebar>.gc-btn{flex:0 1 auto}
 .gc-phonebar>.gc-btn:only-child{flex:1}
 body:has(.gc-phonebar) .gc-shell__content{padding-bottom:96px!important}
-/* phones: the assistant button is a round icon and moves above the action bar */
+/* phones: the assistant opens from the top bar's sparkles button (gc-topbar.js fires gc:gridai), so nothing floats
+   over the page; pages without the top bar keep a round button, above any action bar */
 @media (max-width:640px){
   .gc-ai{right:14px;bottom:16px}
   .gc-ai__fab{width:48px;height:48px;padding:0;justify-content:center}
   .gc-ai__label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   body:has(.gc-phonebar, .gc-sticky-actions, .savebar, .no-bar, .set-bar, .ss-bar, .sn-bar, .cs .formbar) .gc-ai{bottom:calc(84px + env(safe-area-inset-bottom))}
+  body:has(gc-topbar) .gc-ai{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom))}
+  body:has(gc-topbar) .gc-ai__fab{display:none}
+  body:has(gc-topbar) .gc-ai__panel{width:100%;max-height:calc(100dvh - 96px)}
 }
 
 /* ---- sticky save bar on phones (forms) ---- */
@@ -1212,11 +1222,13 @@ a.ix-strong:hover{color:var(--primary);text-decoration:underline}
   .ix-phone{display:inline-flex}
   .ix-head__actions .ix-menu .ix-btn>span,.ix-head__actions .ix-menu .ix-btn>svg:last-child{display:none}
   .ix-head__actions .ix-menu .ix-btn>svg:first-child{display:block}
-  .ix-head__actions .ix-menu .ix-btn{width:36px;padding:0}
-  .ix-metrics{margin-inline:-14px;border-radius:0;border-inline:0}
-  .ix-metric{min-width:140px}
-  .ix-btn,.ix-pick{height:36px}
-  .ix-tab{height:32px}
+  .ix-head__actions .ix-menu .ix-btn{width:40px;padding:0}
+  .ix-metrics{margin-inline:-14px;border-radius:0;border-inline:0;scroll-snap-type:x mandatory}
+  .ix-metric{min-width:140px;scroll-snap-align:start}
+  /* a strip that scrolls fades at the right edge until its end is reached, so a cut figure reads as "more" */
+  @supports (animation-timeline:scroll()){
+    .ix-metrics,.gc-kpis,.gc-cardrow{animation:gc-strip-more linear both;animation-timeline:scroll(self inline)}
+  }
 }
 /* a kit page is one column: never let the old phone rule (wrap any box holding a heading) turn it into columns */
 .gc-shell__content .ix-page{flex-wrap:nowrap!important}
@@ -1266,11 +1278,24 @@ textarea.gc-input{height:auto}
 .gc-stattab__nums b{font-size:var(--text-sm-plus)}
 /* merchant pages: the large type steps are one size smaller (figures and titles were 24–30px) */
 .gc-shell__content{--text-2xl:20px;--text-2xl-lh:1.4;--text-3xl:24px;--text-3xl-lh:1.3}
+/* <small> is the browser's 'smaller' (10px inside 12px text): never below helper size */
+:where(.gc-shell__content) small{font-size:max(var(--text-xs), .83em)}
+/* phones: one control scale, never under 36px. 44 = fields and form buttons (gc-btn), 40 = list and header buttons
+   (ix-btn) and the search and filters beside them, 36 = small buttons, chips, tabs and segments */
 @media (max-width:640px){
   :root{--control-height:44px}
-  .gc-btn{height:40px}
-  .gc-btn--sm{height:36px}
+  .gc-btn{height:44px}
+  .gc-btn--sm,.gc-btn--flat{height:36px}
   .gc-seg__btn{height:36px}
+  .ix-btn,.ix-pick,.ix-search{height:40px}
+  .ix-filter{height:36px}
+  .ix-btn--icon{width:40px}
+  .ix-btn--sm{height:36px}
+  .ix-btn--sm.ix-btn--icon{width:36px}
+  .ix-tab{height:36px}
+  .ix-learn{min-height:36px}
+  .gc-infotip__btn::before{content:'';position:absolute;inset:-6px}
+  .gc-shell__content :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not(.sr-only),select){min-height:36px}
 }
 /* records and forms (IndexKit RecordHeader, KV): work on the left, facts on the right */
 .ix-head--record{align-items:flex-start}

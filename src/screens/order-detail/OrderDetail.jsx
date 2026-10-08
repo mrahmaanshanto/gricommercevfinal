@@ -14,6 +14,7 @@
 // Text stays short and plain (Shopify style).
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { BrandLogo } from '@/components/BrandLogo';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
@@ -95,8 +96,10 @@ const CSS = `
 .od-place .gc-table th:first-child,.od-place .gc-table td:first-child{padding-left:var(--space-3)}
 .od-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--space-3)}
 .od-short{color:var(--text-danger);font-weight:var(--weight-medium)}
-.od-contact{display:flex;gap:var(--space-2);margin-top:var(--space-2)}
-.od-contact .ix-btn{flex:1}
+.od-contact{display:flex;align-items:center;gap:var(--space-1)}
+.od-contact .od-id{margin-right:var(--space-2)}
+/* one column (below 1024px): the Customer card leads the page, above the steps */
+@media (max-width:1023px){.od-rec>.ix-main,.od-rec>.ix-side{display:contents}.od-rec>.ix-side>.od-custcard{order:-1}}
 .od-section{margin:var(--space-3) 0 0;padding-top:var(--space-3);border-top:1px solid var(--border-subtle)}
 .od-section h3{margin:0 0 4px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
 .od-section p{margin:0;font-size:var(--text-sm);line-height:1.5;color:var(--text-heading)}
@@ -111,9 +114,6 @@ const CSS = `
 /* phones: the steps fold to one line; the Verify card carries the phone and the contact buttons */
 .od-stepline{display:none;width:100%;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-subtle);font:inherit;font-size:var(--text-sm);color:var(--text-body);cursor:pointer;text-align:left}
 .od-stepline b{color:var(--text-heading);font-weight:var(--weight-semibold)}
-.od-contact--verify{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);margin:0}
-.od-contact--verify .ix-btn{flex:0 0 auto}
-.od-contact--verify .od-id{margin-right:4px}
 .od-steps{display:grid;grid-template-columns:repeat(var(--steps),minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none}
 .od-step{position:relative;min-width:0;text-align:center}
 .od-step__dot{position:relative;z-index:1;width:24px;height:24px;margin:0 auto;border-radius:var(--radius-full);display:grid;place-items:center;background:var(--surface-subtle);color:var(--text-muted);border:1.5px solid transparent}
@@ -174,10 +174,12 @@ const CSS = `
 .od-photo{display:block;width:100%;max-height:60vh;object-fit:contain;border-radius:var(--radius-lg);background:var(--surface-subtle)}
 .od-couriers{display:flex;flex-direction:column;gap:var(--space-2);margin:var(--space-3) 0 0;padding:0;list-style:none}
 .od-couriers li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px var(--space-3);font-size:var(--text-sm)}
-.od-couriers b{font-weight:var(--weight-medium);color:var(--text-heading)}
-.od-couriers span{color:var(--text-muted);font-size:var(--text-xs);text-align:right;white-space:nowrap}
-.od-couriers i{grid-column:1 / -1;display:flex;height:4px;border-radius:var(--radius-full);overflow:hidden;background:var(--fill-error-soft)}
+.od-couriers b{display:inline-flex;align-items:center;gap:var(--space-2);min-width:0;font-weight:var(--weight-medium);color:var(--text-heading)}
+.od-couriers span{align-self:center;color:var(--text-muted);font-size:var(--text-xs);text-align:right;white-space:nowrap}
+.od-ret,.od-couriers .od-ret{color:var(--text-danger);font-weight:var(--weight-medium)}
+.od-couriers i{grid-column:1 / -1;display:flex;height:4px;border-radius:var(--radius-full);overflow:hidden;background:var(--surface-subtle)}
 .od-couriers i em{display:block;height:100%;background:var(--fill-success)}
+.od-couriers i em.is-ret{background:var(--fill-danger)}
 .od-visit{display:flex;flex-direction:column;gap:var(--space-3)}
 .od-visit h3{margin:0 0 4px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
 @media (max-width:767px){
@@ -544,14 +546,6 @@ export default function OrderDetail() {
     title: v && v.state === 'confirmed' ? 'Approve order' : 'Verify order',
     sub: o.advance && o.advance.state === 'requested' ? `Advance ${formatBDT(o.advance.amount)} requested` : status.hint,
     body: (<>
-      {digitsOf(o.phone).length >= 10 ? (
-        <div className="od-contact od-contact--verify">
-          <span className="od-id od-strong">{o.phone}</span>
-          <a className="ix-btn ix-btn--sm" href={'tel:' + digitsOf(o.phone)}><Icon name="phone" width="16" height="16" aria-hidden="true" />Call</a>
-          <a className="ix-btn ix-btn--sm" href={'https://wa.me/88' + digitsOf(o.phone)} target="_blank" rel="noreferrer">WhatsApp</a>
-          <a className="ix-btn ix-btn--sm" href={'sms:' + digitsOf(o.phone)}>SMS</a>
-        </div>
-      ) : null}
       {verifyLine}
       {recordLine}
       <div className="od-acts">
@@ -682,7 +676,7 @@ export default function OrderDetail() {
             </div>
           ) : null}
 
-          <div className="ix-record">
+          <div className="ix-record od-rec">
             <div className="ix-main">
               {/* a counter sale is finished at the counter: no verify / courier steps (the header badges say where it stands) */}
               {!counter ? <section className="ix-card od-card" aria-labelledby="od-next">
@@ -832,29 +826,21 @@ export default function OrderDetail() {
             </div>
 
             <aside className="ix-side">
-              <section className="ix-card" aria-labelledby="od-notes">
-                <header className="ix-card__head"><h2 id="od-notes">Notes</h2></header>
-                <div className="ix-card__body od-body" style={{ gap: 'var(--space-3)' }}>
-                  <div><label className="gc-label" htmlFor="od-note">Order note</label><textarea id="od-note" key={'note-' + o.id} className="gc-input" rows="2" placeholder={counter ? 'Printed on the invoice' : 'Visible to courier and on the invoice'} defaultValue={o.note || ''} onBlur={(e) => saveNote('note', e.target.value)} /></div>
-                  <div><label className="gc-label" htmlFor="od-inote">Internal note</label><textarea id="od-inote" key={'inote-' + o.id} className="gc-input" rows="2" placeholder="Only staff can read this" defaultValue={o.internalNote || ''} onBlur={(e) => saveNote('internalNote', e.target.value)} /></div>
-                </div>
-              </section>
-
-              <section className="ix-card" aria-labelledby="od-cust">
+              <section className="ix-card od-custcard" aria-labelledby="od-cust">
                 <header className="ix-card__head"><h2 id="od-cust">Customer</h2>{blocked ? <StatusBadge tone="error" icon="ban">Blocked</StatusBadge> : null}</header>
                 <div className="ix-card__body">
                   <span className="od-strong" style={{ display: 'block' }}>{o.customer}</span>
                   {digitsOf(o.phone).length >= 10 ? <span className="od-sub">{samePhone.length > 1 ? `${samePhone.length} orders from this number` : 'First order from this number'}</span> : null}
                   {!counter || digitsOf(o.phone).length >= 10 ? <div className="od-section">
                     <h3>Contact</h3>
-                    <p className="od-id">{o.phone}</p>
-                    {digitsOf(o.phone).length >= 10 ? (isNew && !counter ? <p className="od-sub">Call or message from the Verify card.</p> :
+                    {digitsOf(o.phone).length >= 10 ? (
                       <div className="od-contact">
-                        <a className="ix-btn ix-btn--sm" href={'tel:' + digitsOf(o.phone)}>Call</a>
-                        <a className="ix-btn ix-btn--sm" href={'https://wa.me/88' + digitsOf(o.phone)} target="_blank" rel="noreferrer">WhatsApp</a>
-                        <a className="ix-btn ix-btn--sm" href={'sms:' + digitsOf(o.phone)}>SMS</a>
+                        <span className="od-id">{o.phone}</span>
+                        <a className="ix-btn ix-btn--sm ix-btn--icon" href={'tel:' + digitsOf(o.phone)} aria-label={'Call ' + o.phone} title="Call"><Icon name="phone" width="16" height="16" aria-hidden="true" /></a>
+                        <a className="ix-btn ix-btn--sm ix-btn--icon" href={'https://wa.me/88' + digitsOf(o.phone)} target="_blank" rel="noreferrer" aria-label={'WhatsApp ' + o.phone} title="WhatsApp"><Icon name="message-circle" width="16" height="16" aria-hidden="true" /></a>
+                        <a className="ix-btn ix-btn--sm ix-btn--icon" href={'sms:' + digitsOf(o.phone)} aria-label={'SMS ' + o.phone} title="SMS"><Icon name="message-square" width="16" height="16" aria-hidden="true" /></a>
                       </div>
-                    ) : <p className="od-sub">No mobile number on this order.</p>}
+                    ) : <><p className="od-id">{o.phone}</p><p className="od-sub">No mobile number on this order.</p></>}
                   </div> : null}
                   {!counter || o.address ? <div className="od-section">
                     <h3>Shipping address</h3>
@@ -864,15 +850,23 @@ export default function OrderDetail() {
                 </div>
               </section>
 
+              <section className="ix-card" aria-labelledby="od-notes">
+                <header className="ix-card__head"><h2 id="od-notes">Notes</h2></header>
+                <div className="ix-card__body od-body" style={{ gap: 'var(--space-3)' }}>
+                  <div><label className="gc-label" htmlFor="od-note">Order note</label><textarea id="od-note" key={'note-' + o.id} className="gc-input" rows="2" placeholder={counter ? 'Printed on the invoice' : 'Visible to courier and on the invoice'} defaultValue={o.note || ''} onBlur={(e) => saveNote('note', e.target.value)} /></div>
+                  <div><label className="gc-label" htmlFor="od-inote">Internal note</label><textarea id="od-inote" key={'inote-' + o.id} className="gc-input" rows="2" placeholder="Only staff can read this" defaultValue={o.internalNote || ''} onBlur={(e) => saveNote('internalNote', e.target.value)} /></div>
+                </div>
+              </section>
+
               {!counter ? (
                 <section className="ix-card" aria-labelledby="od-verify">
                   <header className="ix-card__head"><h2 id="od-verify">Order verification</h2><StatusBadge tone={risk[1] === 'slate' ? 'neutral' : risk[1]} icon="shield-check">{risk[0]}</StatusBadge></header>
                   <div className="ix-card__body">
                     {record && record.total ? (<>
-                      <KV rows={[['Parcels', String(record.total)], ['Delivered', String(record.delivered)], ['Returned', String(record.returned)], ['Success', record.rate + '%']]} />
+                      <KV rows={[['Parcels', String(record.total)], ['Delivered', String(record.delivered)], ['Returned', record.returned ? <span className="od-ret">{record.returned}</span> : '0'], ['Success', record.rate + '%']]} />
                       <ul className="od-couriers">
                         {record.couriers.map((c) => (
-                          <li key={c.name}><b>{c.name}</b><span>{c.delivered} of {c.total} delivered{c.returned ? ` · ${c.returned} returned` : ''}</span><i aria-hidden="true"><em style={{ width: `${c.total ? (c.delivered / c.total) * 100 : 0}%` }} /></i></li>
+                          <li key={c.name}><b><BrandLogo brand={c.name.toLowerCase().replace(/[^a-z]/g, '')} size={24} decorative />{c.name}</b><span>{c.delivered} of {c.total} delivered{c.returned ? <> · <span className="od-ret">{c.returned} returned</span></> : null}</span><i aria-hidden="true"><em style={{ width: `${c.total ? (c.delivered / c.total) * 100 : 0}%` }} />{c.returned ? <em className="is-ret" style={{ width: `${(c.returned / c.total) * 100}%` }} /> : null}</i></li>
                         ))}
                       </ul>
                     </>) : <p className="od-sub" style={{ margin: 0 }}>{record ? 'No courier record for this number.' : 'No mobile number to check.'}</p>}

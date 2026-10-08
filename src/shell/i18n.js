@@ -97,7 +97,7 @@ const BN = {
   // account menu, Help and editions (gc-topbar.js, gc-sidebar.js, lib/edition.js)
   'My tasks': 'আমার কাজ', 'Your tasks, numbers and team for today': 'আজকের কাজ, হিসাব আর টিম',
   'Profile type': 'প্রোফাইলের ধরন', 'Switch to a team member’s profile': 'টিমের অন্য কারও প্রোফাইলে যান',
-  'Help': 'সাহায্য', 'Help for this page': 'এই পেজের সাহায্য',
+  'Help': 'সাহায্য', 'Help for this page': 'এই পেজের সাহায্য', 'Ask GridAI': 'GridAI-কে জিজ্ঞেস করুন',
   'All modules': 'সব মডিউল', 'Retail + Wholesale': 'রিটেইল + হোলসেল', 'Retail': 'রিটেইল', 'Retail + Online': 'রিটেইল + অনলাইন', 'Online': 'অনলাইন',
   'Retail + Wholesale + Online': 'রিটেইল + হোলসেল + অনলাইন', 'Communication & CRM': 'যোগাযোগ ও সিআরএম',
   // Inbox area and the top-bar chat button (navigation.js area-inbox, gc-topbar.js)

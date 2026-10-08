@@ -45,7 +45,7 @@ const CSS = `
 .bh-perm td small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .bh-save{position:sticky;bottom:calc(12px + var(--host-badge, 0px));z-index:20;display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3) var(--space-2) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-lg);font-size:var(--text-sm);color:var(--text-heading)}
 .bh-save>span{margin-right:auto;display:flex;align-items:center;gap:8px}
-@media (max-width:640px){.ga-field .bh-chans select.gc-input{width:150px}}
+@media (max-width:640px){.bh-chans li{flex-direction:column;align-items:stretch;gap:var(--space-1);padding-block:var(--space-2)}.ga-field .bh-chans select.gc-input{width:100%}}
 `;
 
 const CHANNELS = [['facebook', 'Facebook Messenger'], ['instagram', 'Instagram messages'], ['whatsapp', 'WhatsApp'], ['web', 'Website chat'], ['email', 'Email'], ['comments', 'Facebook & Instagram comments']];

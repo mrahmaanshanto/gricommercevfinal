@@ -137,6 +137,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `gc-cols--keep`. A title shares its row with the page's main button; long titles wrap between words. Put phone rules in
   the screen's own CSS inside `@media (max-width:640px)`; app screens (`src/screens/app`) use `src/styles/phone-app.css`,
   the platform console uses `src/styles/console-responsive.css` (its header comment lists the table/form/chart hooks).
+- Phone pass 2 (Oct 2026, every page at 390 px): one control scale on phones — 44px fields and `gc-btn`, 40px `ix-btn` and
+  the list search, 36px small buttons, chips, tabs, segments (never under 36). GridAI has no floating button where the top
+  bar is: the bar's sparkles button fires `gc:gridai`; Help moves into the account menu. Figure strips snap to whole
+  cards and fade at the right edge while there is more. `<small>` never drops under 12px. A kept table that is a grid of
+  figures adds `gc-table--scroll` (scrolls in its box, no wrapping); list tables drop `gc-table--keep` and become cards.
+  The POS register scrolls as one page on phones (header and View cart stay pinned).
 - Menu: business areas, as in Shopify's admin (`docs/reference-ux.md`, `docs/shopify-style.md`).
   - `src/shell/navigation.js` lists the areas in two groups:
     - Commerce: Home · Inbox · Orders · Products · Inventory · Payments · Customers · Communications · Finances ·
@@ -304,8 +310,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
     Sent to courier, Delivered, Returned, Cancelled; `tabKeys(tab)`); Retail keeps its own tabs. A **digital order** (every
     item's product format is digital or licence, `orderFlow.js › isDigitalOrder`) skips Ready for courier and Sent to
     courier: approved → "Send the download or key" → `sendDigital` → Delivered.
-  - Create order: Customer comes first (search focused). Order page: the Verify card has the phone, Call, WhatsApp and SMS
-    (the Customer card points there while the order is new); on phones the steps fold to one "Step n of n" line.
+  - Create order: Customer comes first (search focused). Order page: the Customer card is the first card of the side
+    column (first on the page below 1024px) with Call, WhatsApp and SMS; on phones the steps fold to one "Step n of n" line.
   - Home (all three Homes): a **Needs you** button with the count in the top row next to Create and Export
     (`ActionPills variant="button"`), opening the full list with snooze / dismiss. A side panel was tried and removed: it
     squeezed the dashboard.

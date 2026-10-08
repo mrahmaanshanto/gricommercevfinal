@@ -142,7 +142,7 @@ export default function Vat() {
         <section className="ix-card" aria-labelledby="vt-rates">
           <header className="ix-card__head"><h2 id="vt-rates">VAT rate by category <InfoTip text={'Change a rate or the "included" switch and the totals above update. VAT paid on supplier invoices is deducted from what you collected.'} /></h2></header>
           <div className="ix-table-wrap ix-table-wrap--show" style={{ marginTop: 'var(--space-3)' }}>
-            <table className="ix-table ix-table--static gc-table--keep">
+            <table className="ix-table ix-table--static">
               <caption className="sr-only">VAT rate by category, {M[1]}</caption>
               <thead><tr><th scope="col">Category</th><th scope="col">Rate</th><th scope="col">VAT in price?</th><th scope="col" className="ix-num">Sales</th><th scope="col" className="ix-num">VAT</th></tr></thead>
               <tbody>

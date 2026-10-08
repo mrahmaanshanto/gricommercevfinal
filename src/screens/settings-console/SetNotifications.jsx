@@ -53,6 +53,11 @@ const CSS = `
   .sn-cap{display:block;font-size:var(--text-xs);color:var(--text-muted)}
   .sn-row>.sn-edit{grid-column:1 / -1;justify-self:start}
   }
+@media (max-width:640px){
+  .sn-row{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:var(--space-1)}
+  .sn-cell{flex-direction:row;justify-content:flex-start;gap:var(--space-2);min-height:36px}
+  .sn-cap{font-size:var(--text-sm);color:var(--text-body)}
+}
 `;
 
 export default function SetNotifications() {

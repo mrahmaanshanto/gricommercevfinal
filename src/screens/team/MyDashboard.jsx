@@ -224,7 +224,7 @@ function ReportBlock({ b, me }) {
         ) : kpis.length ? <div className="md-kpis">{kpis.slice(0, 4).map((k) => <div key={k.key} className="md-kpi"><span>{k.label}</span><b title={fmt(k.value, k.format)}>{fmt(k.value, k.format)}</b>{k.sub ? <span>{k.sub}</span> : null}</div>)}</div> : null}
         {rows.length && cols.length ? (
           <div className="gc-table-wrap" style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)' }}>
-            <table className="md-mini gc-table--keep">
+            <table className="md-mini gc-table--keep gc-table--scroll">
               <thead><tr>{cols.map((c, i) => <th key={c.key} scope="col" className={i ? 'num' : ''}>{c.label}</th>)}</tr></thead>
               <tbody>{rows.map((r, i) => <tr key={i} className={isMe(r) ? 'is-me' : ''}>{cols.map((c, j) => <td key={c.key} className={j ? 'num' : ''}>{fmt(r[c.key], c.format)}</td>)}</tr>)}</tbody>
             </table>
