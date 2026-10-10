@@ -22,10 +22,20 @@ export const NAV = [
       { id: 'calls', icon: 'phone', label: 'Calls', to: 'merchant-calls/MerchantCalls.dc.html' },
       { id: 'comm-ai', icon: 'phone-call', label: 'AI calls', count: 1, to: 'ai-call/AiCalls.dc.html' },
     ] },
-    // Grid AI: what the AI knows, how it behaves, testing it, approvals for risky actions and its activity log
+    // Grid AI: the one AI for the whole shop (lib/gridai/*): overview, the assistant, agents, knowledge and training,
+    // testing, its automations, activity and approvals for risky actions, analytics, cost, settings (Behaviour + Models)
     { id: 'area-gridai', icon: 'sparkles', label: 'Grid AI', children: [
-      { id: 'ai-knowledge', icon: 'book-open', label: 'Knowledge', to: 'gridai/Knowledge.dc.html' },
-      { id: 'ai-behaviour', icon: 'sliders-horizontal', label: 'Behaviour', to: 'gridai/Behaviour.dc.html' },
+      { id: 'ai-overview', icon: 'layout-dashboard', label: 'Overview', to: 'gridai/AiOverview.dc.html' },
+      { id: 'ai-assistant', icon: 'message-square-text', label: 'Assistant', to: 'gridai/GridAI.dc.html' },
+      { id: 'ai-agents', icon: 'bot', label: 'Agents', to: 'gridai/AiAgents.dc.html' },
+      { id: 'ai-knowledge', icon: 'book-open', label: 'Knowledge & training', tab: 'Knowledge', to: 'gridai/Knowledge.dc.html' },
+      { id: 'ai-test', icon: 'flask-conical', label: 'Test AI', to: 'gridai/AiTest.dc.html' },
+      { id: 'ai-automations', icon: 'workflow', label: 'Automations', to: 'gridai/AiAutomations.dc.html' },
+      { id: 'ai-activity', icon: 'shield-check', label: 'Activity & approvals', tab: 'Activity', to: 'gridai/AiActivity.dc.html' },
+      { id: 'ai-analytics', icon: 'chart-column', label: 'Analytics', to: 'gridai/AiAnalytics.dc.html' },
+      { id: 'ai-usage', icon: 'wallet', label: 'Usage & billing', tab: 'Usage', to: 'gridai/AiUsage.dc.html' },
+      { id: 'ai-behaviour', icon: 'sliders-horizontal', label: 'Settings', to: 'gridai/Behaviour.dc.html' },
+      { id: 'ai-models', icon: 'cpu', label: 'Models & limits', to: 'gridai/AiModels.dc.html', hidden: true, under: 'ai-behaviour' },
     ] },
     { id: 'area-orders', icon: 'shopping-cart', label: 'Orders', children: [
       { id: 'orders-all', icon: 'inbox', label: 'All orders', to: 'merchant-orders/MerchantOrders.dc.html' },

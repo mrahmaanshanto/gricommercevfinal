@@ -18,6 +18,8 @@ import { getSuppliers, getBills } from './supplierBills';
 import { statusOf, connectedInbox } from './connections';
 import { OWN_ACCOUNTS } from './ledger';
 import { loadSnapshot } from './hr';
+import { lastRun } from './gridai/evals';
+import { getFeedback } from './gridai/quality';
 import { getSources } from './gridai/knowledge';
 import { getProfile } from './gridai/profile';
 import { getOffers } from './smartOffers';
@@ -63,8 +65,10 @@ export const AREA_SETUP = {
     { id: 'sms', module: 'comms', label: 'Connect an SMS gateway', href: '/connections?group=messages', done: () => connected('sms') },
   ] },
   'area-gridai': { title: 'Grid AI', steps: [
-    { id: 'kb', module: 'comms', label: 'Teach Grid AI about your shop', href: '/ai-knowledge', done: () => getSources().length > 0 },
-    { id: 'voice', module: 'comms', label: 'Set how Grid AI talks', href: '/ai-behaviour', done: () => !!getProfile() },
+    { id: 'kb', module: 'gridai', label: 'Teach Grid AI about your shop', href: '/ai-knowledge', done: () => getSources().length > 0 },
+    { id: 'voice', module: 'gridai', label: 'Set how Grid AI talks', href: '/ai-behaviour', done: () => !!getProfile() },
+    { id: 'test', module: 'gridai', label: 'Run the test set', href: '/ai-test?tab=cases', done: () => !!lastRun() },
+    { id: 'chat', module: 'comms', label: 'Try a chat in Test AI', href: '/ai-test', done: () => getFeedback().some((f) => /Test AI/.test(f.note || '')) || !!lastRun() },
   ] },
   'area-marketing': { title: 'Marketing', steps: [
     { id: 'offer', module: 'marketing', label: 'Create your first offer', href: '/coupons', done: () => getPromotions().length > 0 },

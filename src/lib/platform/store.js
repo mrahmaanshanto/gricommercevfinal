@@ -6,7 +6,7 @@
 //   now()           the console's clock: REF until loaded, then the real time (+ gc.clock.offset for testing)
 //   commit(fn)      change the data: fn(db, now) runs, the billing engine catches up, it is saved and screens redraw
 //   attach(comp)    for a screen (class component): load, redraw on every change, every 20 s and from other tabs
-//   staff()         who is signed in to the console (demo: Farhana Akter; ?staff=<id> switches)
+//   staff()         who is signed in to the console (demo: Mahin Khan, admin; ?staff=<id> switches)
 //   resetDemo()     start the demo again (or open any console page with ?reset=1)
 // A real build keeps all of this on the server (#19: tenant registry, billing engine, audit) — see CorePlan.
 
@@ -113,14 +113,14 @@ export function resetDemo() {
 }
 
 // ---- who is signed in --------------------------------------------------------------------------------
-/** The console staff member using this browser (demo: Farhana Akter, as on the design). ?staff=<id> switches. */
+/** The console staff member using this browser (demo: Mahin Khan, admin). ?staff=<id> switches. */
 export function staff() {
-  if (!LIVE || !isBrowser) return staffBy('farhana');
+  if (!LIVE || !isBrowser) return staffBy('mahin');
   try {
     const q = new URLSearchParams(window.location.search).get('staff');
     if (q && staffBy(q)) { window.localStorage.setItem(STAFF_KEY, q); return staffBy(q); }
-    return staffBy(window.localStorage.getItem(STAFF_KEY)) || staffBy('farhana');
-  } catch { return staffBy('farhana'); }
+    return staffBy(window.localStorage.getItem(STAFF_KEY)) || staffBy('mahin');
+  } catch { return staffBy('mahin'); }
 }
 export function setStaff(id) {
   if (!isBrowser || !staffBy(id)) return;

@@ -4,7 +4,9 @@
 // server) and again when one of the events fires.
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar, Topbar } from '@/shell/Shell';
+import { IndexTabs } from '@/components/ui/IndexKit';
 
 export const GA_CSS = `
 .ga-field{display:flex;flex-direction:column;gap:6px;min-width:0}
@@ -64,4 +66,11 @@ export function useLive(read, events = [], tick = 0) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return state;
+}
+
+/** Grid AI › Settings is two pages: Behaviour (how it talks, rules, permissions) and Models & limits. */
+export function AiSettingsTabs({ on }) {
+  const router = useRouter();
+  const tabs = [['behaviour', 'Behaviour', '/ai-behaviour'], ['models', 'Models & limits', '/ai-models']].map(([k, l, href]) => ({ key: k, id: 'ais-tab-' + k, label: l, on: on === k, onClick: () => { if (on !== k) router.push(href); } }));
+  return <div className="ix-bar" style={{ padding: 0 }}><IndexTabs tabs={tabs} label="Grid AI settings" /></div>;
 }

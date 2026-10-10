@@ -14,7 +14,8 @@
 export const PLAN_KEY = 'gc.plan';
 export const PLAN_EVENT = 'gc:plan';
 
-const STARTER = ['core', 'catalog', 'commerce', 'money', 'reports', 'online', 'pos', 'comms'];
+// every plan has Grid AI; what differs is the AI allowance a month (Grid AI › Usage & billing)
+const STARTER = ['core', 'catalog', 'commerce', 'money', 'reports', 'online', 'pos', 'comms', 'gridai'];
 const GROWTH = [...STARTER, 'places', 'purchasing', 'marketing', 'wholesale', 'channels', 'automation'];   // 'wholesale' is off in every edition for now (edition.js › WHOLESALE)
 
 export const PLANS = {

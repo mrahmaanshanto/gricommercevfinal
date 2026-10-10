@@ -16,14 +16,14 @@ import { BrandLogo } from '@/components/BrandLogo';
 import { formatBDT } from '@/lib/format';
 import { ORDER_STATUSES } from '@/lib/orderStatus';
 import { orderHref } from '@/lib/orders';
-import { productBy, stockAt, getCatalog } from '@/lib/stock';
-import { isStatusSellable } from '@/lib/sellable';
-import { CHANNELS, channelName, staffName, STAFF, ME, statusOf, dayLabel, sameDay, clock, fmtDur, suggestions, fillReply, countReplyUse, snoozeChoices, whenText, samePhone,
+import { productBy, stockAt } from '@/lib/stock';
+import { CHANNELS, channelName, staffName, STAFF, ME, statusOf, dayLabel, sameDay, clock, fmtDur, fillReply, countReplyUse, snoozeChoices, whenText, samePhone,
   firstName, previewOf, reactTo, reactionsOf, bigEmoji, keepVoice, addCall } from '@/lib/inbox';
 import { Avatar, StaffAvatar, Menu, MenuItem } from './parts';
 import { TagMenu } from './CustomerPanel';
 import { SavedRepliesDialog, ProductDialog, PaymentDialog, Lightbox, catIcon } from './Dialogs';
 import { VoiceNote, VoiceRecorder, CallScreen, ReactPicker, Mentioned, MSGR_CSS } from './Messenger';
+import { CopilotCard, AutopilotControl, AiBar, AiTag, COPILOT_CSS } from './Copilot';
 
 const EMOJI = ['😊', '🙏', '👍', '❤️', '😍', '🎉', '✅', '📦', '🚚', '💳', '🛍️', '⭐', '😅', '🤝', '👋', '🔥', '💯', '🙂', '😔', '⏰', '📍', '🎁', '💌', '👌'];
 const STATUS_BADGE = { pending: ['Pending', 'info'], snoozed: ['Snoozed', 'warning'], closed: ['Closed', 'slate'] };
@@ -31,17 +31,6 @@ const METHOD = { bkash: 'bKash', nagad: 'Nagad', sslcommerz: 'Card or bank' };
 const GAP = 5 * 60 * 1000;
 
 const orderTone = (o) => (ORDER_STATUSES.find((s) => s.key === o.statusKey) || { tone: 'neutral' }).tone;
-/** A price to put in a suggested reply: the last product card, else a product named in the last message. */
-function guessPrice(conv) {
-  const card = [...conv.messages].reverse().find((m) => m.type === 'product');
-  if (card) { const p = productBy(card.sku); if (p) return p.price; }
-  const last = [...conv.messages].reverse().find((m) => m.from === 'customer' && m.text);
-  if (!last) return 0;
-  const words = last.text.toLowerCase();
-  const hit = getCatalog().filter(isStatusSellable).find((p) => p.name.toLowerCase().split(/[\s·]+/).some((w) => w.length > 4 && words.includes(w)));
-  return hit ? hit.price : 0;
-}
-
 export function Thread({ conv, now, tags, orders, replies, typing, panelOpen, onBack, onTogglePanel, act }) {
   const status = statusOf(conv, now);
   const scroller = useRef(null);
@@ -96,6 +85,7 @@ export function Thread({ conv, now, tags, orders, replies, typing, panelOpen, on
         </button>
         <div className="th-acts">
           {canCall(conv) && !conv.blocked ? <button type="button" className="gc-iconbtn ms-callbtn" onClick={() => setCalling(true)} aria-label={'Voice call ' + conv.name} title="Voice call"><Icon name="phone" width="18" height="18" /></button> : null}
+          {act.setAutopilot && !conv.blocked ? <AutopilotControl conv={conv} onSet={act.setAutopilot} /> : null}
           <Menu label="Assign to" wide button={({ toggle, open }) => (
             <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral th-assign" aria-expanded={open} onClick={toggle} aria-label={conv.assignee ? `Assigned to ${staffName(conv.assignee)}. Change` : 'Assign'}>
               <StaffAvatar id={conv.assignee} size={22} /><span className="th-lbl">{conv.assignee ? staffName(conv.assignee).split(' ')[0] : 'Assign'}</span><Icon name="chevron-down" width="14" height="14" aria-hidden="true" />
@@ -147,6 +137,7 @@ export function Thread({ conv, now, tags, orders, replies, typing, panelOpen, on
           <button type="button" className={'gc-iconbtn th-panelbtn' + (panelOpen ? ' gc-iconbtn--active' : '')} onClick={onTogglePanel} aria-label={panelOpen ? 'Hide customer details' : 'Show customer details'} aria-pressed={panelOpen} title="Customer details"><Icon name="panel-right" width="18" height="18" /></button>
         </div>
       </header>
+      {act.setAutopilot ? <AiBar conv={conv} onTakeOver={() => act.setAutopilot(false)} /> : null}
 
       <div className="th-scrollwrap">
         <div className="th-msgs" ref={scroller} onScroll={onScroll} role="log" aria-label={`Messages with ${conv.name}`} aria-live="polite">
@@ -276,7 +267,7 @@ function Bubble({ m, conv, orders, first, last, isNew, seen, reply, compact, act
     <div className={'ms-row ms-row--' + (out ? 'out' : 'in') + ' ' + pos + (isNew ? ' ms-new' : '') + (reacts.length ? ' has-react' : '') + (active ? ' is-active' : '') + (big ? ' is-big' : '')}>
       {out ? null : last ? <Avatar name={conv.name} avatar={conv.avatar} pos={conv.pos} size={compact ? 24 : 28} /> : <span className={'th-spacer' + (compact ? ' is-sm' : '')} aria-hidden="true" />}
       <div className="ms-col">
-        {first && out && m.by !== ME && !compact ? <span className="ms-who">{firstName(staffName(m.by))}</span> : null}
+        {first && out && m.by !== ME && !compact ? <span className="ms-who">{m.ai ? 'GridAI' : firstName(staffName(m.by))}</span> : null}
         {reply ? (
           <div className="ms-quote">
             <span className="ms-quote__lbl"><Icon name="reply" width="12" height="12" aria-hidden="true" />{(out ? (m.by === ME ? 'You' : firstName(staffName(m.by))) : firstName(conv.name)) + ' replied to ' + senderOf(conv, reply)}</span>
@@ -292,6 +283,7 @@ function Bubble({ m, conv, orders, first, last, isNew, seen, reply, compact, act
             {pickerOpen ? <ReactPicker mine={mine} onPick={onReact} onClose={() => onPicker(false)} /> : null}
           </span> : null}
         </div>
+        {m.ai && last && actions && !compact ? <AiTag m={m} conv={conv} /> : null}
         {seen ? <Seen status={seen} conv={conv} /> : null}
       </div>
     </div>
@@ -467,16 +459,14 @@ function Composer({ conv, status, replies, orders, onSend, onUnblock, onSystem, 
     );
   }
   const quick = replies.filter((r) => r.lang === lang).sort((a, b) => (b.uses || 0) - (a.uses || 0)).slice(0, 4);
-  const suggest = suggestions(conv, guessPrice(conv));
   const note = mode === 'note';
 
   return (
     <div className={'th-composer' + (note ? ' is-note' : '')}>
       {status === 'closed' ? <p className="th-banner"><Icon name="info" width="14" height="14" aria-hidden="true" />This conversation is closed. Sending a reply opens it again.</p> : null}
+      {!text && !note ? <CopilotCard conv={conv} onSend={onSend} onUse={(t) => { setDraft(t); focus(); }} focus={focus} /> : null}
       {!text && !note ? (
         <div className="th-chips ib-scroll-x" aria-label="Quick replies">
-          {suggest.map((s, i) => <button key={i} type="button" className="ib-chip th-chip th-chip--ai" onClick={() => { setDraft(s); focus(); }} title={s}><Icon name="sparkles" width="14" height="14" aria-hidden="true" /><span>{s}</span></button>)}
-          <span className="th-chips__sep" aria-hidden="true" />
           <button type="button" className="ib-chip th-chip th-lang" onClick={() => setLang(lang === 'en' ? 'bn' : 'en')} aria-label={lang === 'en' ? 'Show Bangla quick replies' : 'Show English quick replies'}><Icon name="languages" width="14" height="14" aria-hidden="true" />{lang === 'en' ? 'EN' : 'বাংলা'}</button>
           {quick.map((r) => <button key={r.id} type="button" className={'ib-chip th-chip' + (r.lang === 'bn' ? ' ib-bn' : '')} onClick={() => applyReply(r)} title={r.body}><span>{r.title}</span></button>)}
         </div>
@@ -565,7 +555,7 @@ function Composer({ conv, status, replies, orders, onSend, onUnblock, onSystem, 
   );
 }
 
-export const THREAD_CSS = MSGR_CSS + `
+export const THREAD_CSS = MSGR_CSS + COPILOT_CSS + `
 .th-head{display:flex;align-items:center;gap:var(--space-2);flex:none;min-height:64px;padding:var(--space-2) var(--space-3) var(--space-2) var(--space-4);border-bottom:1px solid var(--border-subtle);background:var(--surface-card)}
 .th-back{display:none;flex:none}
 .th-who{flex:1;min-width:0;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1);margin:calc(var(--space-1) * -1);border:0;border-radius:var(--radius-lg);background:none;text-align:left;cursor:pointer}

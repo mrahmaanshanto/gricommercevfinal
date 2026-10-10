@@ -137,7 +137,7 @@ export function attention(db, t) {
     const st = row.state;
     const sub = subOf(db, shop.id);
     const am = shop.am ? shop.am.split(' ')[0] + ' ' + shop.am.split(' ')[1][0] + '.' : 'Unassigned';
-    const go = (tab) => `/merchant-detail?id=${shop.id}${tab ? '&tab=' + tab : ''}`;
+    const go = (tab) => `/admin/merchant?id=${shop.id}${tab ? '&tab=' + tab : ''}`;
     if (['grace', 'pastdue', 'suspended'].includes(st.key)) {
       const reason = st.key === 'grace' ? `Invoice unpaid${row.health.parts.find((p) => p.key === 'integrations').value < 50 ? ' · courier failing' : ` · day ${st.days} of grace`}` : st.key === 'pastdue' ? `Read-only · no login ${row.last} days` : `Suspended · unpaid ${st.days} days`;
       out.push({ ...row, reason, band: 'At risk', tone: 'err', am, next: 'Call today →', href: go('billing'), w: 100 + st.days });

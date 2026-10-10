@@ -50,8 +50,8 @@ function seed() {
     { id: 'KE-1', source: 'KS-2', category: 'faq', title: 'Do you deliver outside Dhaka?', text: 'Yes, all over Bangladesh by courier. Outside Dhaka takes 3–5 days.' },
     { id: 'KE-2', source: 'KS-2', category: 'faq', title: 'Can I see the product before paying?', text: 'Yes. With cash on delivery you can check the parcel in front of the rider before you pay.' },
     { id: 'KE-3', source: 'KS-2', category: 'faq', title: 'Is the product original?', text: 'All products are original and come with the brand’s warranty where it applies.' },
-    { id: 'KE-4', source: 'KS-1', category: 'returns', title: 'Exchange for size', text: 'You can exchange for another size within 7 days if the tag is on and it is unused.' },
-    { id: 'KE-5', source: 'KS-4', category: 'campaign', title: 'Eid offer', text: '10% off all clothing until Eid. Free delivery inside Dhaka on orders over ৳3,000.', until: now + 9 * D },
+    { id: 'KE-4', source: 'KS-1', category: 'returns', title: 'Exchange a faulty phone', text: 'A phone with a factory fault can be exchanged within 7 days with the box, the invoice and all accessories.' },
+    { id: 'KE-5', source: 'KS-4', category: 'campaign', title: 'Eid offer', text: '৳500 off phones over ৳15,000 until Eid. Free delivery inside Dhaka on orders over ৳3,000.', until: now + 9 * D },
     { id: 'KE-6', source: '', category: 'custom', title: 'Greeting', text: 'Start with “Assalamu alaikum” when the customer writes in Bangla.' },
     { id: 'KE-7', source: '', category: 'custom', title: 'Wholesale', text: 'For more than 20 pieces, take the phone number and hand the chat to the sales team.' },
   ];

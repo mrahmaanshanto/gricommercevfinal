@@ -4,6 +4,9 @@
 // other conversation with the same person across channels.
 
 import React, { useEffect, useState } from 'react';
+import { summarize } from '@/lib/gridai/engine';
+import { getLeads, stageOf } from '@/lib/leads';
+import { autopilotOn, needsFollowUp } from '@/lib/gridai/inboxAi';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
@@ -78,6 +81,18 @@ export function CustomerPanel({ conv, convs, orders, customers, tags, now, onOpe
         <div><span className="cp-stat">{returns}</span><span className="ib-sub">Returns</span></div>
       </div>
 
+      {(() => {
+        // GridAI: what the chat is about, the lead and who is handling it (lib/gridai/engine.js › summarize)
+        const sum = summarize(conv);
+        const lead = conv.phone ? getLeads().find((l) => samePhone(l.phone, conv.phone)) : null;
+        return (
+          <section className="cp-sec cp-ai" aria-label="GridAI summary">
+            <div className="cp-sec__head"><h3 className="ib-h3"><Icon name="sparkles" width="14" height="14" aria-hidden="true" style={{ verticalAlign: -2, marginRight: 4, color: 'var(--primary)' }} />GridAI summary</h3><span className="ib-sub">{autopilotOn(conv) ? 'Autopilot' : 'Copilot'}</span></div>
+            <ul className="cp-ai__lines">{sum.lines.map((l) => <li key={l}>{l}</li>)}</ul>
+            <p className="ib-sub" style={{ margin: 0 }}>{lead ? 'Lead · ' + stageOf(lead.stage)[1] + (lead.interest ? ' · ' + lead.interest : '') : sum.intents.some((k) => ['price', 'stock', 'recommend', 'order'].includes(k)) ? 'Buying interest · not a lead yet' : 'Not a lead'}{needsFollowUp(conv, now) ? ' · follow-up needed' : ''}</p>
+          </section>
+        );
+      })()}
       <section className="cp-sec" aria-label="Tags">
         <div className="cp-sec__head"><h3 className="ib-h3">Tags</h3>
           <Menu label="Tags" button={({ toggle, open }) => <button type="button" className="gc-btn gc-btn--xs gc-btn--flat" aria-expanded={open} onClick={toggle}><Icon name="plus" width="14" height="14" aria-hidden="true" />Tag</button>}>
@@ -159,6 +174,8 @@ export function TagMenu({ tags, on, onToggle, onAdd }) {
 }
 
 export const PANEL_CSS = `
+.cp-ai{background:linear-gradient(180deg,var(--fill-primary-soft),transparent);border-radius:var(--radius-lg)}
+.cp-ai__lines{display:flex;flex-direction:column;gap:4px;margin:0;padding:0 0 0 16px;font-size:var(--text-sm);line-height:1.5;color:var(--text-heading)}
 .cp{display:flex;flex-direction:column;gap:var(--space-5);padding:var(--space-5)}
 .cp-head{display:flex;align-items:center;gap:var(--space-3)}
 .cp-head__text{flex:1;min-width:0}

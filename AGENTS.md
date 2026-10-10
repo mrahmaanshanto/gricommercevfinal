@@ -136,13 +136,33 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   square icon buttons and card-row actions). Grids marked `gc-cols-2/3` stack on phones unless they also have
   `gc-cols--keep`. A title shares its row with the page's main button; long titles wrap between words. Put phone rules in
   the screen's own CSS inside `@media (max-width:640px)`; app screens (`src/screens/app`) use `src/styles/phone-app.css`,
-  the platform console uses `src/styles/console-responsive.css` (its header comment lists the table/form/chart hooks).
+  design boards use `src/styles/console-responsive.css` (its header comment lists the table/form/chart hooks).
 - Phone pass 2 (Oct 2026, every page at 390 px): one control scale on phones — 44px fields and `gc-btn`, 40px `ix-btn` and
   the list search, 36px small buttons, chips, tabs, segments (never under 36). GridAI has no floating button where the top
   bar is: the bar's sparkles button fires `gc:gridai`; Help moves into the account menu. Figure strips snap to whole
   cards and fade at the right edge while there is more. `<small>` never drops under 12px. A kept table that is a grid of
   figures adds `gc-table--scroll` (scrolls in its box, no wrapping); list tables drop `gc-table--keep` and become cards.
   The POS register scrolls as one page on phones (header and View cart stay pinned).
+- **Grid AI (Oct 2026)**: one shared AI for the whole shop (module `gridai`, every edition and plan), front end only, simulated
+  over the real demo data. `lib/gridai/engine.js` is the one orchestrator: `customerTurn(conv)` (understand Bangla /
+  Banglish / English, budget, product → pick an agent → knowledge (live shop data beats documents) → tools (`TOOLS`, risk
+  1 read · 2 draft · 3 switched-on action · 4 approval; customer tools return public fields only, an order is shown only to
+  its own number) → policy → reply → decision auto / suggest / person → `usage.meter`), `merchantTurn(q, user)` (answers
+  from the books, refused outside the person's access via `team.canSee`), `summarize(conv)`. Agents are settings
+  (`agents.js`, nine: support, sales, order, lead, follow-up, marketing, inventory, analytics, operations). Models and
+  routing (`models.js`: providers, tiers 0 rules · 1 efficient · 2 standard · 3 reasoning, main + fallback, budget, limits,
+  security), cost metering and the demo history (`usage.js`), feedback and corrections that wait for review before
+  becoming knowledge (`quality.js`), the test set and release gate (`evals.js`: a model change runs it; a critical failure
+  blocks it), risk-4 approvals with 24 h expiry and a re-check (`aiApprovals.js`), Inbox helpers (`inboxAi.js`: Autopilot
+  state, priority, follow-up, list views). AI automations are `automationRules.js` rules with `cat: 'ai'` and
+  `{ kind: 'ai' }` actions. Pages (`screens/gridai/`): Overview `/ai-overview`, Assistant `/grid-ai`, Agents, Knowledge &
+  training (with Corrections), Test AI (playground + test cases), Automations, Activity & approvals, Analytics, Usage &
+  billing, Settings = Behaviour `/ai-behaviour` + Models & limits `/ai-models`. The assistant chat is
+  `components/gridai/Assistant.jsx` (floating panel `GridAi.jsx` and `/grid-ai`); shared pieces (trace, product cards,
+  order summary, answer blocks) `components/gridai/parts.jsx`. Inbox: `components/inbox/Copilot.jsx` (Copilot card with
+  Accept · Edit · Regenerate · Copy · Dismiss and Why; Autopilot / Copilot switch per chat; Take over bar; Sent by GridAI +
+  Rate → correction), a person's reply stops Autopilot for that chat (takeover), GridAI summary in the customer panel,
+  list views Unread / GridAI handling / People / Follow-up / High priority. Every person may open the assistant (`BASE`).
 - Menu: business areas, as in Shopify's admin (`docs/reference-ux.md`, `docs/shopify-style.md`).
   - `src/shell/navigation.js` lists the areas in two groups:
     - Commerce: Home · Inbox · Orders · Products · Inventory · Payments · Customers · Communications · Finances ·
@@ -373,20 +393,24 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   day, built from the report definitions plus role widgets; `/tasks` is the task manager (`lib/tasks.js`: teams, tags,
   several assignees, watchers, IT requests / bugs / requests, blocked-by, time, history; list, board, calendar,
   workload, bulk changes, Ask IT), `/team-chat` the team chat (`lib/teamChat.js`: channels per team, DMs) and
-  `/sales-leads` leads & follow-ups (`lib/leads.js`; `/leads` is taken by the platform console).
-- Responsive rules for the platform console frame (`.cs`) and fixed design boards (`data-board`, zoomed to fit) are in
+  `/sales-leads` leads & follow-ups (`lib/leads.js`).
+- Responsive rules for fixed design boards (`data-board`, zoomed to fit) are in
   `src/styles/console-responsive.css`. `?quiet=1` stops the evening payout check from opening by itself (tests, screenshots).
-- Platform console (GridCommerce's own back office, `src/screens/console`, Oct 2026 sprint 1): the design boards' look is
-  kept; the data and rules are `src/lib/platform/` (front end only, `gc.platform.db`): `seed.js` (62 demo stores around the
-  first visit; bump `DATA_VERSION` when the seed changes), `store.js` (`db()`, `now()`, `commit`, `attach(this)` in a screen's
-  componentDidMount; server render = the design moment, so no hydration gaps; `?staff=<id>` switches the demo staff member,
-  `?reset=1` restarts the demo), `billing.js` (bills 7 days before the billing day; grace 1–7 days, read-only 8–14,
-  suspended 15+; owners pay from the panel or staff record payments, transaction IDs once; optional auto-charge with
-  retries; adjustments with a second approver above ৳500; credit carried over), `plans.js` (plan versions: draft → second
-  approver → live on a date), `views.js` / `merchant.js` (what each screen shows), `shops.js` (provisioning, notes, reset
-  link). Every console screen draws its sidebar and top bar with `ConsoleFrame.jsx` (live badges, staff, clock, Ctrl K
-  search); shared bits in `consoleParts.jsx`. Live so far: Overview, Merchants, Merchant page, Provisioning, Provision a
-  store, Plans, plan form, Subscriptions, Invoices, Collections, Adjustments, adjustment form; the other boards are static.
+- Super admin (`/admin`, GridCommerce's own panel; branch `claude/super-admin`, Oct 2026; map, data agreements and the
+  page checklist in `docs/super-admin-plan.md`). Opened from the sign-in page's system picker (**Super admin** row). The old
+  platform console was deleted; its data layer `src/lib/platform/` stays (62 demo stores, plans, invoices, payments, billing
+  engine; `?staff=<id>` switches the demo staff member, default Mahin Khan / admin; `?reset=1` restarts every demo store).
+  All 72 menu pages are built, in the merchant panel's look (IndexKit, tokens, DashCharts) inside their own shell
+  (`screens/admin/AdminShell.jsx` + `styles/admin.css`): Dashboard, Analytics + Reports, Merchants (list, add, onboarding,
+  11-tab profile), Plans & modules, Billing & credits, Platform ops, Sales & CRM, Inbox, Communications, Support, GridAI,
+  Marketing, People, Finance, Website (managing gridcommerce.net's real pages and copy), Storefront themes, Administration.
+  Each module keeps its demo data in `lib/admin/<module>.js` through `lib/admin/store.js` (`createStore`, `useAdminStore`
+  — `live` only after mount, so the UTC prerender always matches), and never reads the merchant panel's libs. Menu areas
+  per role: `lib/admin/roles.js`, overridden by Administration › Roles & permissions once loaded.
+  **Merchant AI** (Platform area, `/admin/merchant-ai`, `/plans`, `/models`; `lib/admin/merchantAi.js`) controls the
+  Grid AI stores use: AI per plan and trial, markup, each store's usage / credits / limit rule / rate limit / suspend,
+  providers, models per tier for every store, model releases gated by the platform test set, cost against AI billing.
+  A Roles & permissions matrix saved before an area existed falls back to the built-in roles for it (`access.js`).
 - Reference pages (UI kit, flows, site map, storyboards) are under `/dev/…`. They and the POS /
   settings screen switchers only show in a production build when `NEXT_PUBLIC_SHOW_STORYBOARD=true`.
 - New features from Nayeem's briefs (Oct 2026; built in a parallel run, rules in `docs/new-features-run.md`). The skipped

@@ -19,6 +19,7 @@ import {
   categoryCounts, CATEGORIES, CATEGORY_LABEL, CATEGORY_ICON, STATUS_WORD, STATUS_TONE, KIND_WORD, ACCEPT, KB_EVENT,
 } from '@/lib/gridai/knowledge';
 import { PROFILE_EVENT } from '@/lib/gridai/profile';
+import { getCorrections, approveCorrection, rejectCorrection, QUALITY_EVENT } from '@/lib/gridai/quality';
 import { GaFrame, Switch, Field, useLive } from './gaShared';
 import { ModuleSetup } from '@/components/ModuleSetup';
 
@@ -60,6 +61,15 @@ const CSS = `
 .kn-note.is-warn{background:var(--fill-warning-soft);color:var(--text-warning)}
 .kn-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);width:100%}
 .kn-foot>.kn-left{margin-right:auto}
+.kn-corr{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.kn-corr li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--space-2) var(--space-4);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.kn-corr li:first-child{border-top:0}
+.kn-corr b{display:block;font-weight:var(--weight-medium);color:var(--text-heading)}
+.kn-corr .kn-was{margin:4px 0 0;color:var(--text-muted);text-decoration:line-through;text-decoration-color:var(--text-danger)}
+.kn-corr .kn-now{margin:4px 0 0;color:var(--text-heading);line-height:1.5}
+.kn-corr small{display:block;margin-top:4px;font-size:var(--text-xs);color:var(--text-muted)}
+.kn-corr__acts{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2)}
+@media (max-width:640px){.kn-corr li{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){.kn-cats{grid-template-columns:repeat(2,minmax(0,1fr));padding:var(--space-3)}}
 `;
 
@@ -72,7 +82,8 @@ const CONNECT = [['woocommerce', 'WooCommerce', 'Product pages and store policie
 const TABS = [['all', 'All'], ['ready', 'Ready'], ['processing', 'Processing'], ['review', 'Needs review'], ['failed', 'Failed'], ['disabled', 'Disabled']];
 
 export default function Knowledge() {
-  const data = useLive(() => ({ sources: getSources(), entries: getEntries(), counts: categoryCounts(), me: currentUser() }), [KB_EVENT, PROFILE_EVENT, PERMS_EVENT, 'storage'], 1000);
+  const data = useLive(() => ({ sources: getSources(), entries: getEntries(), counts: categoryCounts(), me: currentUser(), corr: getCorrections() }), [KB_EVENT, PROFILE_EVENT, PERMS_EVENT, QUALITY_EVENT, 'storage'], 1000);
+  const [fix, setFix] = useState(null);       // a correction being approved with an edit, or rejected
   const [tab, setTab] = useState('all');
   const [cat, setCat] = useState('');
   const [open, setOpen] = useState(null);     // source id in the detail sheet
@@ -117,7 +128,21 @@ export default function Knowledge() {
   };
 
   return (
-    <GaFrame screen="Knowledge" active="ai-knowledge" page="Knowledge" css={CSS} after={(<>
+    <GaFrame screen="Knowledge" active="ai-knowledge" page="Knowledge & training" css={CSS} after={(<>
+      {/* ---- approve with an edit, or reject, a correction ---- */}
+      <Sheet open={!!fix} title={fix ? (fix.mode === 'reject' ? 'Don’t use this correction' : 'Approve the correction') : ''} onClose={() => setFix(null)}
+        footer={fix ? <div className="kn-foot"><span className="kn-left" /><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setFix(null)}>Cancel</button>{fix.mode === 'reject'
+          ? <button type="button" className="gc-btn gc-btn--sm gc-btn--error" onClick={() => { rejectCorrection(fix.c.id, fix.text, data.me.name); setFix(null); toast('Not used. The AI keeps its current knowledge.'); }}>Don’t use</button>
+          : <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => { approveCorrection(fix.c.id, data.me.name, fix.text); setFix(null); toast('Added to ' + CATEGORY_LABEL[fix.c.category] + '. The AI uses it from the next answer.'); }}>Approve and add</button>}</div> : null}>
+        {fix ? (
+          <div className="ga-body" style={{ padding: 0 }}>
+            <p className="kn-note"><b>Customer asked:</b> {fix.c.question || '—'}</p>
+            {fix.mode === 'reject'
+              ? <Field label="Why not?" optional htmlFor="kn-rej"><textarea id="kn-rej" className="gc-input ga-area" rows={3} value={fix.text} onChange={(e) => setFix({ ...fix, text: e.target.value })} /></Field>
+              : <Field label="The right answer" htmlFor="kn-right" help={'Goes into ' + CATEGORY_LABEL[fix.c.category] + '.'}><textarea id="kn-right" className="gc-input ga-area" rows={4} value={fix.text} onChange={(e) => setFix({ ...fix, text: e.target.value })} /></Field>}
+          </div>
+        ) : null}
+      </Sheet>
       {/* ---- add knowledge ---- */}
       <Sheet open={!!add} title="Add knowledge" onClose={() => setAdd(null)}
         footer={add && add.mode !== 'connect' ? <div className="kn-foot"><span className="kn-left" /><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setAdd(null)}>Cancel</button><button type="button" className="gc-btn gc-btn--sm gc-btn--solid" disabled={add.busy} onClick={submitAdd}>{add.mode === 'write' ? 'Save' : 'Add'}</button></div> : null}>
@@ -197,7 +222,7 @@ export default function Knowledge() {
         ) : null}
       </Sheet>
     </>)}>
-      <ShopHeader icon="book-open" title="Knowledge"
+      <ShopHeader icon="book-open" title="Knowledge & training"
         about="What Grid AI knows about your shop. Shop data (products, policies, delivery, payments) is read live and always current. Add files, your website, FAQs and instructions; connect channels. A source that is off, failed or waiting for review is not used."
         secondary={[{ label: 'Write an entry', onClick: () => openAdd('write') }]}
         more={[{ label: 'Behaviour', href: '/ai-behaviour' }, { label: 'Connections', href: '/connections' }]}
@@ -210,6 +235,30 @@ export default function Knowledge() {
         { label: 'Needs review', value: ready ? String(n('review')) : '—', onClick: () => setTab('review'), on: tab === 'review' },
         { label: 'Failed', value: ready ? String(n('failed')) : '—', onClick: () => setTab('failed'), on: tab === 'failed' },
       ]} />
+
+      {ready && data.corr.length ? (
+        <section className="ix-card" id="corrections" aria-labelledby="kn-corr-h">
+          <div className="kn-bar"><h2 id="kn-corr-h">Corrections from the team <InfoTip text="When someone marks an AI answer as wrong and writes the right one, it waits here. Nothing is learned until a person with “Upload AI knowledge” approves it." /></h2>{data.corr.filter((c) => c.status === 'waiting').length ? <StatusBadge tone="warning">{data.corr.filter((c) => c.status === 'waiting').length} to review</StatusBadge> : null}</div>
+          <ul className="kn-corr">
+            {data.corr.slice(0, 6).map((c) => (
+              <li key={c.id}>
+                <div>
+                  <b>{c.question || 'Correction'}</b>
+                  {c.wrong ? <p className="kn-was">{c.wrong}</p> : null}
+                  <p className="kn-now">{c.right}</p>
+                  <small>{CATEGORY_LABEL[c.category]} · {c.by} · {formatDateTime(new Date(c.at))}{c.status !== 'waiting' ? ' · ' + (c.status === 'approved' ? 'added by ' : 'not used by ') + c.decidedBy : ''}</small>
+                </div>
+                <div className="kn-corr__acts">
+                  {c.status === 'waiting' ? (<>
+                    <button type="button" className="ix-btn ix-btn--sm" disabled={!mayEdit} onClick={() => setFix({ c, mode: 'reject', text: '' })}>Don’t use</button>
+                    <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" disabled={!mayEdit} onClick={() => setFix({ c, mode: 'approve', text: c.right })}>Approve</button>
+                  </>) : <StatusBadge tone={c.status === 'approved' ? 'success' : 'neutral'}>{c.status === 'approved' ? 'In knowledge' : 'Not used'}</StatusBadge>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="ix-card" aria-label="Sources">
         <div className="ix-bar">

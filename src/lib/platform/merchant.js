@@ -14,7 +14,7 @@ const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 const C64 = 2 * Math.PI * 28;
 
 /** Months of store sales (৳) from the month it opened to this month, oldest first. */
-function salesSeries(db, shop, t, p) {
+export function salesSeries(db, shop, t, p) {
   const months = [];
   const start = startOfMonth(shop.createdAt);
   for (let m = start, i = 0; m <= t && i < 24; m = addMonths(m, 1, 1), i++) months.push(m);
@@ -28,7 +28,7 @@ function salesSeries(db, shop, t, p) {
   });
 }
 
-function moduleState(db, shop, sub, plan, code, name, set, t) {
+export function moduleState(db, shop, sub, plan, code, name, set, t) {
   const items = billItems(sub, t);
   const trial = sub.moduleTrials.find((m) => m.code === code && !m.result && m.start <= t);
   const usesByName = (shop.mods || []).some((m) => name.toLowerCase().startsWith(m.toLowerCase()) || m.toLowerCase().startsWith(name.toLowerCase().split(' ')[0]));

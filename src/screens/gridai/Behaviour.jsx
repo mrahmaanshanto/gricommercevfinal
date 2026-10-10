@@ -21,7 +21,7 @@ import { can, why, PERMISSIONS, permsOf, setPerm, changedFor, resetPerms, PERMS_
 import { getAiSettings, saveAiSettings, AI_INTENTS, AI_CONTROLS, shopControl } from '@/lib/aiReply';
 import { getProfile, saveProfile, resetProfile, TONES, LANGS, BANGLISH, ADDRESSING, paymentMethods } from '@/lib/gridai/profile';
 import { logAi } from '@/lib/gridai/activity';
-import { GaFrame, Switch, Field } from './gaShared';
+import { GaFrame, Switch, Field, AiSettingsTabs } from './gaShared';
 
 const CSS = `
 .bh-sec{scroll-margin-top:80px}
@@ -102,12 +102,13 @@ export default function Behaviour() {
   };
 
   return (
-    <GaFrame screen="Behaviour" active="ai-behaviour" page="Behaviour" css={CSS}>
-      <ShopHeader icon="sliders-horizontal" title="Behaviour"
+    <GaFrame screen="Behaviour" active="ai-behaviour" page="Settings" css={CSS}>
+      <ShopHeader icon="sliders-horizontal" title="Settings"
         about="How Grid AI answers your customers and what it may say: reply mode per channel, office hours, voice and language, your rules, the limits it must keep, product suggestions and who may change Grid AI. Customers can never change these — only people with permission."
         secondary={[{ label: 'Reset to shop settings', onClick: reset }]}
-        more={[{ label: 'Knowledge', href: '/ai-knowledge' }, { label: 'AI provider and budget', href: '/set-ai' }]}
+        more={[{ label: 'Knowledge & training', href: '/ai-knowledge' }, { label: 'Agents', href: '/ai-agents' }]}
         primary={{ label: 'Save', onClick: save, disabled: !dirty || !mayEdit }} />
+      <AiSettingsTabs on="behaviour" />
 
       {!ready ? <div style={{ minHeight: 300 }} aria-busy="true" /> : (<>
         {!mayEdit ? <p className="ga-locked" style={{ margin: 0 }}><Icon name="lock" width="13" height="13" aria-hidden="true" />{why('ai-configure')}</p> : null}

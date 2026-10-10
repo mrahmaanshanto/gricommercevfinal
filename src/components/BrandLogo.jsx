@@ -28,6 +28,9 @@ export const BRANDS = {
   // apps and services (Connections)
   meta: { name: 'Meta', src: '/assets/41f77fbf774c3a1c10208ca2b086bc14.png' },
   google: { name: 'Google', src: '/assets/85e4f9f412e9d0859b3e4e19309ccb4d.png' },
+  // AI providers (Grid AI › Settings › Models & limits)
+  openai: { name: 'OpenAI', text: 'AI', bg: '#0f172a', fg: '#fff' },
+  anthropic: { name: 'Anthropic', text: 'A\\', bg: '#c96442', fg: '#fff' },
   tiktok: { name: 'TikTok', src: '/assets/57bb10142b6017571910098da3778028.png' },
   facebook: { name: 'Facebook', icon: 'facebook', bg: '#1877f2', fg: '#fff' },
   instagram: { name: 'Instagram', src: B + 'instagram.png', pad: 0 },

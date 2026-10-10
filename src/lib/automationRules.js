@@ -16,7 +16,7 @@ import { checkSend, templateBy, fill, baseVars } from './messaging';
 import { capsOf } from './channelCaps';
 import { clockNow } from './settlements';
 
-const K = { edits: 'gc.auto.rules', versions: 'gc.auto.versions' };
+const K = { edits: 'gc.auto.rules', versions: 'gc.auto.versions', copies: 'gc.auto.copies' };
 export const RULES_EVENT = 'gc:auto';
 const isBrowser = typeof window !== 'undefined';
 const read = (k, fb) => { if (!isBrowser) return fb; try { const v = JSON.parse(window.localStorage.getItem(k)); return v == null ? fb : v; } catch { return fb; } };
@@ -27,6 +27,10 @@ export const TRIGGERS = {
   'order.confirmed': 'An order is AI confirmed', 'order.packed': 'An order moves to Packed', 'order.delivered': 'A parcel is delivered',
   'stock.low': 'Stock falls below its alert level', 'customer.returned': 'A customer returns an order', 'blog.published': 'A blog post is published',
   'order.placed': 'An order is placed', 'customer.quiet': 'A customer has not ordered for a while',
+  // Grid AI (cat 'ai'): the same engine runs the AI's automations (Grid AI › Automations)
+  'message.received': 'A customer sends a message', 'intent.product': 'A customer asks about a product', 'intent.purchase': 'A customer shows buying interest',
+  'order.confirmed-chat': 'A customer confirms an order in chat', 'conversation.inactive': 'A customer stops replying', 'message.complaint': 'A customer complains',
+  'stock.restock': 'A product is back in stock', 'followup.due': 'A follow-up is due', 'campaign.done': 'A campaign finishes', 'automation.failed': 'An automation fails',
 };
 // cond: { field, op: 'is' | 'gt' | 'gte' | 'lt', value, label }
 // action: { kind: 'message', channel, cls, template, text } | { kind: 'task', owner, label }
@@ -41,6 +45,22 @@ export const RULES = [
   R('c1', 'orders', 'Big orders need a manager call', 'order.placed', [{ field: 'payment', op: 'is', value: 'COD', label: 'Payment is COD' }, { field: 'total', op: 'gt', value: 10000, label: 'Total is over ৳10,000' }, { field: 'newCustomer', op: 'is', value: true, label: 'New customer' }], [{ kind: 'task', owner: 'Orders', label: 'Hold the order' }, { kind: 'task', owner: 'Staff', label: 'Notify the Dhanmondi manager' }], { custom: true, runs: 6 }),
   R('c2', 'marketing', 'Win back quiet customers', 'customer.quiet', [{ field: 'days', op: 'gte', value: 60, label: 'No order for 60 days' }], [{ kind: 'message', channel: 'whatsapp', cls: 'Marketing', template: 'T-WINBACK-SMS', text: '' }, { kind: 'message', channel: 'sms', cls: 'Marketing', template: 'T-WINBACK-SMS', fallback: true }], { custom: true, runs: 41, cost: '৳1.10 per message' }),
 ];
+// Grid AI rules: action { kind: 'ai', label, agent, risk } — the engine does it within the agent's tools and limits;
+// risk 4 actions (bulk sends) are only prepared and wait in Grid AI › Activity & approvals
+const AI = (id, name, trigger, conditions, actions, more = {}) => R(id, 'ai', name, trigger, conditions, actions, { cost: 'AI credits', ...more });
+RULES.push(
+  AI('ai1', 'Answer new messages', 'message.received', [{ field: 'mode', op: 'is', value: 'Auto', label: 'Autopilot is on for the chat' }], [{ kind: 'ai', agent: 'support', label: 'GridAI replies (simple questions only; the rest go to a person)', risk: 3 }], { runs: 412 }),
+  AI('ai2', 'Suggest products when asked', 'intent.product', [], [{ kind: 'ai', agent: 'sales', label: 'Search the catalogue within the budget and send up to 3 product cards', risk: 2 }], { runs: 188 }),
+  AI('ai3', 'Add buying interest to Leads', 'intent.purchase', [{ field: 'isLead', op: 'is', value: false, label: 'Not already a lead' }], [{ kind: 'ai', agent: 'lead', label: 'Create a lead with the product and value (stage New)', risk: 3 }], { runs: 96 }),
+  AI('ai4', 'Place confirmed chat orders', 'order.confirmed-chat', [{ field: 'payment', op: 'is', value: 'COD', label: 'Payment is cash on delivery' }], [{ kind: 'ai', agent: 'order', label: 'Check price and stock again, then create the order (On hold, verification as usual)', risk: 3 }], { runs: 41, on: false }),
+  AI('ai5', 'Follow up quiet chats', 'conversation.inactive', [{ field: 'hours', op: 'gte', value: 24, label: 'No reply for 24 hours' }, { field: 'attempts', op: 'lt', value: 2, label: 'Fewer than 2 follow-ups sent' }], [{ kind: 'ai', agent: 'followup', label: 'Send one personal reminder in working hours; stop on reply, purchase or opt-out', risk: 3 }], { wait: 2, runs: 57 }),
+  AI('ai6', 'Hand complaints to a person', 'message.complaint', [], [{ kind: 'ai', agent: 'support', label: 'Stop Autopilot, write a summary and assign the chat to the team lead', risk: 1 }, { kind: 'task', owner: 'Inbox', label: 'Reply within 15 minutes' }], { runs: 23 }),
+  AI('ai7', 'Tell the team about low stock', 'stock.low', [{ field: 'available', op: 'lt', value: 'alert', label: 'Available is below the alert level' }], [{ kind: 'ai', agent: 'inventory', label: 'Notify the warehouse manager with sales of the last 7 days and a reorder suggestion', risk: 1 }], { runs: 12 }),
+  AI('ai8', 'Restock message to people who asked', 'stock.restock', [], [{ kind: 'ai', agent: 'marketing', label: 'Prepare a WhatsApp message to everyone who asked in the last 30 days (waits for approval)', risk: 4 }], { runs: 3 }),
+  AI('ai9', 'Work through due follow-ups', 'followup.due', [], [{ kind: 'ai', agent: 'followup', label: 'Draft each follow-up for the lead owner to check', risk: 2 }], { runs: 64 }),
+  AI('ai10', 'Sum up finished campaigns', 'campaign.done', [], [{ kind: 'ai', agent: 'marketing', label: 'Write a summary: reach, replies, orders and revenue', risk: 1 }], { runs: 5 }),
+  AI('ai11', 'Report failed automations', 'automation.failed', [], [{ kind: 'ai', agent: 'operations', label: 'Log it and notify the owner of the rule', risk: 1 }], { runs: 2 }),
+);
 const P = (name, phone) => ({ name, phone });
 export const SAMPLE_EVENTS = {
   'order.confirmed': [{ id: 's1', label: 'Order #ORD-0929-011 · Farhana Akter', data: { order_id: '#ORD-0929-011', customer: P('Farhana Islam', '01744556677'), total: 2400, payment: 'COD', delivery_date: '5 Oct' } }],
@@ -56,6 +76,16 @@ export const SAMPLE_EVENTS = {
     { id: 's1', label: '#ORD-0929-007 · ৳12,400 COD · new customer', data: { order_id: '#ORD-0929-007', customer: P('Imran Hossain', '01819554120'), total: 12400, payment: 'COD', newCustomer: true } },
     { id: 's2', label: '#ORD-0929-012 · ৳4,800 bKash', data: { order_id: '#ORD-0929-012', customer: P('Tanvir Ahmed', '01914622045'), total: 4800, payment: 'bKash', newCustomer: false } },
   ],
+  'message.received': [{ id: 's1', label: 'Nusrat Jahan: “Delivery charge koto?” · Autopilot on', data: { customer: P('Nusrat Jahan', '01553336655'), mode: 'Auto' } }, { id: 's2', label: 'Tanvir Hasan · Autopilot off', data: { customer: P('Tanvir Hasan', '01712000000'), mode: 'Assist' } }],
+  'intent.product': [{ id: 's1', label: '“2000 takar moddhe earphone lagbe”', data: { customer: P('Arafat Hossain', '01611000013') } }],
+  'intent.purchase': [{ id: 's1', label: 'Arafat Hossain asks the price of Galaxy A15', data: { customer: P('Arafat Hossain', '01611000013'), isLead: false } }, { id: 's2', label: 'Already a lead', data: { customer: P('Tania Islam', '01700000000'), isLead: true } }],
+  'order.confirmed-chat': [{ id: 's1', label: '“Ji confirm koren” · COD ৳3,560', data: { customer: P('Karim Saheb', '01718445120'), payment: 'COD', total: 3560 } }],
+  'conversation.inactive': [{ id: 's1', label: 'Rumana · 30 hours, no follow-up yet', data: { customer: P('Rumana Sultana', '01799000000'), hours: 30, attempts: 0 } }, { id: 's2', label: 'Two follow-ups already sent', data: { customer: P('Habib', '01788000000'), hours: 72, attempts: 2 } }],
+  'message.complaint': [{ id: 's1', label: '“Parcel ta vanga ashche”', data: { customer: P('Rafiqul Islam', '01712004410') } }],
+  'stock.restock': [{ id: 's1', label: 'Wireless Earbuds Pro back in stock (64)', data: { sku: 'AU-EAR-PRO' } }],
+  'followup.due': [{ id: 's1', label: '6 follow-ups due today', data: { count: 6 } }],
+  'campaign.done': [{ id: 's1', label: 'Puja offer WhatsApp campaign', data: { title: 'Puja offer' } }],
+  'automation.failed': [{ id: 's1', label: 'WhatsApp template rejected', data: { rule: 'Restock message' } }],
   'customer.quiet': [{ id: 's1', label: 'Sharmin Sultana · 64 days', data: { customer: P('Sharmin Sultana', '01678492281'), days: 64 } }, { id: 's2', label: 'Shirin Akter · 21 days', data: { customer: P('Shirin Akter', '01811843300'), days: 21 } }],
 };
 
@@ -63,7 +93,24 @@ export const SAMPLE_EVENTS = {
 const snap = (r) => ({ name: r.name, trigger: r.trigger, conditions: r.conditions, actions: r.actions, wait: r.wait });
 export function getRules() {
   const e = read(K.edits, {});
-  return RULES.map((r) => ({ ...r, ...(e[r.id] || {}) }));
+  return [...RULES, ...read(K.copies, [])].map((r) => ({ ...r, ...(e[r.id] || {}) }));
+}
+/** A copy of a rule, switched off, to change without touching the original. */
+export function duplicateRule(id) {
+  const r = ruleBy(id);
+  if (!r) return null;
+  const copies = read(K.copies, []);
+  const copy = { ...r, id: 'copy-' + Date.now().toString(36), name: r.name + ' (copy)', on: false, custom: true, runs: 0 };
+  write(K.copies, [...copies, copy]);
+  return copy;
+}
+/** The recent runs of a rule (demo history from its run count). */
+export function runsOf(id, now = isBrowser ? clockNow() : Date.now()) {
+  const r = ruleBy(id);
+  if (!r || !r.runs) return [];
+  const n = Math.min(8, r.runs);
+  const ev = (SAMPLE_EVENTS[r.trigger] || [])[0];
+  return Array.from({ length: n }, (_, i) => ({ at: now - (i * 7 + 2) * 3600e3 - i * 13 * 60e3, label: ev ? ev.label : TRIGGERS[r.trigger], ok: !(i === 3 && r.cat === 'ai' && r.runs > 20), detail: i === 3 && r.cat === 'ai' && r.runs > 20 ? 'Handed to a person: not sure what the customer meant' : 'Done' }));
 }
 export const ruleBy = (id) => getRules().find((r) => r.id === id) || null;
 export function setRuleOn(id, on) { const e = read(K.edits, {}); e[id] = { ...(e[id] || {}), on }; write(K.edits, e); }
@@ -78,7 +125,7 @@ const VERSION_SEED = {
 export function ruleVersions(id) {
   const r = ruleBy(id);
   if (!r) return [];
-  const list = [...(read(K.versions, {})[id] || []), ...(VERSION_SEED[id] || [{ v: 1, at: D(1), by: 'GridCommerce', note: r.custom ? 'Created' : 'Ready-made rule', snapshot: snap(RULES.find((x) => x.id === id)) }])];
+  const list = [...(read(K.versions, {})[id] || []), ...(VERSION_SEED[id] || [{ v: 1, at: D(1), by: 'GridCommerce', note: r.custom ? 'Created' : 'Ready-made rule', snapshot: snap(RULES.find((x) => x.id === id) || r) }])];
   const top = list.reduce((a, x) => Math.max(a, x.v), 0);
   return list.sort((a, b) => b.v - a.v).map((x) => ({ ...x, current: x.v === top }));
 }
@@ -126,6 +173,7 @@ export function simulate(rule, event, at = isBrowser ? clockNow() : Date.now()) 
   if (r.wait) steps.push({ kind: 'wait', label: `Wait ${r.wait >= 24 && r.wait % 24 === 0 ? r.wait / 24 + ' days' : r.wait + ' hours'}`, ok: true, detail: 'Then the steps below run' });
   let reached = false;
   r.actions.forEach((a) => {
+    if (a.kind === 'ai') { steps.push({ kind: 'action', label: 'GridAI · ' + a.label, ok: true, detail: a.risk === 4 ? 'Prepared only: a person approves it in Grid AI › Activity & approvals' : a.risk === 2 ? 'A draft for a person to check' : 'Within the agent’s tools and limits' }); return; }
     if (a.kind === 'task') { steps.push({ kind: 'action', label: a.label, ok: true, detail: `Asks ${a.owner} to do it (the rule can't change it by itself)` }); return; }
     if (a.fallback && reached) { steps.push({ kind: 'action', label: `${capsOf(a.channel).name} (if the first can’t reach them)`, ok: true, detail: 'Not needed' }); return; }
     const to = data.customer || {};

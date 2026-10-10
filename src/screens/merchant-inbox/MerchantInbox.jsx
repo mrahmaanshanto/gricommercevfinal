@@ -46,6 +46,9 @@ import { CHANNELS_EVENT, getReviews, gbpLocations } from '@/lib/channels';
 import { Reviews as GbReviews, GB_CSS } from '@/screens/channels/GoogleBusiness';
 import { CH_CSS } from '@/screens/channels/chShared';
 import Link from 'next/link';
+import { customerTurn } from '@/lib/gridai/engine';
+import { autopilotOn, isHighPriority, inView, VIEWS as AI_VIEWS } from '@/lib/gridai/inboxAi';
+import { logAi } from '@/lib/gridai/activity';
 
 const VIEWS = ['comments', 'mentions', 'reviews'];
 // the list rows leave out the waiting time and where a chat came from ("From a comment"): the chat itself shows that
@@ -91,6 +94,7 @@ export default function MerchantInbox() {
   const [tab, setTab] = useState('open');
   const [chan, setChan] = useState('all');
   const [who, setWho] = useState('all');
+  const [show, setShow] = useState('all');     // GridAI views: unread, AI handling, people, follow-up, priority
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('recent');
   const [picking, setPicking] = useState(false);
@@ -159,7 +163,7 @@ export default function MerchantInbox() {
 
   // ---- the list ---------------------------------------------------------------------------------
   const needle = q.trim().toLowerCase();
-  const base = convs.filter((c) => (who === 'all' || (who === 'mine' ? c.assignee === ME : !c.assignee)) && (!needle || [c.name, c.phone, c.handle, ...(c.tags || []), ...c.messages.map((m) => m.text || '')].join(' ').toLowerCase().includes(needle)));
+  const base = convs.filter((c) => (who === 'all' || (who === 'mine' ? c.assignee === ME : !c.assignee)) && inView(c, show, t) && (!needle || [c.name, c.phone, c.handle, ...(c.tags || []), ...c.messages.map((m) => m.text || '')].join(' ').toLowerCase().includes(needle)));
   const inTab = base.filter((c) => statusOf(c, t) === tab);
   const list = useMemo(() => inTab.filter((c) => chan === 'all' || c.ch === chan).sort((a, b) => {
     if (sort === 'oldest') return lastAt(a) - lastAt(b);
@@ -171,7 +175,8 @@ export default function MerchantInbox() {
   const chanUnread = (ch) => inTab.filter((c) => (ch === 'all' || c.ch === ch) && c.unread).length;
   const whoCount = (w) => convs.filter((c) => statusOf(c, t) === tab && (w === 'mine' ? c.assignee === ME : !c.assignee)).length;
   const unreadAll = convs.filter((c) => c.unread && statusOf(c, t) !== 'closed').length;
-  const filtered = chan !== 'all' || who !== 'all' || !!needle;
+  const filtered = chan !== 'all' || who !== 'all' || show !== 'all' || !!needle;
+  const showCount = (v) => convs.filter((c) => statusOf(c, t) === tab && inView(c, v, t)).length;
 
   // desktop and tablet keep a conversation open: pick the first one when nothing is open
   useEffect(() => {
@@ -190,7 +195,7 @@ export default function MerchantInbox() {
   openRef.current = open;
 
   const back = () => { setPane('list'); setPanelSheet(false); };
-  const clearFilters = () => { setChan('all'); setWho('all'); setQ(''); };
+  const clearFilters = () => { setChan('all'); setWho('all'); setShow('all'); setQ(''); };
 
   const onListKey = (e) => {
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
@@ -211,6 +216,38 @@ export default function MerchantInbox() {
     endPicking();
   };
   const bulkTag = (n) => bulk((c) => ({ tags: [...new Set([...(c.tags || []), n])] }), 'tag', `Tagged “${n}” by ${me}`, `Tagged “${n}” on ${picked.length} conversation${picked.length === 1 ? '' : 's'}`);
+
+  // ---- GridAI Autopilot: answer by itself (simple questions only; the rest are handed over) --------------
+  const aiDemo = useRef(new Set());
+  function aiReply(id) {
+    const later = (ms, fn) => timers.current.push(window.setTimeout(fn, ms));
+    later(500, () => setTyping(id));
+    later(1700, () => {
+      setTyping('');
+      const c = getConvs().find((x) => x.id === id);
+      if (!c || !autopilotOn(c)) return;
+      const run = customerTurn(c);
+      if (run.decision.act === 'person') {
+        addMessages(id, sys('arrow-up-right', `GridAI handed this to a person: ${run.decision.reason}`), { autopilot: false, priority: 'high' });
+        logAi({ kind: 'escalation', title: 'Handed to a person', detail: run.decision.reason, channel: c.ch, customer: c.name, conv: id });
+        return;
+      }
+      if (run.decision.act !== 'auto') { addMessages(id, sys('wand-sparkles', 'GridAI drafted a reply for a person to check: ' + run.decision.reason)); return; }
+      const cards = (run.intents.includes('recommend') ? run.products : []).slice(0, 3).map((p) => ({ from: 'agent', by: 'gridai', ai: true, run: run.id, type: 'product', sku: p.sku, status: 'sent' }));
+      addMessages(id, [{ id: mid(), at: Date.now(), from: 'agent', by: 'gridai', ai: true, run: run.id, type: 'text', text: run.reply, status: 'sent' }, ...cards.map((m) => ({ ...m, id: mid(), at: Date.now() }))], { unread: 0 });
+      logAi({ kind: 'reply', title: 'Answered by itself', detail: run.reply.slice(0, 90), channel: c.ch, customer: c.name, conv: id });
+      // demo: the customer answers once, so the next turn (an order or a question) shows Autopilot carrying on
+      if (aiDemo.current.has(id)) return;
+      aiDemo.current.add(id);
+      later(3800, () => setTyping(id));
+      later(6000, () => {
+        setTyping('');
+        const next = run.intents.includes('recommend') || run.intents.includes('price') || run.intents.includes('stock') ? 'Thik ache, eta nibo. Delivery charge koto?' : 'Ok, dhonnobad!';
+        addMessages(id, { from: 'customer', type: 'text', text: next }, (x) => ({ unread: selRef.current === id ? 0 : (x.unread || 0) + 1 }));
+        aiReply(id);
+      });
+    });
+  }
 
   // ---- actions on the open conversation ------------------------------------------------------------
   const act = {
@@ -250,6 +287,14 @@ export default function MerchantInbox() {
     merge: () => setDlg('merge'),
     openPanel: () => setPanelSheet(true),
     system: (icon, text) => addMessages(sel, sys(icon, text)),
+    setAutopilot: (on) => {
+      const id = sel;
+      addMessages(id, sys('sparkles', on ? `GridAI Autopilot turned on by ${me}` : `${me} took over · GridAI Autopilot off`), { autopilot: on });
+      logAi({ kind: 'settings', title: on ? 'Autopilot on for a chat' : 'Autopilot off for a chat', detail: conv ? conv.name : '', channel: conv ? conv.ch : '', by: me });
+      toast(on ? 'GridAI answers this chat. Taking over is one tap.' : 'You are handling this chat. GridAI keeps drafting.');
+      if (on) { const c = getConvs().find((x) => x.id === id); const lastIn = c && [...c.messages].reverse().find((m) => m.from === 'customer' || m.from === 'agent'); if (lastIn && lastIn.from === 'customer') aiReply(id); }
+    },
+    aiReply: (id) => aiReply(id || sel),
     send: (msgs) => {
       const id = sel;
       const c = getConvs().find((x) => x.id === id);
@@ -264,6 +309,8 @@ export default function MerchantInbox() {
       const patch = { unread: 0 };
       if (reply && (st === 'closed' || st === 'snoozed')) { pre.push(sys('rotate-ccw', `Reopened by ${me} with a reply`)); patch.status = 'open'; patch.snoozeUntil = null; }
       if (reply && !c.assignee) { pre.push(sys('user-round-check', `Assigned to ${me} (first reply)`)); patch.assignee = ME; }
+      // human takeover: a person's reply stops Autopilot for this chat until someone turns it back on
+      if (reply && autopilotOn(c) && !rows.some((m) => m.ai)) { pre.push(sys('hand', `${me} took over · GridAI Autopilot paused for this chat`)); patch.autopilot = false; logAi({ kind: 'override', title: 'A person took over', detail: c.name, channel: c.ch, customer: c.name, by: me }); }
       addMessages(id, [...pre, ...rows], patch);
       if (!reply) return;
       const ids = rows.map((m) => m.id);
@@ -363,8 +410,10 @@ export default function MerchantInbox() {
                   <div className="ibx-listhead">
                     <div className="ibx-listhead__row">
                       <SearchBox value={q} onChange={setQ} placeholder="Search name, phone, message" label="Search conversations" onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); const r = listRef.current && listRef.current.querySelector('.ibx-row'); if (r) r.focus(); } }} />
-                      <Menu label="Filter and sort" button={({ toggle, open: o }) => <button type="button" className={'ix-btn ix-btn--icon ibx-tool' + (who !== 'all' ? ' is-on' : '')} aria-expanded={o} onClick={toggle} aria-label={'Filter and sort: ' + WHO.find((w) => w[0] === who)[1] + ', ' + SORTS.find((s) => s[0] === sort)[1]} title="Filter and sort"><Icon name="list-filter" width="16" height="16" /></button>}>
+                      <Menu label="Filter and sort" button={({ toggle, open: o }) => <button type="button" className={'ix-btn ix-btn--icon ibx-tool' + (who !== 'all' || show !== 'all' ? ' is-on' : '')} aria-expanded={o} onClick={toggle} aria-label={'Filter and sort: ' + WHO.find((w) => w[0] === who)[1] + ', ' + SORTS.find((s) => s[0] === sort)[1]} title="Filter and sort"><Icon name="list-filter" width="16" height="16" /></button>}>
                         {(close) => <>
+                          <p className="ib-menu__head">Show</p>
+                          {AI_VIEWS.map(([v, l]) => <MenuItem key={v} checked={show === v} hint={data && v !== 'all' ? String(showCount(v)) : undefined} onClick={() => { setShow(v); close(); }}>{l}</MenuItem>)}
                           <p className="ib-menu__head">Assigned to</p>
                           {WHO.map(([v, l]) => <MenuItem key={v} checked={who === v} hint={data && v !== 'all' ? String(whoCount(v)) : undefined} onClick={() => { setWho(v); close(); }}>{l}</MenuItem>)}
                           <p className="ib-menu__head">Sort by</p>
@@ -416,7 +465,7 @@ export default function MerchantInbox() {
                                 {picking ? <span className={'ibx-tick' + (on ? ' is-on' : '')} aria-hidden="true">{on ? <Icon name="check" width="14" height="14" /> : null}</span> : null}
                                 <Avatar name={c.name} avatar={c.avatar} pos={c.pos} ch={c.ch} size={36} />
                                 <span className="ibx-row__main">
-                                  <span className="ibx-row__top"><span className="ibx-row__name">{c.name}</span></span>
+                                  <span className="ibx-row__top"><span className="ibx-row__name">{c.name}</span>{isHighPriority(c, t) ? <span className="ibx-pri" title="High priority"><Icon name="flag" width="12" height="12" aria-hidden="true" /><span className="sr-only">High priority</span></span> : null}{autopilotOn(c) ? <span className="ibx-ai" title="GridAI is answering this chat"><Icon name="sparkles" width="12" height="12" aria-hidden="true" />AI</span> : null}</span>
                                   <span className="ibx-row__prev">{lead}{previewOf(vis)}</span>
                                   <span className="ibx-row__foot">
                                     {c.blocked ? <span className="gc-badge gc-badge--error">Blocked</span> : null}
@@ -564,6 +613,8 @@ body:has(.ibx) .gc-ai{display:none}
 .ibx-row__foot{display:flex;align-items:center;gap:6px;min-height:20px;margin-top:2px;overflow:hidden}
 .ibx-row__foot .gc-badge{height:20px;padding:0 6px}
 .ibx-row__end{display:flex;align-items:center;gap:6px;flex:none;margin-left:auto}
+.ibx-ai{display:inline-flex;align-items:center;gap:2px;flex:none;height:18px;padding:0 6px;border-radius:var(--radius-full);background:var(--fill-primary-soft);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--primary)}
+.ibx-pri{display:inline-grid;place-items:center;flex:none;width:18px;height:18px;border-radius:var(--radius-full);background:var(--fill-warning-soft);color:var(--text-warning)}
 /* up to 1599px the conversation gets the room: narrower list and customer panel */
 @media (max-width:1599px){.ibx-app{grid-template-columns:minmax(260px,300px) minmax(0,1fr) minmax(260px,290px)}.ibx-app[data-panel="closed"]{grid-template-columns:minmax(260px,300px) minmax(0,1fr)}}
 /* tablets: two panes, the customer panel slides over */

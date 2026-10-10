@@ -97,6 +97,8 @@ const BN = {
   // account menu, Help and editions (gc-topbar.js, gc-sidebar.js, lib/edition.js)
   'My tasks': 'আমার কাজ', 'Your tasks, numbers and team for today': 'আজকের কাজ, হিসাব আর টিম',
   'Profile type': 'প্রোফাইলের ধরন', 'Switch to a team member’s profile': 'টিমের অন্য কারও প্রোফাইলে যান',
+  // Grid AI menu
+  'Assistant': 'সহকারী', 'Agents': 'এজেন্ট', 'Knowledge & training': 'জ্ঞান ও প্রশিক্ষণ', 'Test AI': 'এআই পরীক্ষা', 'Activity & approvals': 'কার্যক্রম ও অনুমোদন', 'Usage & billing': 'ব্যবহার ও বিল', 'Usage': 'ব্যবহার', 'Models & limits': 'মডেল ও সীমা',
   'Help': 'সাহায্য', 'Help for this page': 'এই পেজের সাহায্য', 'Ask GridAI': 'GridAI-কে জিজ্ঞেস করুন',
   'All modules': 'সব মডিউল', 'Retail + Wholesale': 'রিটেইল + হোলসেল', 'Retail': 'রিটেইল', 'Retail + Online': 'রিটেইল + অনলাইন', 'Online': 'অনলাইন',
   'Retail + Wholesale + Online': 'রিটেইল + হোলসেল + অনলাইন', 'Communication & CRM': 'যোগাযোগ ও সিআরএম',

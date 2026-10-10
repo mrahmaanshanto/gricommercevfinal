@@ -15,7 +15,7 @@ export const MODULES = {
   core: {
     label: 'Core', desc: 'Dashboard, team tasks and chat, customers and leads, settings',
     nav: ['home', 'my-dash', 'tasks', 'team-chat', 'customers', 'leads', 'cust-settings', 'connections', 'settings', 'set-store', 'set-billing', 'set-help'],
-    routes: ['/connect', '/grid-ai', '/set-profile', '/set-privacy', '/settings-history', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-storage', '/set-media', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
+    routes: ['/connect', '/set-profile', '/set-privacy', '/settings-history', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-storage', '/set-media', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
   },
   catalog: {
     label: 'Products, stock & purchases', desc: 'Products, stock, direct purchases, suppliers and their dues, damaged and expired stock, warranty',
@@ -80,8 +80,15 @@ export const MODULES = {
   },
   comms: {
     label: 'Communication', desc: 'Inbox for Facebook, Instagram, WhatsApp and more, calls, AI calls, support tickets, social posts',
-    nav: ['inbox', 'inbox-comments', 'inbox-mentions', 'calls', 'comm-ai', 'ai-knowledge', 'ai-behaviour', 'tickets', 'social', 'comm-cal', 'comm-new', 'set-wallet', 'msg-campaigns', 'meetings'],
-    routes: ['/meetings', '/social-connections', '/auto-call-settings', '/team-report', '/set-ai', '/set-rules', '/set-usage'],
+    nav: ['inbox', 'inbox-comments', 'inbox-mentions', 'calls', 'comm-ai', 'tickets', 'social', 'comm-cal', 'comm-new', 'set-wallet', 'msg-campaigns', 'meetings'],
+    routes: ['/meetings', '/social-connections', '/auto-call-settings', '/team-report', '/set-rules'],
+  },
+  // Grid AI: one shared AI for every edition (lib/gridai/*). Customer-facing parts (Inbox Copilot / Autopilot) only act
+  // where the edition has the Inbox; the assistant, knowledge, tests, approvals and cost are in every edition.
+  gridai: {
+    label: 'Grid AI', desc: 'The assistant, agents, knowledge and training, tests, AI automations, approvals, analytics and cost',
+    nav: ['ai-overview', 'ai-assistant', 'ai-agents', 'ai-knowledge', 'ai-test', 'ai-automations', 'ai-activity', 'ai-analytics', 'ai-usage', 'ai-behaviour', 'ai-models'],
+    routes: ['/set-ai', '/set-usage'],
   },
   automation: {
     label: 'Automation', desc: 'Rules, the workflow builder and workflow settings',
@@ -90,7 +97,7 @@ export const MODULES = {
   },
 };
 
-const BACK_OFFICE = ['core', 'catalog', 'money', 'reports', 'hr', 'commerce', 'marketing'];
+const BACK_OFFICE = ['core', 'catalog', 'money', 'reports', 'hr', 'commerce', 'marketing', 'gridai'];
 // Wholesale is switched off for now (Oct 2026, docs/wholesale-audit.md): no edition has the module or the channel.
 // Set WHOLESALE = true to bring it back (pages, fields, filters and reports follow hasModule('wholesale')).
 export const WHOLESALE = false;
@@ -106,7 +113,7 @@ export const EDITIONS = {
   // it may go below zero), purchase and sale prices only
   online: { name: 'GridCommerce Online', short: 'Online', modules: [...BACK_OFFICE, 'online', 'channels', 'comms', 'automation'], channels: ['Online'], noHolds: true },
   'retail-online': { name: WHOLESALE ? 'GridCommerce Retail + Wholesale + Online' : 'GridCommerce Retail + Online', short: WHOLESALE ? 'Retail + Wholesale + Online' : 'Retail + Online', modules: [...BACK_OFFICE, ...STORE, 'pos', ...W, 'online', 'channels', 'comms', 'automation'], channels: ['Retail', ...WC, 'Online'] },
-  comms: { name: 'GridCommerce Connect', short: 'Communication & CRM', modules: ['core', 'comms', 'automation', 'pos'], channels: ['Retail'] },
+  comms: { name: 'GridCommerce Connect', short: 'Communication & CRM', modules: ['core', 'comms', 'automation', 'pos', 'gridai'], channels: ['Retail'] },
 };
 export const EDITION_IDS = Object.keys(EDITIONS);
 
