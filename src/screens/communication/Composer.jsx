@@ -2,6 +2,9 @@
 // Create post — a Shopify-style create form (components/ui/IndexKit.jsx RecordHeader): where to post, the text with
 // formatting and language, hashtags, media and link, and the per-platform checks on the left; when, the GridAI
 // writer (folded away) and the preview on the right. Save draft / Post now / Schedule sit in the title row.
+// Posts are saved in src/lib/socialPosts.js (the list the Post calendar and the app's /m-social read): Save draft,
+// Schedule and Post now go through savePost / publishNow; ?id= opens a saved post. After mount each place's connection
+// comes from the lib (platState), the date starts tomorrow and the suggested times follow the clock.
 // Edit freely: this file is the source for the screen.
 
 import React from 'react';
@@ -10,6 +13,8 @@ import { Sidebar, Topbar } from '@/shell/Shell';
 import { toast } from '@/runtime/ui';
 import { ChannelIcon, InfoTip, StatusBadge } from '@/components/ui';
 import { RecordHeader } from '@/components/ui/IndexKit';
+import { clockNow } from '@/lib/settlements';
+import { platState, postBy, savePost, publishNow } from '@/lib/socialPosts';
 
 // ---- logic ----
 
@@ -31,7 +36,20 @@ var PLAT = [
 ];
 var CH = { fb: 'facebook', ig: 'instagram', wa: 'whatsapp', tt: 'tiktok', yt: 'youtube', x: 'x', pin: 'pinterest', wac: 'whatsapp', fbg: 'facebook', li: 'linkedin' };
 var CK_ICON = { bad: 'triangle-alert', warn: 'clock', info: 'info', ok: 'check' };
-function plat(k) { return PLAT.filter(function (p) { return p[0] === k; })[0]; }
+function plat(k, list) { return (list || PLAT).filter(function (p) { return p[0] === k; })[0]; }
+var ST_OF = { connected: 'ok', attention: 'renew', off: 'off' };
+/** PLAT with each place's connection and account from lib/socialPosts.js (reminder places stay 'manual'). */
+function livePlat() {
+  return PLAT.map(function (p) {
+    if (!p[4]) return p;
+    var st = platState(p[0]) || {};
+    var q = p.slice(); q[6] = ST_OF[st.state] || 'off'; if (st.account) q[5] = st.account; else if (q[6] === 'off') q[5] = 'Not connected';
+    return q;
+  });
+}
+var pad2 = function (n) { return String(n).padStart(2, '0'); };
+var keyOf = function (t) { var d = new Date(t); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
+var mediaName = { photo: 'Puja offer banner.jpg', video: 'Case drop test.mp4' };
 
 var BASE = { en: 'Puja is here.\nGet 10% off every charger and cable with code PUJA10, until 20 October.\nFree delivery inside Dhaka on orders over ৳1,500.', bn: 'পূজা এসে গেছে!\nPUJA10 কোডে সব চার্জার ও ক্যাবলে ১০% ছাড়, ২০ অক্টোবর পর্যন্ত।\nঢাকার ভেতরে ৳১,৫০০-এর বেশি অর্ডারে ফ্রি ডেলিভারি।', mix: 'Puja offer cholche!\nPUJA10 code diye shob charger ar cable e 10% off, 20 October porjonto.\nDhakar bhitore ৳1,500+ order e free delivery.' };
 var SETS = [['Brand', ['#Dazzle Shop', '#Dazzle ShopBD']], ['Puja offer', ['#PujaOffer', '#পূজার_অফার', '#DurgaPuja']], ['Phone care', ['#PhoneAccessoriesBD', '#PhoneCase', '#FastCharger']]];
@@ -49,9 +67,37 @@ var GEN = {
 var LIM = { x: 280, ig: 2200, li: 3000, pin: 500 };
 var BOLD_A = 0x1D5D4, BOLD_a = 0x1D5EE, BOLD_0 = 0x1D7EC, IT_A = 0x1D608, IT_a = 0x1D622;
 function styl(s, A, a, z) { return Array.from(s).map(function (ch) { var c = ch.charCodeAt(0); if (c >= 65 && c <= 90) return String.fromCodePoint(A + c - 65); if (c >= 97 && c <= 122) return String.fromCodePoint(a + c - 97); if (z && c >= 48 && c <= 57) return String.fromCodePoint(z + c - 48); return ch; }).join(''); }
+/** Suggested times: today 9 PM (while it is ahead), then the next Thursday 8 PM and Friday 3 PM. First render: 1 Oct. */
+function bestTimes(now) {
+  if (!now) return [['Today 9:00 PM', '2026-09-29', '21:00'], ['Thu 1 Oct, 8:00 PM', '2026-10-01', '20:00'], ['Fri 2 Oct, 3:00 PM', '2026-10-02', '15:00']];
+  var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], t = new Date(now), out = [];
+  if (t.getHours() < 21) out.push(['Today 9:00 PM', keyOf(now), '21:00']);
+  for (var i = 1; i <= 7 && out.length < 3; i++) {
+    var x = new Date(t.getFullYear(), t.getMonth(), t.getDate() + i);
+    if (x.getDay() === 4) out.push(['Thu ' + x.getDate() + ' ' + M[x.getMonth()] + ', 8:00 PM', keyOf(x.getTime()), '20:00']);
+    if (x.getDay() === 5) out.push(['Fri ' + x.getDate() + ' ' + M[x.getMonth()] + ', 3:00 PM', keyOf(x.getTime()), '15:00']);
+  }
+  return out.slice(0, 3);
+}
 class Component extends DCLogic {
+  componentDidMount() {
+    var now = clockNow();
+    var patch = { plat: livePlat(), now: now, date: keyOf(now + 864e5) };
+    var id = new URLSearchParams(window.location.search).get('id');
+    var p = id ? postBy(id) : null;
+    if (p) {
+      var sel = {}; p.plats.forEach(function (k) { sel[k] = 1; });
+      var tags = {}; (p.tags || []).forEach(function (t) { tags[t] = 1; });
+      var at = p.at && p.status !== 'done' ? new Date(p.at) : null;
+      patch = assign(patch, { id: p.id, orig: p.media || [], sel: sel, text: p.text || '', tags: tags, media: (p.media || []).map(function (m) { return m.kind; }), link: p.link || '',
+        date: at ? keyOf(at.getTime()) : patch.date, time: at ? pad2(at.getHours()) + ':' + pad2(at.getMinutes()) : '20:00',
+        done: p.status === 'sched' || p.status === 'remind' ? 'sched' : p.status === 'draft' ? 'draft' : '' });
+    }
+    this.setState(patch);
+  }
   renderVals() {
     var self = this, s = this.state || {};
+    var PL = s.plat || PLAT;
     var sel = s.sel || { fb: 1, ig: 1, wa: 1, tt: 1, wac: 1 };
     var lang = s.lang || 'en', text = s.text == null ? BASE[lang] : s.text, hist = s.hist || [];
     var tags = s.tags || { '#Dazzle Shop': 1, '#PujaOffer': 1, '#DhakaShopping': 1 };
@@ -62,7 +108,7 @@ class Component extends DCLogic {
     var tagList = Object.keys(tags);
     var full = text + (tagList.length ? '\n\n' + tagList.join(' ') : '');
     var len = Array.from(full).length + (link ? link.length + 1 : 0);
-    var chosen = PLAT.filter(function (p) { return sel[p[0]]; });
+    var chosen = PL.filter(function (p) { return sel[p[0]]; });
     var hasVideo = media.indexOf('video') >= 0, hasPhoto = media.indexOf('photo') >= 0;
     function issue(p) { var k = p[0];
       if (p[6] === 'off') return ['Not connected. Connect it, or it is skipped.', 'bad'];
@@ -80,14 +126,25 @@ class Component extends DCLogic {
     var bad = checks.filter(function (k) { return k.bad; }).length;
     var d = new Date(date + 'T' + time + ':00'), MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     var when = isNaN(d) ? '—' : d.getDate() + ' ' + MON[d.getMonth()] + ', ' + ((d.getHours() % 12) || 12) + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + (d.getHours() >= 12 ? 'pm' : 'am');
-    var pvk = s.pv && sel[s.pv] ? s.pv : (chosen[0] || PLAT[0])[0], pvp = plat(pvk);
+    var pvk = s.pv && sel[s.pv] ? s.pv : (chosen[0] || PL[0])[0], pvp = plat(pvk, PL);
+    // the post as lib/socialPosts.js keeps it (pictures already saved with the post stay)
+    function postOf(status, atMs) {
+      var orig = s.orig || [];
+      return { id: s.id || undefined, text: text, plats: chosen.map(function (p) { return p[0]; }), tags: tagList, link: link, status: status, at: atMs,
+        media: media.map(function (k, i) { return orig[i] && orig[i].kind === k ? orig[i] : { kind: k, name: mediaName[k] || k }; }) };
+    }
     function go(now) { if (!chosen.length) { toast('Pick at least one place to post.', { tone: 'error' }); return; } if (bad) { toast(bad + (bad === 1 ? ' platform needs' : ' platforms need') + ' fixing first. See Ready to publish.', { tone: 'error' }); return; }
-      var auto = chosen.filter(function (p) { return p[4]; }).length, man = chosen.length - auto; self.setState({ done: now ? 'now' : 'sched' });
+      var atMs = d.getTime();
+      if (!now && (isNaN(atMs) || atMs <= clockNow())) { toast('That time has passed. Pick a later time or Post now.', { tone: 'error' }); return; }
+      var auto = chosen.filter(function (p) { return p[4]; }).length, man = chosen.length - auto;
+      var saved = savePost(postOf(now ? 'draft' : 'sched', now ? null : atMs));
+      if (now) { var r = publishNow(saved.id); if (!r.ok && r.bad && r.bad.length) { self.setState({ id: saved.id, orig: saved.media }); toast(r.bad.map(function (b) { return b.name; }).join(', ') + ': ' + r.bad[0].msg, { tone: 'error' }); return; } }
+      self.setState({ done: now ? 'now' : 'sched', id: saved.id, orig: saved.media });
       toast((now ? 'Posting now to ' : 'Scheduled for ' + when + ' on ') + auto + ' platform' + (auto === 1 ? '' : 's') + (man ? ', with ' + man + ' reminder' + (man > 1 ? 's' : '') + ' to post by hand.' : '.')); }
     var firstLine = function (fn) { var ls = text.split('\n'); ls[0] = fn(ls[0]); return ls.join('\n'); };
     var v = {
       status: s.done === 'sched' ? 'Scheduled for ' + when : s.done === 'draft' ? 'Draft saved' : 'Draft · not saved yet',
-      plats: PLAT.map(function (p) { var on = !!sel[p[0]]; return { n: p[1], ch: CH[p[0]], short: p[1].replace('WhatsApp broadcast', 'WhatsApp').replace('Facebook Page', 'Facebook').replace('WhatsApp Channel', 'WA Channel').replace('Facebook groups', 'FB groups').replace('LinkedIn page', 'LinkedIn'), on: on, off: p[6] === 'off', pick: function () { var n = assign({}, sel); if (on) delete n[p[0]]; else n[p[0]] = 1; self.setState({ sel: n }); } }; }),
+      plats: PL.map(function (p) { var on = !!sel[p[0]]; return { n: p[1], ch: CH[p[0]], short: p[1].replace('WhatsApp broadcast', 'WhatsApp').replace('Facebook Page', 'Facebook').replace('WhatsApp Channel', 'WA Channel').replace('Facebook groups', 'FB groups').replace('LinkedIn page', 'LinkedIn'), on: on, off: p[6] === 'off', pick: function () { var n = assign({}, sel); if (on) delete n[p[0]]; else n[p[0]] = 1; self.setState({ sel: n }); } }; }),
       selNote: chosen.length + ' selected · ' + chosen.filter(function (p) { return !p[4]; }).length + ' by reminder',
       langs: [['en', 'English'], ['bn', 'বাংলা'], ['mix', 'Benglish']].map(function (o) { var on = o[0] === lang; return { l: o[1], on: on, pick: function () { self.setState({ lang: o[0], text: BASE[o[0]], hist: hist.concat([text]) }); } }; }),
       bnCls: lang === 'bn' ? 'bn' : '',
@@ -118,11 +175,11 @@ class Component extends DCLogic {
       rewrites: [['Shorter', function (t) { return t.split('\n').slice(0, 2).join('\n'); }], ['More exciting', function (t) { return t.replace(/^([^\n]*?)\.?(\n|$)/, '$1!$2').replace('Get ', 'Grab '); }], ['Add emojis', function (t) { var ls = t.split('\n'); return ['🎉 ' + ls[0]].concat(ls.slice(1).map(function (l, i) { return l ? (i === 0 ? '🔌 ' : '🚚 ') + l : l; })).join('\n'); }], ['Fix grammar', function (t) { return t.replace(/\s+([.,!])/g, '$1').replace(/ {2,}/g, ' '); }], ['To Bangla', function () { return BASE.bn; }], ['To Benglish', function () { return BASE.mix; }], ['Add a call to action', function (t) { return t + '\nOrder now: link in bio.'; }], ['Fit X (280)', function (t) { var o = Array.from(t.split('\n')[0] + ' Code PUJA10.'); return o.slice(0, 200).join(''); }]].map(function (r) { return { l: r[0], run: function () { var nt = r[1](text); var lg = r[0] === 'To Bangla' ? 'bn' : r[0] === 'To Benglish' ? 'mix' : lang; self.setState({ text: nt, hist: hist.concat([text]), lastRw: r[0] + ' applied', lang: lg }); } }; }),
       lastRw: s.lastRw || '',
       date: date, time: time, onDate: function (e) { self.setState({ date: val(e) }); }, onTime: function (e) { self.setState({ time: val(e) }); },
-      best: [['Today 9:00 PM', '2026-09-29', '21:00'], ['Thu 1 Oct, 8:00 PM', '2026-10-01', '20:00'], ['Fri 2 Oct, 3:00 PM', '2026-10-02', '15:00']].map(function (b) { var on = b[1] === date && b[2] === time; return { l: b[0], on: on, cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ date: b[1], time: b[2] }); } }; }),
+      best: bestTimes(s.now).map(function (b) { var on = b[1] === date && b[2] === time; return { l: b[0], on: on, cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ date: b[1], time: b[2] }); } }; }),
       pvTabs: chosen.slice(0, 6).map(function (p) { var on = p[0] === pvk; return { l: p[1].replace(' broadcast', ''), ch: CH[p[0]], on: on, cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ pv: p[0] }); } }; }),
       pv: { ch: CH[pvk], n: pvp[1], acc: pvp[5], when: when, text: pvk === 'x' && len > 280 ? Array.from(text).slice(0, 230).join('') + '…' : text, tags: pvk === 'x' ? tagList.slice(0, 2).join(' ') : tagList.join(' '), hasMedia: media.length > 0, media: (media[0] === 'video' ? 'Video · 0:24 · case drop test' : 'Photo · Puja offer banner') + (media.length > 1 ? ' · +' + (media.length - 1) : ''), video: media[0] === 'video', hasLink: !!link && pvk !== 'ig' },
       schedLabel: s.done === 'sched' ? 'Scheduled' : 'Schedule',
-      postNow: function () { go(true); }, schedule: function () { go(false); }, saveDraft: function () { self.setState({ done: 'draft' }); toast('Draft saved. It shows in the calendar tray.'); }
+      postNow: function () { go(true); }, schedule: function () { go(false); }, saveDraft: function () { var saved = savePost(postOf('draft', null)); self.setState({ done: 'draft', id: saved.id, orig: saved.media }); toast('Draft saved. It shows in the calendar tray.'); }
     };
     return v;
   }

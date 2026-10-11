@@ -51,7 +51,8 @@ export function profitByChannel(from, to, { sales = getSales(), entries = getEnt
   // expenses paid in the period (not payments of liabilities, which count when owed)
   entries.filter((e) => COST_KINDS.includes(e.kind) && e.amount < 0 && !e.liab && e.at >= from && e.at < to).forEach((e) => {
     const label = e.cat || (e.kind === 'paid out' ? 'Paid out at counters' : e.kind === 'salary' ? 'Salary' : 'Other');
-    add(e.kind === 'paid out' ? 'Retail' : homeOf(label), label, -e.amount, 'expense');
+    // an expense can say which channel it counts under (the app's "Counts under"); else its category decides
+    add(e.kind === 'paid out' ? 'Retail' : (e.channel || homeOf(label)), label, -e.amount, 'expense');
   });
   // liabilities owed for the period
   liabilities.filter((l) => l.at >= from && l.at < to).forEach((l) => {

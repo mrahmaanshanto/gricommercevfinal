@@ -1,240 +1,256 @@
 'use client';
-// Generated from design/templates/app/MPurchaseNew.dc.html by scripts/convert-design.mjs.
-// Merchant app · New purchase order
-// Edit freely: this file is now the source for the screen.
+// Merchant app · New purchase (/m-purchase-new). The board's layout (design/templates/app/MPurchaseNew.dc.html) with
+// live data. Two ways to buy, as Settings › Stock setup allows (stockSetup.js › buying; the Online edition buys direct):
+//   Purchase order  supplier, deliver to (receiving places), items with quantities and buying prices. Choosing a
+//                   supplier fills the items running low that were bought from them before (quantities cover 20 days of
+//                   sales, else twice the reorder level). Save draft, or Send to supplier (purchaseOrders.addPOs,
+//                   status Sent); staff orders above ৳50,000 wait for an admin (approval 'waiting'), like New PO on the web.
+//   Bought now      the web's New purchase (/buy-goods) in one step: stock comes in at the place ('receive' moves), a
+//                   supplier bill with what is left and its due date (supplierBills.addBill direct), the payment from an
+//                   account (paySupplier → ledger), the latest buying price (productCost.setBuyingPrice) and expiry
+//                   batches for products that track expiry (batches.addBatches).
+// ?sku= starts with that product (Stock › Reorder) and its last supplier; ?mode=direct|order picks the way.
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { AppScreen, Content, AppBar, ActionBar, Button, IconButton, Field, TextInput, Stepper, Segmented, Chips, Sheet, Note, Avatar, Icon, useAppData, useQuery, money, toast, refresh, initials } from './kit/AppKit';
+import { addPOs } from '@/lib/purchaseOrders';
+import { findSupplier, ensureSupplier, addBill, paySupplier, payableOf, termsLabel, DEFAULT_TERMS, dayStart } from '@/lib/supplierBills';
+import { addMove } from '@/lib/stock';
+import { setBuyingPrice } from '@/lib/productCost';
+import { addBatches } from '@/lib/batches';
+import { accountsForMethod, balanceOf, getEntries } from '@/lib/ledger';
+import { getReceivingPlaces, onlinePlace } from '@/lib/locations';
+import { getStockSetup } from '@/lib/stockSetup';
+import { resolveScan } from '@/lib/identifiers';
+import { ProductSheet, ScanSheet } from './stock/Scanner';
+import { SupplierSheet } from './stock/PurchaseParts';
+import { buyingMode, supplierLines, lastSupplierOf } from './stock/purchaseData';
+import { rowBy, stockOf, costOf, soldPerDay, reorderOf, tracksExpiry, isAdmin, me, onePlace, safe, plural, isoDay, fromIso } from './stock/stockData';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+const LIMIT = 50000;
+const METHODS = ['Cash', 'bKash', 'Nagad', 'Bank'];
+const DAY = 864e5;
 
-class Component extends DCLogic {
-  renderVals() { return {}; }
+/** A line for a product: buying price and what it sells. */
+function lineFor(row, place, qty) {
+  const st = stockOf(row.sku, place);
+  return { sku: row.sku, name: row.name, code: row.barcode || '', qty: Math.max(1, qty || 1), cost: String(costOf(row)), have: st.available, rate: soldPerDay(row.sku), expiry: '', exp: tracksExpiry(row) };
 }
+/** How many to order: 20 days of sales, else twice the reorder level, less what is there. */
+const suggest = (row, place) => { const st = stockOf(row.sku, place); const r = soldPerDay(row.sku); const want = r > 0 ? Math.ceil(r * 20) : reorderOf(row.sku) * 2; return Math.max(1, want - Math.max(0, st.available)); };
 
-// ---- styles (from the design's <helmet>) ----
+export default function MPurchaseNewScreen() {
+  const router = useRouter();
+  const q = useQuery();
+  const { ready } = useAppData();
+  const [mode, setMode] = useState('');            // 'order' | 'direct'
+  const [sup, setSup] = useState('');
+  const [place, setPlace] = useState('');
+  const [lines, setLines] = useState([]);
+  const [filled, setFilled] = useState(0);
+  const [pickSup, setPickSup] = useState(false);
+  const [pickItem, setPickItem] = useState(false);
+  const [scan, setScan] = useState(false);
+  const [edit, setEdit] = useState(null);         // sku of the line being edited
+  const [invoice, setInvoice] = useState('');
+  const [payWhen, setPayWhen] = useState('full');
+  const [paidNow, setPaidNow] = useState('');
+  const [method, setMethod] = useState('Cash');
+  const [account, setAccount] = useState('');
+  const [due, setDue] = useState('');
+  const [busy, setBusy] = useState(false);
 
-const CSS = `
-*{box-sizing:border-box}
-body{margin:0;background:#dfe5ee;font-family:var(--font-sans);-webkit-font-smoothing:antialiased;color:#0f172a}
-a{color:inherit;text-decoration:none}
-button{font:inherit;color:inherit}
-.bn{font-family:var(--font-bn)}
-.mono{font-family:var(--font-data)}
-.num{font-variant-numeric:tabular-nums}
-.ph{--brand:#003087;--brand2:#0a4bb5;--sky:#009cde;--ink:#0f172a;--body:#475569;--muted:var(--text-muted);--line:#e8edf3;--bg:#f5f7fa;--card:#ffffff;--soft:#eef3fa;
-  --ok:#0f9f6e;--okbg:#e7f7f0;--warn:#b45309;--warnbg:#fff4e0;--err:#c2410c;--errbg:#ffece5;
-  position:relative;width:min(390px,100%);height:844px;overflow:hidden;background:var(--bg);font-size:var(--text-sm-plus);line-height:1.5;font-family:var(--font-sans)}
-.sb{position:absolute;top:0;left:0;right:0;height:47px;display:flex;align-items:center;justify-content:space-between;padding:0 28px 0 34px;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);z-index:6}
-.sb .r{display:flex;gap:6px;align-items:center}
-.appbar{position:absolute;top:47px;left:0;right:0;height:56px;display:flex;align-items:center;gap:4px;padding:0 8px;z-index:5;background:var(--bg)}
-.appbar h1{flex:1;margin:0;font-size:var(--text-lg);font-weight:var(--weight-semibold);text-align:center;letter-spacing:0}
-.ib{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:var(--radius-full);background:transparent;color:var(--ink);position:relative;cursor:pointer}
-.ib.soft{background:var(--card);box-shadow:0 1px 2px rgba(15,23,42,.06)}
-.dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:var(--radius-full);background:#ff5724;border:2px solid var(--card)}
-.big{padding:4px 20px 0}
-.big .eyebrow{font-size:var(--text-xs-plus);color:var(--muted)}
-.big h1{margin:2px 0 0;font-size:var(--text-3xl);line-height:38px;font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight)}
-.content{position:absolute;left:0;right:0;overflow:hidden}
-.pad{padding:0 20px}
-.card{background:var(--card);border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -16px rgba(15,23,42,.18)}
-.sec{display:flex;align-items:baseline;justify-content:space-between;margin:24px 20px 10px}
-.sec h2{margin:0;font-size:var(--text-base);font-weight:var(--weight-semibold)}
-.sec a{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--brand)}
-.row{display:flex;align-items:center;gap:14px;min-height:64px;padding:12px 16px}
-.row + .row{border-top:1px solid var(--line)}
-.row .t{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--ink);line-height:20px}
-.row .s{font-size:var(--text-xs-plus);color:var(--muted);line-height:18px}
-.row .m{min-width:0;flex:1}
-.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.av{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);font-size:var(--text-sm-plus)}
-.ico{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;background:var(--soft);color:var(--brand)}
-.pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.p-ok{background:var(--okbg);color:var(--ok)}.p-warn{background:var(--warnbg);color:var(--warn)}.p-err{background:var(--errbg);color:var(--err)}.p-nav{background:var(--soft);color:var(--brand)}.p-grey{background:#eef1f5;color:#475569}
-.sh{width:8px;height:8px;flex:none}.sh.ok{border-radius:var(--radius-full);background:currentColor}.sh.warn{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid currentColor}.sh.err{transform:rotate(45deg);width:7px;height:7px;background:currentColor;border-radius:1px}
-.chips{display:flex;gap:8px;padding:0 20px;overflow:hidden}
-.chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid var(--line);background:var(--card);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--body);white-space:nowrap}
-.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.chip .n{font-size:var(--text-xs);font-weight:var(--weight-medium);opacity:.7}
-.seg{display:flex;margin:0 20px;padding:4px;border-radius:var(--radius-xl);background:#e9eef5}
-.seg span{flex:1;height:36px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--body)}
-.seg span.on{background:var(--card);color:var(--ink);font-weight:var(--weight-medium);box-shadow:0 1px 3px rgba(15,23,42,.1)}
-.srch{display:flex;align-items:center;gap:10px;height:48px;margin:0 20px;padding:0 6px 0 16px;border-radius:var(--radius-xl);background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:var(--text-sm-plus)}
-.srch .sc{margin-left:auto;width:36px;height:36px;border-radius:var(--radius-lg);background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border:0;border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer}
-.btnp{background:var(--brand);color:#fff}.btns{background:var(--soft);color:var(--brand)}.btnl{background:var(--card);color:var(--ink);border:1px solid var(--line)}
-.btnd{background:var(--errbg);color:var(--err)}
-.fab{position:absolute;right:20px;bottom:96px;width:56px;height:56px;border-radius:var(--radius-xl);background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 24px -8px rgba(0,48,135,.55);z-index:5}
-.tabfade{position:absolute;left:0;right:0;bottom:0;height:108px;background:linear-gradient(to top,var(--bg) 42%,rgba(245,247,250,0));pointer-events:none;z-index:5}
-.tabs{position:absolute;left:28px;right:28px;bottom:24px;height:56px;padding:4px;display:flex;gap:2px;border-radius:28px;background:rgba(255,255,255,.78);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);border:1px solid rgba(255,255,255,.95);box-shadow:0 14px 34px -12px rgba(15,23,42,.30),0 2px 6px -2px rgba(15,23,42,.08),inset 0 0 0 .5px rgba(15,23,42,.05);z-index:6}
-.tabs a{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:var(--radius-xl);font-size:var(--text-2xs);line-height:15px;font-weight:var(--weight-medium);color:var(--text-muted);transition:background-color .2s,color .2s}
-.tabs a.on{background:rgba(0,48,135,.08);color:var(--brand);font-weight:var(--weight-medium)}
-.tabs .tw{position:relative;display:flex}
-.cnt{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-lg);background:var(--fill-danger);color:#fff;font-family:var(--font-sans);font-size:var(--text-xs);line-height:1;font-weight:var(--weight-medium);letter-spacing:0;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap}
-.tabs .cnt{position:absolute;top:-6px;left:12px;border:2px solid #fff;min-width:19px;height:17px;padding:0 4px;font-size:var(--text-2xs);border-radius:var(--radius-lg)}
-.cnt.nav{background:var(--brand)}
-.hi{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:var(--radius-full);background:#0f172a;z-index:7}
-.actbar{position:absolute;left:0;right:0;bottom:0;padding:12px 20px 34px;display:flex;gap:10px;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:6}
-.actbar .btn{flex:1}
-.field{display:flex;flex-direction:column;gap:6px}
-.lab{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink)}
-.inp{height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:var(--radius-lg);border:1px solid #dbe2ec;background:var(--card);font-size:var(--text-sm);color:var(--ink)}
-.inp.f{border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,48,135,.12)}
-.help{font-size:var(--text-xs-plus);color:var(--muted)}
-.step{display:inline-flex;align-items:center;border:1px solid #dbe2ec;border-radius:var(--radius-xl);background:var(--card)}
-.step b{min-width:34px;text-align:center;font-size:var(--text-sm-plus)}
-.step span{width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--brand)}
-.sw{position:relative;flex:none;width:50px;height:30px;border-radius:var(--radius-full);background:#cbd5e1}.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.sw.on{background:var(--brand)}.sw.on::after{left:23px}
-.scrim{position:absolute;inset:0;background:rgba(15,23,42,.45);z-index:8}
-.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:28px 28px 0 0;padding:10px 20px 34px;z-index:9}
-.grab{width:40px;height:5px;margin:0 auto 14px;border-radius:var(--radius-full);background:#d5dce6}
-.k{font-size:var(--text-xs-plus);color:var(--muted)}.v{font-size:var(--text-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight)}
-.tile{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink);text-align:center}
-.tile .ico{width:56px;height:56px;border-radius:var(--radius-xl)}
-.note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
+  const ways = useMemo(() => (ready ? buyingMode() : { orders: true, direct: false }), [ready]);
+  const places = useMemo(() => (ready ? (onePlace() ? [safe(() => onlinePlace(), 'Central Warehouse')] : safe(() => getReceivingPlaces(), ['Central Warehouse'])) : []), [ready]);
+  useEffect(() => {
+    if (!ready || !q) return;
+    const want = q.get('mode');
+    setMode(want === 'direct' && ways.direct ? 'direct' : want === 'order' && ways.orders ? 'order' : ways.orders ? 'order' : 'direct');
+    const home = safe(() => onlinePlace(), places[0]);
+    setPlace(places.includes(home) ? home : places[0] || '');
+    const sku = q.get('sku');
+    const row = sku ? rowBy(sku) : null;
+    if (row) {
+      const s = lastSupplierOf(row.sku);
+      if (s) setSup(s);
+      setLines([lineFor(row, home, suggest(row, home))]);
+      setFilled(-1);
+    }
+  }, [ready, q, ways, places]);
 
-.pav{position:relative;flex:none;width:52px;height:52px}
-.pav .face{width:52px;height:52px;border-radius:var(--radius-full);object-fit:cover;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);font-size:var(--text-base)}
-.pav .pb{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;padding:2px;box-shadow:0 1px 3px rgba(15,23,42,.18)}
-.pav .pb img{width:18px;height:18px;display:block;border-radius:var(--radius-full)}
-.pav .on{position:absolute;right:1px;top:1px;width:12px;height:12px;border-radius:var(--radius-full);background:#10b981;border:2px solid #fff}
-.pchip{flex:none;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px 0 8px;border-radius:var(--radius-full);border:1px solid var(--line);background:var(--card);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--body);white-space:nowrap}
-.pchip img{width:22px;height:22px;border-radius:var(--radius-full)}
-.pchip.on{background:var(--ink);color:#fff;border-color:var(--ink);padding-left:14px}
-.bar{height:6px;border-radius:var(--radius-full);background:#edf1f6;overflow:hidden}.bar i{display:block;height:100%;border-radius:var(--radius-full)}
-.lrow{display:flex;align-items:center;gap:14px;padding:14px 16px}
-.lrow + .lrow{border-top:1px solid var(--line)}
-`;
+  const supplier = sup ? safe(() => findSupplier(sup), null) : null;
+  const terms = supplier ? supplier.terms ?? DEFAULT_TERMS : DEFAULT_TERMS;
+  useEffect(() => { if (ready) setDue(isoDay(dayStart() + terms * DAY)); }, [ready, terms]);
+  const accounts = useMemo(() => (ready ? safe(() => { const e = getEntries(); return accountsForMethod(method).map((a) => ({ ...a, balance: balanceOf(a.id, e) })); }, []) : []), [ready, method]);
+  useEffect(() => { setAccount(accounts[0] ? accounts[0].id : ''); }, [accounts]);
 
-// ---- markup ----
+  const choose = (name) => {
+    setPickSup(false);
+    setSup(name);
+    // fill with what is low from this supplier (order mode, no items yet)
+    if (mode === 'order' && !lines.length) {
+      const low = supplierLines(name).map((s) => rowBy(s)).filter(Boolean).filter((r) => stockOf(r.sku, place).available < reorderOf(r.sku));
+      if (low.length) { setLines(low.slice(0, 8).map((r) => lineFor(r, place, suggest(r, place)))); setFilled(low.length); }
+    }
+  };
+  const addRow = (row, n = 1) => {
+    setPickItem(false);
+    setLines((cur) => (cur.some((l) => l.sku === row.sku) ? cur.map((l) => (l.sku === row.sku ? { ...l, qty: l.qty + n } : l)) : [...cur, lineFor(row, place, n)]));
+  };
+  const onScan = (code) => {
+    const hit = safe(() => resolveScan(code), null);
+    if (!hit || !hit.row) { toast(`No product for “${code}”`, { tone: 'error' }); return; }
+    addRow(hit.row, hit.qty || 1);
+    toast(`${hit.row.name} +${hit.qty || 1}`);
+  };
+  const setLine = (sku, patch) => setLines((cur) => cur.flatMap((l) => (l.sku !== sku ? [l] : patch.qty === 0 ? [] : [{ ...l, ...patch }])));
 
-export default class MPurchaseNewScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    return (
-      <div className="dc-screen" data-screen="MPurchaseNew">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="ph">
-          <div className="sb" style={{ color: "#0f172a" }}>
-            <span className="num">2:32</span>
-            <span className="r">
-              <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true" fill="#0f172a">
-                <rect x="0" y="8" width="3" height="4" rx="1" />
-                <rect x="5" y="5" width="3" height="7" rx="1" />
-                <rect x="10" y="2.5" width="3" height="9.5" rx="1" />
-                <rect x="15" y="0" width="3" height="12" rx="1" />
-              </svg>
-              <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>4G</span>
-              <svg width="27" height="13" viewBox="0 0 27 13" aria-hidden="true">
-                <rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="#0f172a" opacity=".4" />
-                <rect x="2" y="2" width="17" height="9" rx="2" fill="#0f172a" />
-                <path d="M25 4.5v4" stroke="#0f172a" strokeWidth="1.5" opacity=".5" />
-              </svg>
+  const pcs = lines.reduce((a, l) => a + l.qty, 0);
+  const total = Math.round(lines.reduce((a, l) => a + l.qty * (Number(l.cost) || 0), 0));
+  const paid = payWhen === 'full' ? total : payWhen === 'part' ? Math.round(Number(paidNow) || 0) : 0;
+  const left = Math.max(0, total - paid);
+  const needsApproval = mode === 'order' && !isAdmin() && total > LIMIT;
+  const owe = supplier ? safe(() => payableOf(supplier.id), 0) : 0;
+  const editing = edit ? lines.find((l) => l.sku === edit) : null;
+
+  const check = (draft) => {
+    if (!sup.trim()) { toast('Choose the supplier', { tone: 'error' }); setPickSup(true); return false; }
+    if (!draft && !lines.length) { toast('Add at least one product', { tone: 'error' }); return false; }
+    if (lines.some((l) => !(Number(l.cost) > 0))) { toast('Enter the buying price of every product', { tone: 'error' }); return false; }
+    return true;
+  };
+  const saveOrder = (draft) => {
+    if (busy || !check(draft)) return;
+    setBusy(true);
+    const status = draft || needsApproval ? 'Draft' : 'Sent';
+    const po = addPOs([{ supplier: sup.trim(), place, status, approval: !draft && needsApproval ? 'waiting' : undefined, by: me(), sentAt: status === 'Sent' ? Date.now() : undefined,
+      lines: lines.map((l) => ({ name: l.name, code: l.code, sku: l.sku, qty: l.qty, cost: Number(l.cost) })), terms, expected: '', invoice: '', note: '' }])[0];
+    if (!findSupplier(sup.trim())) ensureSupplier(sup.trim());
+    refresh();
+    toast(`${po.no} ${draft ? 'saved as a draft' : needsApproval ? 'sent to an admin for approval' : 'sent to ' + po.supplier} · ${money(po.total)}`);
+    router.push('/m-purchase-detail?id=' + encodeURIComponent(po.no));
+  };
+  const saveDirect = () => {
+    if (busy || !check(false)) return;
+    if (payWhen === 'part' && !(paid > 0 && paid < total)) { toast(`Enter an amount below ${money(total)}`, { tone: 'error' }); return; }
+    if (paid > 0 && !account) { toast('Choose where the money is paid from', { tone: 'error' }); return; }
+    if (left > 0 && !fromIso(due)) { toast('Choose when the rest is due', { tone: 'error' }); return; }
+    setBusy(true);
+    const s = supplier || ensureSupplier(sup.trim());
+    const by = me();
+    const at = Date.now();
+    const returnable = safe(() => getStockSetup().supplierChanges !== false, true);
+    const clean = lines.map((l) => ({ sku: l.sku, name: l.name, qty: l.qty, cost: Number(l.cost), expiry: l.exp ? fromIso(l.expiry) : null }));
+    const bill = addBill({ supplier: s.id, ref: invoice.trim(), at, amount: total, lines: clean.map(({ expiry, ...l }) => l), extra: 0, discount: 0, due: left > 0 ? dayStart(fromIso(due)) : dayStart(at), direct: true, place, returnable });
+    clean.forEach((l) => {
+      addMove({ sku: l.sku, place, qty: l.qty, kind: 'receive', reason: `Bought from ${s.name}`, by, ref: bill.no, op: bill.no + ':' + l.sku });
+      safe(() => setBuyingPrice(l.sku, l.name, l.cost), null);
+    });
+    safe(() => addBatches(clean.filter((l) => l.expiry), { place, ref: bill.no, supplier: s.name }), null);
+    if (paid > 0) paySupplier({ supplier: s.id, bills: [bill.no], amount: paid, method, account, ref: invoice.trim(), by });
+    refresh();
+    toast(`Purchase saved · ${plural(pcs, 'piece')} in stock at ${place}`);
+    router.push('/m-purchase-detail?id=' + encodeURIComponent(bill.no));
+  };
+
+  const title = mode === 'direct' ? 'New purchase' : 'New purchase order';
+  return (
+    <AppScreen name="MPurchaseNew" title={title}>
+      <AppBar title={title} back="/m-purchase" />
+      <Content top={103} bottom={98} style={{ padding: '2px 20px 0' }} gap={16}>
+        {ways.orders && ways.direct ? <Segmented items={[{ key: 'order', label: 'Order' }, { key: 'direct', label: 'Bought now' }]} value={mode} onChange={setMode} style={{ margin: 0 }} /> : null}
+        <div className="field">
+          <span className="lab">Supplier</span>
+          <button type="button" className="inp" onClick={() => setPickSup(true)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
+            {sup ? <Avatar text={initials(sup)} size={30} tone={{ bg: '#fde7ef', fg: '#003087' }} /> : null}
+            <span style={{ flex: '1', color: sup ? 'var(--ink)' : 'var(--muted)' }} className="ell">{sup || 'Choose a supplier'}</span>
+            <Icon name="down" size={18} />
+          </button>
+          {sup ? <span className="help">{supplier ? termsLabel(supplier.terms) : 'New supplier'}{owe > 0 ? ` · you owe ${money(owe)}` : ''}</span> : null}
+        </div>
+        {places.length > 1 ? (
+          <div className="field">
+            <span className="lab">{mode === 'direct' ? 'Stock goes to' : 'Deliver to'}</span>
+            <Segmented items={places.map((p) => ({ key: p, label: p.replace(/ branch$/, '') }))} value={place} onChange={setPlace} style={{ margin: '0' }} />
+          </div>
+        ) : null}
+        {filled > 0 && mode === 'order' ? (
+          <Note tone="info" icon="sparkles"><span style={{ fontSize: 'var(--text-sm)' }}>Filled with {plural(filled, 'item')} running low from this supplier. Quantities cover 20 days of sales.</span></Note>
+        ) : null}
+        <div className="field">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="lab">Items</span>
+            <span style={{ display: 'flex', gap: '6px' }}>
+              <IconButton icon="scan" label="Scan an item" soft onClick={() => setScan(true)} />
+              <IconButton icon="plus" label="Add an item" soft onClick={() => setPickItem(true)} />
             </span>
           </div>
-          <header className="appbar">
-            <__Link href="/m-purchase" className="ib" aria-label="Close">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
-            </__Link>
-            <h1>New purchase order</h1>
-            <span style={{ width: "44px" }} />
-          </header>
-          <div className="content" style={{ top: "103px", bottom: "98px", padding: "2px 20px 0", display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div className="field">
-              <span className="lab">Supplier</span>
-              <div className="inp">
-                <span className="av" style={{ width: "30px", height: "30px", borderRadius: "var(--radius-lg)", background: "#fde7ef", color: "#003087", fontSize: "var(--text-xs)" }}>SB</span>
-                <span style={{ flex: "1" }}>Seoul Beauty Imports</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </div>
-              <span className="help">Usually arrives in 9 days · you owe ৳24,400</span>
-            </div>
-            <div className="field">
-              <span className="lab">Deliver to</span>
-              <div className="seg" style={{ margin: "0" }}>
-                <span>Dhanmondi</span>
-                <span>Gulshan</span>
-                <span className="on">Mirpur godown</span>
-              </div>
-            </div>
-            <div className="note" style={{ background: "var(--soft)", color: "var(--ink)", padding: "12px 14px" }}>
-              <span style={{ color: "var(--brand)", flex: "none" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
-                </svg>
-              </span>
-              <span style={{ fontSize: "var(--text-sm)" }}>Filled with 2 items running low from this supplier. Quantities cover 20 days of sales.</span>
-            </div>
-            <div className="field">
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span className="lab">Items</span>
-                <__Link href="/m-scan" style={{ display: "flex", gap: "6px", alignItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--brand)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M14 8v8M17 8v8" />
-</svg>Scan</__Link>
-              </div>
-              <div className="card" style={{ boxShadow: "none", border: "1px solid var(--line)" }}>
-                <div className="lrow">
-                  <span style={{ flex: "1", minWidth: "0" }}>
-                    <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Anker 20W USB-C Charger</span>
-                    <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>4 in stock · sells 3 a day</span>
-                    <span className="num" style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--ink)", marginTop: "2px" }}>৳936 each</span>
-                  </span>
-                  <span className="step">
-                    <span>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M5 12h14" />
-                      </svg>
-                    </span>
-                    <b className="num">60</b>
-                    <span>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                    </span>
-                  </span>
+          {lines.length ? (
+            <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+              {lines.map((l) => (
+                <div key={l.sku} className="lrow">
+                  <button type="button" onClick={() => setEdit(l.sku)} style={{ flex: '1', minWidth: '0', padding: 0, border: 0, background: 'none', textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer' }}>
+                    <span className="ell" style={{ display: 'block', fontSize: 'var(--text-sm-plus)', fontWeight: 'var(--weight-medium)' }}>{l.name}</span>
+                    <span style={{ display: 'block', fontSize: 'var(--text-xs-plus)', color: 'var(--muted)' }}>{l.have > 0 ? `${l.have} in stock` : 'Out of stock'}{l.rate ? ` · sells ${l.rate} a day` : ''}</span>
+                    <span className="num" style={{ display: 'block', fontSize: 'var(--text-xs-plus)', color: 'var(--ink)', marginTop: '2px' }}>{money(Number(l.cost) || 0)} each{mode === 'direct' && l.exp ? (l.expiry ? ' · expires ' + l.expiry : ' · add expiry') : ''} <span style={{ color: 'var(--brand)' }}>· edit</span></span>
+                  </button>
+                  <Stepper value={l.qty} min={0} label={'Quantity of ' + l.name} onChange={(n) => setLine(l.sku, { qty: n })} />
                 </div>
-                <div className="lrow">
-                  <span style={{ flex: "1", minWidth: "0" }}>
-                    <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Galaxy A35 Clear Case</span>
-                    <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Out of stock · sells 2 a day</span>
-                    <span className="num" style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--ink)", marginTop: "2px" }}>৳1,120 each</span>
-                  </span>
-                  <span className="step">
-                    <span>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M5 12h14" />
-                      </svg>
-                    </span>
-                    <b className="num">40</b>
-                    <span>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                    </span>
-                  </span>
-                </div>
-                <__Link href="/m-products" className="lrow" style={{ color: "var(--brand)", fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm-plus)" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M12 5v14M5 12h14" />
-</svg>Add item</__Link>
-              </div>
+              ))}
             </div>
-            <div className="card" style={{ padding: "14px 16px", boxShadow: "none", background: "#eef3fa", display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>
-              <span>100 items</span>
-              <span className="num">৳1,00,960</span>
-            </div>
-          </div>
-          <div className="actbar">
-            <__Link href="/m-purchase" className="btn btnl">Save draft</__Link>
-            <__Link href="/m-purchase-detail" className="btn btnp" style={{ flex: "2" }}>Send to supplier</__Link>
-          </div>
+          ) : (
+            <button type="button" className="card" onClick={() => setPickItem(true)} style={{ boxShadow: 'none', border: '1px dashed #cbd5e1', padding: '18px', textAlign: 'center', color: 'var(--brand)', font: 'inherit', fontWeight: 'var(--weight-medium)', cursor: 'pointer', background: 'var(--card)' }}>Add the first item</button>
+          )}
         </div>
-      </div>
-    );
-  }
+        <div className="card" style={{ padding: '14px 16px', boxShadow: 'none', background: '#eef3fa', display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm-plus)', fontWeight: 'var(--weight-semibold)' }}>
+          <span>{plural(pcs, 'item')}</span>
+          <span className="num">{money(total)}</span>
+        </div>
+        {needsApproval ? <Note tone="warn" icon="alert">Orders above {money(LIMIT)} need an admin to approve before they go to the supplier.</Note> : null}
+
+        {mode === 'direct' ? (
+          <>
+            <Field label="Supplier’s invoice no."><TextInput value={invoice} onChange={setInvoice} placeholder="Optional" /></Field>
+            <div className="field">
+              <span className="lab">Paid now</span>
+              <Segmented items={[{ key: 'full', label: 'In full' }, { key: 'part', label: 'Part' }, { key: 'later', label: 'Later' }]} value={payWhen} onChange={setPayWhen} style={{ margin: 0 }} />
+            </div>
+            {payWhen === 'part' ? <Field label="Amount paid"><TextInput value={paidNow} onChange={(v) => setPaidNow(v.replace(/[^\d]/g, ''))} prefix="৳" inputMode="numeric" /></Field> : null}
+            {paid > 0 ? (
+              <>
+                <div className="field"><span className="lab">Paid by</span><Chips items={METHODS.map((m) => ({ key: m, label: m }))} value={method} onChange={setMethod} style={{ padding: 0 }} /></div>
+                {accounts.length > 1 ? <Chips items={accounts.map((a) => ({ key: a.id, label: a.name }))} value={account} onChange={setAccount} style={{ padding: 0, marginTop: '-8px', overflowX: 'auto' }} /> : null}
+                {accounts.find((a) => a.id === account) ? <span className="help" style={{ marginTop: '-8px' }}>{accounts.find((a) => a.id === account).name} has {money(accounts.find((a) => a.id === account).balance)}</span> : null}
+              </>
+            ) : null}
+            {left > 0 ? <Field label={`${money(left)} due on`}><TextInput type="date" value={due} onChange={setDue} /></Field> : null}
+          </>
+        ) : null}
+        <div style={{ height: '4px' }} />
+      </Content>
+      <ActionBar>
+        {mode === 'direct' ? <Button onClick={saveDirect} disabled={busy}>Save purchase</Button> : (
+          <>
+            <Button kind="line" onClick={() => saveOrder(true)} disabled={busy}>Save draft</Button>
+            <Button onClick={() => saveOrder(false)} disabled={busy} style={{ flex: 2 }}>{needsApproval ? 'Send for approval' : 'Send to supplier'}</Button>
+          </>
+        )}
+      </ActionBar>
+
+      <SupplierSheet open={pickSup} onClose={() => setPickSup(false)} onPick={choose} />
+      <ProductSheet open={pickItem} onClose={() => setPickItem(false)} onPick={(r) => addRow(r, mode === 'order' ? suggest(r, place) : 1)} place={place} title="Add an item" filter={(r) => r.format !== 'digital' && r.format !== 'service' && !(r.bundle && r.bundle.type !== 'kit')} />
+      <ScanSheet open={scan} onClose={() => setScan(false)} onCode={onScan} title="Scan items" hint="Each scan adds one (a carton adds the whole carton)." />
+      <Sheet open={!!editing} onClose={() => setEdit(null)} title={editing ? editing.name : ''} footer={<><Button kind="danger" onClick={() => { setLine(edit, { qty: 0 }); setEdit(null); }}>Remove</Button><Button onClick={() => setEdit(null)} style={{ flex: 2 }}>Done</Button></>}>
+        {editing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span className="lab">Quantity</span><Stepper value={editing.qty} min={1} onChange={(n) => setLine(edit, { qty: n })} /></div>
+            <Field label="Buying price, each"><TextInput value={editing.cost} onChange={(v) => setLine(edit, { cost: v.replace(/[^\d.]/g, '') })} prefix="৳" inputMode="decimal" /></Field>
+            {mode === 'direct' && editing.exp ? <Field label="Expires on" help="Shows in Damaged & expired › Expiry"><TextInput type="date" value={editing.expiry} onChange={(v) => setLine(edit, { expiry: v })} /></Field> : null}
+            <span className="help">Line total {money(editing.qty * (Number(editing.cost) || 0))}</span>
+          </div>
+        ) : null}
+      </Sheet>
+    </AppScreen>
+  );
 }

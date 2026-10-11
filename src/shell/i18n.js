@@ -3,6 +3,7 @@
 import { getLocale } from '../runtime/ui';
 
 const BN = {
+  'Mobile app': 'মোবাইল অ্যাপ', 'Open on this phone': 'এই ফোনে খুলুন',
   // groups
   'General': 'সাধারণ', 'Purchase': 'ক্রয়', 'Stocks & Inventory': 'স্টক ও মজুদ', 'Tracking & analytics': 'ট্র্যাকিং ও বিশ্লেষণ',
   'Staff & HR': 'কর্মী ও এইচআর', 'Loyalty': 'লয়্যালটি', 'Promo': 'প্রোমো', 'Recovery': 'রিকভারি', 'Accounts': 'হিসাব',

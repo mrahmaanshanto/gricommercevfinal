@@ -394,6 +394,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   several assignees, watchers, IT requests / bugs / requests, blocked-by, time, history; list, board, calendar,
   workload, bulk changes, Ask IT), `/team-chat` the team chat (`lib/teamChat.js`: channels per team, DMs) and
   `/sales-leads` leads & follow-ups (`lib/leads.js`).
+- **Mobile app (Oct 2026)**: the merchant panel on a phone, for running the business (no customisation). Same data and libs
+  as the web, so a change on either shows on both. Entry `/app` (→ `/m-home`), installable (`src/app/manifest.js`), linked
+  from the web account menu. Design = the mobileview boards (`src/screens/app/M*.jsx`, `design/templates/app/`), shared
+  through `src/screens/app/kit/` (`AppKit.jsx` components + `appCss.js`; `appNav.js`: tab bar, More hub, `APP_ROUTES`
+  with module + web menu ids so edition and role decide what shows, `ROUTES_BUILT`). Screens: Home, More, Orders (list,
+  detail with the full order flow, new order), Customers, Products / quick edit, Stock, Scan (`?for=order|pos|receive|count`),
+  Purchase orders, Receive, Transfers, Adjust & count, POS (`/m-pos`, posStore/posSale), Calls, Inbox + Chat, GridAI
+  (`/m-gridai`; setup stays on the web), Finance, Payouts, Dues, Add expense, Reports, Social posts (`lib/socialPosts.js`,
+  shared with the web calendar and composer), Staff & HR, Tasks, Settings (profile, devices, phone notifications, switch
+  system), Support tickets (`lib/supportTickets.js`, shared with `/support-tickets`), Notifications. Phone rules:
+  `src/styles/phone-app.css` (the 390×844 board is the real app below 480px).
 - Responsive rules for fixed design boards (`data-board`, zoomed to fit) are in
   `src/styles/console-responsive.css`. `?quiet=1` stops the evening payout check from opening by itself (tests, screenshots).
 - Super admin (`/admin`, GridCommerce's own panel; branch `claude/super-admin`, Oct 2026; map, data agreements and the

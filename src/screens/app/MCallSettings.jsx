@@ -1,263 +1,195 @@
 'use client';
-// Generated from design/templates/app/MCallSettings.dc.html by scripts/convert-design.mjs.
-// Merchant app · Call settings
-// Edit freely: this file is now the source for the screen.
+// Merchant app · Call settings (/m-call-settings). The design board's layout (design/templates/app/MCallSettings.dc.html)
+// with only what matters on a phone; the call menus, scripts and voices stay on the web (/auto-call-settings).
+//   number          the line that rings on this phone (inbox.LINES), shown on the board's blue card
+//   Answering       opening hours (read from GridAI's office hours, lib/aiReply.js; changed on the web), after hours
+//                   (voicemail + SMS · GridAI answers · forward), forward calls to my mobile (+ the number)
+//   Who picks up    the team on the phones with their status now (inbox.STAFF / AGENT_STATUS; you: getMyStatus)
+//   Automatic calls confirm cash-on-delivery orders (AI call), GridAI answers calls nobody picks up, missed call
+//                   reply, record calls
+// Saved with Save into the shared settings store (lib/settingsStore.js, form 'calls'), so the web reads the same values;
+// a field someone else saved after this page opened is reported instead of overwritten.
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import React, { useEffect, useState } from 'react';
+import {
+  AppScreen, AppBar, Content, ActionBar, Button, Switch, Sheet, Pill, TextInput, Note, useAppData, toast,
+} from './kit/AppKit';
+import { ME, STAFF, AGENT_STATUS, LINES, getMyStatus, phoneDigits } from '@/lib/inbox';
+import { getAiSettings } from '@/lib/aiReply';
+import { currentUser } from '@/lib/team';
+import { SectionLabel, NoAccess } from './messages/msgParts';
+import { access, getCallSettings, saveCallSettings, dialable, fmtPhone } from './messages/msgData';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
-
-class Component extends DCLogic {
-  renderVals() { return {}; }
+const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch { return fb; } };
+const AFTER = [['voicemail', 'Voicemail + SMS', 'Callers leave a message; they get an SMS that you will call back.'], ['ai', 'GridAI answers', 'GridAI answers simple questions and takes a message for the rest.'], ['forward', 'Forward to my phone', 'Calls ring on your mobile number.']];
+const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const ROW_T = { display: 'block', fontSize: 'var(--text-sm-plus)', fontWeight: 'var(--weight-medium)' };
+const ROW_S = { display: 'block', fontSize: 'var(--text-xs-plus)', color: 'var(--muted)', lineHeight: '18px' };
+const tone = (t) => ({ success: 'ok', info: 'nav', warning: 'warn' })[t] || 'grey';
+const hm = (s) => { const [h, m] = String(s || '0:0').split(':').map(Number); return `${h % 12 || 12}${m ? ':' + String(m).padStart(2, '0') : ''} ${h < 12 ? 'AM' : 'PM'}`; };
+function daysText(days) {
+  const d = [...(days || [])].sort((a, b) => ((a + 1) % 7) - ((b + 1) % 7));   // Saturday first, as the shop's week runs
+  if (d.length === 7) return 'Every day';
+  if (d.length === 6 && !d.includes(5)) return 'Sat–Thu';
+  return d.map((x) => DAY[x]).join(', ');
 }
+const Chev = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none' }}><path d="m9 18 6-6-6-6" /></svg>;
+const rowBtn = { width: '100%', border: 0, background: 'none', textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer' };
 
-// ---- styles (from the design's <helmet>) ----
+export default function MCallSettingsScreen() {
+  const { ready, tick, ctx } = useAppData(['gc:settings', 'gc:comms']);
+  const [v, setV] = useState(null);
+  const [base, setBase] = useState(0);
+  const [sheet, setSheet] = useState('');
+  useEffect(() => {
+    if (!ready || v) return;
+    const s = getCallSettings();
+    setV(s.values); setBase(s.version);
+  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hours = ready ? safe(() => getAiSettings().hours, null) : null;
+  const myStatus = ready ? safe(() => getMyStatus(), 'available') : 'available';
+  void tick;
 
-const CSS = `
-*{box-sizing:border-box}
-body{margin:0;background:#dfe5ee;font-family:var(--font-sans);-webkit-font-smoothing:antialiased;color:#0f172a}
-a{color:inherit;text-decoration:none}
-button{font:inherit;color:inherit}
-.bn{font-family:var(--font-bn)}
-.mono{font-family:var(--font-data)}
-.num{font-variant-numeric:tabular-nums}
-.ph{--brand:#003087;--brand2:#0a4bb5;--sky:#009cde;--ink:#0f172a;--body:#475569;--muted:var(--text-muted);--line:#e8edf3;--bg:#f5f7fa;--card:#ffffff;--soft:#eef3fa;
-  --ok:#0f9f6e;--okbg:#e7f7f0;--warn:#b45309;--warnbg:#fff4e0;--err:#c2410c;--errbg:#ffece5;
-  position:relative;width:min(390px,100%);height:844px;overflow:hidden;background:var(--bg);font-size:var(--text-sm-plus);line-height:1.5;font-family:var(--font-sans)}
-.sb{position:absolute;top:0;left:0;right:0;height:47px;display:flex;align-items:center;justify-content:space-between;padding:0 28px 0 34px;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);z-index:6}
-.sb .r{display:flex;gap:6px;align-items:center}
-.appbar{position:absolute;top:47px;left:0;right:0;height:56px;display:flex;align-items:center;gap:4px;padding:0 8px;z-index:5;background:var(--bg)}
-.appbar h1{flex:1;margin:0;font-size:var(--text-lg);font-weight:var(--weight-semibold);text-align:center;letter-spacing:0}
-.ib{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:var(--radius-full);background:transparent;color:var(--ink);position:relative;cursor:pointer}
-.ib.soft{background:var(--card);box-shadow:0 1px 2px rgba(15,23,42,.06)}
-.dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:var(--radius-full);background:#ff5724;border:2px solid var(--card)}
-.big{padding:4px 20px 0}
-.big .eyebrow{font-size:var(--text-xs-plus);color:var(--muted)}
-.big h1{margin:2px 0 0;font-size:var(--text-3xl);line-height:38px;font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight)}
-.content{position:absolute;left:0;right:0;overflow:hidden}
-.pad{padding:0 20px}
-.card{background:var(--card);border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -16px rgba(15,23,42,.18)}
-.sec{display:flex;align-items:baseline;justify-content:space-between;margin:24px 20px 10px}
-.sec h2{margin:0;font-size:var(--text-base);font-weight:var(--weight-semibold)}
-.sec a{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--brand)}
-.row{display:flex;align-items:center;gap:14px;min-height:64px;padding:12px 16px}
-.row + .row{border-top:1px solid var(--line)}
-.row .t{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--ink);line-height:20px}
-.row .s{font-size:var(--text-xs-plus);color:var(--muted);line-height:18px}
-.row .m{min-width:0;flex:1}
-.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.av{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);font-size:var(--text-sm-plus)}
-.ico{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;background:var(--soft);color:var(--brand)}
-.pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.p-ok{background:var(--okbg);color:var(--ok)}.p-warn{background:var(--warnbg);color:var(--warn)}.p-err{background:var(--errbg);color:var(--err)}.p-nav{background:var(--soft);color:var(--brand)}.p-grey{background:#eef1f5;color:#475569}
-.sh{width:8px;height:8px;flex:none}.sh.ok{border-radius:var(--radius-full);background:currentColor}.sh.warn{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid currentColor}.sh.err{transform:rotate(45deg);width:7px;height:7px;background:currentColor;border-radius:1px}
-.chips{display:flex;gap:8px;padding:0 20px;overflow:hidden}
-.chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid var(--line);background:var(--card);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--body);white-space:nowrap}
-.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.chip .n{font-size:var(--text-xs);font-weight:var(--weight-medium);opacity:.7}
-.seg{display:flex;margin:0 20px;padding:4px;border-radius:var(--radius-xl);background:#e9eef5}
-.seg span{flex:1;height:36px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--body)}
-.seg span.on{background:var(--card);color:var(--ink);font-weight:var(--weight-medium);box-shadow:0 1px 3px rgba(15,23,42,.1)}
-.srch{display:flex;align-items:center;gap:10px;height:48px;margin:0 20px;padding:0 6px 0 16px;border-radius:var(--radius-xl);background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:var(--text-sm-plus)}
-.srch .sc{margin-left:auto;width:36px;height:36px;border-radius:var(--radius-lg);background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border:0;border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer}
-.btnp{background:var(--brand);color:#fff}.btns{background:var(--soft);color:var(--brand)}.btnl{background:var(--card);color:var(--ink);border:1px solid var(--line)}
-.btnd{background:var(--errbg);color:var(--err)}
-.fab{position:absolute;right:20px;bottom:96px;width:56px;height:56px;border-radius:var(--radius-xl);background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 24px -8px rgba(0,48,135,.55);z-index:5}
-.tabfade{position:absolute;left:0;right:0;bottom:0;height:108px;background:linear-gradient(to top,var(--bg) 42%,rgba(245,247,250,0));pointer-events:none;z-index:5}
-.tabs{position:absolute;left:28px;right:28px;bottom:24px;height:56px;padding:4px;display:flex;gap:2px;border-radius:28px;background:rgba(255,255,255,.78);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);border:1px solid rgba(255,255,255,.95);box-shadow:0 14px 34px -12px rgba(15,23,42,.30),0 2px 6px -2px rgba(15,23,42,.08),inset 0 0 0 .5px rgba(15,23,42,.05);z-index:6}
-.tabs a{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:var(--radius-xl);font-size:var(--text-2xs);line-height:15px;font-weight:var(--weight-medium);color:var(--text-muted);transition:background-color .2s,color .2s}
-.tabs a.on{background:rgba(0,48,135,.08);color:var(--brand);font-weight:var(--weight-medium)}
-.tabs .tw{position:relative;display:flex}
-.cnt{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-lg);background:var(--fill-danger);color:#fff;font-family:var(--font-sans);font-size:var(--text-xs);line-height:1;font-weight:var(--weight-medium);letter-spacing:0;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap}
-.tabs .cnt{position:absolute;top:-6px;left:12px;border:2px solid #fff;min-width:19px;height:17px;padding:0 4px;font-size:var(--text-2xs);border-radius:var(--radius-lg)}
-.cnt.nav{background:var(--brand)}
-.hi{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:var(--radius-full);background:#0f172a;z-index:7}
-.actbar{position:absolute;left:0;right:0;bottom:0;padding:12px 20px 34px;display:flex;gap:10px;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:6}
-.actbar .btn{flex:1}
-.field{display:flex;flex-direction:column;gap:6px}
-.lab{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink)}
-.inp{height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:var(--radius-lg);border:1px solid #dbe2ec;background:var(--card);font-size:var(--text-sm);color:var(--ink)}
-.inp.f{border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,48,135,.12)}
-.help{font-size:var(--text-xs-plus);color:var(--muted)}
-.step{display:inline-flex;align-items:center;border:1px solid #dbe2ec;border-radius:var(--radius-xl);background:var(--card)}
-.step b{min-width:34px;text-align:center;font-size:var(--text-sm-plus)}
-.step span{width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--brand)}
-.sw{position:relative;flex:none;width:50px;height:30px;border-radius:var(--radius-full);background:#cbd5e1}.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.sw.on{background:var(--brand)}.sw.on::after{left:23px}
-.scrim{position:absolute;inset:0;background:rgba(15,23,42,.45);z-index:8}
-.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:28px 28px 0 0;padding:10px 20px 34px;z-index:9}
-.grab{width:40px;height:5px;margin:0 auto 14px;border-radius:var(--radius-full);background:#d5dce6}
-.k{font-size:var(--text-xs-plus);color:var(--muted)}.v{font-size:var(--text-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight)}
-.tile{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink);text-align:center}
-.tile .ico{width:56px;height:56px;border-radius:var(--radius-xl)}
-.note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
-
-.pav{position:relative;flex:none;width:52px;height:52px}
-.pav .face{width:52px;height:52px;border-radius:var(--radius-full);object-fit:cover;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);font-size:var(--text-base)}
-.pav .pb{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;padding:2px;box-shadow:0 1px 3px rgba(15,23,42,.18)}
-.pav .pb img{width:18px;height:18px;display:block;border-radius:var(--radius-full)}
-.pav .on{position:absolute;right:1px;top:1px;width:12px;height:12px;border-radius:var(--radius-full);background:#10b981;border:2px solid #fff}
-.pchip{flex:none;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px 0 8px;border-radius:var(--radius-full);border:1px solid var(--line);background:var(--card);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--body);white-space:nowrap}
-.pchip img{width:22px;height:22px;border-radius:var(--radius-full)}
-.pchip.on{background:var(--ink);color:#fff;border-color:var(--ink);padding-left:14px}
-.bar{height:6px;border-radius:var(--radius-full);background:#edf1f6;overflow:hidden}.bar i{display:block;height:100%;border-radius:var(--radius-full)}
-.lrow{display:flex;align-items:center;gap:14px;padding:14px 16px}
-.lrow + .lrow{border-top:1px solid var(--line)}
-`;
-
-// ---- markup ----
-
-export default class MCallSettingsScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
+  if (ctx && !access('/m-calls', ctx)) {
     return (
-      <div className="dc-screen" data-screen="MCallSettings">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="ph" style={{ height: "1100px" }}>
-          <div className="sb" style={{ color: "#0f172a" }}>
-            <span className="num">2:32</span>
-            <span className="r">
-              <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true" fill="#0f172a">
-                <rect x="0" y="8" width="3" height="4" rx="1" />
-                <rect x="5" y="5" width="3" height="7" rx="1" />
-                <rect x="10" y="2.5" width="3" height="9.5" rx="1" />
-                <rect x="15" y="0" width="3" height="12" rx="1" />
-              </svg>
-              <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>4G</span>
-              <svg width="27" height="13" viewBox="0 0 27 13" aria-hidden="true">
-                <rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="#0f172a" opacity=".4" />
-                <rect x="2" y="2" width="17" height="9" rx="2" fill="#0f172a" />
-                <path d="M25 4.5v4" stroke="#0f172a" strokeWidth="1.5" opacity=".5" />
-              </svg>
-            </span>
-          </div>
-          <header className="appbar">
-            <__Link href="/m-more" className="ib" aria-label="Back">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </__Link>
-            <h1>Call settings</h1>
-            <span style={{ width: "44px" }} />
-          </header>
-          <div className="content" style={{ top: "103px", bottom: "98px" }}>
-            <div className="card" style={{ margin: "2px 20px 0", padding: "16px", background: "linear-gradient(150deg,#012169,#0a4bb5)", color: "#fff", display: "flex", alignItems: "center", gap: "14px" }}>
-              <span style={{ width: "44px", height: "44px", borderRadius: "var(--radius-xl)", background: "rgba(255,255,255,.14)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" />
-                </svg>
-              </span>
-              <span style={{ flex: "1" }}>
-                <span style={{ display: "block", fontSize: "var(--text-xs-plus)", opacity: ".8" }}>Store hotline</span>
-                <span className="num" style={{ display: "block", fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)" }}>+880 9612 100 100</span>
-              </span>
-              <span className="pill" style={{ background: "rgba(16,185,129,.2)", color: "#9ff0cf" }}><span className="sh ok" />Live</span>
-            </div>
-            <div style={{ margin: "22px 24px 8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Answering</div>
-            <div className="card" style={{ margin: "0 20px" }}>
-              <a className="lrow" href="#">
-                <span style={{ flex: "1", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Opening hours</span>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--muted)", whiteSpace: "nowrap" }}>Sat–Thu · 10 AM–9 PM</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
-              </a>
-              <a className="lrow" href="#">
-                <span style={{ flex: "1", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>After hours</span>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--muted)" }}>Voicemail + SMS</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
-              </a>
-              <a className="lrow" href="#">
-                <span style={{ flex: "1", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Welcome menu</span>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--muted)" }}>3 options</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
-              </a>
-            </div>
-            <div style={{ margin: "22px 24px 8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Who picks up</div>
-            <div className="card" style={{ margin: "0 20px" }}>
-              <div className="lrow">
-                <span className="av" style={{ width: "40px", height: "40px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", fontSize: "var(--text-xs-plus)" }}>MR</span>
-                <span style={{ flex: "1", minWidth: "0" }}>
-                  <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Mehedi Rahman</span>
-                  <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Owner · rings last</span>
-                </span>
-                <span style={{ color: "var(--text-muted)" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="5" cy="12" r="1.6" />
-                    <circle cx="12" cy="12" r="1.6" />
-                    <circle cx="19" cy="12" r="1.6" />
-                  </svg>
-                </span>
-              </div>
-              <div className="lrow">
-                <span className="av" style={{ width: "40px", height: "40px", borderRadius: "var(--radius-full)", background: "#0a8a63", color: "#fff", fontSize: "var(--text-xs-plus)" }}>RA</span>
-                <span style={{ flex: "1", minWidth: "0" }}>
-                  <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Rina Akter</span>
-                  <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Sales · 10:00 AM – 7:00 PM</span>
-                </span>
-                <span style={{ color: "var(--text-muted)" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="5" cy="12" r="1.6" />
-                    <circle cx="12" cy="12" r="1.6" />
-                    <circle cx="19" cy="12" r="1.6" />
-                  </svg>
-                </span>
-              </div>
-              <div className="lrow">
-                <span className="av" style={{ width: "40px", height: "40px", borderRadius: "var(--radius-full)", background: "#b45309", color: "#fff", fontSize: "var(--text-xs-plus)" }}>TA</span>
-                <span style={{ flex: "1", minWidth: "0" }}>
-                  <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Tasnim Ahmed</span>
-                  <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Support · 12:00 PM – 9:00 PM</span>
-                </span>
-                <span style={{ color: "var(--text-muted)" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="5" cy="12" r="1.6" />
-                    <circle cx="12" cy="12" r="1.6" />
-                    <circle cx="19" cy="12" r="1.6" />
-                  </svg>
-                </span>
-              </div>
-              <a className="lrow" href="#" style={{ color: "var(--brand)", fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm-plus)" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M12 5v14M5 12h14" />
-</svg>Add a person</a>
-            </div>
-            <div style={{ margin: "22px 24px 8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Automatic calls</div>
-            <div className="card" style={{ margin: "0 20px" }}>
-              <div className="lrow">
-                <span style={{ flex: "1", minWidth: "0" }}>
-                  <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Confirm cash-on-delivery orders</span>
-                  <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)", lineHeight: "18px" }}>Robot call in Bangla. Press 1 to confirm, 2 to cancel.</span>
-                </span>
-                <span className="sw on" role="switch" aria-checked="true" aria-label="Confirm cash-on-delivery orders" />
-              </div>
-              <div className="lrow">
-                <span style={{ flex: "1", minWidth: "0" }}>
-                  <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Missed call reply</span>
-                  <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)", lineHeight: "18px" }}>Send a WhatsApp message within 1 minute</span>
-                </span>
-                <span className="sw on" role="switch" aria-checked="true" aria-label="Missed call reply" />
-              </div>
-              <div className="lrow">
-                <span style={{ flex: "1", minWidth: "0" }}>
-                  <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Record calls</span>
-                  <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)", lineHeight: "18px" }}>Kept 90 days · customers hear a notice</span>
-                </span>
-                <span className="sw" role="switch" aria-checked="false" aria-label="Record calls" />
-              </div>
-            </div>
-          </div>
-          <div className="actbar">
-            <__Link href="/m-more" className="btn btnp">Save</__Link>
-          </div>
-        </div>
-      </div>
+      <AppScreen name="MCallSettings" title="Call settings">
+        <AppBar title="Call settings" back="/m-more" />
+        <Content top={103}><NoAccess title="Calls aren’t part of your access in this edition." /></Content>
+      </AppScreen>
     );
   }
+
+  const set = (k) => (x) => setV((cur) => ({ ...cur, [k]: x }));
+  const line = v ? LINES.find((l) => l[0] === v.line) || LINES[0] : LINES[0];
+  const [num, lineName] = line[1].split(' · ');
+  const save = () => {
+    if (v.forward && !dialable(v.forwardTo)) { toast('Enter the mobile number calls are forwarded to', { tone: 'error' }); setSheet('forward'); return; }
+    const user = safe(() => currentUser(), null);
+    const r = saveCallSettings({ ...v, forwardTo: phoneDigits(v.forwardTo) }, base, user ? user.name : 'You');
+    if (r.conflict) {
+      toast(`${r.conflict.savedBy || 'Someone'} changed these settings a moment ago. Their values are shown now; check and save again.`, { tone: 'error' });
+      const s = getCallSettings(); setV(s.values); setBase(s.version);
+      return;
+    }
+    if (r.version) setBase(r.version);
+    toast(r.same ? 'Nothing to save' : 'Call settings saved');
+  };
+
+  return (
+    <AppScreen name="MCallSettings" title="Call settings">
+      <AppBar title="Call settings" back="/m-calls" />
+      <Content top={103} bottom={98}>
+        <button type="button" onClick={() => setSheet('line')} className="card" style={{ ...rowBtn, margin: '2px 20px 0', width: 'calc(100% - 40px)', padding: '16px', background: 'linear-gradient(150deg,#012169,#0a4bb5)', color: '#fff', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <span style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-xl)', background: 'rgba(255,255,255,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" /></svg>
+          </span>
+          <span style={{ flex: '1', minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 'var(--text-xs-plus)', opacity: '.8' }}>{lineName ? `Rings on this phone · ${lineName}` : 'Rings on this phone'}</span>
+            <span className="num ell" style={{ display: 'block', fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-semibold)' }}>{num}</span>
+          </span>
+          <span className="pill" style={{ background: 'rgba(16,185,129,.2)', color: '#9ff0cf' }}><span className="sh ok" />Live</span>
+        </button>
+
+        <SectionLabel>Answering</SectionLabel>
+        <div className="card" style={{ margin: '0 20px' }}>
+          <button type="button" className="lrow" style={rowBtn} onClick={() => setSheet('hours')}>
+            <span style={{ flex: '1', fontSize: 'var(--text-sm-plus)', fontWeight: 'var(--weight-medium)' }}>Opening hours</span>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', whiteSpace: 'nowrap' }}>{hours ? `${daysText(hours.days)} · ${hm(hours.from)}–${hm(hours.to)}` : ' '}</span>
+          </button>
+          <button type="button" className="lrow" style={rowBtn} onClick={() => setSheet('after')}>
+            <span style={{ flex: '1', fontSize: 'var(--text-sm-plus)', fontWeight: 'var(--weight-medium)' }}>After hours</span>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>{v ? (AFTER.find((a) => a[0] === v.afterHours) || AFTER[0])[1] : ' '}</span>
+            <Chev />
+          </button>
+          <div className="lrow">
+            <span style={{ flex: '1', minWidth: '0' }}>
+              <span style={ROW_T}>Forward calls to my phone</span>
+              <span style={ROW_S}>{v && v.forward && v.forwardTo ? <>When the shop line isn’t answered · <button type="button" onClick={() => setSheet('forward')} className="num" style={{ border: 0, background: 'none', padding: 0, font: 'inherit', color: 'var(--brand)', cursor: 'pointer' }}>{fmtPhone(v.forwardTo)}</button></> : 'When the shop line isn’t answered'}</span>
+            </span>
+            <Switch on={!!(v && v.forward)} label="Forward calls to my phone" onChange={(on) => { set('forward')(on); if (on && v && !v.forwardTo) setSheet('forward'); }} />
+          </div>
+        </div>
+
+        <SectionLabel>Who picks up</SectionLabel>
+        <div className="card" style={{ margin: '0 20px' }}>
+          {STAFF.map((s, i) => {
+            const st = s.id === ME ? myStatus : s.phone;
+            const [label, t] = AGENT_STATUS[st] || ['Offline', 'slate'];
+            const BG = ['#003087', '#0a8a63', '#b45309', '#475569', '#7c3aed'];
+            return (
+              <div key={s.id} className="lrow">
+                <span className="av" style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-full)', background: BG[i % BG.length], color: '#fff', fontSize: 'var(--text-xs-plus)' }}>{s.initials}</span>
+                <span style={{ flex: '1', minWidth: '0' }}>
+                  <span className="ell" style={ROW_T}>{s.name}{s.id === ME ? ' (you)' : ''}</span>
+                  <span className="ell" style={ROW_S}>{s.role}</span>
+                </span>
+                <Pill tone={tone(t)}>{label}</Pill>
+              </div>
+            );
+          })}
+        </div>
+
+        <SectionLabel>Automatic calls</SectionLabel>
+        <div className="card" style={{ margin: '0 20px' }}>
+          {[
+            ['codConfirm', 'Confirm cash-on-delivery orders', 'Robot call in Bangla. Press 1 to confirm, 2 to cancel.'],
+            ['aiAnswer', 'GridAI answers missed calls', 'When nobody picks up, GridAI answers simple questions and takes a message.'],
+            ['missedReply', 'Missed call reply', 'Send a WhatsApp message within 1 minute'],
+            ['record', 'Record calls', 'Kept 90 days · customers hear a notice'],
+          ].map(([k, t, s]) => (
+            <div key={k} className="lrow">
+              <span style={{ flex: '1', minWidth: '0' }}>
+                <span style={ROW_T}>{t}</span>
+                <span style={ROW_S}>{s}</span>
+              </span>
+              <Switch on={!!(v && v[k])} label={t} onChange={set(k)} />
+            </div>
+          ))}
+        </div>
+        <div style={{ height: '8px' }} />
+      </Content>
+      <ActionBar>
+        <Button kind="primary" onClick={save} disabled={!v}>Save</Button>
+      </ActionBar>
+
+      <Sheet open={sheet === 'line'} onClose={() => setSheet('')} title="Line on this phone">
+        <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+          {LINES.map(([k, l]) => (
+            <button key={k} type="button" className="lrow" style={rowBtn} aria-pressed={v && v.line === k} onClick={() => { set('line')(k); setSheet(''); }}>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span className="num" style={ROW_T}>{l.split(' · ')[0]}</span>
+                <span style={ROW_S}>{l.split(' · ')[1] || 'Voice calls on WhatsApp'}</span>
+              </span>
+              {v && v.line === k ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg> : null}
+            </button>
+          ))}
+        </div>
+      </Sheet>
+
+      <Sheet open={sheet === 'after'} onClose={() => setSheet('')} title="After hours">
+        <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+          {AFTER.map(([k, l, s]) => (
+            <button key={k} type="button" className="lrow" style={rowBtn} aria-pressed={v && v.afterHours === k} onClick={() => { set('afterHours')(k); if (k === 'forward') set('forward')(true); setSheet(k === 'forward' && !(v && v.forwardTo) ? 'forward' : ''); }}>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={ROW_T}>{l}</span>
+                <span style={ROW_S}>{s}</span>
+              </span>
+              {v && v.afterHours === k ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg> : null}
+            </button>
+          ))}
+        </div>
+      </Sheet>
+
+      <Sheet open={sheet === 'forward'} onClose={() => setSheet('')} title="Forward to"
+        footer={<Button kind="primary" onClick={() => { if (!dialable(v.forwardTo)) { toast('Enter an 11-digit mobile number, for example 01712345678', { tone: 'error' }); return; } setSheet(''); }}>Done</Button>}>
+        <TextInput value={v ? v.forwardTo : ''} onChange={set('forwardTo')} placeholder="01XXXXXXXXX" type="tel" inputMode="tel" autoFocus />
+        <div className="help" style={{ marginTop: '8px' }}>Calls the team doesn’t answer ring on this number.</div>
+      </Sheet>
+
+      <Sheet open={sheet === 'hours'} onClose={() => setSheet('')} title="Opening hours"
+        footer={<Button kind="soft" href="/ai-behaviour">Change on the web</Button>}>
+        <Note tone="info" icon="clock">{hours ? `${daysText(hours.days)} · ${hm(hours.from)}–${hm(hours.to)}` : ''}. The shop’s hours are set once on the web (Grid AI › Behaviour) and used by calls, chats and GridAI.</Note>
+      </Sheet>
+    </AppScreen>
+  );
 }

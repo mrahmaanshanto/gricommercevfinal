@@ -423,7 +423,7 @@ const MERCHANT = [
   ['report-month', /(last month|previous month|gotomash|গত মাস).*(report|sales|সেল|রিপোর্ট)|(report|রিপোর্ট).*(last month|গত মাস)|monthly report/i],
   ['top-products', /(best|top|most).*(sell|selling|sold)|সবচেয়ে বেশি বিক্রি|best ?seller/i],
   ['courier-waiting', /(courier|কুরিয়ার).*(not|baki|বাকি|হয়নি|দেওয়া বাকি|yet)|(not|yet).*(courier|shipped)|waiting to ship|ready for courier/i],
-  ['low-stock', /(low stock|stock kom|স্টক কম|out of stock|স্টক .*নিচে|stock .*(below|under))/i],
+  ['low-stock', /(low (on |in )?stock|running low|few left|stock kom|স্টক কম|out of stock|stock ?out|স্টক .*নিচে|stock .*(below|under))/i],
   ['followups', /(follow ?up|ফলোআপ|ফলো আপ|call back today)/i],
   ['interested', /(asked|জানতে চেয়েছে|interested).*(didn'?t|not|করেনি|kore ni)|(didn'?t|not) order/i],
   ['cancelled', /(cancel|ক্যানসেল|বাতিল)/i],

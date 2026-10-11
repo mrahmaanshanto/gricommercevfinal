@@ -73,6 +73,7 @@ const monthName = (t) => new Date(t).toLocaleString('en', { month: 'long', year:
 const catOf = (e) => e.cat || (e.kind === 'salary' ? 'Salary' : e.kind === 'paid out' ? 'Paid out at the counter' : KIND_LABEL[e.kind] || 'Other');
 /** Where a cost counts: the channel on its liability line (commission, affiliates, promotions), else its category's. */
 function channelOf(e, liabs) {
+  if (e.channel) return e.channel;   // chosen when the expense was added (the app's "Counts under")
   if (e.liab) {
     const l = liabs.find((x) => x.id === e.liab);
     const ln = l && l.lines.find((x) => x.name === e.party);

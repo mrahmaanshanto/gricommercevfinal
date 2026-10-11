@@ -3,16 +3,19 @@
 // the calendar (month or week, a channel filter) with the picked day's posts beside it. The drafts tray and the best
 // times to post open in side panels from the title row.
 // Today comes from the app clock (clockNow) after mount; the first render (server and hydration) uses 1 Oct 2026.
+// Posts: src/lib/socialPosts.js (the same list as the app's /m-social): read after mount and again on SOCIAL_EVENT; the
+// first render shows the demo posts (seedPosts). Next day, Duplicate, Delete and the drafts tray write to the lib.
 // Edit freely: this file is the source for the screen.
 
 import React from 'react';
 import Link from 'next/link';
 import { DCLogic, Icon } from '@/runtime/dc';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { toast } from '@/runtime/ui';
+import { toast, confirmDialog } from '@/runtime/ui';
 import { ChannelIcon, Sheet, StatusBadge } from '@/components/ui';
 import { ShopHeader, Menu } from '@/components/ui/IndexKit';
 import { clockNow } from '@/lib/settlements';
+import { getPosts, seedPosts, savePost, duplicatePost, removePost, SOCIAL_EVENT } from '@/lib/socialPosts';
 
 // ---- logic ----
 
@@ -31,40 +34,38 @@ const PLAT = [
 ];
 // platform key -> ChannelIcon channel
 const CH = { fb: 'facebook', ig: 'instagram', wa: 'whatsapp', tt: 'tiktok', yt: 'youtube', x: 'x', pin: 'pinterest', wac: 'whatsapp', fbg: 'facebook', li: 'linkedin' };
-const ST_ICON = { sched: 'clock', remind: 'bell', done: 'check', draft: 'pencil' };
+const ST_ICON = { sched: 'clock', remind: 'bell', done: 'check', failed: 'triangle-alert', draft: 'pencil' };
 const plat = (k) => PLAT.find((p) => p[0] === k);
 
-// id, y, m(0-based), d, hour(24), title, platforms, status
-const POSTS = [
-  ['s1', 2026, 8, 24, 20, 'Weekend deal: bumper cases', ['fb', 'ig'], 'done'], ['s2', 2026, 8, 27, 20, 'Customer review video', ['tt', 'ig'], 'done'], ['s3', 2026, 8, 29, 21, 'Puja collection teaser', ['fb', 'ig', 'tt'], 'sched'],
-  ['a', 2026, 9, 1, 20, 'Puja offer: 10% off chargers', ['fb', 'ig', 'wa', 'tt', 'wac'], 'sched'], ['b', 2026, 9, 3, 20, 'Case drop test video', ['tt', 'yt', 'ig'], 'sched'],
-  ['c', 2026, 9, 5, 10, 'PUJA10 reminder', ['wa'], 'sched'], ['d', 2026, 9, 8, 10, 'Blog: Puja offers', ['fb', 'li'], 'sched'], ['e', 2026, 9, 8, 19, 'Offer post for the channel', ['wac'], 'remind'],
-  ['f', 2026, 9, 10, 18, 'Share in Dhaka gadget groups', ['fbg'], 'remind'], ['h', 2026, 9, 15, 20, 'Reel: 3 ways to protect a phone', ['ig', 'tt', 'yt'], 'sched'],
-  ['j', 2026, 9, 20, 21, 'Offer ends tonight', ['fb', 'wa', 'wac', 'fbg'], 'sched'], ['k', 2026, 9, 22, 20, 'iPhone 16 pre-order opens', ['fb', 'ig', 'li'], 'sched'],
-  ['m', 2026, 9, 28, 20, 'Weekend deal preview', ['fb', 'ig', 'tt'], 'sched'], ['n', 2026, 9, 30, 19, 'Month-end best sellers', ['fb', 'ig', 'li'], 'sched']
-];
-const DRAFTS = [['g', 'New MagSafe cases', ['ig', 'pin', 'fb'], 'Photo ready · no date', 12, 21], ['i', 'Last days of PUJA10', ['fb', 'ig', 'wa', 'x'], 'Needs X connected', 18, 11], ['l', 'Customer reviews roundup', ['fb', 'ig'], 'Text only', 25, 20]];
+// a post from src/lib/socialPosts.js as the calendar draws it: [id, y, m(0-based), d, hour(24), title, platforms, status]
+const tupleOf = (p) => { const d = new Date(p.at); return [p.id, d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), p.title, p.plats, p.status]; };
 // status -> [label, badge tone, colour]
-const ST = { sched: ['Scheduled', 'info', 'var(--info)'], remind: ['Reminder', 'primary', 'var(--primary)'], done: ['Posted', 'success', 'var(--success)'], draft: ['Draft', 'neutral', 'var(--slate-400)'] };
+const ST = { sched: ['Scheduled', 'info', 'var(--info)'], remind: ['Reminder', 'primary', 'var(--primary)'], done: ['Posted', 'success', 'var(--success)'], failed: ['Failed', 'error', 'var(--danger)'], draft: ['Draft', 'neutral', 'var(--slate-400)'] };
 const WD = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'], MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const TODAY0 = [2026, 9, 1];
 function todayNow() { const d = new Date(clockNow()); return [d.getFullYear(), d.getMonth(), d.getDate()]; }
 const HM = [[1, 1, 1, 1, 1, 2, 2], [2, 2, 2, 2, 2, 3, 3], [2, 2, 2, 2, 3, 3, 4], [3, 3, 3, 3, 3, 4, 4], [4, 3, 3, 3, 4, 4, 3]];
 const HML = ['9:00 AM', '12:00 PM', '3:00 PM', '8:00 PM', '10:00 PM'], HMS = ['9 AM', '12 PM', '3 PM', '8 PM', '10 PM'];
 function h12(h) { return ((h % 12) || 12) + (h >= 12 ? ' pm' : ' am'); }
-const nextDay = (y, m, d) => { const dt = new Date(y, m, d + 1); return [dt.getFullYear(), dt.getMonth(), dt.getDate()]; };
 const short = (n) => n.replace(' broadcast', '').replace(' page', '').replace('Facebook Page', 'Facebook');
 
 class Component extends DCLogic {
-  state = { today: null, ym: null, f: '', view: 'month', sel: null, moved: {}, placed: {}, dups: [], panel: '' };
-  componentDidMount() { this.setState({ today: todayNow() }); }
+  state = { today: null, ym: null, f: '', view: 'month', sel: null, posts: null, panel: '' };
+  componentDidMount() {
+    this.load = () => this.setState({ posts: getPosts() });
+    this.setState({ today: todayNow(), posts: getPosts() });
+    window.addEventListener(SOCIAL_EVENT, this.load);
+    window.addEventListener('storage', this.load);
+  }
+  componentWillUnmount() { window.removeEventListener(SOCIAL_EVENT, this.load); window.removeEventListener('storage', this.load); }
   renderVals() {
     const s = this.state;
     const TODAY = s.today || TODAY0;
     const ym = s.ym || [TODAY[0], TODAY[1]], f = s.f, view = s.view;
     const sel = s.sel || TODAY.slice();
-    const all = POSTS.map((p) => { const q = p.slice(); const mv = s.moved[p[0]]; if (mv) { q[1] = mv[0]; q[2] = mv[1]; q[3] = mv[2]; } return q; })
-      .concat(DRAFTS.filter((d) => s.placed[d[0]]).map((d) => [d[0], 2026, 9, d[4], d[5], d[1], d[2], 'draft'])).concat(s.dups);
+    const lib = s.posts || seedPosts();
+    const byId = Object.fromEntries(lib.map((p) => [p.id, p]));
+    const all = lib.filter((p) => p.at).map(tupleOf);
     const posts = all.filter((p) => !f || p[6].indexOf(f) >= 0);
     const on = (y, m, d) => posts.filter((p) => p[1] === y && p[2] === m && p[3] === d).sort((a, b) => a[4] - b[4]);
     const names = (p) => p[6].map((k) => plat(k)[1]);
@@ -83,7 +84,12 @@ class Component extends DCLogic {
     const week = []; for (let k = 0; k < 7; k++) { const w = new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() + k); week.push([w.getFullYear(), w.getMonth(), w.getDate()]); }
     const cur = on(sel[0], sel[1], sel[2]);
     const shift = (n) => { const p = new Date(sel[0], sel[1], sel[2] + n); this.setState({ sel: [p.getFullYear(), p.getMonth(), p.getDate()], ym: [p.getFullYear(), p.getMonth()] }); };
-    const drafts = DRAFTS.filter((d) => !s.placed[d[0]]);
+    // drafts with no date wait in the tray; each offers a day (the seed's, else tomorrow at 8 PM)
+    const drafts = lib.filter((p) => p.status === 'draft' && !p.at).map((p) => {
+      const sg = p.suggest || (() => { const t = new Date(TODAY[0], TODAY[1], TODAY[2] + 1); return [t.getFullYear(), t.getMonth(), t.getDate(), 20]; })();
+      const media = p.media || [];
+      return { p, sg, note: p.note || (media.some((x) => x.kind === 'video') ? 'Video ready · no date' : media.length ? 'Photo ready · no date' : 'Text only') };
+    });
     return {
       title: view === 'month' ? MON[m] + ' ' + y : 'Week of ' + week[0][2] + ' ' + MON[week[0][1]].slice(0, 3) + ' – ' + week[6][2] + ' ' + MON[week[6][1]].slice(0, 3),
       summary: monthPosts.length + ' posts in ' + MON[m] + ' · ' + monthPosts.filter((p) => p[7] === 'sched').length + ' scheduled · ' + monthPosts.filter((p) => p[7] === 'remind').length + ' reminders',
@@ -92,7 +98,7 @@ class Component extends DCLogic {
       next: () => { if (view === 'week') shift(7); else { const n = new Date(y, m + 1, 1); this.setState({ ym: [n.getFullYear(), n.getMonth()] }); } },
       today: () => this.setState({ ym: [TODAY[0], TODAY[1]], sel: TODAY.slice() }),
       f, setF: (e) => this.setState({ f: e.target.value }),
-      legend: ['sched', 'remind', 'done', 'draft'].map((k) => ({ l: ST[k][0], c: ST[k][2], i: ST_ICON[k] })),
+      legend: ['sched', 'remind', 'done', ...(monthPosts.some((p) => p[7] === 'failed') ? ['failed'] : []), 'draft'].map((k) => ({ l: ST[k][0], c: ST[k][2], i: ST_ICON[k] })),
       cells: cells.map((c, idx) => {
         const ev = on(c[0], c[1], c[2]); const sl = isS(c); const fri = idx % 7 === 6;
         return { key: c.join('-'), n: String(c[2]), out: c[3], today: isT(c), sel: sl, fri,
@@ -105,11 +111,13 @@ class Component extends DCLogic {
       wkRows: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].map((h) => ({ h: h12(h), c: week.map((w, i) => ({ fri: i === 6, ev: on(w[0], w[1], w[2]).filter((p) => p[4] === h).map((p) => { const cd = card(p); return { ...cd, n: p[6].length }; }) })) })),
       selTitle: sel[2] + ' ' + MON[sel[1]] + (isT(sel) ? ' · today' : ''), selSub: cur.length ? cur.length + (cur.length === 1 ? ' post' : ' posts') : 'No posts',
       selPosts: cur.map((p) => ({ id: p[0], time: h12(p[4]), t: p[5], st: ST[p[7]][0], tone: ST[p[7]][1], si: ST_ICON[p[7]], pl: p[6].map((k) => ({ n: plat(k)[1], ch: CH[k] })),
-        dup: () => { const nd = nextDay(p[1], p[2], p[3] + 6); this.setState({ dups: s.dups.concat([['dup' + s.dups.length, nd[0], nd[1], nd[2], p[4], p[5] + ' (repeat)', p[6], 'draft']]) }); toast('Copied as a draft one week later, ' + nd[2] + ' ' + MON[nd[1]] + '.'); },
-        move: () => { const nd = nextDay(p[1], p[2], p[3]); this.setState({ moved: { ...s.moved, [p[0]]: nd }, sel: nd, ym: [nd[0], nd[1]] }); toast('“' + p[5] + '” moved to ' + nd[2] + ' ' + MON[nd[1]] + ', same time.'); } })),
+        open: p[7] !== 'done',
+        dup: () => { const c = duplicatePost(p[0], 7); if (!c) return; const nd = new Date(c.at); toast('Copied as a draft one week later, ' + nd.getDate() + ' ' + MON[nd.getMonth()] + '.'); },
+        move: () => { const src = byId[p[0]]; if (!src) return; const nd = new Date(src.at + 864e5); savePost({ id: p[0], at: nd.getTime() }); this.setState({ sel: [nd.getFullYear(), nd.getMonth(), nd.getDate()], ym: [nd.getFullYear(), nd.getMonth()] }); toast('“' + p[5] + '” moved to ' + nd.getDate() + ' ' + MON[nd.getMonth()] + ', same time.'); },
+        remove: async () => { if (!(await confirmDialog({ title: 'Delete this post?', body: p[7] === 'done' ? 'It comes off the calendar. Posts already on the pages stay there.' : 'It will not go out.', confirmLabel: 'Delete', tone: 'danger' }))) return; removePost(p[0]); toast('Post deleted.'); } })),
       noPosts: cur.length === 0,
-      drafts: drafts.map((d) => ({ id: d[0], t: d[1], m: d[3] + ' · ' + d[2].length + ' places', day: d[4] + ' Oct',
-        place: () => { this.setState({ placed: { ...s.placed, [d[0]]: 1 }, sel: [2026, 9, d[4]], ym: [2026, 9] }); toast('“' + d[1] + '” added to ' + d[4] + ' October as a draft.'); } })),
+      drafts: drafts.map(({ p, sg, note }) => ({ id: p.id, t: p.title, m: note + ' · ' + p.plats.length + ' places', day: sg[2] + ' ' + MON[sg[1]].slice(0, 3),
+        place: () => { savePost({ id: p.id, at: new Date(sg[0], sg[1], sg[2], sg[3]).getTime() }); this.setState({ sel: [sg[0], sg[1], sg[2]], ym: [sg[0], sg[1]] }); toast('“' + p.title + '” added to ' + sg[2] + ' ' + MON[sg[1]] + ' as a draft.'); } })),
       draftCount: drafts.length,
       panel: s.panel, openDrafts: () => this.setState({ panel: 'drafts' }), openBest: () => this.setState({ panel: 'best' }), closePanel: () => this.setState({ panel: '' }),
       hm: HM.map((r, i) => ({ l: HMS[i], c: r.map((x, j) => ({ lvl: x, t: WD[j] + ' ' + HML[i] })) })),
@@ -295,7 +303,7 @@ export default class CalendarScreen extends Component {
                         {v.selPosts.map((p) => (
                           <div key={p.id + p.time} className="cal-post">
                             <span className="cal-post__top">{p.time}<StatusBadge tone={p.tone} icon={p.si}>{p.st}</StatusBadge>
-                              <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" items={[{ label: 'Edit', href: '/composer' }, { label: 'Duplicate', onClick: p.dup }, { label: 'Next day', onClick: p.move }]} />
+                              <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" items={[...(p.open ? [{ label: 'Edit', href: '/composer?id=' + encodeURIComponent(p.id) }] : []), { label: 'Duplicate', onClick: p.dup }, ...(p.open ? [{ label: 'Next day', onClick: p.move }] : []), { label: 'Delete', onClick: p.remove }]} />
                             </span>
                             <span className="cal-post__t">{p.t}</span>
                             <span className="cal-post__pl">{p.pl.map((x) => <span key={x.n}><ChannelIcon channel={x.ch} size={14} decorative />{x.n}</span>)}</span>

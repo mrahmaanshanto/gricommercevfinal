@@ -1,245 +1,160 @@
 'use client';
-// Generated from design/templates/app/MPurchaseDetail.dc.html by scripts/convert-design.mjs.
-// Merchant app · Purchase order
-// Edit freely: this file is now the source for the screen.
+// Merchant app · One purchase (/m-purchase-detail?id=<PO no | bill no>). The board's layout
+// (design/templates/app/MPurchaseDetail.dc.html) with live data.
+//   an order    status and place, supplier, ordered / expected; Total · Paid · Due (bills made when goods arrived,
+//               supplierBills.js; a demo order's own figures); "n of m received" and each line's progress; Record a
+//               payment (PaySheet → supplierBills.paySupplier). Action bar: Call the supplier · Receive items
+//               (/m-receive?po=) — or, for a draft, Send to supplier (purchaseOrders.updatePO → Sent); an order waiting
+//               for approval is approved and sent by an admin (lib/team role with full access).
+//   a bill      a direct purchase or a received delivery: bought on, due, Total · Paid · Due, its lines, Pay.
+// Everything else (files, extra costs, history) is on the web (/po-detail?no=, /purchases).
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import React, { useMemo, useState } from 'react';
+import { AppScreen, Content, AppBar, ActionBar, Button, IconButton, Pill, Sheet, ListRow, Icon, EmptyState, Skeleton, Note, useAppData, useQuery, money, toast, refresh } from './kit/AppKit';
+import { updatePO } from '@/lib/purchaseOrders';
+import { termsLabel } from '@/lib/supplierBills';
+import { PaySheet } from './stock/PurchaseParts';
+import { poBy, billRows } from './stock/purchaseData';
+import { rowBy, allowed, isAdmin, me, dayText, plural, safe } from './stock/stockData';
+import { Thumb } from './stock/Scanner';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+const CSS = '[data-screen="MPurchaseDetail"] .po-end{flex:none;width:72px;display:flex;justify-content:flex-end}';
 
-class Component extends DCLogic {
-  renderVals() { return {}; }
+function Lines({ lines, received }) {
+  return (
+    <div className="card" style={{ margin: '0 20px' }}>
+      {lines.map((l, i) => {
+        const row = rowBy(l.sku || l.name) || rowBy(l.code);
+        const got = received ? l.received || 0 : l.qty;
+        const done = got >= l.qty;
+        const pct = l.qty ? Math.round((got / l.qty) * 100) : 0;
+        return (
+          <div key={i} className="lrow">
+            {row ? <Thumb row={row} size={44} /> : <span className="av" style={{ width: '44px', height: '44px', background: '#e0f3fb', color: '#003087' }}>{String(l.name || '?').charAt(0)}</span>}
+            <span style={{ flex: '1', minWidth: '0' }}>
+              <span className="ell" style={{ display: 'block', fontSize: 'var(--text-sm-plus)', fontWeight: 'var(--weight-medium)' }}>{l.name}</span>
+              <span className="num" style={{ display: 'block', fontSize: 'var(--text-xs-plus)', color: 'var(--muted)' }}>{received ? `${got} of ${l.qty} in · ` : `${l.qty} × `}{money(l.cost)} each</span>
+              {received ? <span className="bar" style={{ display: 'block', marginTop: '7px' }}><i style={{ width: pct + '%', background: done ? '#10b981' : '#003087' }} /></span> : null}
+            </span>
+            {received ? <span className="po-end">{done ? <span style={{ color: '#10b981', display: 'flex' }} role="img" aria-label="All received"><Icon name="check" size={20} stroke={2.4} /></span> : <Pill tone="warn">{l.qty - got} due</Pill>}</span> : <span className="num" style={{ fontWeight: 'var(--weight-medium)' }}>{money(l.qty * l.cost)}</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
-// ---- styles (from the design's <helmet>) ----
+export default function MPurchaseDetailScreen() {
+  const q = useQuery();
+  const { ready, tick, ctx } = useAppData(['gc:stock']);
+  const [pay, setPay] = useState(false);
+  const [more, setMore] = useState(false);
+  const id = q ? q.get('id') || q.get('no') || '' : '';
 
-const CSS = `
-*{box-sizing:border-box}
-body{margin:0;background:#dfe5ee;font-family:var(--font-sans);-webkit-font-smoothing:antialiased;color:#0f172a}
-a{color:inherit;text-decoration:none}
-button{font:inherit;color:inherit}
-.bn{font-family:var(--font-bn)}
-.mono{font-family:var(--font-data)}
-.num{font-variant-numeric:tabular-nums}
-.ph{--brand:#003087;--brand2:#0a4bb5;--sky:#009cde;--ink:#0f172a;--body:#475569;--muted:var(--text-muted);--line:#e8edf3;--bg:#f5f7fa;--card:#ffffff;--soft:#eef3fa;
-  --ok:#0f9f6e;--okbg:#e7f7f0;--warn:#b45309;--warnbg:#fff4e0;--err:#c2410c;--errbg:#ffece5;
-  position:relative;width:min(390px,100%);height:844px;overflow:hidden;background:var(--bg);font-size:var(--text-sm-plus);line-height:1.5;font-family:var(--font-sans)}
-.sb{position:absolute;top:0;left:0;right:0;height:47px;display:flex;align-items:center;justify-content:space-between;padding:0 28px 0 34px;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);z-index:6}
-.sb .r{display:flex;gap:6px;align-items:center}
-.appbar{position:absolute;top:47px;left:0;right:0;height:56px;display:flex;align-items:center;gap:4px;padding:0 8px;z-index:5;background:var(--bg)}
-.appbar h1{flex:1;margin:0;font-size:var(--text-lg);font-weight:var(--weight-semibold);text-align:center;letter-spacing:0}
-.ib{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:var(--radius-full);background:transparent;color:var(--ink);position:relative;cursor:pointer}
-.ib.soft{background:var(--card);box-shadow:0 1px 2px rgba(15,23,42,.06)}
-.dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:var(--radius-full);background:#ff5724;border:2px solid var(--card)}
-.big{padding:4px 20px 0}
-.big .eyebrow{font-size:var(--text-xs-plus);color:var(--muted)}
-.big h1{margin:2px 0 0;font-size:var(--text-3xl);line-height:38px;font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight)}
-.content{position:absolute;left:0;right:0;overflow:hidden}
-.pad{padding:0 20px}
-.card{background:var(--card);border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -16px rgba(15,23,42,.18)}
-.sec{display:flex;align-items:baseline;justify-content:space-between;margin:24px 20px 10px}
-.sec h2{margin:0;font-size:var(--text-base);font-weight:var(--weight-semibold)}
-.sec a{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--brand)}
-.row{display:flex;align-items:center;gap:14px;min-height:64px;padding:12px 16px}
-.row + .row{border-top:1px solid var(--line)}
-.row .t{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--ink);line-height:20px}
-.row .s{font-size:var(--text-xs-plus);color:var(--muted);line-height:18px}
-.row .m{min-width:0;flex:1}
-.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.av{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);font-size:var(--text-sm-plus)}
-.ico{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;background:var(--soft);color:var(--brand)}
-.pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.p-ok{background:var(--okbg);color:var(--ok)}.p-warn{background:var(--warnbg);color:var(--warn)}.p-err{background:var(--errbg);color:var(--err)}.p-nav{background:var(--soft);color:var(--brand)}.p-grey{background:#eef1f5;color:#475569}
-.sh{width:8px;height:8px;flex:none}.sh.ok{border-radius:var(--radius-full);background:currentColor}.sh.warn{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid currentColor}.sh.err{transform:rotate(45deg);width:7px;height:7px;background:currentColor;border-radius:1px}
-.chips{display:flex;gap:8px;padding:0 20px;overflow:hidden}
-.chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid var(--line);background:var(--card);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--body);white-space:nowrap}
-.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.chip .n{font-size:var(--text-xs);font-weight:var(--weight-medium);opacity:.7}
-.seg{display:flex;margin:0 20px;padding:4px;border-radius:var(--radius-xl);background:#e9eef5}
-.seg span{flex:1;height:36px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--body)}
-.seg span.on{background:var(--card);color:var(--ink);font-weight:var(--weight-medium);box-shadow:0 1px 3px rgba(15,23,42,.1)}
-.srch{display:flex;align-items:center;gap:10px;height:48px;margin:0 20px;padding:0 6px 0 16px;border-radius:var(--radius-xl);background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:var(--text-sm-plus)}
-.srch .sc{margin-left:auto;width:36px;height:36px;border-radius:var(--radius-lg);background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border:0;border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer}
-.btnp{background:var(--brand);color:#fff}.btns{background:var(--soft);color:var(--brand)}.btnl{background:var(--card);color:var(--ink);border:1px solid var(--line)}
-.btnd{background:var(--errbg);color:var(--err)}
-.fab{position:absolute;right:20px;bottom:96px;width:56px;height:56px;border-radius:var(--radius-xl);background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 24px -8px rgba(0,48,135,.55);z-index:5}
-.tabfade{position:absolute;left:0;right:0;bottom:0;height:108px;background:linear-gradient(to top,var(--bg) 42%,rgba(245,247,250,0));pointer-events:none;z-index:5}
-.tabs{position:absolute;left:28px;right:28px;bottom:24px;height:56px;padding:4px;display:flex;gap:2px;border-radius:28px;background:rgba(255,255,255,.78);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);border:1px solid rgba(255,255,255,.95);box-shadow:0 14px 34px -12px rgba(15,23,42,.30),0 2px 6px -2px rgba(15,23,42,.08),inset 0 0 0 .5px rgba(15,23,42,.05);z-index:6}
-.tabs a{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:var(--radius-xl);font-size:var(--text-2xs);line-height:15px;font-weight:var(--weight-medium);color:var(--text-muted);transition:background-color .2s,color .2s}
-.tabs a.on{background:rgba(0,48,135,.08);color:var(--brand);font-weight:var(--weight-medium)}
-.tabs .tw{position:relative;display:flex}
-.cnt{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-lg);background:var(--fill-danger);color:#fff;font-family:var(--font-sans);font-size:var(--text-xs);line-height:1;font-weight:var(--weight-medium);letter-spacing:0;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap}
-.tabs .cnt{position:absolute;top:-6px;left:12px;border:2px solid #fff;min-width:19px;height:17px;padding:0 4px;font-size:var(--text-2xs);border-radius:var(--radius-lg)}
-.cnt.nav{background:var(--brand)}
-.hi{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:var(--radius-full);background:#0f172a;z-index:7}
-.actbar{position:absolute;left:0;right:0;bottom:0;padding:12px 20px 34px;display:flex;gap:10px;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:6}
-.actbar .btn{flex:1}
-.field{display:flex;flex-direction:column;gap:6px}
-.lab{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink)}
-.inp{height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:var(--radius-lg);border:1px solid #dbe2ec;background:var(--card);font-size:var(--text-sm);color:var(--ink)}
-.inp.f{border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,48,135,.12)}
-.help{font-size:var(--text-xs-plus);color:var(--muted)}
-.step{display:inline-flex;align-items:center;border:1px solid #dbe2ec;border-radius:var(--radius-xl);background:var(--card)}
-.step b{min-width:34px;text-align:center;font-size:var(--text-sm-plus)}
-.step span{width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--brand)}
-.sw{position:relative;flex:none;width:50px;height:30px;border-radius:var(--radius-full);background:#cbd5e1}.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.sw.on{background:var(--brand)}.sw.on::after{left:23px}
-.scrim{position:absolute;inset:0;background:rgba(15,23,42,.45);z-index:8}
-.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:28px 28px 0 0;padding:10px 20px 34px;z-index:9}
-.grab{width:40px;height:5px;margin:0 auto 14px;border-radius:var(--radius-full);background:#d5dce6}
-.k{font-size:var(--text-xs-plus);color:var(--muted)}.v{font-size:var(--text-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight)}
-.tile{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink);text-align:center}
-.tile .ico{width:56px;height:56px;border-radius:var(--radius-xl)}
-.note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
+  const data = useMemo(() => {
+    if (!ready || !q) return undefined;
+    const bills = billRows();
+    const bill = bills.find((b) => b.no === id);
+    if (bill) return { kind: 'bill', bill, bills: bill.left > 0 ? [bill] : [] };
+    const po = poBy(id);
+    if (!po) return null;
+    return { kind: 'po', po, bills: bills.filter((b) => b.po === po.no && b.left > 0) };
+  }, [ready, tick, q, id]);
 
-.pav{position:relative;flex:none;width:52px;height:52px}
-.pav .face{width:52px;height:52px;border-radius:var(--radius-full);object-fit:cover;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);font-size:var(--text-base)}
-.pav .pb{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;padding:2px;box-shadow:0 1px 3px rgba(15,23,42,.18)}
-.pav .pb img{width:18px;height:18px;display:block;border-radius:var(--radius-full)}
-.pav .on{position:absolute;right:1px;top:1px;width:12px;height:12px;border-radius:var(--radius-full);background:#10b981;border:2px solid #fff}
-.pchip{flex:none;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px 0 8px;border-radius:var(--radius-full);border:1px solid var(--line);background:var(--card);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--body);white-space:nowrap}
-.pchip img{width:22px;height:22px;border-radius:var(--radius-full)}
-.pchip.on{background:var(--ink);color:#fff;border-color:var(--ink);padding-left:14px}
-.bar{height:6px;border-radius:var(--radius-full);background:#edf1f6;overflow:hidden}.bar i{display:block;height:100%;border-radius:var(--radius-full)}
-.lrow{display:flex;align-items:center;gap:14px;padding:14px 16px}
-.lrow + .lrow{border-top:1px solid var(--line)}
-/* trailing status column on the received lines: one width, so every progress bar is the same length */
-.po-end{flex:none;width:72px;display:flex;justify-content:flex-end}
-`;
+  const title = data && data.kind === 'bill' ? data.bill.no : data && data.po ? data.po.no : id || 'Purchase';
+  const call = (phone) => { if (phone) window.location.href = 'tel:' + String(phone).replace(/[^\d+]/g, ''); else toast('No phone number for this supplier', { tone: 'error' }); };
 
-// ---- markup ----
-
-export default class MPurchaseDetailScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
+  if (data === null) {
     return (
-      <div className="dc-screen" data-screen="MPurchaseDetail">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="ph">
-          <div className="sb" style={{ color: "#0f172a" }}>
-            <span className="num">2:32</span>
-            <span className="r">
-              <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true" fill="#0f172a">
-                <rect x="0" y="8" width="3" height="4" rx="1" />
-                <rect x="5" y="5" width="3" height="7" rx="1" />
-                <rect x="10" y="2.5" width="3" height="9.5" rx="1" />
-                <rect x="15" y="0" width="3" height="12" rx="1" />
-              </svg>
-              <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>4G</span>
-              <svg width="27" height="13" viewBox="0 0 27 13" aria-hidden="true">
-                <rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="#0f172a" opacity=".4" />
-                <rect x="2" y="2" width="17" height="9" rx="2" fill="#0f172a" />
-                <path d="M25 4.5v4" stroke="#0f172a" strokeWidth="1.5" opacity=".5" />
-              </svg>
-            </span>
-          </div>
-          <header className="appbar">
-            <__Link href="/m-purchase" className="ib" aria-label="Back">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </__Link>
-            <h1>PO-0417</h1>
-            <a className="ib" href="#" aria-label="More">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="5" cy="12" r="1.6" />
-                <circle cx="12" cy="12" r="1.6" />
-                <circle cx="19" cy="12" r="1.6" />
-              </svg>
-            </a>
-          </header>
-          <div className="content" style={{ top: "103px", bottom: "98px" }}>
-            <div style={{ padding: "2px 20px 0" }}>
-              <div style={{ display: "flex", gap: "6px" }}>
-                <span className="pill p-warn"><span className="sh warn" aria-hidden="true" />Partly received</span>
-                <span className="pill p-grey">Mirpur godown</span>
-              </div>
-              <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", marginTop: "8px" }}>Dhaka Mobile Accessories</div>
-              <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Ordered 10 Sep by Mehedi · expected 21 Sep</div>
-            </div>
-            <div className="card" style={{ margin: "16px 20px 0", padding: "16px", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "8px" }}>
-              <div>
-                <div className="k">Total</div>
-                <div className="num" style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-base)" }}>৳3,12,000</div>
-              </div>
-              <div>
-                <div className="k">Paid</div>
-                <div className="num" style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-base)", color: "var(--ok)" }}>৳1,50,000</div>
-              </div>
-              <div>
-                <div className="k">Due</div>
-                <div className="num" style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-base)", color: "var(--err)" }}>৳1,62,000</div>
-              </div>
-            </div>
-            <div className="sec">
-              <h2>180 of 300 received</h2>
-              <a href="#" className="tap">Edit</a>
-            </div>
-            <div className="card" style={{ margin: "0 20px" }}>
-              <div className="lrow">
-                <span className="av" style={{ width: "44px", height: "44px", background: "#e0f3fb", color: "#003087" }}>D</span>
-                <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Baseus Car Phone Holder</span>
-                  <span className="num" style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>100 of 100 in · ৳1,040 each</span>
-                  <span className="bar" style={{ display: "block", marginTop: "7px" }}>
-                    <i style={{ width: "100%", background: "#10b981" }} />
-                  </span>
-                </span>
-                <span className="po-end">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-label="All received" role="img">
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                </span>
-              </div>
-              <div className="lrow">
-                <span className="av" style={{ width: "44px", height: "44px", background: "#e0f3fb", color: "#003087" }}>D</span>
-                <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Baseus Car Phone Holder · Vent</span>
-                  <span className="num" style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>80 of 100 in · ৳1,040 each</span>
-                  <span className="bar" style={{ display: "block", marginTop: "7px" }}>
-                    <i style={{ width: "80%", background: "#003087" }} />
-                  </span>
-                </span>
-                <span className="po-end"><span className="pill p-warn">20 due</span></span>
-              </div>
-              <div className="lrow">
-                <span className="av" style={{ width: "44px", height: "44px", background: "#e0f3fb", color: "#003087" }}>D</span>
-                <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Baseus Car Phone Holder · Dash</span>
-                  <span className="num" style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>0 of 100 in · ৳1,040 each</span>
-                  <span className="bar" style={{ display: "block", marginTop: "7px" }}>
-                    <i style={{ width: "0%", background: "#003087" }} />
-                  </span>
-                </span>
-                <span className="po-end"><span className="pill p-warn">100 due</span></span>
-              </div>
-            </div>
-            <a href="#" className="card" style={{ display: "flex", alignItems: "center", gap: "12px", margin: "12px 20px 0", padding: "14px 16px" }}>
-              <span className="ico" style={{ width: "40px", height: "40px" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
-                  <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
-                </svg>
-              </span>
-              <span style={{ flex: "1", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Record a payment to supplier</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            </a>
-          </div>
-          <div className="actbar">
-            <a className="btn btnl" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" />
-</svg>Call</a>
-            <__Link href="/m-scan" className="btn btnp" style={{ flex: "2" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M14 8v8M17 8v8" />
-</svg>Receive items</__Link>
-          </div>
-        </div>
-      </div>
+      <AppScreen name="MPurchaseDetail" title="Purchase" css={CSS}>
+        <AppBar title={id || 'Purchase'} back="/m-purchase" />
+        <Content top={103}><div className="card" style={{ margin: '4px 20px 0' }}><EmptyState icon="clipboard" title="This purchase is not here" action={{ label: 'All purchases', href: '/m-purchase' }} /></div></Content>
+      </AppScreen>
     );
   }
+
+  let head = null, figures = null, sec = null, lines = null, act = null, payBills = [], supplier = '', phone = '';
+  if (data && data.kind === 'po') {
+    const po = data.po;
+    supplier = po.supplier; phone = po.phone;
+    const sent = () => {
+      updatePO(po.no, (p) => ({ status: 'Sent', sentAt: Date.now(), approval: p.approval === 'waiting' ? 'approved' : p.approval, ...(p.approval === 'waiting' ? { approvedBy: me() } : {}) }));
+      refresh();
+      toast(`${po.no} sent to ${po.supplier}`);
+    };
+    head = (
+      <>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}><Pill tone={po.tone} shape={po.shape}>{po.label}</Pill><Pill tone="grey">{po.place}</Pill></div>
+        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-semibold)', letterSpacing: '0', marginTop: '8px' }}>{po.supplier}</div>
+        <div style={{ fontSize: 'var(--text-xs-plus)', color: 'var(--muted)' }}>{`Ordered ${dayText(po.at)}${po.by ? ' by ' + po.by : ''}${po.expected ? ' · expected ' + po.expected : po.due ? ' · ' + po.due.replace(/^Due /, 'due ') : ''}`}{po.terms != null ? ' · ' + termsLabel(po.terms) : ''}</div>
+      </>
+    );
+    const paid = po.stored ? po.paid : po.paid;
+    const due = po.stored ? po.left : po.left;
+    figures = [['Total', money(po.total)], ['Paid', money(paid), 'var(--ok)'], ['Due', money(due), due > 0 ? 'var(--err)' : undefined]];
+    if (po.stored && !po.billed) figures[2] = ['Billed', money(0)];
+    sec = { title: `${po.got} of ${po.of} received`, action: { label: 'Open on the web', href: '/po-detail?no=' + encodeURIComponent(po.no) } };
+    lines = <Lines lines={po.lines} received />;
+    payBills = data.bills;
+    const recv = ctx && allowed('/m-receive', ctx);
+    if (po.s === 'draft' && po.stored) act = <><Button kind="line" icon="phone" onClick={() => call(phone)}>Call</Button><Button onClick={sent} style={{ flex: 2 }}>Send to supplier</Button></>;
+    else if (po.s === 'approval' && po.stored) act = isAdmin() ? <><Button kind="line" icon="phone" onClick={() => call(phone)}>Call</Button><Button onClick={sent} style={{ flex: 2 }}>Approve and send</Button></> : <Button kind="line" icon="phone" onClick={() => call(phone)}>Call supplier</Button>;
+    else if (po.receivable && recv) act = <><Button kind="line" icon="phone" onClick={() => call(phone)}>Call</Button><Button icon="scan" href={'/m-receive?po=' + encodeURIComponent(po.no)} style={{ flex: 2 }}>Receive items</Button></>;
+    else if (['approved', 'ordered', 'partial'].includes(po.s) && recv) act = <><Button kind="line" icon="phone" onClick={() => call(phone)}>Call</Button><Button kind="soft" onClick={() => toast('This demo order can’t be received. Open PO-2609-0020 or an order you made.', { tone: 'info' })} style={{ flex: 2 }}>Receive items</Button></>;
+    else act = <Button kind="line" icon="phone" onClick={() => call(phone)}>Call supplier</Button>;
+  } else if (data && data.kind === 'bill') {
+    const b = data.bill;
+    supplier = b.supplier; phone = b.phone;
+    head = (
+      <>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}><Pill tone={b.tone} shape={b.shape}>{b.status}</Pill>{b.place ? <Pill tone="grey">{b.place}</Pill> : null}{b.po ? <Pill tone="nav">{b.po}</Pill> : null}</div>
+        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-semibold)', letterSpacing: '0', marginTop: '8px' }}>{b.supplierName}</div>
+        <div style={{ fontSize: 'var(--text-xs-plus)', color: 'var(--muted)' }}>{`${b.direct ? 'Bought' : 'Billed'} ${dayText(b.at)}${b.left > 0 ? ' · due ' + dayText(b.due) : ''}${b.ref ? ' · invoice ' + b.ref : ''}`}</div>
+      </>
+    );
+    figures = [['Total', money(b.amount)], ['Paid', money((b.paid || 0) + (b.credited || 0)), 'var(--ok)'], ['Due', money(b.left), b.left > 0 ? 'var(--err)' : undefined]];
+    const pcs = (b.lines || []).reduce((a, l) => a + (Number(l.qty) || 0), 0);
+    sec = { title: (b.lines || []).length ? plural(pcs, 'piece') : 'Items', action: { label: 'Open on the web', href: '/purchases' } };
+    lines = (b.lines || []).length ? <Lines lines={b.lines} /> : <div className="card" style={{ margin: '0 20px' }}><EmptyState icon="receipt" title="No item lines on this bill" /></div>;
+    payBills = data.bills;
+    act = <><Button kind="line" icon="phone" onClick={() => call(phone)}>Call</Button>{b.left > 0 ? <Button onClick={() => setPay(true)} style={{ flex: 2 }}>Pay {money(b.left)}</Button> : <Button kind="soft" disabled style={{ flex: 2 }}>Paid</Button>}</>;
+  }
+  const payLeft = payBills.reduce((a, b) => a + b.left, 0);
+
+  return (
+    <AppScreen name="MPurchaseDetail" title={title} css={CSS}>
+      <AppBar title={title} back="/m-purchase" actions={<IconButton icon="dots" label="More" onClick={() => setMore(true)} />} />
+      <Content top={103} bottom={98}>
+        {!data ? <div style={{ marginTop: '4px' }}><Skeleton rows={4} /></div> : (
+          <>
+            <div style={{ padding: '2px 20px 0' }}>{head}</div>
+            <div className="card" style={{ margin: '16px 20px 0', padding: '16px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px' }}>
+              {figures.map(([k, v, c]) => <div key={k}><div className="k">{k}</div><div className="num" style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-base)', color: c }}>{v}</div></div>)}
+            </div>
+            <div className="sec"><h2>{sec.title}</h2><a href={sec.action.href} className="tap">{sec.action.label}</a></div>
+            {lines}
+            {data.kind === 'po' ? (
+              payLeft > 0 ? (
+                <button type="button" className="card" onClick={() => setPay(true)} style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '12px 20px 0', padding: '14px 16px', width: 'calc(100% - 40px)', border: 0, font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
+                  <span className="ico" style={{ width: '40px', height: '40px' }}><Icon name="cash" /></span>
+                  <span style={{ flex: '1', fontSize: 'var(--text-sm-plus)', fontWeight: 'var(--weight-medium)' }}>Record a payment to supplier</span>
+                  <span className="num" style={{ color: 'var(--err)', fontWeight: 'var(--weight-medium)' }}>{money(payLeft)}</span>
+                </button>
+              ) : data.po.stored && !data.po.billed ? <Note tone="info" icon="receipt" style={{ margin: '12px 20px 0' }}>The bill is made when the goods arrive.</Note> : null
+            ) : null}
+            <div style={{ height: '8px' }} />
+          </>
+        )}
+      </Content>
+      <ActionBar>{act}</ActionBar>
+      <PaySheet open={pay} onClose={() => setPay(false)} supplier={payBills[0] ? payBills[0].supplier : supplier} bills={payBills} onPaid={() => { setPay(false); refresh(); }} />
+      <Sheet open={more} onClose={() => setMore(false)} title={title}>
+        <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+          <ListRow href={data && data.kind === 'po' ? '/po-detail?no=' + encodeURIComponent(id) : '/purchases'} icon="globe" title="Open on the web" sub="Files, extra costs and history" />
+          <ListRow href={'/supplier-return' + (data && data.kind === 'bill' ? '?bill=' + encodeURIComponent(id) : '')} icon="undo" title="Return to supplier" sub="On the web" />
+          <ListRow onClick={() => { setMore(false); toast(`${title} sent to the printer`); }} icon="receipt" title="Print" />
+        </div>
+      </Sheet>
+    </AppScreen>
+  );
 }

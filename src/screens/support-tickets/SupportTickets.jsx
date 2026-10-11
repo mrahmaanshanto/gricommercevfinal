@@ -2,7 +2,9 @@
 // SupportTickets — the ticket desk, laid out like a Shopify list (components/ui/IndexKit.jsx): title row, key
 // figures, then one card with the status views, search and filters and a compact table (or the board). A row opens
 // the ticket in a side panel: status, owner, team, linked order, activity and the reply box.
-// Front end only: the tickets are demo data; changes made here last until the page is left.
+// The tickets are the shared book lib/supportTickets.js (the mobile app's /m-tickets reads and writes the same one):
+// every change here is saved and shows in the app, and the other way round. Before the page has mounted it shows the
+// demo's own SLA words (sla0 / hot0), so the server render and the first client render match.
 // Edit freely: this file is the source for the screen.
 
 import React from 'react';
@@ -14,6 +16,10 @@ import { ChannelIcon, Sheet, StatusBadge, EmptyState } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, Menu, KV } from '@/components/ui/IndexKit';
 import { MessageList, THREAD_CSS } from '@/components/inbox/Thread';
 import { PARTS_CSS } from '@/components/inbox/parts';
+import {
+  getTickets, demoTickets, slaShort, isHot, threadMessages, averageRating, TICKETS_EVENT, TEAMS,
+  reply as replyTo, assign as assignTo, setStatus as setTicketStatus, setTeam as setTicketTeam, solve as solveTicket,
+} from '@/lib/supportTickets';
 
 // ---- logic ----
 
@@ -24,58 +30,36 @@ const PRIORITY_TONE = { Urgent: 'error', High: 'warning', Normal: 'neutral', Low
 const COL_NOTE = { 'In progress': 'WIP limit 5 per agent', 'Waiting on customer': 'Auto-close after 5 days', Solved: 'Today · CSAT 4.7' };
 const AGENTS = ['Rina', 'Tasnim', 'Mehedi'];
 const ME = 'Rina';
-const TEAMS = ['Order support', 'Payments', 'Delivery', 'Sales'];
 const SOON = 'This action is not available in the demo yet.';
-// Demo tickets shown on the list, the board and in the ticket panel.
-const TICKETS = {
-  '2304': { subject: 'Add one more case to GC-10482 before dispatch', customer: 'Nusrat Jahan', initials: 'NJ', img: '/assets/9f66d32bb99031029a6fbcfd91e221f2.png', imgPos: '52% 22%', meta: 'VIP · 14 orders · ৳84,600 LTV', ch: 'instagram', priority: 'Urgent', status: 'New', sla: 'SLA 18m', hot: true, order: 'GC-10482', orderTotal: '৳4,850', assignee: '', full: true },
-  '2303': { subject: 'bKash payment not reflecting on order', customer: 'Rakib Hasan', initials: 'RH', ch: 'whatsapp', priority: 'Normal', status: 'New', sla: '3h left', assignee: '' },
-  '2302': { subject: 'Asks for size chart in Bangla', customer: '@tanvir.rides', initials: 'TR', ch: 'tiktok', priority: 'Low', status: 'New', sla: '5h left', assignee: '' },
-  '2298': { subject: 'Wrong colour delivered — wants exchange', customer: 'Sadia Ferdous', initials: 'SF', img: '/assets/48a47ed6468079a61846b91934211c40.png', imgPos: '55% 18%', ch: 'facebook', priority: 'High', status: 'Assigned', sla: '2h left', order: 'GC-10455', assignee: 'Tasnim' },
-  '2295': { subject: 'Refund not received for GC-10190', customer: 'Farhana Jahan', initials: 'FJ', img: '/assets/25e820cfa3e50978f934abe93e0c3db7.png', imgPos: '50% 20%', ch: 'telegram', priority: 'Normal', status: 'Assigned', sla: 'Overdue 40m', hot: true, order: 'GC-10190', assignee: 'Mehedi' },
-  '2290': { subject: 'Wholesale quote for 200 staff kits', customer: 'Imran Rahman', initials: 'IR', meta: 'B2B lead', ch: 'linkedin', priority: 'Normal', status: 'Assigned', sla: '1d left', assignee: 'Rina' },
-  '2291': { subject: 'Third complaint about missing refund', customer: 'Arif Karim', initials: 'AK', ch: 'phone', priority: 'Urgent', status: 'In progress', sla: 'SLA 6m', hot: true, assignee: 'Rina' },
-  '2287': { subject: 'Courier lost parcel — claim filed', customer: 'Katrina West', initials: 'KW', ch: 'whatsapp', priority: 'High', status: 'In progress', sla: '4h left', assignee: 'Tasnim' },
-  '2279': { subject: 'Asked for photo of the damaged item', customer: '@rumana.s', initials: 'RS', ch: 'instagram', priority: 'Normal', status: 'Waiting on customer', sla: 'Waiting 2d', assignee: 'Rina' },
-  '2271': { subject: 'Waiting for a new delivery address', customer: 'Shafin Mahmud', initials: 'SM', ch: 'facebook', priority: 'Low', status: 'Waiting on customer', sla: 'Closes in 1d', assignee: 'Mehedi' },
-  '2288': { subject: 'Payment verified and order released', customer: 'Rakib Hasan', initials: 'RH', ch: 'whatsapp', priority: 'Normal', status: 'Solved', sla: 'SLA met', assignee: 'Mehedi' },
-  '2284': { subject: 'Size exchange arranged for Friday', customer: 'Mahmuda Alam', initials: 'MA', ch: 'instagram', priority: 'Normal', status: 'Solved', sla: 'SLA met', assignee: 'Tasnim' },
-};
 const TABS = [['all', 'All'], ...STATUSES.map((s) => [s, s])];
-const MIN = 60000;
-/** The first messages of a ticket (demo): how it came in, the customer's words and the team's notes. */
-function threadSeed(t) {
-  const now = Date.now();
-  const at = (min) => now - min * MIN;
-  const id = 'tk' + t.id + '-';
-  if (t.full) {
-    return [
-      { id: id + 1, at: at(52), from: 'customer', type: 'call', dir: 'in', dur: 134 },
-      { id: id + 2, at: at(51), from: 'system', type: 'text', icon: 'phone-incoming', text: 'Ticket created from the call by Rina · recording attached' },
-      { id: id + 3, at: at(50), from: 'customer', type: 'text', text: 'Ekta case add korte chai, difference bKash e dicchi.' },
-      { id: id + 4, at: at(44), from: 'note', by: 'rina', type: 'text', text: 'Stock confirmed — 6 left of JAM-114. Courier pickup 5 PM, needs packing hold. @Tasnim please hold it.' },
-      { id: id + 5, at: at(40), from: 'system', type: 'text', icon: 'merge', text: 'Earlier Instagram chat merged into this ticket · 4 messages' },
-    ];
-  }
-  return [
-    { id: id + 1, at: at(90), from: 'system', type: 'text', icon: 'life-buoy', text: 'Ticket opened from ' + CHANNEL_NAME[t.ch] },
-    { id: id + 2, at: at(89), from: 'customer', type: 'text', text: t.subject },
-    ...(t.status === 'Solved' ? [{ id: id + 3, at: at(30), from: 'agent', by: 'rina', type: 'text', text: 'Done! Anything else we can help with?', status: 'read' }] : []),
-  ];
-}
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { view: props.view === 'board' ? 'board' : 'list', tab: 'all', q: '', find: false, ch: '', pri: '', who: '', hot: false, over: {}, sel: '', reply: 'public', draft: '', thread: {} };
+    this.state = { view: props.view === 'board' ? 'board' : 'list', tab: 'all', q: '', find: false, ch: '', pri: '', who: '', hot: false, sel: '', reply: 'public', draft: '', ready: false, tick: 0 };
   }
   componentDidMount() {
     // the board is five columns wide: phones open on the list, the board stays one tap away
     if (this.props.view === 'board' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches) this.setState({ view: 'list' });
+    // read the shared book after mount, and again when the app (or another tab) changes it; the SLA words follow the clock
+    this._again = () => this.setState((s) => ({ tick: s.tick + 1 }));
+    [TICKETS_EVENT, 'storage', 'focus'].forEach((e) => window.addEventListener(e, this._again));
+    this._iv = window.setInterval(this._again, 60000);
+    this.setState({ ready: true });
   }
-  tickets() { return Object.keys(TICKETS).map((id) => ({ id, ...TICKETS[id], ...(this.state.over[id] || {}) })); }
-  patch(id, p) { this.setState((s) => ({ over: { ...s.over, [id]: { ...(s.over[id] || {}), ...p } } })); }
+  componentWillUnmount() {
+    [TICKETS_EVENT, 'storage', 'focus'].forEach((e) => window.removeEventListener(e, this._again));
+    window.clearInterval(this._iv);
+  }
+  /** The tickets with the desk's SLA words (the demo's own words until the page has mounted). */
+  tickets() {
+    const now = Date.now();
+    if (!this.state.ready) return demoTickets().map((t) => ({ ...t, sla: t.sla0, hot: t.hot0 }));
+    return getTickets().map((t) => ({ ...t, sla: slaShort(t, now), hot: isHot(t, now) }));
+  }
+  /** A change through the book: a toast on success, the reason when it was refused. */
+  done(res, msg) { if (res && res.ok) { if (msg) toast(msg); return true; } toast((res && res.error) || 'That did not work', { tone: 'error' }); return false; }
   renderVals() {
     const st = this.state;
     const all = this.tickets();
@@ -103,7 +87,7 @@ class Component extends DCLogic {
         // tap to show only the tickets breaching their SLA (tap again to show all)
         { label: 'Breaching SLA', value: String(all.filter((t) => t.hot && t.status !== 'Solved').length), on: st.hot, onClick: () => this.setState((s) => ({ hot: !s.hot })) },
         { label: 'First reply', value: '12m', sub: 'average today' },
-        { label: 'Customer rating', value: '4.7', sub: 'of 5' },
+        { label: 'Customer rating', value: String(averageRating(all) || '—'), sub: 'of 5' },
       ],
       find: !!(st.find || findOn),
       openFind: () => this.setState({ find: true }),
@@ -122,24 +106,23 @@ class Component extends DCLogic {
       // the open ticket
       t: cur ? decorate(cur) : null,
       close: () => this.setState({ sel: '' }),
-      setStatus: (e) => { const s = e.target.value; this.patch(cur.id, { status: s }); toast('TKT-' + cur.id + ' moved to ' + s); },
-      setAssignee: (e) => { const a = e.target.value; this.patch(cur.id, { assignee: a, status: cur.status === 'New' && a ? 'Assigned' : cur.status }); toast(a ? 'Assigned to ' + a : 'Unassigned'); },
-      take: () => { this.patch(cur.id, { assignee: ME, status: cur.status === 'New' ? 'Assigned' : cur.status }); toast('Assigned to you'); },
-      setTeam: (e) => this.patch(cur.id, { team: e.target.value }),
-      solve: () => { this.patch(cur.id, { status: 'Solved', sla: 'SLA met', hot: false }); toast('TKT-' + cur.id + ' solved'); this.setState({ sel: '' }); },
+      setStatus: (e) => { const s = e.target.value; this.done(setTicketStatus(cur.id, s), s === 'Solved' ? 'TKT-' + cur.id + ' solved' : 'TKT-' + cur.id + ' moved to ' + s); },
+      setAssignee: (e) => { const a = e.target.value; this.done(assignTo(cur.id, a), a ? 'Assigned to ' + a : 'Unassigned'); },
+      take: () => { this.done(assignTo(cur.id, ME), 'Assigned to you'); },
+      setTeam: (e) => { this.done(setTicketTeam(cur.id, e.target.value)); },
+      solve: () => { if (this.done(solveTicket(cur.id), 'TKT-' + cur.id + ' solved')) this.setState({ sel: '' }); },
       isPublic: st.reply === 'public',
       setPublic: () => this.setState({ reply: 'public' }),
       setInternal: () => this.setState({ reply: 'internal' }),
       draft: st.draft, onDraft: (e) => this.setState({ draft: e.target.value }),
       send: () => {
         if (!st.draft.trim()) { toast(st.reply === 'public' ? 'Write the reply first' : 'Write the note first', { tone: 'error' }); return; }
-        toast(st.reply === 'public' ? 'Reply sent on ' + CHANNEL_NAME[cur.ch] : 'Internal note added');
-        const msg = { id: 'tm-' + Date.now().toString(36), at: Date.now(), from: st.reply === 'public' ? 'agent' : 'note', by: 'rina', type: 'text', text: st.draft.trim(), status: 'sent' };
-        this.setState((s) => ({ draft: '', thread: { ...s.thread, [cur.id]: [...(s.thread[cur.id] || []), msg] } }));
+        const res = replyTo(cur.id, st.draft, [], { internal: st.reply !== 'public', by: ME });
+        if (this.done(res, st.reply === 'public' ? 'Reply sent on ' + CHANNEL_NAME[cur.ch] : 'Internal note added')) this.setState({ draft: '' });
       },
       soon: () => toast(SOON, { tone: 'info' }),
       // the ticket's conversation, Messenger style (components/inbox/Thread.jsx › MessageList): what came in, notes, replies
-      conv: cur ? { id: 'tk-' + cur.id, name: cur.customer, avatar: cur.img || '', pos: cur.imgPos || '', ch: cur.ch === 'phone' ? '' : cur.ch, messages: [...threadSeed(cur), ...(st.thread[cur.id] || [])] } : null,
+      conv: cur ? { id: 'tk-' + cur.id, name: cur.customer, avatar: cur.img || '', pos: cur.imgPos || '', ch: cur.ch === 'phone' ? '' : cur.ch, messages: threadMessages(cur) } : null,
     };
   }
 }

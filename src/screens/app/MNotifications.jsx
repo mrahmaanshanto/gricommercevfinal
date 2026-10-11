@@ -1,234 +1,269 @@
 'use client';
-// Generated from design/templates/app/MNotifications.dc.html by scripts/convert-design.mjs.
-// Merchant app · Notifications
-// Edit freely: this file is now the source for the screen.
+// Merchant app · Notifications (/m-notifications). The design board's layout (design/templates/app/MNotifications.dc.html)
+// with live data: what the web top bar's bell and Home's "Needs you" tell the team, read from the shared books.
+//   Orders    new online orders waiting (On hold / Processing / Pending), orders ready for the courier, and in the
+//             Retail edition the latest counter sales (lib/orders.js)
+//   Stock     low stock per place (reports/dailySummary › low, the same list as Home and the 8 PM summary)
+//   Payments  late payouts, payouts that arrived, the evening check (lib/settlements.js › duePrompts, the bell's
+//             "Did the expected money reach your bank?"), supplier bills past due (lib/supplierBills.js)
+//   also      unread chats (lib/inbox.js), meetings starting soon or waiting for a note (lib/meetings.js › staffAlerts,
+//             the bell's meeting rows), support tickets past their reply time (lib/supportTickets.js), money requests
+//             waiting for approval (lib/approvals.js) and the open to-do items other pages reported (lib/actionItems.js)
+// Each kind follows the edition (lib/edition.js) and this phone's choices (Settings › Notifications, gc.app.notify).
+// A tap marks the row read and opens the app's screen for it, or the web page when the app has none (appNav.canUse).
+// "Read all" marks every row read. Read state: this phone's gc.app.notes.read.
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import {
+  AppScreen, AppBar, Content, Card, Chips, Icon, EmptyState, Skeleton, Note,
+  useAppData, money, ago,
+} from './kit/AppKit';
+import { canUse } from './kit/appNav';
+import { hasModule } from '@/lib/edition';
+import { canSee } from '@/lib/team';
+import { getOrders, isCounterSale } from '@/lib/orders';
+import { NEW_KEYS, orderStatus } from '@/lib/orderStatus';
+import { dailySummary } from '@/lib/reports/dailySummary';
+import { clockNow, startOfDay, duePrompts, getPayouts, dayKey } from '@/lib/settlements';
+import { getBills, billLeft, billStatus, supplierById } from '@/lib/supplierBills';
+import { getConvs, lastLine, channelName } from '@/lib/inbox';
+import { staffAlerts } from '@/lib/meetings';
+import { waitingRequests } from '@/lib/approvals';
+import { listItems } from '@/lib/actionItems';
+import { getTickets, slaOf, ref as ticketRef } from '@/lib/supportTickets';
+import { getNotify, NOTIFY_TYPES } from './settings/settingsData';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch { return fb; } };
+const READ_KEY = 'gc.app.notes.read';
+const DAY = 86400000;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-class Component extends DCLogic {
-  renderVals() { return {}; }
+// ---- read state (this phone) -------------------------------------------------------------------------------------
+const readMap = () => { try { return JSON.parse(window.localStorage.getItem(READ_KEY)) || {}; } catch { return {}; } };
+function markRead(keys) {
+  const m = readMap();
+  const now = Date.now();
+  keys.forEach((k) => { m[k] = now; });
+  // keep the newest 400
+  const kept = Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 400);
+  try { window.localStorage.setItem(READ_KEY, JSON.stringify(Object.fromEntries(kept))); window.dispatchEvent(new CustomEvent('gc:app')); } catch { /* ignore */ }
 }
 
-// ---- styles (from the design's <helmet>) ----
-
-const CSS = `
-*{box-sizing:border-box}
-body{margin:0;background:#dfe5ee;font-family:var(--font-sans);-webkit-font-smoothing:antialiased;color:#0f172a}
-a{color:inherit;text-decoration:none}
-button{font:inherit;color:inherit}
-.bn{font-family:var(--font-bn)}
-.mono{font-family:var(--font-data)}
-.num{font-variant-numeric:tabular-nums}
-.ph{--brand:#003087;--brand2:#0a4bb5;--sky:#009cde;--ink:#0f172a;--body:#475569;--muted:var(--text-muted);--line:#e8edf3;--bg:#f5f7fa;--card:#ffffff;--soft:#eef3fa;
-  --ok:#0f9f6e;--okbg:#e7f7f0;--warn:#b45309;--warnbg:#fff4e0;--err:#c2410c;--errbg:#ffece5;
-  position:relative;width:min(390px,100%);height:844px;overflow:hidden;background:var(--bg);font-size:var(--text-sm-plus);line-height:1.5;font-family:var(--font-sans)}
-.sb{position:absolute;top:0;left:0;right:0;height:47px;display:flex;align-items:center;justify-content:space-between;padding:0 28px 0 34px;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);z-index:6}
-.sb .r{display:flex;gap:6px;align-items:center}
-.appbar{position:absolute;top:47px;left:0;right:0;height:56px;display:flex;align-items:center;gap:4px;padding:0 8px;z-index:5;background:var(--bg)}
-.appbar h1{flex:1;margin:0;font-size:var(--text-lg);font-weight:var(--weight-semibold);text-align:center;letter-spacing:0}
-.ib{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:var(--radius-full);background:transparent;color:var(--ink);position:relative;cursor:pointer}
-.ib.soft{background:var(--card);box-shadow:0 1px 2px rgba(15,23,42,.06)}
-.dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:var(--radius-full);background:#ff5724;border:2px solid var(--card)}
-.big{padding:4px 20px 0}
-.big .eyebrow{font-size:var(--text-xs-plus);color:var(--muted)}
-.big h1{margin:2px 0 0;font-size:var(--text-3xl);line-height:38px;font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight)}
-.content{position:absolute;left:0;right:0;overflow:hidden}
-.pad{padding:0 20px}
-.card{background:var(--card);border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -16px rgba(15,23,42,.18)}
-.sec{display:flex;align-items:baseline;justify-content:space-between;margin:24px 20px 10px}
-.sec h2{margin:0;font-size:var(--text-base);font-weight:var(--weight-semibold)}
-.sec a{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--brand)}
-.row{display:flex;align-items:center;gap:14px;min-height:64px;padding:12px 16px}
-.row + .row{border-top:1px solid var(--line)}
-.row .t{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--ink);line-height:20px}
-.row .s{font-size:var(--text-xs-plus);color:var(--muted);line-height:18px}
-.row .m{min-width:0;flex:1}
-.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.av{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);font-size:var(--text-sm-plus)}
-.ico{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;background:var(--soft);color:var(--brand)}
-.pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.p-ok{background:var(--okbg);color:var(--ok)}.p-warn{background:var(--warnbg);color:var(--warn)}.p-err{background:var(--errbg);color:var(--err)}.p-nav{background:var(--soft);color:var(--brand)}.p-grey{background:#eef1f5;color:#475569}
-.sh{width:8px;height:8px;flex:none}.sh.ok{border-radius:var(--radius-full);background:currentColor}.sh.warn{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid currentColor}.sh.err{transform:rotate(45deg);width:7px;height:7px;background:currentColor;border-radius:1px}
-.chips{display:flex;gap:8px;padding:0 20px;overflow:hidden}
-.chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid var(--line);background:var(--card);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--body);white-space:nowrap}
-.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.chip .n{font-size:var(--text-xs);font-weight:var(--weight-medium);opacity:.7}
-.seg{display:flex;margin:0 20px;padding:4px;border-radius:var(--radius-xl);background:#e9eef5}
-.seg span{flex:1;height:36px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--body)}
-.seg span.on{background:var(--card);color:var(--ink);font-weight:var(--weight-medium);box-shadow:0 1px 3px rgba(15,23,42,.1)}
-.srch{display:flex;align-items:center;gap:10px;height:48px;margin:0 20px;padding:0 6px 0 16px;border-radius:var(--radius-xl);background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:var(--text-sm-plus)}
-.srch .sc{margin-left:auto;width:36px;height:36px;border-radius:var(--radius-lg);background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border:0;border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer}
-.btnp{background:var(--brand);color:#fff}.btns{background:var(--soft);color:var(--brand)}.btnl{background:var(--card);color:var(--ink);border:1px solid var(--line)}
-.btnd{background:var(--errbg);color:var(--err)}
-.fab{position:absolute;right:20px;bottom:103px;width:60px;height:60px;border-radius:var(--radius-xl);background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 24px -8px rgba(0,48,135,.55);z-index:5}
-.tabs{position:absolute;left:0;right:0;bottom:0;height:83px;padding:6px 8px 0;display:flex;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:6}
-.tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:49px;padding-top:4px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);position:relative}
-.tabs a.on{color:var(--brand);font-weight:var(--weight-medium)}
-.tabs a .bd{position:absolute;top:0;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:var(--radius-full);background:var(--fill-danger);color:#fff;font-size:var(--text-2xs);font-weight:var(--weight-medium);line-height:18px;text-align:center;border:2px solid #fff}
-.hi{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:var(--radius-full);background:#0f172a;z-index:7}
-.actbar{position:absolute;left:0;right:0;bottom:0;padding:12px 20px 34px;display:flex;gap:10px;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:6}
-.actbar .btn{flex:1}
-.field{display:flex;flex-direction:column;gap:6px}
-.lab{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink)}
-.inp{height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:var(--radius-lg);border:1px solid #dbe2ec;background:var(--card);font-size:var(--text-sm);color:var(--ink)}
-.inp.f{border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,48,135,.12)}
-.help{font-size:var(--text-xs-plus);color:var(--muted)}
-.step{display:inline-flex;align-items:center;border:1px solid #dbe2ec;border-radius:var(--radius-xl);background:var(--card)}
-.step b{min-width:34px;text-align:center;font-size:var(--text-sm-plus)}
-.step span{width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--brand)}
-.sw{position:relative;flex:none;width:50px;height:30px;border-radius:var(--radius-full);background:#cbd5e1}.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.sw.on{background:var(--brand)}.sw.on::after{left:23px}
-.scrim{position:absolute;inset:0;background:rgba(15,23,42,.45);z-index:8}
-.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:28px 28px 0 0;padding:10px 20px 34px;z-index:9}
-.grab{width:40px;height:5px;margin:0 auto 14px;border-radius:var(--radius-full);background:#d5dce6}
-.k{font-size:var(--text-xs-plus);color:var(--muted)}.v{font-size:var(--text-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight)}
-.tile{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink);text-align:center}
-.tile .ico{width:56px;height:56px;border-radius:var(--radius-xl)}
-.note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
-`;
-
-// ---- markup ----
-
-export default class MNotificationsScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    return (
-      <div className="dc-screen" data-screen="MNotifications">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="ph">
-          <div className="sb" style={{ color: "#0f172a" }}>
-            <span className="num">2:32</span>
-            <span className="r">
-              <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true" fill="#0f172a">
-                <rect x="0" y="8" width="3" height="4" rx="1" />
-                <rect x="5" y="5" width="3" height="7" rx="1" />
-                <rect x="10" y="2.5" width="3" height="9.5" rx="1" />
-                <rect x="15" y="0" width="3" height="12" rx="1" />
-              </svg>
-              <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>4G</span>
-              <svg width="27" height="13" viewBox="0 0 27 13" aria-hidden="true">
-                <rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="#0f172a" opacity=".4" />
-                <rect x="2" y="2" width="17" height="9" rx="2" fill="#0f172a" />
-                <path d="M25 4.5v4" stroke="#0f172a" strokeWidth="1.5" opacity=".5" />
-              </svg>
-            </span>
-          </div>
-          <header className="appbar">
-            <__Link href="/m-home" className="ib" aria-label="Back">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </__Link>
-            <h1>Notifications</h1>
-            <a href="#" className="tap" style={{ padding: "0 12px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--brand)" }}>Read all</a>
-          </header>
-          <div className="content" style={{ top: "103px", bottom: "0" }}>
-            <div className="chips" style={{ marginTop: "4px" }}>
-              <span className="chip on">All</span>
-              <span className="chip">Orders</span>
-              <span className="chip">Stock</span>
-              <span className="chip">Payments</span>
-            </div>
-            <div className="sec" style={{ marginTop: "18px" }}>
-              <h2>Today</h2>
-            </div>
-            <div className="card" style={{ margin: "0 20px" }}>
-              <a className="row" href="#" style={{ alignItems: "flex-start" }}>
-                <span className="ico">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6 2h12l1 4H5z" />
-                    <path d="M5 6h14v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" />
-                    <path d="M9 11h6M9 15h4" />
-                  </svg>
-                </span>
-                <span className="m">
-                  <span className="t" style={{ display: "block" }}>New order #136812</span>
-                  <span className="s" style={{ display: "block" }}>Nusrat Jahan · ৳2,450 · bKash paid</span>
-                  <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: "4px" }}>2 min</span>
-                </span>
-                <span style={{ flex: "none", width: "9px", height: "9px", marginTop: "8px", borderRadius: "var(--radius-full)", background: "var(--sky)" }} aria-label="Unread" />
-              </a>
-              <a className="row" href="#" style={{ alignItems: "flex-start" }}>
-                <span className="ico">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                    <path d="m3.3 7 8.7 5 8.7-5M12 22V12" />
-                  </svg>
-                </span>
-                <span className="m">
-                  <span className="t" style={{ display: "block" }}>Low stock: Anker 20W charger</span>
-                  <span className="s" style={{ display: "block" }}>4 left at Dhanmondi branch</span>
-                  <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: "4px" }}>18 min</span>
-                </span>
-                <span style={{ flex: "none", width: "9px", height: "9px", marginTop: "8px", borderRadius: "var(--radius-full)", background: "var(--sky)" }} aria-label="Unread" />
-              </a>
-              <a className="row" href="#" style={{ alignItems: "flex-start" }}>
-                <span className="ico">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62L18.3 9.38a1 1 0 0 0-.78-.38H14" />
-                    <circle cx="17" cy="18" r="2" />
-                    <circle cx="7" cy="18" r="2" />
-                  </svg>
-                </span>
-                <span className="m">
-                  <span className="t" style={{ display: "block" }}>Steadfast pickups delayed</span>
-                  <span className="s" style={{ display: "block" }}>23 parcels waiting for tracking numbers</span>
-                  <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: "4px" }}>1 h</span>
-                </span>
-                <span style={{ flex: "none", width: "9px", height: "9px", marginTop: "8px", borderRadius: "var(--radius-full)", background: "var(--sky)" }} aria-label="Unread" />
-              </a>
-              <a className="row" href="#" style={{ alignItems: "flex-start" }}>
-                <span className="ico">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
-                    <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
-                  </svg>
-                </span>
-                <span className="m">
-                  <span className="t" style={{ display: "block", fontWeight: "var(--weight-medium)" }}>COD payout received</span>
-                  <span className="s" style={{ display: "block" }}>Pathao · ৳48,300 for 31 orders</span>
-                  <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: "4px" }}>3 h</span>
-                </span>
-              </a>
-            </div>
-            <div className="sec">
-              <h2>Earlier</h2>
-            </div>
-            <div className="card" style={{ margin: "0 20px" }}>
-              <a className="row" href="#" style={{ alignItems: "flex-start" }}>
-                <span className="ico">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
-                  </svg>
-                </span>
-                <span className="m">
-                  <span className="t" style={{ display: "block", fontWeight: "var(--weight-medium)" }}>Flash sale starts tonight</span>
-                  <span className="s" style={{ display: "block" }}>Weekend Mega Sale · 6:00 PM</span>
-                  <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: "4px" }}>Yesterday</span>
-                </span>
-              </a>
-              <a className="row" href="#" style={{ alignItems: "flex-start" }}>
-                <span className="ico">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1Z" />
-                  </svg>
-                </span>
-                <span className="m">
-                  <span className="t" style={{ display: "block", fontWeight: "var(--weight-medium)" }}>New 5-star review</span>
-                  <span className="s" style={{ display: "block" }}>“Original product, fast delivery”</span>
-                  <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: "4px" }}>Yesterday</span>
-                </span>
-              </a>
-            </div>
-          </div>
-          <div className="hi" aria-hidden="true" />
-        </div>
-      </div>
-    );
+// web pages the app has a screen for (the rest open on the web)
+const APP_OF = [
+  [/^\/(merchant-orders|orders)(\?|$)/, () => '/m-orders'],
+  [/^\/order-detail\?id=([^&]+)/, (m) => '/m-order-detail?id=' + m[1]],
+  [/^\/stock(\?|$)/, () => '/m-stock'],
+  [/^\/merchant-inbox(\?|$)/, () => '/m-inbox'],
+  [/^\/settlements(\?|$)/, () => '/m-payouts'],
+  [/^\/dues(\?|$)/, () => '/m-dues'],
+  [/^\/(purchase-orders|purchases)(\?|$)/, () => '/m-purchase'],
+  [/^\/support-tickets(\?|$)/, () => '/m-tickets'],
+  [/^\/tasks(\?|$)/, () => '/m-tasks'],
+  [/^\/(all-products|products)(\?|$)/, () => '/m-products'],
+];
+/** The app's screen for a web address when the person can use it, else the web address. */
+export function appHref(web, ctx) {
+  const href = String(web || '');
+  if (href.startsWith('/m-')) return canUse(href.split('?')[0], ctx) ? href : '/m-home';
+  for (const [re, to] of APP_OF) {
+    const m = href.match(re);
+    if (m) { const a = to(m); if (canUse(a.split('?')[0], ctx)) return a; }
   }
+  return href || '/m-home';
+}
+const orderHref = (id, ctx) => appHref('/order-detail?id=' + encodeURIComponent(id), ctx);
+
+/** Every notification for this person and edition, newest first: { key, cat, kind, icon, title, sub, at, href }. */
+export function buildNotifications(ctx, { prefs = getNotify() } = {}) {
+  const { ed, user } = ctx;
+  const has = (m) => hasModule(m, ed);
+  const sees = (id) => safe(() => canSee(user, id), true);
+  const now = clockNow();
+  const out = [];
+  const add = (n) => out.push({ at: now, ...n });
+  const d = safe(() => dailySummary(startOfDay(now), now), null);
+
+  // ---- orders ----
+  if (prefs.orders && has('commerce')) {
+    const orders = safe(() => getOrders(), []);
+    if (has('online')) {
+      orders.filter((o) => !isCounterSale(o) && NEW_KEYS.includes(o.statusKey) && o.at > now - 3 * DAY).sort((a, b) => b.at - a.at).slice(0, 6).forEach((o) => {
+        const s = orderStatus(o.statusKey);
+        add({ key: 'order:' + o.id, cat: 'orders', kind: 'orders', icon: 'bag', title: `New order ${o.id}`, sub: [o.customer, money(o.amount), o.payment === 'Paid' ? 'Paid' : o.payment || (s && s.label)].filter(Boolean).join(' · '), at: o.at, href: orderHref(o.id, ctx) });
+      });
+      const ready = orders.filter((o) => !isCounterSale(o) && o.statusKey === 'ready');
+      if (ready.length) add({ key: 'to-courier:' + ready.length + ':' + dayKey(now), cat: 'orders', kind: 'orders', icon: 'truck', title: `${ready.length} ${ready.length === 1 ? 'order' : 'orders'} ready for the courier`, sub: 'Packed and waiting for pickup', href: appHref('/merchant-orders?status=ready', ctx) });
+    } else {
+      orders.filter((o) => isCounterSale(o) && o.at > now - DAY).sort((a, b) => b.at - a.at).slice(0, 3).forEach((o) => {
+        add({ key: 'sale:' + o.id, cat: 'orders', kind: 'orders', icon: 'cart', title: `Counter sale ${o.id}`, sub: [o.channel.replace(/^POS\s*·?\s*/, ''), money(o.amount), o.method || o.payment].filter(Boolean).join(' · '), at: o.at, href: orderHref(o.id, ctx) });
+      });
+    }
+  }
+
+  // ---- stock ----
+  if (prefs.stock && has('catalog') && d && sees('stock-list')) {
+    d.low.items.slice(0, 4).forEach((r) => add({
+      key: `low:${r.sku}@${r.place}:${r.available}`, cat: 'stock', kind: 'stock', icon: 'box', title: `${r.available ? 'Low stock' : 'Out of stock'}: ${r.name}`,
+      sub: `${r.available} left at ${r.place}`, href: appHref('/stock', ctx),
+    }));
+    if (d.low.count > 4) add({ key: 'low-more:' + d.low.count + ':' + dayKey(now), cat: 'stock', kind: 'stock', icon: 'layers', title: `${d.low.count - 4} more items running low`, sub: 'See the stock list', at: now - 1, href: appHref('/stock', ctx) });
+  }
+
+  // ---- payments ----
+  if (prefs.payouts && has('money') && sees('acc-settle')) {
+    const prompts = safe(() => duePrompts(now), { count: 0, pays: [] });
+    if (prompts.count) {
+      const total = prompts.pays.reduce((a, p) => a + p.net, 0);
+      add({ key: 'evening:' + dayKey(now) + ':' + prompts.count, cat: 'payments', kind: 'payouts', icon: 'wallet', title: total ? `Did ${money(total)} reach your bank?` : 'Check today’s payouts', sub: 'Tap to answer the payout check', href: canUse('/m-payouts', ctx) ? '/m-payouts' : '/settlements?check=1' });
+    }
+    const late = d ? d.payouts.late : [];
+    const short = (t) => { const x = new Date(t); return x.getDate() + ' ' + MONTHS[x.getMonth()]; };
+    if (late.length > 2) {
+      // many late payouts are one row (the web Home's "Check payouts")
+      const oldest = Math.min(...late.map((p) => p.due));
+      add({ key: 'payouts-late:' + late.map((p) => p.id).join(','), cat: 'payments', kind: 'payouts', icon: 'alert', title: `${late.length} payouts are late`, sub: `${money(d.payouts.lateTotal)} · the oldest was due ${short(oldest)}`, at: Math.max(...late.map((p) => p.due)), href: appHref('/settlements', ctx) });
+    } else {
+      late.forEach((p) => add({ key: 'payout-late:' + p.id, cat: 'payments', kind: 'payouts', icon: 'alert', title: `Payout late: ${p.partner}`, sub: `${money(p.amount)} was due ${short(p.due)}`, at: p.due, href: appHref('/settlements', ctx) }));
+    }
+    safe(() => getPayouts(now), []).filter((p) => p.status === 'received' && p.at && p.at > now - 3 * DAY).sort((a, b) => b.at - a.at).slice(0, 4).forEach((p) => add({
+      key: 'payout-in:' + p.id, cat: 'payments', kind: 'payouts', icon: 'wallet', title: 'Payout received',
+      sub: `${(p.p && (p.p.short || p.p.name)) || p.partner} · ${money(p.received != null ? p.received : p.net)} for ${p.items.length} ${p.items.length === 1 ? 'order' : 'orders'}`, at: p.at, href: appHref('/settlements', ctx),
+    }));
+  }
+  if (prefs.payouts && has('money') && sees('acc-dues')) {
+    safe(() => getBills(), []).filter((b) => billLeft(b) > 0 && billStatus(b) === 'Overdue').sort((a, b) => b.due - a.due).slice(0, 3).forEach((b) => add({
+      key: 'bill:' + b.no, cat: 'payments', kind: 'payouts', icon: 'receipt', title: `Supplier bill past due: ${safe(() => supplierById(b.supplier).name, b.supplier)}`,
+      sub: `${money(billLeft(b))} left to pay · ${b.no}`, at: b.due, href: appHref('/dues?tab=owe', ctx),
+    }));
+  }
+
+  // ---- messages ----
+  if (prefs.messages && has('comms')) {
+    if (sees('inbox')) {
+      safe(() => getConvs(), []).filter((c) => c.unread).map((c) => ({ c, last: c.messages[c.messages.length - 1] || {} })).sort((a, b) => (b.last.at || 0) - (a.last.at || 0)).slice(0, 4).forEach(({ c, last }) => add({
+        key: `chat:${c.id}:${last.id || last.at}`, cat: 'messages', kind: 'messages', icon: 'chat', title: `Message from ${c.name}`, sub: `${safe(() => channelName(c.ch), c.ch)} · ${safe(() => lastLine(c), '')}`, at: last.at || now,
+        href: canUse('/m-chat', ctx) || canUse('/m-inbox', ctx) ? '/m-chat?id=' + encodeURIComponent(c.id) : '/merchant-inbox',
+      }));
+    }
+    const meet = safe(() => staffAlerts(now), { soon: [], note: [] });
+    meet.soon.forEach((m) => add({ key: 'meet-soon:' + m.id, cat: 'messages', kind: 'messages', icon: 'calendar', title: `Meeting at ${new Date(m.at).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true })}: ${m.with.name}`, sub: m.title, at: m.at, href: '/meetings?id=' + encodeURIComponent(m.id) }));
+    meet.note.slice(0, 3).forEach((m) => add({ key: 'meet-note:' + m.id, cat: 'messages', kind: 'messages', icon: 'edit', title: `Add a note: ${m.with.name}`, sub: m.title, at: m.at, href: '/meetings?id=' + encodeURIComponent(m.id) }));
+    if (sees('tickets')) {
+      safe(() => getTickets(), []).filter((t) => slaOf(t, now).late).slice(0, 3).forEach((t) => add({
+        key: 'ticket-late:' + t.id + ':' + t.updatedAt, cat: 'messages', kind: 'messages', icon: 'ticket', title: `Reply overdue: ${ticketRef(t)}`, sub: `${t.customer} · ${t.subject}`, at: t.updatedAt,
+        href: canUse('/m-ticket-detail', ctx) || canUse('/m-tickets', ctx) ? '/m-ticket-detail?id=' + t.id : '/support-tickets',
+      }));
+    }
+  }
+
+  // ---- approvals ----
+  if (prefs.approvals && has('money') && sees('acc-home')) {
+    safe(() => waitingRequests(), []).filter((r) => !user || r.by !== user.id).slice(0, 4).forEach((r) => add({
+      key: 'approval:' + r.id, cat: 'payments', kind: 'approvals', icon: 'check', title: `Approve: ${r.title}`, sub: `${money(r.amount)} · asked by ${r.byName}`, at: r.at, href: '/money-approvals',
+    }));
+  }
+
+  // ---- the to-do other pages reported (Home's own keys are already above) ----
+  const OWN = ['orders:verify', 'orders:to-courier', 'inbox:chats', 'finance:late-payouts', 'finance:supplier-bills', 'stock:restock'];
+  safe(() => listItems({ user, now }), []).filter((r) => !OWN.includes(r.key) && r.href).slice(0, 5).forEach((r) => add({
+    key: 'todo:' + r.key + ':' + (r.n || ''), cat: 'todo', kind: null, icon: 'tasks', title: r.label + (r.n && !String(r.label).includes(String(r.n)) ? ` (${r.n})` : ''), sub: r.sub || 'Needs you', at: r.since || r.firstSeen || now, href: appHref(r.href, ctx),
+  }));
+
+  return out.sort((a, b) => b.at - a.at);
+}
+
+/** How many notifications this phone has not read (for the bell's dot on Home). */
+export function unreadNotifications(ctx) {
+  const m = readMap();
+  return safe(() => buildNotifications(ctx).filter((n) => !m[n.key]).length, 0);
+}
+
+const CHIPS = [['all', 'All'], ['orders', 'Orders'], ['stock', 'Stock'], ['payments', 'Payments']];
+
+function NoteRow({ n, unread, onOpen }) {
+  return (
+    <Link className="row" href={n.href} onClick={() => onOpen(n)} style={{ alignItems: 'flex-start' }}>
+      <span className="ico"><Icon name={n.icon} /></span>
+      <span className="m">
+        <span className="t" style={{ display: 'block', fontWeight: unread ? 'var(--weight-semibold)' : 'var(--weight-medium)' }}>{n.title}</span>
+        {n.sub ? <span className="s" style={{ display: 'block' }}>{n.sub}</span> : null}
+        <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--muted)', marginTop: '4px' }}>{n.when}</span>
+      </span>
+      {unread ? <span style={{ flex: 'none', width: '9px', height: '9px', marginTop: '8px', borderRadius: 'var(--radius-full)', background: 'var(--sky)' }} role="img" aria-label="Unread" /> : null}
+    </Link>
+  );
+}
+
+export default function MNotificationsScreen() {
+  const { ready, tick, ctx } = useAppData(['gc:meet', 'gc:meetings', 'gc:tickets', 'gc:app-settings', 'gc:settle', 'gc:actions'], { every: 60000 });
+  const [cat, setCat] = useState('all');
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    if (!ready || !ctx) return undefined;
+    const id = window.setTimeout(() => {
+      const prefs = getNotify();
+      setData({ list: safe(() => buildNotifications(ctx, { prefs }), []), read: readMap(), now: clockNow(), prefs });
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [ready, tick, ctx]);
+
+  // a chip per kind the edition has and this person gets
+  const chips = useMemo(() => {
+    if (!ctx || !data) return CHIPS.map(([key, label]) => ({ key, label }));
+    const show = { orders: hasModule('commerce', ctx.ed), stock: hasModule('catalog', ctx.ed), payments: hasModule('money', ctx.ed) };
+    return CHIPS.filter(([k]) => k === 'all' || (show[k] && data.list.some((n) => n.cat === k))).map(([key, label]) => ({ key, label: key === 'orders' && !hasModule('online', ctx.ed) ? 'Sales' : label }));
+  }, [ctx, data]);
+
+  const list = data ? data.list.filter((n) => cat === 'all' || n.cat === cat) : [];
+  const today = data ? startOfDay(data.now) : 0;
+  const withWhen = list.map((n) => ({ ...n, when: n.at >= data.now - 30000 ? 'Now' : ago(n.at, data.now) }));
+  const groups = [
+    ['Today', withWhen.filter((n) => n.at >= today)],
+    ['Earlier', withWhen.filter((n) => n.at < today).slice(0, 20)],
+  ].filter(([, l]) => l.length);
+  const unreadKeys = data ? data.list.filter((n) => !data.read[n.key]).map((n) => n.key) : [];
+  const off = data && ctx ? NOTIFY_TYPES.filter((t) => (!t.module || hasModule(t.module, ctx.ed)) && !data.prefs[t.key]) : [];
+
+  const open = (n) => { markRead([n.key]); };
+  const readAll = () => {
+    if (!unreadKeys.length) return;
+    markRead(unreadKeys);
+    setData((d0) => (d0 ? { ...d0, read: readMap() } : d0));
+  };
+
+  return (
+    <AppScreen name="MNotifications" title="Notifications">
+      <AppBar
+        title="Notifications"
+        back="/m-home"
+        actions={(
+          <button type="button" className="tap" onClick={readAll} disabled={!unreadKeys.length}
+            style={{ padding: '0 12px', height: '36px', border: 0, background: 'none', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: unreadKeys.length ? 'var(--brand)' : 'var(--muted)', cursor: unreadKeys.length ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
+            Read all
+          </button>
+        )}
+      />
+      <Content top={103} bottom={0}>
+        <Chips items={chips} value={cat} onChange={setCat} style={{ marginTop: '4px' }} />
+        {off.length ? (
+          <Link href="/m-settings?sheet=notify" style={{ display: 'block', margin: '14px 20px 0' }}>
+            <Note tone="info" icon="bell">{off.length === 1 ? `${off[0].label} alerts are off on this phone.` : `${off.length} kinds of alerts are off on this phone.`} <span style={{ color: 'var(--brand)', fontWeight: 'var(--weight-medium)' }}>Change</span></Note>
+          </Link>
+        ) : null}
+        {!data ? <div style={{ marginTop: '18px' }}><Skeleton rows={4} /></div> : groups.length ? groups.map(([label, rows], i) => (
+          <React.Fragment key={label}>
+            <div className="sec" style={i === 0 ? { marginTop: '18px' } : undefined}><h2>{label}</h2></div>
+            <Card>
+              {rows.map((n) => <NoteRow key={n.key} n={n} unread={!data.read[n.key]} onOpen={open} />)}
+            </Card>
+          </React.Fragment>
+        )) : (
+          <Card style={{ marginTop: '18px' }}><EmptyState icon="bell" title={cat === 'all' ? 'You are all caught up' : 'Nothing here right now'} /></Card>
+        )}
+        <div style={{ height: '8px' }} />
+      </Content>
+    </AppScreen>
+  );
 }

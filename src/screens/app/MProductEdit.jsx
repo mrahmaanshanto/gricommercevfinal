@@ -1,250 +1,286 @@
 'use client';
-// Generated from design/templates/app/MProductEdit.dc.html by scripts/convert-design.mjs.
-// Merchant app · Edit product
-// Edit freely: this file is now the source for the screen.
+// Merchant app · Product quick edit (/m-product-edit?sku= | ?id=; no query = quick add). The board's layout
+// (design/templates/app/MProductEdit.dc.html) with live data. Quick changes only; the full product builder stays on the
+// web ("Edit everything on the web" → /add-product?id=).
+//   photo      tap the square: the camera or the gallery; the first photo of the product (products.js media), 480px
+//   price      selling price and MRP; the help line shows the buying price (productCost) and the profit per piece
+//   barcode    type, scan (camera) or make an in-store EAN-13 (starts with 2, barcodeType 'internal', like Add product);
+//              a barcode another product uses is refused (products.codeOwner)
+//   stock      on hand per place with steppers (the Online edition's one place). A change is a stock adjustment
+//              (stockAdjustments.addAdjustment, reason Count correction): a decrease or more than 20 pieces needs a
+//              manager's PIN, like Stock adjustments on the web. Variants: chips pick the variant.
+//   status     Active switch (off = Draft); Archive in the ⋯ menu
+// Quick add: name, price, barcode, photo and opening stock (an 'opening' stock move per place); new products start as
+// Draft (AGENTS.md). Saving keeps a product version (products.saveProduct).
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { AppScreen, Content, AppBar, ActionBar, Button, IconButton, Field, TextInput, Stepper, Switch, Chips, Sheet, ListRow, Pill, Note, EmptyState, Skeleton, Icon, useAppData, useQuery, money, toast, refresh } from './kit/AppKit';
+import { saveProduct, newProductId, codeOwner, findProduct } from '@/lib/products';
+import { getCatalog, stockAt, addMove } from '@/lib/stock';
+import { addAdjustment, needsApproval } from '@/lib/stockAdjustments';
+import { resolveScan } from '@/lib/identifiers';
+import { Thumb, ScanSheet, PinSheet } from './stock/Scanner';
+import { placeList, costOf, me, photoFromFile, allowed, safe, onePlace } from './stock/stockData';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+function inStoreCode() {
+  let b = '2';
+  for (let i = 0; i < 11; i += 1) b += Math.floor(Math.random() * 10);
+  let sum = 0;
+  for (let j = 0; j < 12; j += 1) sum += Number(b[11 - j]) * (j % 2 === 0 ? 3 : 1);
+  return b + ((10 - (sum % 10)) % 10);
+}
+const num = (v) => (v === '' || v == null || Number.isNaN(Number(v)) ? null : Number(v));
 
-class Component extends DCLogic {
-  renderVals() { return {}; }
+/** What the screen edits: the product, its catalogue rows (one per variant) and the row in view. */
+function load(q) {
+  const sku = q.get('sku'), id = q.get('id');
+  const rows = safe(() => getCatalog(), []);
+  const row = sku ? rows.find((r) => r.sku === sku) : null;
+  const product = safe(() => findProduct({ id: id || (row && row.productId), sku: sku || '' }), null);
+  if (!product && !row) return null;
+  const pid = product ? product.id : '';
+  const mine = rows.filter((r) => (pid && r.productId === pid) || (row && r.sku === row.sku));
+  return { product, rows: mine.length ? mine : row ? [row] : [], sku: (row && row.sku) || (mine[0] && mine[0].sku) || '' };
 }
 
-// ---- styles (from the design's <helmet>) ----
+export default function MProductEditScreen() {
+  const router = useRouter();
+  const q = useQuery();
+  const { ready, ctx } = useAppData();
+  const [data, setData] = useState(undefined);       // undefined = loading, null = not found
+  const [sku, setSku] = useState('');
+  const [form, setForm] = useState(null);           // { name, price, mrp, barcode, barcodeType, st, photo }
+  const [counts, setCounts] = useState({});         // sku → { place: on hand typed }
+  const [scan, setScan] = useState(false);
+  const [more, setMore] = useState(false);
+  const [pin, setPin] = useState(null);
+  const [err, setErr] = useState({});
+  const fileRef = useRef(null);
+  const places = useMemo(() => (ready ? placeList() : []), [ready]);
+  const adding = !!q && !q.get('sku') && !q.get('id');   // ?barcode= prefills the barcode (MScan › Add product)
 
-const CSS = `
-*{box-sizing:border-box}
-body{margin:0;background:#dfe5ee;font-family:var(--font-sans);-webkit-font-smoothing:antialiased;color:#0f172a}
-a{color:inherit;text-decoration:none}
-button{font:inherit;color:inherit}
-.bn{font-family:var(--font-bn)}
-.mono{font-family:var(--font-data)}
-.num{font-variant-numeric:tabular-nums}
-.ph{--brand:#003087;--brand2:#0a4bb5;--sky:#009cde;--ink:#0f172a;--body:#475569;--muted:var(--text-muted);--line:#e8edf3;--bg:#f5f7fa;--card:#ffffff;--soft:#eef3fa;
-  --ok:#0f9f6e;--okbg:#e7f7f0;--warn:#b45309;--warnbg:#fff4e0;--err:#c2410c;--errbg:#ffece5;
-  position:relative;width:min(390px,100%);height:844px;overflow:hidden;background:var(--bg);font-size:var(--text-sm-plus);line-height:1.5;font-family:var(--font-sans)}
-.sb{position:absolute;top:0;left:0;right:0;height:47px;display:flex;align-items:center;justify-content:space-between;padding:0 28px 0 34px;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);z-index:6}
-.sb .r{display:flex;gap:6px;align-items:center}
-.appbar{position:absolute;top:47px;left:0;right:0;height:56px;display:flex;align-items:center;gap:4px;padding:0 8px;z-index:5;background:var(--bg)}
-.appbar h1{flex:1;margin:0;font-size:var(--text-lg);font-weight:var(--weight-semibold);text-align:center;letter-spacing:0}
-.ib{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:var(--radius-full);background:transparent;color:var(--ink);position:relative;cursor:pointer}
-.ib.soft{background:var(--card);box-shadow:0 1px 2px rgba(15,23,42,.06)}
-.dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:var(--radius-full);background:#ff5724;border:2px solid var(--card)}
-.big{padding:4px 20px 0}
-.big .eyebrow{font-size:var(--text-xs-plus);color:var(--muted)}
-.big h1{margin:2px 0 0;font-size:var(--text-3xl);line-height:38px;font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight)}
-.content{position:absolute;left:0;right:0;overflow:hidden}
-.pad{padding:0 20px}
-.card{background:var(--card);border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -16px rgba(15,23,42,.18)}
-.sec{display:flex;align-items:baseline;justify-content:space-between;margin:24px 20px 10px}
-.sec h2{margin:0;font-size:var(--text-base);font-weight:var(--weight-semibold)}
-.sec a{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--brand)}
-.row{display:flex;align-items:center;gap:14px;min-height:64px;padding:12px 16px}
-.row + .row{border-top:1px solid var(--line)}
-.row .t{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--ink);line-height:20px}
-.row .s{font-size:var(--text-xs-plus);color:var(--muted);line-height:18px}
-.row .m{min-width:0;flex:1}
-.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.av{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);font-size:var(--text-sm-plus)}
-.ico{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;background:var(--soft);color:var(--brand)}
-.pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.p-ok{background:var(--okbg);color:var(--ok)}.p-warn{background:var(--warnbg);color:var(--warn)}.p-err{background:var(--errbg);color:var(--err)}.p-nav{background:var(--soft);color:var(--brand)}.p-grey{background:#eef1f5;color:#475569}
-.sh{width:8px;height:8px;flex:none}.sh.ok{border-radius:var(--radius-full);background:currentColor}.sh.warn{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid currentColor}.sh.err{transform:rotate(45deg);width:7px;height:7px;background:currentColor;border-radius:1px}
-.chips{display:flex;gap:8px;padding:0 20px;overflow:hidden}
-.chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid var(--line);background:var(--card);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--body);white-space:nowrap}
-.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.chip .n{font-size:var(--text-xs);font-weight:var(--weight-medium);opacity:.7}
-.seg{display:flex;margin:0 20px;padding:4px;border-radius:var(--radius-xl);background:#e9eef5}
-.seg span{flex:1;height:36px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--body)}
-.seg span.on{background:var(--card);color:var(--ink);font-weight:var(--weight-medium);box-shadow:0 1px 3px rgba(15,23,42,.1)}
-.srch{display:flex;align-items:center;gap:10px;height:48px;margin:0 20px;padding:0 6px 0 16px;border-radius:var(--radius-xl);background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:var(--text-sm-plus)}
-.srch .sc{margin-left:auto;width:36px;height:36px;border-radius:var(--radius-lg);background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border:0;border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer}
-.btnp{background:var(--brand);color:#fff}.btns{background:var(--soft);color:var(--brand)}.btnl{background:var(--card);color:var(--ink);border:1px solid var(--line)}
-.btnd{background:var(--errbg);color:var(--err)}
-.fab{position:absolute;right:20px;bottom:103px;width:60px;height:60px;border-radius:var(--radius-xl);background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 24px -8px rgba(0,48,135,.55);z-index:5}
-.tabs{position:absolute;left:0;right:0;bottom:0;height:83px;padding:6px 8px 0;display:flex;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:6}
-.tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:49px;padding-top:4px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);position:relative}
-.tabs a.on{color:var(--brand);font-weight:var(--weight-medium)}
-.tabs a .bd{position:absolute;top:0;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:var(--radius-full);background:var(--fill-danger);color:#fff;font-size:var(--text-2xs);font-weight:var(--weight-medium);line-height:18px;text-align:center;border:2px solid #fff}
-.hi{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:var(--radius-full);background:#0f172a;z-index:7}
-.actbar{position:absolute;left:0;right:0;bottom:0;padding:12px 20px 34px;display:flex;gap:10px;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:6}
-.actbar .btn{flex:1}
-.field{display:flex;flex-direction:column;gap:6px}
-.lab{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink)}
-.inp{height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:var(--radius-lg);border:1px solid #dbe2ec;background:var(--card);font-size:var(--text-sm);color:var(--ink)}
-.inp.f{border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,48,135,.12)}
-.help{font-size:var(--text-xs-plus);color:var(--muted)}
-.step{display:inline-flex;align-items:center;border:1px solid #dbe2ec;border-radius:var(--radius-xl);background:var(--card)}
-.step b{min-width:34px;text-align:center;font-size:var(--text-sm-plus)}
-.step span{width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--brand)}
-.sw{position:relative;flex:none;width:50px;height:30px;border-radius:var(--radius-full);background:#cbd5e1}.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.sw.on{background:var(--brand)}.sw.on::after{left:23px}
-.scrim{position:absolute;inset:0;background:rgba(15,23,42,.45);z-index:8}
-.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:28px 28px 0 0;padding:10px 20px 34px;z-index:9}
-.grab{width:40px;height:5px;margin:0 auto 14px;border-radius:var(--radius-full);background:#d5dce6}
-.k{font-size:var(--text-xs-plus);color:var(--muted)}.v{font-size:var(--text-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight)}
-.tile{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink);text-align:center}
-.tile .ico{width:56px;height:56px;border-radius:var(--radius-xl)}
-.note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
-`;
+  useEffect(() => {
+    if (!ready || !q) return;
+    if (adding) {
+      setData({ product: null, rows: [] });
+      setForm({ name: '', price: '', mrp: '', barcode: (q.get('barcode') || '').trim(), barcodeType: '', st: 'draft', photo: '' });
+      setCounts({ new: Object.fromEntries(places.map((p) => [p, 0])) });
+      return;
+    }
+    const d = load(q);
+    setData(d);
+    if (!d) return;
+    setSku(d.sku);
+    const p = d.product || {};
+    const row = d.rows.find((r) => r.sku === d.sku) || d.rows[0] || {};
+    const v = (p.variants || []).find((x) => x.sku && x.sku === row.sku);
+    const media = (p.media || []).filter((m) => m && m.src);
+    setForm({ name: p.name || row.name || '', price: String((v ? v.price : p.price) ?? row.price ?? ''), mrp: String((v ? v.mrp : p.mrp) ?? ''), barcode: (v ? v.barcode : p.barcode) || row.barcode || '', barcodeType: p.barcodeType || '', st: p.st || row.st || 'active', photo: media.length ? media[0].src : '' });
+    const c = {};
+    d.rows.forEach((r) => { c[r.sku] = Object.fromEntries(places.map((pl) => [pl, safe(() => stockAt(r.sku, pl).onHand, 0)])); });
+    setCounts(c);
+  }, [ready, q, places]); // eslint-disable-line react-hooks/exhaustive-deps
 
-// ---- markup ----
+  const set = (patch) => { setForm((f) => ({ ...f, ...patch })); setErr({}); };
+  const row = data && data.rows ? data.rows.find((r) => r.sku === sku) || data.rows[0] : null;
+  const counted = !row || !(row.format === 'digital' || row.format === 'service' || row.format === 'licence' || (row.bundle && row.bundle.type !== 'kit'));
+  const key = adding ? 'new' : sku;
+  const before = useMemo(() => {
+    if (!data || adding) return {};
+    const c = {};
+    data.rows.forEach((r) => { c[r.sku] = Object.fromEntries(places.map((pl) => [pl, safe(() => stockAt(r.sku, pl).onHand, 0)])); });
+    return c;
+  }, [data, places, adding]);
+  const mineNow = counts[key] || {};
+  const total = Object.values(mineNow).reduce((a, n) => a + (Number(n) || 0), 0);
+  const cost = row ? costOf(row) : 0;
+  const price = num(form && form.price);
+  const canEditStock = ctx && (ctx.ids.has('stock-adjust') || ctx.ids.has('stock-count') || ctx.ids.has('products-add') || ctx.ids.has('stock-list'));
+  const webHref = data && data.product && !String(data.product.id).startsWith('cat-') ? '/add-product?id=' + encodeURIComponent(data.product.id) : row ? '/add-product?sku=' + encodeURIComponent(row.sku) : '/add-product';
 
-export default class MProductEditScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
+  const pickPhoto = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    try { set({ photo: await photoFromFile(f) }); } catch (x) { toast(x.message || 'Could not use that photo', { tone: 'error' }); }
+  };
+  const onScan = (code) => {
+    setScan(false);
+    const hit = safe(() => resolveScan(code), null);
+    if (hit && (!row || hit.sku !== row.sku)) { toast(`That code belongs to ${hit.row ? hit.row.name : hit.sku}`, { tone: 'error' }); return; }
+    set({ barcode: code, barcodeType: '' });
+  };
+  const makeCode = () => {
+    let b, i = 0;
+    do { b = inStoreCode(); i += 1; } while (safe(() => codeOwner('barcode', b, data && data.product ? data.product.id : ''), null) && i < 50);
+    set({ barcode: b, barcodeType: 'internal' });
+    toast('New in-store barcode made');
+  };
+
+  // stock changes as adjustments: [{ sku, place, qty }]
+  const diffs = () => {
+    const out = [];
+    Object.keys(counts).forEach((s) => Object.keys(counts[s] || {}).forEach((pl) => {
+      const d = (Number(counts[s][pl]) || 0) - (((before[s] || {})[pl]) || 0);
+      if (d) out.push({ sku: s, place: pl, qty: d });
+    }));
+    return out;
+  };
+
+  const save = (approver) => {
+    if (!form) return;
+    const e = {};
+    if (!form.name.trim()) e.name = 'Give the product a name.';
+    if (!(price > 0)) e.price = 'Enter the selling price.';
+    if (num(form.mrp) != null && num(form.mrp) > 0 && price > num(form.mrp)) e.mrp = 'MRP is the most it can sell for: at least the price.';
+    const owner = form.barcode.trim() ? safe(() => codeOwner('barcode', form.barcode.trim(), data && data.product ? data.product.id : ''), null) : null;
+    if (owner && !(row && row.barcode === form.barcode.trim())) e.barcode = `${owner.name} already uses this barcode.`;
+    if (Object.keys(e).length) { setErr(e); toast(Object.values(e)[0], { tone: 'error' }); return; }
+    const by = me();
+
+    if (adding) {
+      const rec = saveProduct({ id: newProductId(), name: form.name.trim(), sku: '', barcode: form.barcode.trim(), barcodeType: form.barcode.trim() ? (form.barcodeType || (/^2\d{12}$/.test(form.barcode.trim()) ? 'internal' : 'gtin')) : '', price, mrp: num(form.mrp), st: form.st, sell: 'retail', inv: 0, loc: 0, flags: form.photo ? [] : ['No photo'], media: form.photo ? [{ id: 'm' + Date.now(), src: form.photo, kind: 'image', name: 'photo.jpg', alt: form.name.trim() }] : [] }, { note: 'Added in the app', by });
+      Object.entries(counts.new || {}).forEach(([pl, n]) => { if (Number(n) > 0) addMove({ sku: rec.sku || rec.id, place: pl, qty: Number(n), kind: 'opening', reason: 'Opening stock', by, ref: rec.id, op: rec.id + ':opening:' + pl + ':' + (rec.version || 0) }); });
+      refresh();
+      toast(`${rec.name} added as ${rec.st === 'active' ? 'active' : 'a draft'}`);
+      router.push('/m-product-edit?id=' + encodeURIComponent(rec.id));
+      return;
+    }
+
+    const changes = canEditStock && counted ? diffs() : [];
+    const who = typeof approver === 'string' ? approver : '';
+    if (changes.some((c) => needsApproval(c.qty)) && !who) {
+      const n = changes.reduce((a, c) => a + Math.abs(c.qty), 0);
+      setPin({ reason: `Change on hand by ${n} piece${n === 1 ? '' : 's'} (${changes.map((c) => `${c.place} ${c.qty > 0 ? '+' : '−'}${Math.abs(c.qty)}`).join(', ')}).`, amount: n });
+      return;
+    }
+    setPin(null);
+    // the product: a variant keeps its own price and barcode; otherwise the product's
+    const p = data.product ? { ...data.product } : null;
+    if (p) {
+      const vi = (p.variants || []).findIndex((x) => x.sku && row && x.sku === row.sku);
+      const bt = form.barcode.trim() ? (form.barcodeType || (/^2\d{12}$/.test(form.barcode.trim()) ? 'internal' : 'gtin')) : '';
+      if (vi >= 0) {
+        p.variants = p.variants.map((x, i) => (i === vi ? { ...x, price, mrp: num(form.mrp), barcode: form.barcode.trim(), barcodeType: bt } : x));
+      } else { p.price = price; p.mrp = num(form.mrp); p.barcode = form.barcode.trim(); p.barcodeType = bt; }
+      p.st = form.st;
+      const media = (p.media || []).filter((m) => m && m.src);
+      if (form.photo && (!media.length || media[0].src !== form.photo)) p.media = [{ id: 'm' + Date.now(), src: form.photo, kind: 'image', name: 'photo.jpg', alt: p.name }, ...media];
+      if (form.photo) p.flags = (p.flags || []).filter((f) => f !== 'No photo');
+      saveProduct(p, { note: 'Quick edit in the app', by });
+    }
+    changes.forEach((c) => { addAdjustment({ sku: c.sku, place: c.place, qty: c.qty, reason: 'Count correction', note: 'Quick edit in the app', by }, who || 'Auto'); });
+    refresh();
+    toast(changes.length ? `Saved · stock changed at ${[...new Set(changes.map((c) => c.place))].join(', ')}` : 'Saved');
+    router.push('/m-products');
+  };
+
+  const archive = () => { setMore(false); set({ st: form.st === 'archived' ? 'active' : 'archived' }); toast(form.st === 'archived' ? 'Back to active. Save to keep it.' : 'Archived. Save to keep it.'); };
+  const title = adding ? 'Add product' : 'Edit product';
+
+  if (data === null) {
     return (
-      <div className="dc-screen" data-screen="MProductEdit">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="ph">
-          <div className="sb" style={{ color: "#0f172a" }}>
-            <span className="num">2:32</span>
-            <span className="r">
-              <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true" fill="#0f172a">
-                <rect x="0" y="8" width="3" height="4" rx="1" />
-                <rect x="5" y="5" width="3" height="7" rx="1" />
-                <rect x="10" y="2.5" width="3" height="9.5" rx="1" />
-                <rect x="15" y="0" width="3" height="12" rx="1" />
-              </svg>
-              <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>4G</span>
-              <svg width="27" height="13" viewBox="0 0 27 13" aria-hidden="true">
-                <rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="#0f172a" opacity=".4" />
-                <rect x="2" y="2" width="17" height="9" rx="2" fill="#0f172a" />
-                <path d="M25 4.5v4" stroke="#0f172a" strokeWidth="1.5" opacity=".5" />
-              </svg>
-            </span>
-          </div>
-          <header className="appbar">
-            <__Link href="/m-products" className="ib" aria-label="Back">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </__Link>
-            <h1>Edit product</h1>
-            <a className="ib" href="#" aria-label="More">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="5" cy="12" r="1.6" />
-                <circle cx="12" cy="12" r="1.6" />
-                <circle cx="19" cy="12" r="1.6" />
-              </svg>
-            </a>
-          </header>
-          <div className="content" style={{ top: "103px", bottom: "98px", padding: "4px 20px 0", display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>
-              <span className="av" style={{ width: "84px", height: "84px", borderRadius: "var(--radius-xl)", background: "#fff4e0", color: "#003087", fontSize: "var(--text-3xl)" }}>S</span>
-              <div style={{ minWidth: "0" }}>
-                <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", lineHeight: "22px" }}>Anker 20W USB-C Charger</div>
-                <div className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--muted)", marginTop: "4px" }}>8941100500235</div>
-                <a href="#" style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginTop: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--brand)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" />
-  <circle cx="12" cy="13" r="3" />
-</svg>Change photo</a>
-              </div>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div className="field">
-                <span className="lab">Price</span>
-                <div className="inp">
-                  <span style={{ color: "var(--muted)" }}>৳</span>
-                  <span className="num">1,250</span>
-                </div>
-              </div>
-              <div className="field">
-                <span className="lab">Sale price</span>
-                <div className="inp f">
-                  <span style={{ color: "var(--muted)" }}>৳</span>
-                  <span className="num">940</span>
-                </div>
-              </div>
-            </div>
-            <span className="help" style={{ marginTop: "-8px" }}>Bought at ৳936 · profit ৳4 per piece at the sale price</span>
-            <div className="field">
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span className="lab">Stock by branch</span>
-                <span className="help num">47 total</span>
-              </div>
-              <div className="card" style={{ boxShadow: "none", border: "1px solid var(--line)" }}>
-                <div className="row" style={{ minHeight: "58px" }}>
-                  <span className="m">
-                    <span className="t" style={{ fontWeight: "var(--weight-medium)" }}>Dhanmondi branch</span>
-                  </span>
-                  <span className="step">
-                    <span>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M5 12h14" />
-                      </svg>
-                    </span>
-                    <b className="num">4</b>
-                    <span>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                    </span>
-                  </span>
-                </div>
-                <div className="row" style={{ minHeight: "58px" }}>
-                  <span className="m">
-                    <span className="t" style={{ fontWeight: "var(--weight-medium)" }}>Gulshan shop</span>
-                  </span>
-                  <span className="step">
-                    <span>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M5 12h14" />
-                      </svg>
-                    </span>
-                    <b className="num">11</b>
-                    <span>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                    </span>
-                  </span>
-                </div>
-                <div className="row" style={{ minHeight: "58px" }}>
-                  <span className="m">
-                    <span className="t" style={{ fontWeight: "var(--weight-medium)" }}>Mirpur godown</span>
-                  </span>
-                  <span className="step">
-                    <span>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M5 12h14" />
-                      </svg>
-                    </span>
-                    <b className="num">32</b>
-                    <span>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                    </span>
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="card" style={{ boxShadow: "none", border: "1px solid var(--line)" }}>
-              <div className="row">
-                <span className="m">
-                  <span className="t" style={{ fontWeight: "var(--weight-medium)", display: "block" }}>Show on the website</span>
-                  <span className="s">Customers can buy it online</span>
-                </span>
-                <span className="sw on" role="switch" aria-checked="true" aria-label="Show on the website" />
-              </div>
-              <div className="row">
-                <span className="m">
-                  <span className="t" style={{ fontWeight: "var(--weight-medium)", display: "block" }}>Sell at the POS</span>
-                </span>
-                <span className="sw on" role="switch" aria-checked="true" aria-label="Sell at the POS" />
-              </div>
-            </div>
-          </div>
-          <div className="actbar">
-            <__Link href="/m-products" className="btn btnp">Save changes</__Link>
-          </div>
-        </div>
-      </div>
+      <AppScreen name="MProductEdit" title={title}>
+        <AppBar title={title} back="/m-products" />
+        <Content top={103}><div className="card" style={{ margin: '4px 20px 0' }}><EmptyState icon="box" title="This product is not in your catalogue" action={{ label: 'All products', href: '/m-products' }} /></div></Content>
+      </AppScreen>
     );
   }
+
+  return (
+    <AppScreen name="MProductEdit" title={title}>
+      <AppBar title={title} back="/m-products" actions={<IconButton icon="dots" label="More" onClick={() => setMore(true)} />} />
+      <Content top={103} bottom={98} style={{ padding: '4px 20px 0' }} gap={16}>
+        {!form ? <Skeleton rows={4} card={false} /> : (
+          <>
+            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+              <button type="button" onClick={() => fileRef.current && fileRef.current.click()} aria-label={form.photo ? 'Change the photo' : 'Add a photo'} style={{ position: 'relative', padding: 0, border: 0, background: 'none', cursor: 'pointer', flex: 'none' }}>
+                {form.photo ? <span className="av" style={{ width: '84px', height: '84px', overflow: 'hidden' }}><img src={form.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></span>
+                  : row ? <Thumb row={row} size={84} /> : <span className="av" style={{ width: '84px', height: '84px', background: 'var(--soft)', color: 'var(--brand)' }}><Icon name="plus" size={28} /></span>}
+                <span className="ib soft" style={{ position: 'absolute', right: '-6px', bottom: '-6px', width: '30px', height: '30px', color: 'var(--brand)' }} aria-hidden="true"><Icon name="edit" size={15} /></span>
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={pickPhoto} style={{ display: 'none' }} />
+              <div style={{ minWidth: '0', flex: 1 }}>
+                {adding ? <Field label="Name" error={err.name}><TextInput value={form.name} onChange={(v) => set({ name: v })} placeholder="e.g. Anker 20W USB-C Charger" /></Field> : (
+                  <>
+                    <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semibold)', lineHeight: '22px' }}>{form.name}</div>
+                    <div className="mono" style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)', marginTop: '4px' }}>{form.barcode || (row && row.sku)}</div>
+                    {form.st !== 'active' ? <div style={{ marginTop: '6px' }}><Pill tone={form.st === 'archived' ? 'err' : 'grey'}>{form.st === 'archived' ? 'Archived' : 'Draft'}</Pill></div> : null}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {data && data.rows.length > 1 ? (
+              <Chips items={data.rows.map((r) => ({ key: r.sku, label: r.variant || r.name.split(' · ').slice(-1)[0] }))} value={sku} onChange={(s) => {
+                setSku(s);
+                const r = data.rows.find((x) => x.sku === s) || {};
+                const v = ((data.product || {}).variants || []).find((x) => x.sku === s) || {};
+                set({ price: String(v.price ?? r.price ?? ''), mrp: String(v.mrp ?? ''), barcode: v.barcode || r.barcode || '' });
+              }} style={{ padding: 0, overflowX: 'auto' }} />
+            ) : null}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Field label="Price" error={err.price}><TextInput value={form.price} onChange={(v) => set({ price: v.replace(/[^\d.]/g, '') })} prefix="৳" inputMode="decimal" /></Field>
+              <Field label="MRP" error={err.mrp}><TextInput value={form.mrp === 'null' ? '' : form.mrp} onChange={(v) => set({ mrp: v.replace(/[^\d.]/g, '') })} prefix="৳" inputMode="decimal" placeholder="Optional" /></Field>
+            </div>
+            {cost && price ? <span className="help" style={{ marginTop: '-8px' }}>Bought at {money(cost)} · profit {money(price - cost)} per piece</span> : null}
+
+            <Field label="Barcode" error={err.barcode}>
+              <span style={{ display: 'flex', gap: '8px' }}>
+                <span style={{ flex: 1, minWidth: 0 }}><TextInput value={form.barcode} onChange={(v) => set({ barcode: v.trim(), barcodeType: '' })} placeholder="Scan or type" inputMode="numeric" /></span>
+                <IconButton icon="scan" label="Scan the barcode" soft onClick={() => setScan(true)} />
+              </span>
+            </Field>
+            {!form.barcode ? <button type="button" className="tap" onClick={makeCode} style={{ marginTop: '-8px', alignSelf: 'flex-start', border: 0, background: 'none', padding: 0, color: 'var(--brand)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', cursor: 'pointer' }}>No barcode? Make one</button> : null}
+
+            {counted && (adding || canEditStock) ? (
+              <div className="field">
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span className="lab">{adding ? 'Opening stock' : onePlace() ? 'Stock' : 'Stock by place'}</span>
+                  <span className="help num">{total} total</span>
+                </div>
+                <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+                  {places.map((pl) => (
+                    <div key={pl} className="row" style={{ minHeight: '58px' }}>
+                      <span className="m"><span className="t" style={{ fontWeight: 'var(--weight-medium)' }}>{pl}</span>
+                        {!adding && row ? (() => { const s = safe(() => stockAt(row.sku, pl), null); return s && (s.held || s.transit) ? <span className="s" style={{ display: 'block' }}>{[s.held ? `${s.held} held` : '', s.transit ? `${s.transit} on the way` : ''].filter(Boolean).join(' · ')}</span> : null; })() : null}
+                      </span>
+                      <Stepper value={mineNow[pl] || 0} min={0} label={'On hand at ' + pl} onChange={(n) => setCounts((c) => ({ ...c, [key]: { ...(c[key] || {}), [pl]: n } }))} />
+                    </div>
+                  ))}
+                </div>
+                {!adding ? <span className="help">A change is saved as a stock adjustment. Taking stock off needs a manager.</span> : null}
+              </div>
+            ) : !counted ? <Note tone="info" icon="box">{row && row.format === 'licence' ? 'Stock is the free licence keys.' : row && row.bundle ? 'Sells as many as its parts allow.' : 'Not counted: a download or a service.'}</Note> : null}
+
+            <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+              <div className="row">
+                <span className="m">
+                  <span className="t" style={{ fontWeight: 'var(--weight-medium)', display: 'block' }}>Active</span>
+                  <span className="s">{form.st === 'active' ? 'For sale online and at the counter' : form.st === 'archived' ? 'Archived: hidden everywhere' : 'Draft: not for sale yet'}</span>
+                </span>
+                <Switch on={form.st === 'active'} label="Active" onChange={(on) => set({ st: on ? 'active' : 'draft' })} />
+              </div>
+              {!adding ? <ListRow href={webHref} icon="globe" title="Edit everything on the web" sub="Descriptions, variants, specs, SEO" /> : null}
+            </div>
+            <div style={{ height: '4px' }} />
+          </>
+        )}
+      </Content>
+      <ActionBar><Button onClick={() => save()} disabled={!form}>{adding ? 'Add product' : 'Save changes'}</Button></ActionBar>
+
+      <Sheet open={more} onClose={() => setMore(false)} title={form ? form.name || title : title}>
+        <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+          <ListRow href={webHref} icon="globe" title="Edit everything on the web" />
+          {row && ctx && allowed('/m-stock', ctx) ? <ListRow href={'/m-stock?q=' + encodeURIComponent(row.sku)} icon="layers" title="Stock by place" /> : null}
+          {row && ctx && allowed('/m-adjust', ctx) ? <ListRow href={'/m-adjust?sku=' + encodeURIComponent(row.sku)} icon="edit" title="Adjust or count stock" /> : null}
+          {!adding ? <ListRow onClick={archive} icon="undo" title={form && form.st === 'archived' ? 'Make active again' : 'Archive product'} sub={form && form.st === 'archived' ? '' : 'Hidden everywhere; history kept'} /> : null}
+        </div>
+      </Sheet>
+      <ScanSheet open={scan} onClose={() => setScan(false)} onCode={onScan} title="Scan the barcode" />
+      <PinSheet open={!!pin} onClose={() => setPin(null)} reason={pin ? pin.reason : ''} action="Stock adjustment" amount={pin ? pin.amount : undefined} by={me()} onApprove={(m) => save(m)} />
+    </AppScreen>
+  );
 }

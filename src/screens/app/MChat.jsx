@@ -1,261 +1,590 @@
 'use client';
-// Generated from design/templates/app/MChat.dc.html by scripts/convert-design.mjs.
-// Merchant app · Chat
-// Edit freely: this file is now the source for the screen.
+// Merchant app · Chat (/m-chat?id=<conversation>). The design board's layout (design/templates/app/MChat.dc.html) running
+// the web Inbox's conversation (/merchant-inbox: lib/inbox.js, components/inbox/Thread.jsx, Copilot.jsx):
+//   header     the customer with their channel and whether they are active; Call (the call screen, the call lands in
+//              this chat and the call log) and ⋯ (mark done / reopen, assign, GridAI for this chat, customer, snooze,
+//              pending, mark unread, create order, create ticket, block)
+//   strip      their orders and what they spent (tap: the customer sheet with GridAI's summary, tags, note and
+//              orders) and GridAI's mode for this chat (Auto · Assist · Off; Auto needs "Enable auto reply")
+//   thread     messages as on the web: groups, Seen, reactions and replies (tap a message), voice, photos, product /
+//              order / payment / story / call cards, notes; GridAI's suggested reply at the end while the customer
+//              waits (Send · Edit · Again · ✕), or "GridAI is answering · Take over" while it is on Auto
+//   composer   quick chips (Saved replies, Share product, Payment link, Create order, Note), + (photo, product,
+//              payment link, note), the reply box, voice message (MediaRecorder; inbox.keepVoice) and Send.
+//              A teammate writing in the same chat holds the send lock (inbox.lockOf); a closed reply window says so.
+// Sending is messages/msgData.js › personReply (the web's act.send: reopen, first-reply assignment, Autopilot
+// takeover, delivered / read ticks and the demo customer's answer). ?edit=1 puts GridAI's draft in the reply box.
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  AppScreen, Content, Sheet, Button, Pill, OrderPill, ListRow, SearchField, Segmented, TextInput, Note, EmptyState, StatRow, Stat,
+  Icon, useAppData, useQuery, toast, confirmDialog, money,
+} from './kit/AppKit';
+import {
+  ME, STAFF, channelName, staffName, getConvs, patchConv, addMessages, statusOf, lastAt, replyStateOf, lockOf, holdLock, releaseLock,
+  getReplies, fillReply, countReplyUse, reactTo, REACTIONS, keepVoice, snoozeChoices, whenText, clock, ago as inboxAgo, CALL_DIRS,
+} from '@/lib/inbox';
+import { getOrders } from '@/lib/orders';
+import { searchProducts, stockAt } from '@/lib/stock';
+import { isStatusSellable } from '@/lib/sellable';
+import { connectedInbox } from '@/lib/connections';
+import { controlFor } from '@/lib/aiReply';
+import { currentUser } from '@/lib/team';
+import { can, why } from '@/lib/permissions';
+import { customerTurn, summarize, INTENT_WORD } from '@/lib/gridai/engine';
+import { autopilotOn } from '@/lib/gridai/inboxAi';
+import { markRun } from '@/lib/gridai/usage';
+import { logAi } from '@/lib/gridai/activity';
+import { Face, XIcon } from './messages/msgParts';
+import { Thread, Recorder } from './messages/ChatParts';
+import {
+  access, sys, ME_NAME, factsOf, fmtPhone, personReply, autopilotReply, waitingMsg, startCall, aiSetup,
+} from './messages/msgData';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
-
-class Component extends DCLogic {
-  // On a phone the thread scrolls: open it at the latest message.
-  componentDidMount() {
-    if (!window.matchMedia('(max-width: 480px)').matches) return;
-    const thread = document.querySelector('[data-screen="MChat"] .content');
-    if (thread) thread.scrollTop = thread.scrollHeight;
-  }
-  renderVals() { return {}; }
+const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch { return fb; } };
+const CALL_CHANNELS = ['whatsapp', 'facebook', 'instagram', 'telegram'];
+const AI_WORD = { auto: 'Auto', assist: 'Assist', off: 'Off' };
+const AI_OPTS = [['auto', 'Auto', 'GridAI answers simple questions by itself; the rest come to you.'], ['assist', 'Assist', 'GridAI writes a reply. You check it and send.'], ['off', 'Off', 'GridAI stays out of this chat.']];
+const METHODS = [['bkash', 'bKash'], ['nagad', 'Nagad'], ['sslcommerz', 'Card or bank']];
+/** The chat's GridAI mode: Auto (Autopilot), Assist (drafts) or Off. */
+export function chatAiMode(c) {
+  if (!c) return 'assist';
+  if (autopilotOn(c)) return 'auto';
+  if (c.aiMode === 'off') return 'off';
+  if (c.autopilot === false || c.aiMode === 'assist') return 'assist';
+  return safe(() => controlFor({ conv: c }).mode, 'assist') === 'off' ? 'off' : 'assist';
 }
-
-// ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-*{box-sizing:border-box}
-body{margin:0;background:#dfe5ee;font-family:var(--font-sans);-webkit-font-smoothing:antialiased;color:#0f172a}
-a{color:inherit;text-decoration:none}
-button{font:inherit;color:inherit}
-.bn{font-family:var(--font-bn)}
-.mono{font-family:var(--font-data)}
-.num{font-variant-numeric:tabular-nums}
-.ph{--brand:#003087;--brand2:#0a4bb5;--sky:#009cde;--ink:#0f172a;--body:#475569;--muted:var(--text-muted);--line:#e8edf3;--bg:#f5f7fa;--card:#ffffff;--soft:#eef3fa;
-  --ok:#0f9f6e;--okbg:#e7f7f0;--warn:#b45309;--warnbg:#fff4e0;--err:#c2410c;--errbg:#ffece5;
-  position:relative;width:min(390px,100%);height:844px;overflow:hidden;background:var(--bg);font-size:var(--text-sm-plus);line-height:1.5;font-family:var(--font-sans)}
-.sb{position:absolute;top:0;left:0;right:0;height:47px;display:flex;align-items:center;justify-content:space-between;padding:0 28px 0 34px;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);z-index:6}
-.sb .r{display:flex;gap:6px;align-items:center}
-.appbar{position:absolute;top:47px;left:0;right:0;height:56px;display:flex;align-items:center;gap:4px;padding:0 8px;z-index:5;background:var(--bg)}
-.appbar h1{flex:1;margin:0;font-size:var(--text-lg);font-weight:var(--weight-semibold);text-align:center;letter-spacing:0}
-.ib{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:var(--radius-full);background:transparent;color:var(--ink);position:relative;cursor:pointer}
-.ib.soft{background:var(--card);box-shadow:0 1px 2px rgba(15,23,42,.06)}
-.dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:var(--radius-full);background:#ff5724;border:2px solid var(--card)}
-.big{padding:4px 20px 0}
-.big .eyebrow{font-size:var(--text-xs-plus);color:var(--muted)}
-.big h1{margin:2px 0 0;font-size:var(--text-3xl);line-height:38px;font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight)}
-.content{position:absolute;left:0;right:0;overflow:hidden}
-.pad{padding:0 20px}
-.card{background:var(--card);border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -16px rgba(15,23,42,.18)}
-.sec{display:flex;align-items:baseline;justify-content:space-between;margin:24px 20px 10px}
-.sec h2{margin:0;font-size:var(--text-base);font-weight:var(--weight-semibold)}
-.sec a{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--brand)}
-.row{display:flex;align-items:center;gap:14px;min-height:64px;padding:12px 16px}
-.row + .row{border-top:1px solid var(--line)}
-.row .t{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--ink);line-height:20px}
-.row .s{font-size:var(--text-xs-plus);color:var(--muted);line-height:18px}
-.row .m{min-width:0;flex:1}
-.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.av{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);font-size:var(--text-sm-plus)}
-.ico{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;background:var(--soft);color:var(--brand)}
-.pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.p-ok{background:var(--okbg);color:var(--ok)}.p-warn{background:var(--warnbg);color:var(--warn)}.p-err{background:var(--errbg);color:var(--err)}.p-nav{background:var(--soft);color:var(--brand)}.p-grey{background:#eef1f5;color:#475569}
-.sh{width:8px;height:8px;flex:none}.sh.ok{border-radius:var(--radius-full);background:currentColor}.sh.warn{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid currentColor}.sh.err{transform:rotate(45deg);width:7px;height:7px;background:currentColor;border-radius:1px}
-.chips{display:flex;gap:8px;padding:0 20px;overflow:hidden}
-.chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid var(--line);background:var(--card);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--body);white-space:nowrap}
-.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.chip .n{font-size:var(--text-xs);font-weight:var(--weight-medium);opacity:.7}
-.seg{display:flex;margin:0 20px;padding:4px;border-radius:var(--radius-xl);background:#e9eef5}
-.seg span{flex:1;height:36px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--body)}
-.seg span.on{background:var(--card);color:var(--ink);font-weight:var(--weight-medium);box-shadow:0 1px 3px rgba(15,23,42,.1)}
-.srch{display:flex;align-items:center;gap:10px;height:48px;margin:0 20px;padding:0 6px 0 16px;border-radius:var(--radius-xl);background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:var(--text-sm-plus)}
-.srch .sc{margin-left:auto;width:36px;height:36px;border-radius:var(--radius-lg);background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border:0;border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer}
-.btnp{background:var(--brand);color:#fff}.btns{background:var(--soft);color:var(--brand)}.btnl{background:var(--card);color:var(--ink);border:1px solid var(--line)}
-.btnd{background:var(--errbg);color:var(--err)}
-.fab{position:absolute;right:20px;bottom:96px;width:56px;height:56px;border-radius:var(--radius-xl);background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 24px -8px rgba(0,48,135,.55);z-index:5}
-.tabfade{position:absolute;left:0;right:0;bottom:0;height:108px;background:linear-gradient(to top,var(--bg) 42%,rgba(245,247,250,0));pointer-events:none;z-index:5}
-.tabs{position:absolute;left:28px;right:28px;bottom:24px;height:56px;padding:4px;display:flex;gap:2px;border-radius:28px;background:rgba(255,255,255,.78);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);border:1px solid rgba(255,255,255,.95);box-shadow:0 14px 34px -12px rgba(15,23,42,.30),0 2px 6px -2px rgba(15,23,42,.08),inset 0 0 0 .5px rgba(15,23,42,.05);z-index:6}
-.tabs a{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:var(--radius-xl);font-size:var(--text-2xs);line-height:15px;font-weight:var(--weight-medium);color:var(--text-muted);transition:background-color .2s,color .2s}
-.tabs a.on{background:rgba(0,48,135,.08);color:var(--brand);font-weight:var(--weight-medium)}
-.tabs .tw{position:relative;display:flex}
-.cnt{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-lg);background:var(--fill-danger);color:#fff;font-family:var(--font-sans);font-size:var(--text-xs);line-height:1;font-weight:var(--weight-medium);letter-spacing:0;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap}
-.tabs .cnt{position:absolute;top:-6px;left:12px;border:2px solid #fff;min-width:19px;height:17px;padding:0 4px;font-size:var(--text-2xs);border-radius:var(--radius-lg)}
-.cnt.nav{background:var(--brand)}
-.hi{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:var(--radius-full);background:#0f172a;z-index:7}
-.actbar{position:absolute;left:0;right:0;bottom:0;padding:12px 20px 34px;display:flex;gap:10px;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:6}
-.actbar .btn{flex:1}
-.field{display:flex;flex-direction:column;gap:6px}
-.lab{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink)}
-.inp{height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:var(--radius-lg);border:1px solid #dbe2ec;background:var(--card);font-size:var(--text-sm);color:var(--ink)}
-.inp.f{border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,48,135,.12)}
-.help{font-size:var(--text-xs-plus);color:var(--muted)}
-.step{display:inline-flex;align-items:center;border:1px solid #dbe2ec;border-radius:var(--radius-xl);background:var(--card)}
-.step b{min-width:34px;text-align:center;font-size:var(--text-sm-plus)}
-.step span{width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--brand)}
-.sw{position:relative;flex:none;width:50px;height:30px;border-radius:var(--radius-full);background:#cbd5e1}.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.sw.on{background:var(--brand)}.sw.on::after{left:23px}
-.scrim{position:absolute;inset:0;background:rgba(15,23,42,.45);z-index:8}
-.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:28px 28px 0 0;padding:10px 20px 34px;z-index:9}
-.grab{width:40px;height:5px;margin:0 auto 14px;border-radius:var(--radius-full);background:#d5dce6}
-.k{font-size:var(--text-xs-plus);color:var(--muted)}.v{font-size:var(--text-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight)}
-.tile{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink);text-align:center}
-.tile .ico{width:56px;height:56px;border-radius:var(--radius-xl)}
-.note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
-
-.pav{position:relative;flex:none;width:52px;height:52px}
-.pav .face{width:52px;height:52px;border-radius:var(--radius-full);object-fit:cover;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);font-size:var(--text-base)}
-.pav .pb{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;padding:2px;box-shadow:0 1px 3px rgba(15,23,42,.18)}
-.pav .pb img{width:18px;height:18px;display:block;border-radius:var(--radius-full)}
-.pav .on{position:absolute;right:1px;top:1px;width:12px;height:12px;border-radius:var(--radius-full);background:#10b981;border:2px solid #fff}
-.pchip{flex:none;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px 0 8px;border-radius:var(--radius-full);border:1px solid var(--line);background:var(--card);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--body);white-space:nowrap}
-.pchip img{width:22px;height:22px;border-radius:var(--radius-full)}
-.pchip.on{background:var(--ink);color:#fff;border-color:var(--ink);padding-left:14px}
-.bar{height:6px;border-radius:var(--radius-full);background:#edf1f6;overflow:hidden}.bar i{display:block;height:100%;border-radius:var(--radius-full)}
-.lrow{display:flex;align-items:center;gap:14px;padding:14px 16px}
-.lrow + .lrow{border-top:1px solid var(--line)}
-/* phone: the thread scrolls under the composer (10 + chips 36 + 10 + reply bar 52 + bottom inset);
-   it still sits at the bottom when short, and starts at the top (not cut off) when long */
-@media (max-width:480px){
-  [data-screen="MChat"] > .ph:not([data-board]) > .content{bottom:0 !important;justify-content:flex-start !important;padding-bottom:calc(108px + max(12px, var(--app-sab, 0px)) + var(--space-3)) !important}
-  [data-screen="MChat"] > .ph:not([data-board]) > .content > :first-child{margin-top:auto}
-}
+[data-screen="MChat"] > .ph > .content.mc-thread{justify-content:flex-start !important}
+[data-screen="MChat"] > .ph > .content.mc-thread > :first-child{margin-top:auto}
+[data-screen="MChat"] .mc-input{flex:1;min-width:0;max-height:96px;padding:9px 4px;border:0;outline:0;background:transparent;resize:none;font:inherit;font-size:var(--text-sm-plus);line-height:21px;color:var(--ink)}
+[data-screen="MChat"] .mc-input::placeholder{color:var(--muted)}
+[data-screen="MChat"] .composer .chip{cursor:pointer}
+[data-screen="MChat"] .composer .chip.note-on{background:var(--warnbg);border-color:#f5d9a8;color:#7a3e05}
+[data-screen="MChat"] .mc-dot{animation:mc-dot 1s infinite ease-in-out}
+[data-screen="MChat"] .mc-dot:nth-child(2){animation-delay:.15s}[data-screen="MChat"] .mc-dot:nth-child(3){animation-delay:.3s}
+@keyframes mc-dot{0%,80%,100%{opacity:.4;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
+[data-screen="MChat"] .mc-recdot{animation:mc-blink 1s infinite}
+@keyframes mc-blink{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){[data-screen="MChat"] .mc-dot,[data-screen="MChat"] .mc-recdot{animation:none}}
 `;
 
-// ---- markup ----
+export default function MChatScreen() {
+  const router = useRouter();
+  const { ready, tick, ctx } = useAppData(['gc:comms'], { every: 15000 });
+  const query = useQuery();
+  const [id, setId] = useState('');
+  const [typing, setTyping] = useState('');
+  const [text, setText] = useState('');
+  const [note, setNote] = useState(false);
+  const [img, setImg] = useState('');
+  const [replyTo, setReplyTo] = useState(null);
+  const [recording, setRecording] = useState(false);
+  const [sheet, setSheet] = useState('');       // more · ai · assign · profile · replies · product · payment · attach · msg · photo
+  const [msg, setMsg] = useState(null);
+  const [photo, setPhoto] = useState('');
+  const [q, setQ] = useState('');
+  const [pay, setPay] = useState({ amount: '', method: 'bkash', order: '', note: '' });
+  const [variant, setVariant] = useState(0);
+  const [hidden, setHidden] = useState('');
+  const [run, setRun] = useState(null);
+  const [compH, setCompH] = useState(142);
+  const scroller = useRef(null);
+  const input = useRef(null);
+  const file = useRef(null);
+  const comp = useRef(null);
+  const idRef = useRef('');
+  idRef.current = id;
 
-export default class MChatScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
+  // which chat: ?id=, else the newest open one
+  useEffect(() => {
+    if (!query || !ready) return;
+    const want = query.get('id');
+    const all = safe(() => getConvs(), []);
+    const hit = (want && all.find((c) => c.id === want)) || all.filter((c) => statusOf(c) !== 'closed').sort((a, b) => lastAt(b) - lastAt(a))[0];
+    if (hit) setId(hit.id);
+  }, [query, ready]);
+
+  const conv = useMemo(() => (ready && id ? safe(() => getConvs().find((c) => c.id === id), null) : null), [ready, tick, id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const orders = useMemo(() => (ready ? safe(() => getOrders(), []) : []), [ready, tick]);
+  const facts = conv ? factsOf(conv.phone, orders) : { orders: [], count: 0, spent: 0 };
+  const now = Date.now();
+  const mode = chatAiMode(conv);
+  const waiting = conv ? waitingMsg(conv) : null;
+  const live = useMemo(() => (ready ? safe(() => connectedInbox('Messages'), null) : null), [ready, tick]);
+  const reach = conv ? safe(() => replyStateOf(conv, now, !live || live.includes(conv.ch)), null) : null;
+  const lock = conv ? safe(() => lockOf(conv.id), null) : null;
+  const status = conv ? statusOf(conv, now) : 'open';
+  const setup = ctx ? aiSetup(ctx.ed) : null;
+
+  // read: opening the chat clears its unread count
+  useEffect(() => { if (conv && conv.unread) patchConv(conv.id, { unread: 0 }); }, [conv && conv.id, conv && conv.unread]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the send lock is let go when the chat closes
+  useEffect(() => { const x = id; return () => { if (x) releaseLock(x); }; }, [id]);
+  // GridAI's draft while the customer waits (Assist) — the web's CopilotCard
+  const draftKey = conv && waiting ? conv.id + ':' + waiting.id : '';
+  useEffect(() => { setVariant(0); }, [draftKey]);
+  useEffect(() => {
+    if (!conv || !waiting || conv.blocked || mode !== 'assist' || !setup || !setup.providers) { setRun(null); return; }
+    const r = safe(() => customerTurn(conv, { variant }), null);
+    setRun(r && r.reply ? r : null);
+  }, [draftKey, variant, mode, setup && setup.providers]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ?edit=1 (GridAI › Needs your OK › Edit): the draft goes into the reply box once
+  const edited = useRef(false);
+  useEffect(() => {
+    if (edited.current || !run || !query || query.get('edit') !== '1') return;
+    edited.current = true;
+    setText(run.reply); markRun(run.id, 'edited'); setHidden(draftKey);
+  }, [run, query]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // keep the newest message in view
+  const count = conv ? conv.messages.length : 0;
+  const stick = useRef(true);
+  useEffect(() => {
+    const el = scroller.current;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
+  }, [count, typing, run, id, compH]);
+  const onScroll = (e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; };
+  // the thread clears the composer, whatever it holds
+  useEffect(() => {
+    const el = comp.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => setCompH(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [conv && conv.id]);
+  // the reply box grows with its text (up to four lines)
+  useEffect(() => { const el = input.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 96) + 'px'; }, [text]);
+
+  const opts = { onTyping: setTyping, isOpen: (x) => x === idRef.current };
+  const send = (rows) => {
+    if (!conv) return false;
+    const reply = rows.some((m) => m.from === 'agent');
+    if (reply && lock) { toast(`${lock.name} is replying. Wait until they finish.`, { tone: 'error' }); return false; }
+    const ok = personReply(conv.id, rows, opts);
+    if (!ok) toast('A teammate is replying. Wait until they finish.', { tone: 'error' });
+    stick.current = true;
+    return ok;
+  };
+  const re = () => (replyTo && !note ? { replyTo: replyTo.id } : {});
+  const submit = () => {
+    const body = text.trim();
+    if (!body && !img) { if (input.current) input.current.focus(); return; }
+    let ok;
+    if (note) ok = send([{ from: 'note', by: ME, type: 'text', text: body }]);
+    else if (img) ok = send([{ from: 'agent', by: ME, type: 'image', img, text: body, status: 'sent', ...re() }]);
+    else ok = send([{ from: 'agent', by: ME, type: 'text', text: body, status: 'sent', ...re() }]);
+    if (ok === false) return;
+    setText(''); setImg(''); setReplyTo(null); setNote(false);
+  };
+  const sendVoice = ({ dur, url }) => {
+    const vk = 'v-' + Date.now().toString(36);
+    keepVoice(vk, url);
+    send([{ from: 'agent', by: ME, type: 'voice', dur, vk, status: 'sent', ...re() }]);
+    setRecording(false); setReplyTo(null);
+  };
+  const pickImage = (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    if (!/^image\//.test(f.type)) { toast('Choose a photo (JPG, PNG or WebP)', { tone: 'error' }); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const im = new Image();
+      im.onload = () => {
+        const k = Math.min(1, 900 / Math.max(im.width, im.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        setImg(c.toDataURL('image/jpeg', 0.82));
+      };
+      im.src = reader.result;
+    };
+    reader.readAsDataURL(f);
+  };
+  const onType = (v) => { setText(v); if (conv && !note && v) holdLock(conv.id); };
+
+  // GridAI draft
+  const acceptDraft = () => {
+    if (!send([{ from: 'agent', by: ME, type: 'text', text: run.reply, status: 'sent', aiDraft: run.id }])) return;
+    markRun(run.id, 'accepted');
+    logAi({ kind: 'suggestion', title: 'Draft sent as written', detail: run.reply.slice(0, 90), channel: conv.ch, customer: conv.name, conv: conv.id, by: ME_NAME });
+  };
+  const editDraft = () => { setText(run.reply); markRun(run.id, 'edited'); setHidden(draftKey); if (input.current) input.current.focus(); };
+  const dismissDraft = () => { markRun(run.id, 'dismissed'); setHidden(draftKey); };
+
+  // actions on the chat (the web's act.*)
+  const act = {
+    close: () => { addMessages(conv.id, sys('circle-check', `Closed by ${ME_NAME}`), { status: 'closed', snoozeUntil: null, unread: 0 }); toast('Marked as done', { undo: () => addMessages(conv.id, sys('rotate-ccw', `Reopened by ${ME_NAME}`), { status: 'open' }) }); },
+    reopen: () => { addMessages(conv.id, sys('rotate-ccw', `Reopened by ${ME_NAME}`), { status: 'open' }); toast('Conversation reopened'); },
+    pending: () => { addMessages(conv.id, sys('hourglass', `Set to Pending (waiting on the customer) by ${ME_NAME}`), { status: 'pending' }); toast('Moved to Pending'); },
+    snooze: (until) => { addMessages(conv.id, sys('alarm-clock', `Snoozed until ${whenText(until)} by ${ME_NAME}`), { status: 'snoozed', snoozeUntil: until }); toast(`Snoozed until ${whenText(until)}`); },
+    unsnooze: () => { addMessages(conv.id, sys('bell-ring', `Unsnoozed by ${ME_NAME}`), { status: 'open', snoozeUntil: null }); toast('Back in Open'); },
+    assign: (who) => { addMessages(conv.id, sys('user-round-check', who ? `Assigned to ${staffName(who)} by ${ME_NAME}` : `Unassigned by ${ME_NAME}`), { assignee: who }); toast(who ? `Assigned to ${staffName(who)}` : 'Unassigned'); },
+    unread: () => { patchConv(conv.id, (c) => ({ unread: Math.max(1, c.unread || 0) })); toast('Marked as unread'); router.push('/m-inbox'); },
+    block: async () => {
+      if (!(await confirmDialog({ title: `Block ${conv.name}?`, body: `They can no longer message the shop on ${channelName(conv.ch)}, and the conversation is closed. You can unblock them later.`, confirmLabel: 'Block', tone: 'danger' }))) return;
+      addMessages(conv.id, sys('ban', `Blocked by ${ME_NAME}`), { blocked: true, status: 'closed' });
+      toast(`${conv.name} is blocked`);
+    },
+    unblock: () => { addMessages(conv.id, sys('shield-check', `Unblocked by ${ME_NAME}`), { blocked: false }); toast(`${conv.name} is unblocked`); },
+    setAi: (m) => {
+      if (m === mode) return;
+      if (m === 'auto' && !can(currentUser(), 'ai-autoreply')) { toast(why('ai-autoreply'), { tone: 'info' }); return; }
+      const word = { auto: `GridAI Autopilot turned on by ${ME_NAME}`, assist: `${ME_NAME} set GridAI to Assist · it drafts, a person sends`, off: `${ME_NAME} turned GridAI off for this chat` }[m];
+      addMessages(conv.id, sys('sparkles', word), { autopilot: m === 'auto', aiMode: m });
+      logAi({ kind: 'settings', title: m === 'auto' ? 'Autopilot on for a chat' : m === 'off' ? 'GridAI off for a chat' : 'Autopilot off for a chat', detail: conv.name, channel: conv.ch, by: ME_NAME });
+      toast(m === 'auto' ? 'GridAI answers this chat. Taking over is one tap.' : m === 'assist' ? 'You are handling this chat. GridAI keeps drafting.' : 'GridAI is off for this chat.');
+      if (m === 'auto' && waiting) autopilotReply(conv.id, opts);
+    },
+  };
+  const call = () => {
+    if (!conv) return;
+    const phone = conv.phone || '';
+    if (!phone) { toast(`${conv.name} has no number yet. Add one in the customer details.`, { tone: 'info' }); return; }
+    if (!startCall({ phone, name: conv.name, dir: 'out', conv: conv.id, line: conv.ch === 'whatsapp' ? 'whatsapp' : 'support', back: '/m-chat?id=' + encodeURIComponent(conv.id) })) { toast('Finish the call you are on first', { tone: 'error' }); }
+    router.push('/m-call-active');
+  };
+
+  const canOrder = ctx ? access('/m-new-order', ctx) : false;
+  const canTicket = ctx ? access('/m-tickets', ctx) : false;
+  const orderHref = conv ? `/m-new-order?phone=${encodeURIComponent(conv.phone || '')}&name=${encodeURIComponent(conv.name)}&conv=${encodeURIComponent(conv.id)}` : '';
+  const replies = sheet === 'replies' ? safe(() => getReplies(), []).filter((r) => !q || (r.title + ' ' + r.short + ' ' + r.body).toLowerCase().includes(q.toLowerCase())) : [];
+  const products = sheet === 'product' ? safe(() => searchProducts(q).filter(isStatusSellable).slice(0, 30).map((p) => ({ ...p, free: stockAt(p.sku, '').available })), []) : [];
+  const summary = sheet === 'profile' && conv ? safe(() => summarize(conv), null) : null;
+  const callable = conv && (CALL_CHANNELS.includes(conv.ch) || conv.phone);
+  const lastIn = conv ? [...conv.messages].reverse().find((m) => m.from === 'customer') : null;
+  const active = lastIn && now - lastIn.at < 15 * 60000;
+
+  if (ready && query && !id) {
     return (
-      <div className="dc-screen" data-screen="MChat">
-        <h1 style={{ position: "absolute", width: "1px", height: "1px", margin: "-1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>Chat with Nusrat Jahan</h1>
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="ph">
-          <div className="sb" style={{ color: "#0f172a" }}>
-            <span className="num">2:32</span>
-            <span className="r">
-              <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true" fill="#0f172a">
-                <rect x="0" y="8" width="3" height="4" rx="1" />
-                <rect x="5" y="5" width="3" height="7" rx="1" />
-                <rect x="10" y="2.5" width="3" height="9.5" rx="1" />
-                <rect x="15" y="0" width="3" height="12" rx="1" />
-              </svg>
-              <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>4G</span>
-              <svg width="27" height="13" viewBox="0 0 27 13" aria-hidden="true">
-                <rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="#0f172a" opacity=".4" />
-                <rect x="2" y="2" width="17" height="9" rx="2" fill="#0f172a" />
-                <path d="M25 4.5v4" stroke="#0f172a" strokeWidth="1.5" opacity=".5" />
-              </svg>
-            </span>
-          </div>
-          <header className="appbar" style={{ height: "64px", background: "rgba(255,255,255,.9)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--line)" }}>
-            <__Link href="/m-inbox" className="ib" aria-label="Back">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </__Link>
-            <span className="pav" style={{ width: "42px", height: "42px" }}>
-              <img className="face" src="data:image/jpeg;base64,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" alt="" style={{ width: "42px", height: "42px" }} />
-              <span className="pb" style={{ width: "18px", height: "18px", right: "-3px", bottom: "-3px" }}>
-                <img src="data:image/png;base64,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" alt="Facebook" style={{ width: "14px", height: "14px" }} />
-              </span>
-              <span className="on" />
-            </span>
-            <span style={{ flex: "1", minWidth: "0", paddingLeft: "8px" }}>
-              <span style={{ display: "block", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>Nusrat Jahan</span>
-              <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--muted)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />Active now · Facebook</span>
-            </span>
-            <__Link href="/m-call-active" className="ib" aria-label="Call">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" />
-              </svg>
-            </__Link>
-            <__Link href="/m-ticket-new" className="ib" aria-label="Create ticket">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
-                <path d="M13 5v2M13 17v2M13 11v2" />
-              </svg>
-            </__Link>
-          </header>
-          <div style={{ position: "absolute", top: "111px", left: "0", right: "0", padding: "10px 16px", zIndex: "4" }}>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center", padding: "8px 8px 8px 14px", borderRadius: "var(--radius-xl)", background: "var(--card)", boxShadow: "0 1px 2px rgba(15,23,42,.05)", fontSize: "var(--text-xs-plus)" }}>
-              <span style={{ color: "var(--muted)", whiteSpace: "nowrap" }}><b className="num" style={{ color: "var(--ink)" }}>6</b> orders</span>
-              <span style={{ color: "#cbd5e1" }}>|</span>
-              <span style={{ color: "var(--muted)", whiteSpace: "nowrap" }}><b className="num" style={{ color: "var(--ink)" }}>৳14,200</b> spent</span>
-              <__Link href="/m-new-order" className="btn btnp" style={{ marginLeft: "auto", height: "32px", padding: "0 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M12 5v14M5 12h14" />
-</svg>Order</__Link>
-            </div>
-          </div>
-          <div className="content" style={{ top: "170px", bottom: "156px", padding: "6px 16px", display: "flex", flexDirection: "column", gap: "8px", justifyContent: "flex-end" }}>
-            <div style={{ alignSelf: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", background: "#e9eef5", padding: "3px 10px", borderRadius: "var(--radius-full)" }}>Today</div>
-            <div style={{ display: "flex", justifyContent: "flex-start" }}>
-              <div style={{ maxWidth: "76%", padding: "10px 14px 7px", borderRadius: "var(--radius-xl) var(--radius-xl) var(--radius-xl) var(--radius-md)", background: "var(--card)", color: "var(--ink)", fontSize: "var(--text-sm-plus)", lineHeight: "21px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>Assalamu alaikum. Is the charger original?<div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", fontSize: "var(--text-xs)", opacity: ".7", marginTop: "2px" }}>2:21 PM</div></div>
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <div style={{ maxWidth: "76%", padding: "10px 14px 7px", borderRadius: "var(--radius-xl) var(--radius-xl) var(--radius-md) var(--radius-xl)", background: "linear-gradient(160deg,#0a4bb5,#003087)", color: "#fff", fontSize: "var(--text-sm-plus)", lineHeight: "21px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>Wa alaikum assalam. Yes, 100% original, imported from Korea. Batch expires Jun 2027.<div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", fontSize: "var(--text-xs)", opacity: ".7", marginTop: "2px" }}>2:22 PM<svg width="16" height="10" viewBox="0 0 16 10" aria-label="Seen" style={{ marginLeft: "4px" }}>
-  <path d="M1 5l3 3 6-7M6 8l1 1 7-8" fill="none" stroke="#7fd4f5" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-</svg></div></div>
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <div className="card" style={{ width: "76%", overflow: "hidden", borderRadius: "var(--radius-xl) var(--radius-xl) var(--radius-md) var(--radius-xl)" }}>
-                <div role="img" aria-label="Anker 20W charger" style={{ height: "76px", background: "linear-gradient(135deg,#fff4e0,#ffe0b8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="72" height="60" viewBox="0 0 72 60" aria-hidden="true">
-                    <rect x="20" y="13" width="40" height="34" rx="9" transform="rotate(-18 40 30)" fill="#fff" stroke="#f3b562" strokeWidth="1.5" />
-                    <rect x="8" y="30" width="14" height="16" rx="3" transform="rotate(-18 40 30)" fill="#f59e0b" />
-                    <rect x="27" y="22" width="22" height="6" rx="3" transform="rotate(-18 40 30)" fill="#f59e0b" />
-                    <rect x="27" y="32" width="15" height="4" rx="2" transform="rotate(-18 40 30)" fill="#fcd9a4" />
-                  </svg>
-                </div>
-                <div style={{ padding: "10px 14px 12px" }}>
-                  <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Anker 20W USB-C Charger</div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
-                    <span className="num" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>৳940 <s style={{ fontWeight: "var(--weight-regular)", color: "var(--muted)", fontSize: "var(--text-xs-plus)" }}>৳1,250</s></span>
-                    <span className="pill p-warn"><span className="sh warn" aria-hidden="true" />12 left</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-start" }}>
-              <div style={{ maxWidth: "76%", padding: "10px 14px 7px", borderRadius: "var(--radius-xl) var(--radius-xl) var(--radius-xl) var(--radius-md)", background: "var(--card)", color: "var(--ink)", fontSize: "var(--text-sm-plus)", lineHeight: "21px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>Need 2 pcs. Dhanmondi delivery kobe?<div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", fontSize: "var(--text-xs)", opacity: ".7", marginTop: "2px" }}>2:30 PM</div></div>
-            </div>
-            <div style={{ display: "flex", gap: "4px", padding: "10px 14px", borderRadius: "var(--radius-xl) var(--radius-xl) var(--radius-xl) var(--radius-md)", background: "var(--card)", alignSelf: "flex-start" }} aria-label="Typing">
-              <span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#94a3b8" }} />
-              <span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#b8c2d0" }} />
-              <span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#d5dce6" }} />
-            </div>
-          </div>
-          <div className="composer" style={{ position: "absolute", left: "0", right: "0", bottom: "0", padding: "10px 0 34px", background: "linear-gradient(to top,var(--bg) 70%,rgba(245,247,250,0))", zIndex: "6" }}>
-            <div className="chips" style={{ padding: "0 12px" }}>
-              <span className="chip" style={{ borderColor: "#cfe0f7", color: "var(--brand)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
-</svg>Delivery in 24 h</span>
-              <span className="chip">Send price list</span>
-              <span className="chip">Share product</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "10px 12px 0", padding: "6px", borderRadius: "26px", background: "var(--card)", boxShadow: "0 6px 20px -10px rgba(15,23,42,.25),0 0 0 1px var(--line)" }}>
-              <a className="ib" href="#" aria-label="Add" style={{ width: "40px", height: "40px", borderRadius: "var(--radius-full)", background: "var(--soft)", color: "var(--brand)" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </a>
-              <span style={{ flex: "1", color: "var(--muted)", fontSize: "var(--text-sm-plus)", paddingLeft: "4px" }}>Reply on Facebook…</span>
-              <a className="ib" href="#" aria-label="Voice message" style={{ width: "40px", height: "40px" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="9" y="2" width="6" height="12" rx="3" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3" />
-                </svg>
-              </a>
-              <a className="ib" href="#" aria-label="Send" style={{ width: "40px", height: "40px", borderRadius: "var(--radius-full)", background: "var(--brand)", color: "#fff" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m22 2-7 20-4-9-9-4Z" />
-                  <path d="M22 2 11 13" />
-                </svg>
-              </a>
-            </div>
-          </div>
-          <div className="hi" aria-hidden="true" />
-        </div>
-      </div>
+      <AppScreen name="MChat" title="Chat">
+        <header className="appbar"><Link href="/m-inbox" className="ib" aria-label="Back"><Icon name="back" size={24} stroke={2} /></Link><h1>Chat</h1><span style={{ width: '36px' }} /></header>
+        <Content top={103}><div className="card" style={{ margin: '0 20px' }}><EmptyState icon="chat" title="This chat isn’t here any more" action={{ label: 'Open the Inbox', href: '/m-inbox' }} /></div></Content>
+      </AppScreen>
     );
   }
+  if (ctx && !access('/m-inbox', ctx)) {
+    return (
+      <AppScreen name="MChat" title="Chat">
+        <header className="appbar"><Link href="/m-home" className="ib" aria-label="Back"><Icon name="back" size={24} stroke={2} /></Link><h1>Chat</h1><span style={{ width: '36px' }} /></header>
+        <Content top={103}><div className="card" style={{ margin: '0 20px' }}><EmptyState icon="alert" title="The Inbox isn’t part of your access in this edition." action={{ label: 'Go to Home', href: '/m-home' }} /></div></Content>
+      </AppScreen>
+    );
+  }
+
+  const placeholder = note ? 'Internal note · @mention the team' : conv ? `Reply on ${channelName(conv.ch)}…` : 'Reply…';
+  const showDraft = run && hidden !== draftKey && mode === 'assist' && !conv.blocked;
+  const css = CSS + `[data-screen="MChat"] > .ph > .content.mc-thread{bottom:${compH + 14}px}
+@media (max-width:480px){
+  [data-screen="MChat"] > .ph:not([data-board]) > .content.mc-thread{bottom:0 !important;padding-bottom:calc(${compH}px + var(--space-3)) !important}
+}`;
+
+  return (
+    <AppScreen name="MChat" title={conv ? 'Chat with ' + conv.name : 'Chat'} css={css}>
+      <h1 style={{ position: 'absolute', width: '1px', height: '1px', margin: '-1px', overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>{conv ? 'Chat with ' + conv.name : 'Chat'}</h1>
+      <header className="appbar" style={{ height: '64px', background: 'rgba(255,255,255,.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--line)' }}>
+        <Link href="/m-inbox" className="ib" aria-label="Back"><Icon name="back" size={24} stroke={2} /></Link>
+        {conv ? (
+          <button type="button" onClick={() => setSheet('profile')} aria-label={`${conv.name}: customer details`} style={{ display: 'flex', alignItems: 'center', flex: '1', minWidth: '0', padding: 0, border: 0, background: 'none', textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer' }}>
+            <Face name={conv.name} avatar={conv.avatar} pos={conv.pos} ch={conv.ch} size={42} badge={18} online={active} />
+            <span style={{ flex: '1', minWidth: '0', paddingLeft: '8px' }}>
+              <span className="ell" style={{ display: 'block', fontSize: 'var(--text-base)', fontWeight: 'var(--weight-semibold)' }}>{conv.name}</span>
+              <span className="ell" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--muted)' }}>
+                {active ? <span style={{ width: '7px', height: '7px', borderRadius: 'var(--radius-full)', background: '#10b981', flex: 'none' }} /> : null}
+                {active ? 'Active now' : lastIn ? 'Wrote ' + inboxAgo(lastIn.at, now).replace(/^(\d+)m$/, '$1 min ago').replace(/^(\d+)h$/, '$1 h ago') : 'No messages yet'} · {channelName(conv.ch)}
+              </span>
+            </span>
+          </button>
+        ) : <span style={{ flex: 1 }} />}
+        {conv && callable ? <button type="button" className="ib" aria-label="Call" onClick={call}><Icon name="phone" size={21} /></button> : null}
+        <button type="button" className="ib" aria-label="More actions" onClick={() => setSheet('more')} disabled={!conv}><Icon name="dots" size={21} /></button>
+      </header>
+
+      <div style={{ position: 'absolute', top: '111px', left: '0', right: '0', padding: '10px 16px', zIndex: '4' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '8px 8px 8px 14px', borderRadius: 'var(--radius-xl)', background: 'var(--card)', boxShadow: '0 1px 2px rgba(15,23,42,.05)', fontSize: 'var(--text-xs-plus)' }}>
+          <button type="button" onClick={() => setSheet('profile')} disabled={!conv} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', cursor: 'pointer', minWidth: 0 }}>
+            <span style={{ color: 'var(--muted)', whiteSpace: 'nowrap' }}><b className="num" style={{ color: 'var(--ink)' }}>{conv ? facts.count : '—'}</b> order{facts.count === 1 ? '' : 's'}</span>
+            <span style={{ color: '#cbd5e1' }}>|</span>
+            <span style={{ color: 'var(--muted)', whiteSpace: 'nowrap' }}><b className="num" style={{ color: 'var(--ink)' }}>{conv ? money(facts.spent) : '—'}</b> spent</span>
+          </button>
+          <button type="button" className={'pill p-' + (mode === 'auto' ? 'nav' : mode === 'assist' ? 'grey' : 'grey')} onClick={() => setSheet('ai')} disabled={!conv} aria-label={'GridAI for this chat: ' + AI_WORD[mode] + '. Change'} style={{ marginLeft: 'auto', border: 0, cursor: 'pointer', font: 'inherit', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)' }}>
+            <Icon name="sparkles" size={13} />GridAI · {AI_WORD[mode]}
+          </button>
+        </div>
+      </div>
+
+      <div className="content mc-thread" ref={scroller} onScroll={onScroll} role="log" aria-label={conv ? `Messages with ${conv.name}` : 'Messages'} aria-live="polite"
+        style={{ top: '170px', bottom: compH + 14 + 'px', padding: '6px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {conv ? (
+          <>
+            <Thread conv={conv} now={now} orders={orders} typing={typing === conv.id}
+              onTap={(m) => { setMsg(m); setSheet('msg'); }} onPhoto={(src) => { setPhoto(src); setSheet('photo'); }} onCall={call} />
+            {mode === 'auto' && status !== 'closed' ? (
+              <div style={{ alignSelf: 'center', display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 6px 6px 12px', borderRadius: 'var(--radius-full)', background: 'var(--soft)', fontSize: 'var(--text-xs-plus)', color: 'var(--brand)', marginTop: '6px' }}>
+                <Icon name="sparkles" size={14} />GridAI is answering this chat
+                <button type="button" onClick={() => act.setAi('assist')} style={{ height: '28px', padding: '0 10px', border: 0, borderRadius: 'var(--radius-full)', background: 'var(--card)', color: 'var(--ink)', font: 'inherit', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)', cursor: 'pointer' }}>Take over</button>
+              </div>
+            ) : null}
+            {showDraft ? (
+              <section aria-label="GridAI suggestion" style={{ alignSelf: 'flex-end', width: '86%', padding: '12px 14px', borderRadius: 'var(--radius-xl) var(--radius-xl) var(--radius-md) var(--radius-xl)', background: 'linear-gradient(180deg,var(--soft),var(--card) 70%)', border: '1px dashed #9db6e3', marginTop: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--muted)', minWidth: 0 }}>
+                  <span style={{ width: '22px', height: '22px', borderRadius: 'var(--radius-full)', background: 'var(--brand)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}><Icon name="sparkles" size={12} /></span>
+                  <b style={{ color: 'var(--ink)', fontWeight: 'var(--weight-semibold)', whiteSpace: 'nowrap' }}>GridAI suggests</b>
+                  <span className="ell">{(run.intents || []).map((k) => INTENT_WORD[k] || k).join(', ')}</span>
+                  {run.decision && run.decision.act === 'person' ? <Pill tone="warn" style={{ marginLeft: 'auto' }}>Check first</Pill> : null}
+                </div>
+                <p style={{ margin: '8px 0 10px', fontSize: 'var(--text-sm)', lineHeight: '20px', color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{run.reply}</p>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <button type="button" className="chip on" onClick={acceptDraft} style={{ height: '32px', cursor: 'pointer' }}><XIcon name="send" size={14} />Send</button>
+                  <button type="button" className="chip" onClick={editDraft} style={{ height: '32px', cursor: 'pointer' }}>Edit</button>
+                  <button type="button" className="chip" onClick={() => setVariant((v) => v + 1)} style={{ height: '32px', cursor: 'pointer' }}>Again</button>
+                  <button type="button" className="ib" aria-label="Dismiss the suggestion" onClick={dismissDraft} style={{ width: '32px', height: '32px', marginLeft: 'auto' }}><Icon name="x" size={16} /></button>
+                </div>
+              </section>
+            ) : null}
+            {reach && reach.state !== 'open' && !conv.blocked ? <Note tone={reach.state === 'disconnected' ? 'info' : 'warn'} icon="alert">{reach.label}{reach.state === 'template' ? ': the free reply window has closed, send an approved template from the web.' : reach.state === 'disconnected' ? ': reconnect the channel on the web to reply.' : '.'}</Note> : null}
+          </>
+        ) : <div style={{ alignSelf: 'center', color: 'var(--muted)', fontSize: 'var(--text-sm)' }}>{' '}</div>}
+      </div>
+
+      <div className="composer" ref={comp} style={{ position: 'absolute', left: '0', right: '0', bottom: '0', padding: '10px 0 34px', background: 'linear-gradient(to top,var(--bg) 70%,rgba(245,247,250,0))', zIndex: '6' }}>
+        {conv && conv.blocked ? (
+          <div style={{ margin: '0 12px', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 10px 10px 14px', borderRadius: 'var(--radius-xl)', background: 'var(--card)', boxShadow: '0 0 0 1px var(--line)', fontSize: 'var(--text-sm)' }}>
+            <span style={{ flex: 1 }}>You blocked {conv.name}. They can’t message the shop.</span>
+            <Button kind="line" onClick={act.unblock} style={{ height: '36px' }}>Unblock</Button>
+          </div>
+        ) : (
+          <>
+            {lock ? <div style={{ margin: '0 12px 8px', fontSize: 'var(--text-xs-plus)', color: 'var(--warn)', display: 'flex', alignItems: 'center', gap: '6px' }}><Icon name="edit" size={14} />{lock.name} is replying. You can still add a note.</div> : null}
+            {replyTo ? (
+              <div style={{ margin: '0 12px 8px', display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 6px 6px 12px', borderRadius: 'var(--radius-lg)', background: 'var(--card)', borderLeft: '3px solid var(--brand)', fontSize: 'var(--text-xs-plus)' }}>
+                <span className="ell" style={{ flex: 1, minWidth: 0 }}><b style={{ fontWeight: 'var(--weight-medium)' }}>Replying to {replyTo.from === 'customer' ? conv.name : 'you'}</b> · {replyTo.text || 'message'}</span>
+                <button type="button" className="ib" aria-label="Cancel the reply" onClick={() => setReplyTo(null)} style={{ width: '28px', height: '28px' }}><Icon name="x" size={14} /></button>
+              </div>
+            ) : null}
+            {img ? (
+              <div style={{ margin: '0 12px 8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src={img} alt="Photo to send" style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: 'var(--radius-lg)' }} />
+                <span style={{ flex: 1, fontSize: 'var(--text-xs-plus)', color: 'var(--muted)' }}>Photo ready · add a caption or send</span>
+                <button type="button" className="ib" aria-label="Remove the photo" onClick={() => setImg('')} style={{ width: '32px', height: '32px' }}><Icon name="x" size={16} /></button>
+              </div>
+            ) : null}
+            <div className="chips" style={{ padding: '0 12px' }}>
+              <button type="button" className="chip" onClick={() => { setQ(''); setSheet('replies'); }}>Saved replies</button>
+              <button type="button" className="chip" onClick={() => { setQ(''); setSheet('product'); }}>Share product</button>
+              <button type="button" className="chip" onClick={() => { setPay({ amount: facts.orders[0] ? String(Math.round(facts.orders[0].amount || 0)) : '', method: 'bkash', order: facts.orders[0] ? facts.orders[0].id : '', note: '' }); setSheet('payment'); }}>Payment link</button>
+              {canOrder ? <Link className="chip" href={orderHref}>Create order</Link> : null}
+              <button type="button" className={'chip' + (note ? ' note-on' : '')} aria-pressed={note} onClick={() => setNote(!note)}>{note ? 'Writing a note' : 'Note'}</button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '10px 12px 0', padding: '6px', borderRadius: '26px', background: note ? 'var(--warnbg)' : 'var(--card)', boxShadow: '0 6px 20px -10px rgba(15,23,42,.25),0 0 0 1px var(--line)' }}>
+              {recording ? <Recorder onSend={sendVoice} onCancel={() => setRecording(false)} /> : (
+                <>
+                  <button type="button" className="ib" aria-label="Add" onClick={() => setSheet('attach')} style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-full)', background: 'var(--soft)', color: 'var(--brand)', flex: 'none' }}><Icon name="plus" size={20} stroke={2} /></button>
+                  <textarea ref={input} className="mc-input" rows={1} value={text} placeholder={placeholder} aria-label={placeholder} disabled={!conv}
+                    onChange={(e) => onType(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && window.matchMedia('(min-width: 481px)').matches) { e.preventDefault(); submit(); } }} />
+                  {!text.trim() && !img && !note ? <button type="button" className="ib" aria-label="Voice message" onClick={() => setRecording(true)} disabled={!conv} style={{ width: '40px', height: '40px', flex: 'none' }}><XIcon name="mic" size={20} /></button> : null}
+                  <button type="button" className="ib" aria-label={note ? 'Add note' : 'Send'} onClick={submit} disabled={!conv} style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-full)', background: note ? '#b45309' : 'var(--brand)', color: '#fff', flex: 'none' }}><XIcon name="send" size={18} /></button>
+                </>
+              )}
+            </div>
+          </>
+        )}
+        <input ref={file} type="file" accept="image/*" hidden onChange={pickImage} />
+      </div>
+
+      {/* ⋯ */}
+      <Sheet open={sheet === 'more' && !!conv} onClose={() => setSheet('')} title={conv ? conv.name : ''}>
+        {conv ? (
+          <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+            {status === 'closed'
+              ? <ListRow compact icon="undo" title="Reopen" onClick={() => { setSheet(''); act.reopen(); }} chevron={false} />
+              : <ListRow compact icon="check" title="Mark done" sub="Closes the chat; it opens again when they write" onClick={() => { setSheet(''); act.close(); }} chevron={false} />}
+            <ListRow compact icon="user" title="Assign" sub={conv.assignee ? staffName(conv.assignee) : 'Unassigned'} onClick={() => setSheet('assign')} />
+            <ListRow compact icon="sparkles" title="GridAI for this chat" sub={AI_WORD[mode]} onClick={() => setSheet('ai')} />
+            <ListRow compact icon="users" title="Customer details" onClick={() => setSheet('profile')} />
+            {status === 'snoozed'
+              ? <ListRow compact icon="bell" title="Unsnooze" onClick={() => { setSheet(''); act.unsnooze(); }} chevron={false} />
+              : <ListRow compact icon="clock" title="Snooze until tomorrow" sub={clock(snoozeChoices(now)[2][1])} onClick={() => { setSheet(''); act.snooze(snoozeChoices(Date.now())[2][1]); }} chevron={false} />}
+            {status !== 'pending' && status !== 'closed' ? <ListRow compact icon="clock" title="Set to pending" sub="Waiting on the customer" onClick={() => { setSheet(''); act.pending(); }} chevron={false} /> : null}
+            <ListRow compact icon="chat" title="Mark as unread" onClick={() => { setSheet(''); act.unread(); }} chevron={false} />
+            {canOrder ? <ListRow compact icon="bag" title="Create order" href={orderHref} /> : null}
+            {canTicket ? <ListRow compact icon="ticket" title="Create ticket" href={`/m-ticket-new?conv=${encodeURIComponent(conv.id)}&name=${encodeURIComponent(conv.name)}&phone=${encodeURIComponent(conv.phone || '')}`} /> : null}
+            {conv.blocked
+              ? <ListRow compact icon="check" title="Unblock" onClick={() => { setSheet(''); act.unblock(); }} chevron={false} />
+              : <ListRow compact icon="x" title={`Block ${conv.name}`} onClick={() => { setSheet(''); act.block(); }} chevron={false} />}
+          </div>
+        ) : null}
+      </Sheet>
+
+      {/* GridAI for this chat */}
+      <Sheet open={sheet === 'ai' && !!conv} onClose={() => setSheet('')} title="GridAI for this chat">
+        {setup && !setup.providers ? <Note tone="warn" icon="alert" style={{ marginBottom: '12px' }}>GridAI isn’t set up for this shop yet. <Link href="/ai-behaviour" style={{ color: 'var(--brand)', fontWeight: 'var(--weight-medium)' }}>Set up on the web</Link></Note> : null}
+        <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+          {AI_OPTS.map(([k, l, s]) => (
+            <button key={k} type="button" className="row" aria-pressed={mode === k} onClick={() => { act.setAi(k); setSheet(''); }}>
+              <span className="ico" style={{ background: mode === k ? 'var(--brand)' : 'var(--soft)', color: mode === k ? '#fff' : 'var(--brand)' }}><Icon name={k === 'auto' ? 'sparkles' : k === 'assist' ? 'edit' : 'x'} /></span>
+              <span className="m"><span className="t" style={{ display: 'block' }}>{l}</span><span className="s" style={{ display: 'block' }}>{s}</span></span>
+              {mode === k ? <Icon name="check" size={20} stroke={2.2} /> : null}
+            </button>
+          ))}
+        </div>
+        <div className="help" style={{ marginTop: '10px' }}>Auto answers only the simple questions the shop allows; anything else, or an unhappy customer, comes to a person. When you reply yourself, Auto stops for this chat.</div>
+      </Sheet>
+
+      {/* assign */}
+      <Sheet open={sheet === 'assign' && !!conv} onClose={() => setSheet('')} title="Assign to">
+        <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+          {[{ id: '', name: 'Unassigned', role: 'Anyone in the team can pick it up', initials: '–' }, ...STAFF].map((s) => (
+            <button key={s.id || 'none'} type="button" className="row" style={{ minHeight: '56px', padding: '9px 16px' }} aria-pressed={conv && (conv.assignee || '') === s.id} onClick={() => { if ((conv.assignee || '') !== s.id) act.assign(s.id); setSheet(''); }}>
+              <Face name={s.name} size={40} />
+              <span className="m"><span className="t" style={{ display: 'block' }}>{s.name}{s.id === ME ? ' (you)' : ''}</span><span className="s" style={{ display: 'block' }}>{s.role}</span></span>
+              {conv && (conv.assignee || '') === s.id ? <Icon name="check" size={20} stroke={2.2} /> : null}
+            </button>
+          ))}
+        </div>
+      </Sheet>
+
+      {/* customer */}
+      <Sheet open={sheet === 'profile' && !!conv} onClose={() => setSheet('')} title="Customer"
+        footer={conv ? <>
+          {callable ? <Button kind="line" onClick={() => { setSheet(''); call(); }} icon="phone">Call</Button> : null}
+          {canOrder ? <Button kind="primary" href={orderHref} icon="bag" style={{ flex: 2 }}>Create order</Button> : null}
+        </> : null}>
+        {conv ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Face name={conv.name} avatar={conv.avatar} pos={conv.pos} ch={conv.ch} size={56} />
+              <span style={{ minWidth: 0 }}>
+                <span className="ell" style={{ display: 'block', fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semibold)' }}>{conv.name}</span>
+                <span className="num ell" style={{ display: 'block', fontSize: 'var(--text-xs-plus)', color: 'var(--muted)' }}>{[conv.phone ? fmtPhone(conv.phone) : '', conv.handle, channelName(conv.ch)].filter(Boolean).join(' · ')}</span>
+              </span>
+            </div>
+            <StatRow cols={3} style={{ marginTop: '14px' }}>
+              <Stat label="Orders" value={String(facts.count)} tone="nav" />
+              <Stat label="Spent" value={money(facts.spent)} tone="ok" />
+              <Stat label="Last order" value={facts.orders[0] ? inboxAgo(facts.orders[0].at, now) : '—'} tone="grey" />
+            </StatRow>
+            {(conv.tags || []).length ? <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '12px' }}>{conv.tags.map((g) => <Pill key={g} tone={g === 'VIP' ? 'warn' : 'grey'}>{g}</Pill>)}</div> : null}
+            {summary ? (
+              <div style={{ marginTop: '14px', padding: '12px 14px', borderRadius: 'var(--radius-xl)', background: 'var(--soft)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)', color: 'var(--brand)' }}><Icon name="sparkles" size={13} />GridAI summary</div>
+                {summary.lines.map((l) => <div key={l} style={{ fontSize: 'var(--text-sm)', lineHeight: '20px', marginTop: '4px' }}>{l}</div>)}
+              </div>
+            ) : null}
+            {conv.note ? <Note tone="warn" icon="edit" style={{ marginTop: '12px' }}>{conv.note}</Note> : null}
+            <div className="lab" style={{ margin: '16px 0 8px' }}>Orders</div>
+            {facts.orders.length ? (
+              <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+                {facts.orders.slice(0, 5).map((o) => (
+                  <Link key={o.id} href={'/m-order-detail?id=' + encodeURIComponent(o.id)} className="lrow" style={{ padding: '11px 14px' }}>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span className="mono" style={{ display: 'block', fontSize: 'var(--text-xs-plus)', color: 'var(--muted)' }}>{o.id}</span>
+                      <span className="num ell" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>{o.itemTitle || 'Items'} · {money(o.amount)}</span>
+                    </span>
+                    <OrderPill statusKey={o.statusKey} />
+                  </Link>
+                ))}
+              </div>
+            ) : <div className="help">No orders with this number yet.</div>}
+            {(conv.links || []).length ? <div className="help" style={{ marginTop: '10px' }}>Also on {conv.links.map((l) => channelName(l.ch)).join(', ')}</div> : null}
+          </>
+        ) : null}
+      </Sheet>
+
+      {/* saved replies */}
+      <Sheet open={sheet === 'replies'} onClose={() => setSheet('')} title="Saved replies">
+        <SearchField value={q} onChange={setQ} placeholder="Search saved replies" style={{ margin: '0 0 10px' }} />
+        <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+          {replies.length ? replies.map((r) => (
+            <button key={r.id} type="button" className="lrow" onClick={() => { setText(fillReply(r.body, { name: conv.name, order: facts.orders[0] ? facts.orders[0].id : '' })); countReplyUse(r.id); setSheet(''); if (input.current) input.current.focus(); }}
+              style={{ width: '100%', border: 0, background: 'none', textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer', alignItems: 'flex-start', flexDirection: 'column', gap: '2px' }}>
+              <span lang={r.lang === 'bn' ? 'bn' : undefined} className={r.lang === 'bn' ? 'bn' : undefined} style={{ fontSize: 'var(--text-sm-plus)', fontWeight: 'var(--weight-medium)' }}>{r.title} <span className="mono" style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)', fontWeight: 'var(--weight-regular)' }}>/{r.short}</span></span>
+              <span lang={r.lang === 'bn' ? 'bn' : undefined} className={r.lang === 'bn' ? 'bn' : undefined} style={{ fontSize: 'var(--text-xs-plus)', color: 'var(--muted)', lineHeight: '18px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{r.body}</span>
+            </button>
+          )) : <div className="empty">No saved reply matches.</div>}
+        </div>
+      </Sheet>
+
+      {/* product */}
+      <Sheet open={sheet === 'product'} onClose={() => setSheet('')} title="Share a product">
+        <SearchField value={q} onChange={setQ} placeholder="Search name, SKU or barcode" style={{ margin: '0 0 10px' }} />
+        <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+          {products.length ? products.map((p) => (
+            <ListRow key={p.sku} compact icon="box" title={p.name + (p.variant ? ' · ' + p.variant : '')} sub={<><span className="num">{money(p.price)}</span> · <span className="mono">{p.sku}</span></>}
+              end={<Pill tone={p.free > 0 ? 'ok' : 'err'}>{p.free > 0 ? `${p.free} in stock` : 'Out of stock'}</Pill>} chevron={false}
+              onClick={() => { send([{ from: 'agent', by: ME, type: 'product', sku: p.sku, status: 'sent' }]); setSheet(''); toast(`Product card sent · ${p.name}`); }} />
+          )) : <div className="empty">No product matches.</div>}
+        </div>
+      </Sheet>
+
+      {/* payment link */}
+      <Sheet open={sheet === 'payment'} onClose={() => setSheet('')} title="Payment link"
+        footer={<Button kind="primary" onClick={() => {
+          const amount = Math.round(Number(pay.amount) || 0);
+          if (amount <= 0) { toast('Enter the amount', { tone: 'error' }); return; }
+          const link = 'pay.gridcommerce.app/p/' + Math.random().toString(36).slice(2, 8).toUpperCase();
+          if (send([{ from: 'agent', by: ME, type: 'payment', amount, order: pay.order, method: pay.method, note: pay.note.trim(), link, status: 'sent' }])) { setSheet(''); toast(`Payment link for ${money(amount)} sent`); }
+        }}>Send link</Button>}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <label className="field"><span className="lab">Amount</span><TextInput value={pay.amount} onChange={(v) => setPay({ ...pay, amount: v.replace(/[^0-9]/g, '') })} prefix="৳" inputMode="numeric" placeholder="0" /></label>
+          <div>
+            <div className="lab" style={{ marginBottom: '8px' }}>Pay with</div>
+            <Segmented items={METHODS.map(([k, l]) => ({ key: k, label: l }))} value={pay.method} onChange={(k) => setPay({ ...pay, method: k })} style={{ margin: 0 }} />
+          </div>
+          {facts.orders.length ? (
+            <label className="field"><span className="lab">For order</span>
+              <span className="inp"><select value={pay.order} onChange={(e) => setPay({ ...pay, order: e.target.value })}><option value="">No order</option>{facts.orders.slice(0, 8).map((o) => <option key={o.id} value={o.id}>{o.id} · {money(o.amount)}</option>)}</select></span>
+            </label>
+          ) : null}
+          <label className="field"><span className="lab">Note (optional)</span><TextInput value={pay.note} onChange={(v) => setPay({ ...pay, note: v })} placeholder="Advance for the order" /></label>
+        </div>
+      </Sheet>
+
+      {/* + */}
+      <Sheet open={sheet === 'attach'} onClose={() => setSheet('')} title="Add">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '8px' }}>
+          {[
+            ['Photo', 'image', () => { setSheet(''); if (file.current) file.current.click(); }],
+            ['Product', 'box', () => { setQ(''); setSheet('product'); }],
+            ['Payment', 'wallet', () => { setPay({ amount: facts.orders[0] ? String(Math.round(facts.orders[0].amount || 0)) : '', method: 'bkash', order: facts.orders[0] ? facts.orders[0].id : '', note: '' }); setSheet('payment'); }],
+            ['Note', 'edit', () => { setNote(true); setSheet(''); if (input.current) input.current.focus(); }],
+          ].map(([l, ic, fn]) => (
+            <button key={l} type="button" className="tile" onClick={fn}>
+              <span className="ico">{ic === 'image' ? <XIcon name="image" size={24} /> : <Icon name={ic} size={24} />}</span>{l}
+            </button>
+          ))}
+        </div>
+      </Sheet>
+
+      {/* a message: react or reply */}
+      <Sheet open={sheet === 'msg' && !!msg} onClose={() => { setSheet(''); setMsg(null); }} title="Message">
+        {msg ? (
+          <>
+            {msg.text ? <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-xl)', background: 'var(--soft)', fontSize: 'var(--text-sm)', lineHeight: '20px', marginBottom: '14px', maxHeight: '96px', overflow: 'auto' }}>{msg.text}</div> : null}
+            <div role="group" aria-label="React" style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 2px 14px' }}>
+              {REACTIONS.map((e) => {
+                const on = (msg.reactions || {})[ME] === e;
+                return <button key={e} type="button" aria-pressed={on} aria-label={'React ' + e} onClick={() => { reactTo(conv.id, msg.id, e); setSheet(''); setMsg(null); }} style={{ width: '48px', height: '48px', border: 0, borderRadius: 'var(--radius-full)', background: on ? 'var(--soft)' : 'transparent', fontSize: '28px', cursor: 'pointer' }}>{e}</button>;
+              })}
+            </div>
+            <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>
+              <ListRow compact icon="undo" title="Reply" onClick={() => { setReplyTo(msg); setNote(false); setSheet(''); setMsg(null); if (input.current) input.current.focus(); }} chevron={false} />
+              {msg.text ? <ListRow compact icon="clipboard" title="Copy text" onClick={() => { try { navigator.clipboard.writeText(msg.text).then(() => toast('Copied'), () => toast('Select the text to copy it', { tone: 'info' })); } catch { toast('Select the text to copy it', { tone: 'info' }); } setSheet(''); setMsg(null); }} chevron={false} /> : null}
+            </div>
+            <div className="help" style={{ marginTop: '10px' }}>{msg.from === 'customer' ? conv.name : msg.ai ? 'GridAI' : msg.by === ME ? 'You' : staffName(msg.by)} · {whenText(msg.at, now)}{msg.type === 'call' && CALL_DIRS[msg.dir] ? ' · ' + CALL_DIRS[msg.dir].label : ''}</div>
+          </>
+        ) : null}
+      </Sheet>
+
+      {/* a photo */}
+      <Sheet open={sheet === 'photo' && !!photo} onClose={() => { setSheet(''); setPhoto(''); }} title="Photo">
+        {photo ? <img src={photo} alt="" style={{ width: '100%', borderRadius: 'var(--radius-xl)', display: 'block' }} /> : null}
+      </Sheet>
+    </AppScreen>
+  );
 }
