@@ -2,8 +2,9 @@
 // SystemPicker — "Demo: preview a system" on the full product site's sign-in page: Retail, Online and Retail + Online
 // (src/lib/systems.js). An edition site (locked to one edition) shows no choice, only "Open the demo": one tap signs in
 // to its own system (demo; email / phone sign-in works below it too).
-// Under the systems, "Super admin" opens GridCommerce's own panel (/admin: merchants, billing, the company); an edition
-// site shows it as a small link under its demo button.
+// Under the systems, "Mobile app" opens the merchant app (/app → /m-home, the same shop on a phone) and "Super admin"
+// opens GridCommerce's own panel (/admin: merchants, billing, the company); an edition site shows both as small links
+// under its demo button.
 // Demo: tapping a system signs in at once (onPick). The system you are on (this site's, or the previewed edition on
 // the full site) is outlined. Arrow keys move between them. Rendered after mount (the edition preview is client-only).
 
@@ -29,6 +30,7 @@ const CSS = `
 .sp__hint{font-size:var(--text-xs);color:var(--text-muted)}
 .sp__opt--admin{text-decoration:none;color:inherit}
 .sp__opt--admin .sp__ic{background:#003087;color:#fff}
+.sp__opt--app .sp__ic{background:#eef3fb;color:#003087}
 .sp__adminlink{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:#003087;text-decoration:none}
 .sp__adminlink:hover{text-decoration:underline}
 .sp__demo{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:44px}
@@ -57,6 +59,7 @@ export function SystemPicker({ onPick, busy }) {
         {`Open the ${EDITIONS[here] ? EDITIONS[here].short : ''} demo`}
       </button>
       <span className="sp__hint">Demo: no password needed. Or sign in with any email below.</span>
+      <Link href="/app" className="sp__adminlink"><Icon name="smartphone" width="14" height="14" aria-hidden="true" />Open the mobile app</Link>
       <Link href={adminHref} className="sp__adminlink"><Icon name="shield" width="14" height="14" aria-hidden="true" />GridCommerce team? Open the super admin</Link>
     </div>
   );
@@ -65,7 +68,7 @@ export function SystemPicker({ onPick, busy }) {
   const keys = (e, i) => {
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
     e.preventDefault();
-    const n = list.length + 1;   // the systems and Super admin
+    const n = list.length + 2;   // the systems, Mobile app and Super admin
     const next = e.currentTarget.parentNode.children[(i + (e.key === 'ArrowDown' ? 1 : -1) + n) % n];
     if (next) next.focus();
   };
@@ -81,7 +84,12 @@ export function SystemPicker({ onPick, busy }) {
             {busy === s.ed ? <span className="sp__spin" role="status" aria-label="Signing in" /> : <Icon name="chevron-right" width="18" height="18" className="sp__go" aria-hidden="true" />}
           </button>
         ))}
-        <Link href={adminHref} className="sp__opt sp__opt--admin" onKeyDown={(e) => keys(e, list.length)}>
+        <Link href="/app" className="sp__opt sp__opt--admin sp__opt--app" onKeyDown={(e) => keys(e, list.length)}>
+          <span className="sp__ic"><Icon name="smartphone" width="18" height="18" aria-hidden="true" /></span>
+          <span className="sp__txt"><b>Mobile app</b><small>Run the shop from your phone</small></span>
+          <Icon name="chevron-right" width="18" height="18" className="sp__go" aria-hidden="true" />
+        </Link>
+        <Link href={adminHref} className="sp__opt sp__opt--admin" onKeyDown={(e) => keys(e, list.length + 1)}>
           <span className="sp__ic"><Icon name="shield" width="18" height="18" aria-hidden="true" /></span>
           <span className="sp__txt"><b>Super admin</b><small>GridCommerce team · merchants, billing, company</small></span>
           <Icon name="chevron-right" width="18" height="18" className="sp__go" aria-hidden="true" />
