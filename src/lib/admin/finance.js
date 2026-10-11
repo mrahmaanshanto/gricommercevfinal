@@ -21,20 +21,28 @@
 //                not matched to a bill yet; matching records the payment on the bill (billing › recordPayment)
 //   payAccount   which account a payment recorded here went into (other payments follow their method)
 //   transfers    moves between the accounts;  capital  money the owners put in
+//   services     the service catalogue (onboarding, migration, training, design, development …): category, price, unit,
+//                VAT %, income category for the books, on/off, price history
+//   income       money earned from services outside the subscription: INC-/SI- numbers, customer (a store, a lead or
+//                someone else), lines (quantity × price − discount + VAT), payments (each into an account, transaction
+//                ID once across every finance record and the platform's payments), due date, void (a reason and a
+//                second person), history. Payments are 'income' rows in ledger(); unpaid income is a receivable.
 //
 // Reads take (db, F, t) — db = the platform's data, F = this store's data. Changes commit and return { ok, error? }.
-// costs(from, to) has the same shape as lib/admin/company › costs ([{ key, name, value }]) so the dashboard can switch.
+// costs(from, to) has the same shape as lib/admin/company › costs ([{ key, name, value }]) so the dashboard can switch;
+// serviceIncome(from, to) is the service income received in a period (the dashboard's Money card).
 
 import { createStore } from './store';
 import { otherIncome } from './company';
-import { db as platformDB, now as platformNow, staff } from '@/lib/platform/store';
+import { db as platformDB, now as platformNow, staff, load as loadPlatform } from '@/lib/platform/store';
 import { recordPayment, invoiceById, balance, invoiceState, subOf, subState, isPaying, mrrOf, shopOf } from '@/lib/platform/billing';
 import { PLAN_NAME, ladderLabel } from '@/lib/platform/catalogue';
 import { rng, DAY, TZ, dhaka, startOfMonth, addMonths, periodOf, monthOf, monthLong, pad4, taka, startOfDay } from '@/lib/platform/util';
 
 // ---- the company ---------------------------------------------------------------------------------------------------
 export const COMPANY = {
-  name: 'GridCommerce Ltd.',
+  name: 'Grid Technologies Limited',
+  brand: 'GridCommerce',
   address: 'House 12, Road 45, Gulshan 1, Dhaka 1212',
   phone: '+880 9612-447700',
   email: 'accounts@gridcommerce.net',
@@ -58,7 +66,7 @@ export const CATEGORIES = [
   { key: 'other', name: 'Other', sub: 'Office supplies, equipment' },
 ];
 export const catBy = (key) => CATEGORIES.find((c) => c.key === key) || { key, name: key, sub: '' };
-export const SOURCES = [['subs', 'Subscriptions'], ['addons', 'Add-ons'], ['messaging', 'Messaging'], ['oneoffs', 'One-offs']];
+export const SOURCES = [['subs', 'Subscriptions'], ['addons', 'Add-ons'], ['messaging', 'Messaging'], ['oneoffs', 'One-offs'], ['services', 'Services']];
 export const sourceName = (k) => (SOURCES.find((s) => s[0] === k) || [k, k])[1];
 /** Which revenue source an invoice line counts in. */
 export const sourceOfLine = (l) => (l.kind === 'module' ? 'addons' : l.kind === 'credits' ? 'messaging' : l.kind === 'oneoff' || l.kind === 'topup' ? 'oneoffs' : 'subs');
@@ -242,6 +250,166 @@ function fill(F, now) {
 }
 function hashKey(s) { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
 
+// ---- services and service income: the catalogue and the demo ---------------------------------------------------------
+export const SERVICE_CATEGORIES = ['Onboarding & setup', 'Migration', 'Training', 'Design & customisation', 'Development', 'Hardware & installation', 'Consultancy', 'Content & catalogue', 'Other'];
+export const UNITS = [['oneoff', 'One-off'], ['hour', 'Per hour'], ['session', 'Per session'], ['month', 'Per month'], ['item', 'Per item']];
+export const unitLabel = (u) => (UNITS.find((x) => x[0] === u) || [u, u])[1];
+/** Where service income sits in the books. */
+export const INCOME_CATS = [['setup', 'Setup & onboarding fees'], ['services', 'Professional services'], ['training', 'Training fees'], ['hardware', 'Hardware & installation'], ['other', 'Other income']];
+export const incomeCatLabel = (k) => (INCOME_CATS.find((x) => x[0] === k) || [k, k])[1];
+export const INCOME_METHODS = ['bKash', 'Nagad', 'Rocket', 'Bank transfer', 'Cash', 'Card'];
+/** Methods that always carry a transaction ID. */
+export const TX_METHODS = ['bKash', 'Nagad', 'Rocket', 'Bank transfer'];
+export const METHOD_TO_ACCOUNT = { bKash: 'bkash', Nagad: 'nagad', Rocket: 'city', 'Bank transfer': 'city', Cash: 'cash', Card: 'brac' };
+export const CUSTOMER_TYPES = [['store', 'Store'], ['lead', 'Lead'], ['other', 'Other customer']];
+export const INCOME_STATUS = {
+  received: { label: 'Received', tone: 'success' },
+  partly: { label: 'Partly paid', tone: 'warning' },
+  due: { label: 'Due', tone: 'warning' },
+  void: { label: 'Void', tone: 'neutral' },
+};
+
+// [id, name, category, price, unit, vat %, income category, description, active]
+const SERVICES = [
+  ['SV-01', 'Onboarding & store setup', 'Onboarding & setup', 5000, 'oneoff', 15, 'setup', 'The store set up with the owner: products, payments, courier and a walkthrough.', true],
+  ['SV-02', 'Assisted data migration', 'Migration', 8000, 'oneoff', 15, 'services', 'Products, customers and past orders moved from another platform or a spreadsheet.', true],
+  ['SV-03', 'Staff training session', 'Training', 3000, 'session', 15, 'training', 'Two hours with the shop’s staff, at the shop or online.', true],
+  ['SV-04', 'Custom storefront design', 'Design & customisation', 25000, 'oneoff', 15, 'services', 'A storefront theme designed to the brand, with two rounds of changes.', true],
+  ['SV-05', 'Product catalogue upload (per 100 items)', 'Content & catalogue', 1500, 'item', 15, 'services', 'Titles, prices, variants and photos for 100 items.', true],
+  ['SV-06', 'POS hardware setup', 'Hardware & installation', 2500, 'oneoff', 15, 'hardware', 'Receipt printer, barcode scanner and cash drawer installed and tested at the counter.', true],
+  ['SV-07', 'Custom report or development', 'Development', 2000, 'hour', 15, 'services', 'Reports, integrations or features built for one store, by the hour.', true],
+  ['SV-08', 'Domain & business email setup', 'Onboarding & setup', 1500, 'oneoff', 15, 'setup', 'The store’s own domain connected with SSL, and business email for the owner.', true],
+  ['SV-09', 'Facebook shop & pixel setup', 'Onboarding & setup', 4000, 'oneoff', 15, 'setup', 'Meta catalog, Facebook shop and the pixel with server events.', true],
+  ['SV-10', 'Consultancy', 'Consultancy', 3000, 'hour', 15, 'services', 'Advice on selling online: pricing, courier, payments and ads.', true],
+  ['SV-11', 'Social media content pack', 'Content & catalogue', 6000, 'month', 15, 'services', '12 posts a month designed for the store’s pages. Paused while the designer seat is empty.', false],
+];
+// price changes during the demo: [id, months after the books start, old price]
+const PRICE_CHANGES = [['SV-01', 4, 4000], ['SV-03', 6, 2500]];
+
+const LEADS = [['Rahim Electronics', 'L-1120'], ['Shapla Boutique', 'L-1134'], ['Barishal Agro Mart', 'L-1141'], ['Nazmul’s Gadget Shop', 'L-1152'], ['Tazrin Cosmetics', 'L-1160'], ['Sylhet Tea Traders', 'L-1171']];
+const OTHERS = [
+  ['Daffodil International University', '+880 1713-493050', 'SV-03', 3, 'E-commerce workshop for final-year students'],
+  ['Dhaka Chamber SME Forum', '+880 1711-622910', 'SV-03', 2, 'Selling online: a session for SME members'],
+  ['Kamrul Hasan', '+880 1819-447215', 'SV-10', 2, 'Advice before opening an online shop'],
+  ['Bengal Crafts Collective', '+880 1755-308812', 'SV-05', 4, 'Catalogue for an exhibition microsite'],
+];
+
+/** The price a service had at a moment (its price history). */
+export function priceAt(sv, at) {
+  const h = (sv.history || []).filter((x) => x.at <= at).sort((a, b) => b.at - a.at)[0];
+  return h ? h.price : sv.price;
+}
+const txCode = (r, n = 10) => Array.from({ length: n }, () => '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(r() * 34)]).join('');
+function pickMethod(r) {
+  const x = r();
+  return x < 0.45 ? 'bKash' : x < 0.68 ? 'Bank transfer' : x < 0.82 ? 'Nagad' : x < 0.92 ? 'Cash' : x < 0.97 ? 'Card' : 'Rocket';
+}
+function txFor(method, r) {
+  if (method === 'Cash') return '';
+  if (method === 'Bank transfer') return 'CBL-NPSB-' + (100000 + Math.floor(r() * 899999));
+  if (method === 'Card') return 'POS-' + txCode(r, 8);
+  return txCode(r, 10);
+}
+/** Number the next record of a year: { id: 'INC-2026-0007', invNo: 'SI-2026-0007' }. */
+function nextIncomeNo(F, at) {
+  const y = new Date(at + TZ).getUTCFullYear();
+  F.seq.inc[y] = (F.seq.inc[y] || 0) + 1;
+  const n = pad4(F.seq.inc[y]);
+  return { id: `INC-${y}-${n}`, invNo: `SI-${y}-${n}` };
+}
+/** Total of a record's line: quantity × price − discount, plus VAT on that. */
+export function lineTotals(qty, unitPrice, discount, vatPct) {
+  const gross = Math.round((Number(qty) || 0) * (Number(unitPrice) || 0));
+  const disc = Math.max(0, Math.round(Number(discount) || 0));
+  const net = Math.max(0, gross - disc);
+  const vat = Math.round((net * (Number(vatPct) || 0)) / 100);
+  return { gross, discount: disc, net, vat, total: net + vat };
+}
+
+function seedIncome(F, now) {
+  const start = F.start;
+  F.services = SERVICES.map(([id, name, category, price, unit, vat, incomeCat, description, active]) => {
+    const ch = PRICE_CHANGES.find((c) => c[0] === id);
+    const history = ch
+      ? [{ at: start - 60 * DAY, price: ch[2], by: 'Mahin Khan', note: 'First price' }, { at: addMonths(start, ch[1], 1), price, by: 'Mahin Khan', note: 'New price for new orders' }]
+      : [{ at: start - 60 * DAY, price, by: 'Mahin Khan', note: 'First price' }];
+    return { id, name, category, price, unit, vat, incomeCat, description, active, history, createdAt: start - 60 * DAY };
+  });
+  if (typeof window !== 'undefined') loadPlatform();
+  const db = platformDB();
+  const r = rng('fin-income');
+  const sv = (id) => F.services.find((s) => s.id === id);
+  const drafts = [];
+  const add = (x) => { if (x.at > now - 3600e3 || x.at < start) return; drafts.push(x); };
+  const BY = { 'Onboarding & setup': 'Rakib Hasan', Migration: 'Rakib Hasan', Training: 'Farhana Akter', Consultancy: 'Tania Sultana', Development: 'Mahin Khan', 'Design & customisation': 'Mahin Khan', 'Hardware & installation': 'Rakib Hasan', 'Content & catalogue': 'Farhana Akter' };
+  const at = (base, d) => startOfDay(base + d * DAY) + (10 + Math.floor(r() * 8)) * 3600e3 + Math.floor(r() * 50) * 6e4;
+  const live = db.shops.filter((s) => s.status !== 'setup');
+  // new stores: onboarding, then often a migration, training and the segment's setup
+  for (const s of live.filter((x) => x.createdAt >= start).sort((a, b) => a.createdAt - b.createdAt)) {
+    const seg = (subOf(db, s.id) || {}).ladder;
+    const t0 = at(s.createdAt, 1 + Math.floor(r() * 2));
+    if (r() < 0.72) add({ svc: 'SV-01', at: t0, shopId: s.id, qty: 1 });
+    if (r() < 0.3) add({ svc: 'SV-02', at: at(t0, 2), shopId: s.id, qty: 1, discount: r() < 0.3 ? 1000 : 0 });
+    if (r() < 0.32) add({ svc: 'SV-03', at: at(t0, 8 + Math.floor(r() * 12)), shopId: s.id, qty: 1 + Math.floor(r() * 2) });
+    if (seg === 'online' && r() < 0.25) add({ svc: 'SV-09', at: at(t0, 4), shopId: s.id, qty: 1 });
+    if (seg === 'retail' && r() < 0.5) add({ svc: 'SV-06', at: at(t0, 3), shopId: s.id, qty: 1 });
+  }
+  // stores already selling: catalogue uploads, trainings, development hours, the odd design job
+  const extras = [['SV-05', 3, 1, 6], ['SV-03', 2, 1, 2], ['SV-07', 2, 3, 12], ['SV-08', 1, 1, 1], ['SV-10', 1, 1, 3], ['SV-04', 1, 1, 1]];
+  for (let p = F.startPeriod, k = 0; p <= periodOf(now); p = addPeriod(p, 1), k++) {
+    const m0 = periodStart(p);
+    for (const [svc, weight, lo, hi] of extras) {
+      if (r() > weight / 5) continue;
+      const pool = live.filter((s) => s.createdAt < m0 && (svc !== 'SV-04' || (subOf(db, s.id) || {}).plan !== 'growth'));
+      if (!pool.length) continue;
+      const s = pool[Math.floor(r() * pool.length)];
+      add({ svc, at: at(m0, Math.floor(r() * 27)), shopId: s.id, qty: lo + Math.floor(r() * (hi - lo + 1)) });
+    }
+  }
+  // leads paying before they open a store, and a few other customers
+  LEADS.forEach(([name, leadId], i) => add({ svc: i % 3 === 0 ? 'SV-01' : 'SV-10', at: at(addMonths(start, 1 + Math.round(i * 1.4), 1), Math.floor(r() * 20)), lead: { name, leadId }, qty: i % 3 === 0 ? 1 : 1 + (i % 2) }));
+  OTHERS.forEach(([name, phone, svc, qty, desc], i) => add({ svc, at: at(addMonths(start, 2 + i * 2, 1), Math.floor(r() * 20)), other: { name, phone }, qty, description: desc }));
+
+  drafts.sort((a, b) => a.at - b.at);
+  for (const x of drafts) {
+    const s = sv(x.svc);
+    const price = priceAt(s, x.at);
+    const tot = lineTotals(x.qty, price, x.discount || 0, s.vat);
+    const by = BY[s.category] || 'Nusrat Islam';
+    const nos = nextIncomeNo(F, x.at);
+    const customer = x.shopId ? { type: 'store', shopId: x.shopId, name: storeName(db, x.shopId) } : x.lead ? { type: 'lead', name: x.lead.name, leadId: x.lead.leadId } : { type: 'other', name: x.other.name, phone: x.other.phone };
+    const rec = {
+      ...nos, at: x.at, serviceId: s.id, serviceName: s.name, category: s.category, incomeCat: s.incomeCat, customer,
+      description: x.description || '', qty: x.qty, unit: s.unit, unitPrice: price, discount: tot.discount, vatPct: s.vat, vat: tot.vat, total: tot.total,
+      dueAt: x.at + (customer.type === 'store' ? 7 : 15) * DAY, payments: [], createdBy: by, createdAt: x.at, attachments: [], note: '', voided: null,
+      history: [{ at: x.at, by, text: 'Recorded' }],
+    };
+    if (s.id === 'SV-04') rec.attachments = ['storefront-design-brief.pdf'];
+    if (s.id === 'SV-02') rec.attachments = ['migration-checklist.xlsx'];
+    const age = (now - x.at) / DAY;
+    const roll = r();
+    // most are paid at once; recent ones are often still due or part paid; a few older ones are overdue
+    let paid = tot.total;
+    if (age < 30 && roll < 0.3) paid = 0;
+    else if (age < 45 && roll < 0.42) paid = Math.round(tot.total / 2 / 100) * 100;
+    else if (age >= 30 && roll > 0.965) paid = 0;
+    if (paid > 0) {
+      const method = pickMethod(r);
+      const payAt = Math.min(now - 1800e3, x.at + Math.floor(r() * 3) * DAY + 2 * 3600e3);
+      rec.payments.push({ id: rec.id + '-P1', at: payAt, amount: paid, account: METHOD_TO_ACCOUNT[method], method, txId: txFor(method, r), by: r() < 0.6 ? 'Nusrat Islam' : by });
+      rec.history.push({ at: payAt, by: rec.payments[0].by, text: `${taka(paid)} received by ${method}` });
+    }
+    F.income.push(rec);
+  }
+  // an entry made twice by mistake, voided by finance
+  const dup = F.income.find((x) => x.customer.type === 'store' && x.serviceId === 'SV-01' && x.payments.length === 0 && (now - x.at) / DAY > 20)
+    || F.income.find((x) => x.customer.type === 'store' && x.payments.length === 0);
+  if (dup) {
+    dup.voided = { at: dup.at + 5 * 3600e3, by: 'Nusrat Islam', reason: 'Recorded twice; the store’s setup is on the earlier record' };
+    dup.history.push({ at: dup.voided.at, by: 'Nusrat Islam', text: 'Voided: ' + dup.voided.reason });
+  }
+}
+
 function seed(now) {
   const startPeriod = periodOf(addMonths(startOfMonth(now), -9, 1) + 3600e3);
   const start = periodStart(startPeriod);
@@ -253,9 +421,11 @@ function seed(now) {
     expenses: [], transfers: [], made: [],
     refunds: [], received: [], payAccount: {},
     capital: [{ id: 'CAP-0001', at: dhaka(Number(startPeriod.slice(0, 4)), Number(startPeriod.slice(5, 7)) - 1 + 4, 14, 12), account: 'city', amount: 20000000, note: 'Seed round, second tranche' }],
-    seq: { exp: 1, ven: VENDORS.length + 1, rf: 1, mp: 1, tr: 1 },
+    services: [], income: [],
+    seq: { exp: 1, ven: VENDORS.length + 1, rf: 1, mp: 1, tr: 1, sv: SERVICES.length + 1, inc: {} },
   };
   fill(F, now);
+  seedIncome(F, now);
   // this month's own work: drafts and a bill waiting for approval that is not a monthly one
   const draft = (x) => F.expenses.push({ id: 'EXP-' + pad4(F.seq.exp++), key: null, approvedBy: null, approvedAt: null, paidAt: null, paidBy: null, ref: '', ...x });
   draft({ at: day(1, 15, 40), category: 'other', vendor: 'otobi', account: 'city', amount: 36000, vat: 0, attachment: 'otobi-quotation-Q2291.pdf', note: '4 office chairs for the support team', createdBy: 'Farhana Akter', createdAt: day(1, 15, 40), approver: 'Mahin Khan', status: 'draft' });
@@ -281,7 +451,7 @@ function seed(now) {
   return F;
 }
 
-export const finance = createStore({ key: 'finance', version: 2, seed });
+export const finance = createStore({ key: 'finance', version: 3, seed });
 
 /** Add the bills and moves whose day has come since the last visit (call once the store is live). */
 export function catchUp() {
@@ -319,7 +489,7 @@ export function paymentAccount(F, p) {
 }
 
 // ---- revenue ---------------------------------------------------------------------------------------------------------
-const zero = () => ({ subs: 0, addons: 0, messaging: 0, oneoffs: 0 });
+const zero = () => ({ subs: 0, addons: 0, messaging: 0, oneoffs: 0, services: 0 });
 /** A payment over its bill's lines, by source (lines that take money off — discounts, credit carried — lower each). */
 export function paymentSplit(db, p, invMap) {
   const inv = invMap ? invMap.get(p.invoiceId) : invoiceById(db, p.invoiceId);
@@ -352,8 +522,9 @@ export function revenueIn(db, F, from, to, invMap = invMapOf(db)) {
     count++;
   }
   out.messaging += messagingIn(db, from, to);
+  out.services += incomeReceived(F, from, to);
   for (const k of Object.keys(out)) out[k] = Math.round(out[k]);
-  const total = out.subs + out.addons + out.messaging + out.oneoffs;
+  const total = out.subs + out.addons + out.messaging + out.oneoffs + out.services;
   const refunds = F.refunds.filter((r) => r.status === 'sent' && r.sentAt >= from && r.sentAt < to).reduce((s, r) => s + r.amount, 0);
   return { ...out, total, refunds, net: total - refunds, payments: count };
 }
@@ -503,10 +674,17 @@ export function ledger(db, F, t) {
     push({ id: x.id + '-out', at: x.at, account: x.from, amount: -x.amount, kind: 'transfer', text: `To ${accountName(F, x.to)} · ${x.note || 'Transfer'}`, ref: x.id, href: '/admin/accounts?tab=transfers' });
     push({ id: x.id + '-in', at: x.at, account: x.to, amount: x.amount, kind: 'transfer', text: `From ${accountName(F, x.from)} · ${x.note || 'Transfer'}`, ref: x.id, href: '/admin/accounts?tab=transfers' });
   }
+  for (const r of F.income || []) {
+    if (r.voided) continue;
+    for (const p of r.payments) {
+      if (p.at > t) continue;
+      push({ id: p.id, at: p.at, account: p.account, amount: p.amount, kind: 'income', text: `${r.invNo} · ${customerName(r)} · ${r.serviceName}`, ref: p.txId || '', href: '/admin/income?id=' + r.id });
+    }
+  }
   for (const c of F.capital) push({ id: c.id, at: c.at, account: c.account, amount: c.amount, kind: 'capital', text: c.note, ref: c.id, href: null });
   return rows.filter((r) => r.at <= t).sort((a, b) => a.at - b.at || a.id.localeCompare(b.id));
 }
-export const KIND_LABEL = { payment: 'Subscription payment', messaging: 'Messaging credits', received: 'Received, not matched', expense: 'Expense', refund: 'Refund to a store', transfer: 'Transfer', capital: 'Capital' };
+export const KIND_LABEL = { payment: 'Subscription payment', messaging: 'Messaging credits', received: 'Received, not matched', expense: 'Expense', refund: 'Refund to a store', transfer: 'Transfer', capital: 'Capital', income: 'Service income' };
 
 /** Each account's balance at a moment: { [id]: balance }. Pass rows from ledger() to save working them out again. */
 export function balances(db, F, t, at = t, rows = null) {
@@ -530,6 +708,8 @@ export function todo(db, F, t) {
     const parts = [rfSend.length ? `${rfSend.length} to send` : '', rfAsk.length ? `${rfAsk.length} to approve` : ''].filter(Boolean).join(' · ');
     out.push({ key: 'refunds', title: `Refunds to stores: ${parts}`, sub: taka([...rfSend, ...rfAsk].reduce((s, r) => s + r.amount, 0)), href: '/admin/payments?tab=refunds', tone: rfSend.length ? 'err' : 'warn' });
   }
+  const lateInc = (F.income || []).filter((r) => incomeState(r, t).overdue);
+  if (lateInc.length) out.push({ key: 'income-late', title: `${lateInc.length} service invoice${lateInc.length === 1 ? '' : 's'} overdue`, sub: taka(lateInc.reduce((s, r) => s + incomeState(r, t).balance, 0)) + ' to collect', href: '/admin/income?tab=due', tone: 'warn' });
   const open = F.received.filter((m) => m.status === 'open');
   if (open.length) out.push({ key: 'match', title: `${open.length} payment${open.length === 1 ? '' : 's'} received but not matched to a bill`, sub: taka(open.reduce((s, m) => s + m.amount, 0)) + ' · ' + [...new Set(open.map((m) => m.method))].join(', '), href: '/admin/payments?tab=match', tone: 'warn' });
   const owed = owedNow(db, t);
@@ -560,6 +740,11 @@ export function monthReport(db, F, t, period) {
     const paid = db.payments.filter((p) => p.invoiceId === inv.id && p.status === 'ok' && p.at <= end).reduce((s, p) => s + p.amount, 0);
     const cred = db.credits.filter((c) => c.invoiceId === inv.id && c.at <= end).reduce((s, c) => s + c.amount, 0);
     receivable += Math.max(0, inv.total - paid - cred);
+  }
+  // unpaid service income at the end
+  for (const r of F.income || []) {
+    if (r.voided || r.at > issuedBy) continue;
+    receivable += Math.max(0, r.total - r.payments.filter((p) => p.at <= end).reduce((s, p) => s + p.amount, 0));
   }
   const payable = F.expenses.filter((e) => e.status !== 'draft' && e.at <= end && !(e.status === 'paid' && e.paidAt <= end)).reduce((s, e) => s + expenseTotal(e), 0);
   const refundsOwed = F.refunds.filter((r) => (r.status === 'approved' || r.status === 'sent') && r.approvedAt && r.approvedAt <= end && !(r.status === 'sent' && r.sentAt <= end)).reduce((s, r) => s + r.amount, 0);
@@ -748,7 +933,8 @@ export function markRefundSent(id, { ref, account } = {}) {
     if (!canApprove(s)) return fail('Only finance or an admin can send refunds.');
     const tx = String(ref || '').trim().toUpperCase();
     if (r.method !== 'Cash at office' && !tx) return { ...fail(`Enter the transaction ID from the ${r.method} confirmation.`), field: 'ref' };
-    if (tx && F.refunds.some((x) => x.id !== r.id && (x.ref || '').toUpperCase() === tx)) return { ...fail(`Transaction ID ${tx} is already used on another refund.`), field: 'ref' };
+    const used = tx ? txUsed(platformDB(), F, tx) : null;
+    if (used) return { ...fail(`Transaction ID ${tx} is already used on ${used}.`), field: 'ref' };
     const acc = account || r.account;
     const bal = balances(platformDB(), F, t)[acc];
     if (bal < r.amount) return { ...fail(`${accountName(F, acc)} has ${taka(bal)}, less than the refund. Move money in first.`), field: 'account' };
@@ -764,6 +950,9 @@ export function markRefundSent(id, { ref, account } = {}) {
  */
 export function recordReceived({ invoiceId, amount, method, txId, via = 'bank', account, receivedId }) {
   if (!account) return { ...fail('Pick the account the money went into.'), field: 'account' };
+  const tx0 = String(txId || '').trim().toUpperCase();
+  const used = tx0 ? txUsed(platformDB(), finance.get(), tx0, receivedId) : null;
+  if (used) return { ...fail(`Transaction ID ${tx0} is already used on ${used}.`), field: 'txId' };
   const r = recordPayment({ invoiceId, amount, method, txId, via });
   if (!r || !r.ok) return r || fail('The payment could not be saved.');
   finance.commit((F, t) => {
@@ -784,9 +973,9 @@ export function addReceived(f) {
   const tx = String(f.ref || '').trim().toUpperCase();
   if (f.method !== 'Cash at office' && !tx) return { ...fail('Enter the transaction or deposit reference.'), field: 'ref' };
   const db = platformDB();
-  if (tx && db.payments.some((p) => (p.txId || '').toUpperCase() === tx)) return { ...fail(`Transaction ID ${tx} is already used on a payment.`), field: 'ref' };
   return finance.commit((F, t) => {
-    if (tx && F.received.some((m) => (m.ref || '').toUpperCase() === tx)) return { ...fail(`Transaction ID ${tx} is already noted.`), field: 'ref' };
+    const used = tx ? txUsed(db, F, tx) : null;
+    if (used) return { ...fail(`Transaction ID ${tx} is already used on ${used}.`), field: 'ref' };
     const m = { id: 'MP-' + pad4(F.seq.mp++), at: f.at && f.at <= t ? f.at : t, amount, account: f.account, method: f.method, ref: tx, payer: String(f.payer).trim(), shopId: f.shopId || null, note: String(f.note || '').trim(), by: me().name, status: 'open', paymentId: null, invoiceId: null, matchedBy: null, matchedAt: null };
     F.received.push(m);
     return { ok: true, received: m };
@@ -806,6 +995,210 @@ export function addTransfer(f) {
     const x = { id: 'TR-' + pad4(F.seq.tr++), at: t, from: f.from, to: f.to, amount, note: String(f.note || '').trim() || 'Transfer', by: me().name, key: null };
     F.transfers.push(x);
     return { ok: true, transfer: x };
+  });
+}
+
+// ---- service income: reads -------------------------------------------------------------------------------------------
+export const serviceBy = (F, id) => (F.services || []).find((s) => s.id === id) || null;
+export const incomeBy = (F, id) => (F.income || []).find((r) => r.id === id) || null;
+/** "Dhaka Gadget Hub" · "Rahim Electronics (lead)" · "Kamrul Hasan" */
+export const customerName = (r) => (r.customer ? r.customer.name : '—');
+export const customerLabel = (r) => (r.customer.type === 'lead' ? `${r.customer.name} (lead${r.customer.leadId ? ' ' + r.customer.leadId : ''})` : r.customer.name);
+/** { key: received · partly · due · void, label, tone, paid, balance, overdue } */
+export function incomeState(r, t) {
+  const paid = r.payments.reduce((s, p) => s + p.amount, 0);
+  if (r.voided) return { key: 'void', ...INCOME_STATUS.void, paid, balance: 0, overdue: false };
+  const bal = Math.max(0, r.total - paid);
+  if (!bal) return { key: 'received', ...INCOME_STATUS.received, paid, balance: 0, overdue: false };
+  const overdue = !!r.dueAt && t > r.dueAt + DAY - 1;
+  const base = paid > 0 ? INCOME_STATUS.partly : INCOME_STATUS.due;
+  return { key: paid > 0 ? 'partly' : 'due', label: base.label + (overdue ? ' · overdue' : ''), tone: overdue ? 'error' : base.tone, paid, balance: bal, overdue };
+}
+/** Service income received (payments in) in [from, to). */
+export function incomeReceived(F, from, to) {
+  let s = 0;
+  for (const r of F.income || []) { if (r.voided) continue; for (const p of r.payments) if (p.at >= from && p.at < to) s += p.amount; }
+  return s;
+}
+/** Service income received in [from, to) — for the dashboard (reads the books itself). */
+export function serviceIncome(from, to) {
+  finance.load();
+  return incomeReceived(finance.get(), from, to);
+}
+/** What a store bought: its income records, newest first. */
+export const storeIncome = (F, shopId) => (F.income || []).filter((r) => r.customer.type === 'store' && r.customer.shopId === shopId).sort((a, b) => b.at - a.at);
+/** Where a transaction ID is already used (a description), or null. Platform payments and every finance record. */
+export function txUsed(db, F, tx, exceptId = null) {
+  const T = String(tx || '').trim().toUpperCase();
+  if (!T) return null;
+  const same = (x) => String(x || '').trim().toUpperCase() === T;
+  const pay = db.payments.find((p) => same(p.txId));
+  if (pay) return `payment ${pay.id} (${pay.invoiceId})`;
+  const m = F.received.find((x) => x.id !== exceptId && same(x.ref));
+  if (m) return `money received ${m.id}`;
+  const rf = F.refunds.find((x) => x.id !== exceptId && same(x.ref));
+  if (rf) return `refund ${rf.id}`;
+  for (const r of F.income || []) for (const p of r.payments) if (p.id !== exceptId && same(p.txId)) return `service income ${r.invNo}`;
+  return null;
+}
+
+// ---- service income: changes -----------------------------------------------------------------------------------------
+const me2 = () => staff().name;
+function checkPayment(db, F, { amount, account, method, txId }, left, exceptId) {
+  const amt = num(amount);
+  if (!amt || amt <= 0) return { ...fail('Enter the amount received.'), field: 'payAmount' };
+  if (amt > left) return { ...fail(`That is more than the ${taka(left)} still to pay.`), field: 'payAmount' };
+  if (!method || !INCOME_METHODS.includes(method)) return { ...fail('Pick how it was paid.'), field: 'method' };
+  if (!account || !accountBy(F, account)) return { ...fail('Pick the account it went into.'), field: 'account' };
+  const tx = String(txId || '').trim().toUpperCase();
+  if (TX_METHODS.includes(method) && !tx) return { ...fail(`Enter the transaction ID from the ${method} message or bank slip.`), field: 'txId' };
+  const used = tx ? txUsed(db, F, tx, exceptId) : null;
+  if (used) return { ...fail(`Transaction ID ${tx} is already used on ${used}.`), field: 'txId' };
+  return { ok: true, amt, tx };
+}
+
+/**
+ * Record service income. f: { serviceId | serviceName (Other), description, customer: { type, shopId | name, leadId, phone },
+ * qty, unitPrice, discount, vatPct, at, dueAt, note, attachment, pay: { amount, account, method, txId } | null }.
+ */
+export function recordIncome(f) {
+  const db = platformDB();
+  const F0 = finance.get();
+  const sv = f.serviceId && f.serviceId !== 'other' ? serviceBy(F0, f.serviceId) : null;
+  if (f.serviceId && f.serviceId !== 'other' && !sv) return { ...fail('Pick the service.'), field: 'service' };
+  const name = sv ? sv.name : String(f.serviceName || '').trim();
+  if (!name) return { ...fail('Pick a service, or name it under Other.'), field: 'service' };
+  const c = f.customer || {};
+  let customer;
+  if (c.type === 'store') {
+    const shop = shopOf(db, c.shopId);
+    if (!shop) return { ...fail('Pick the store.'), field: 'customer' };
+    customer = { type: 'store', shopId: shop.id, name: shop.name };
+  } else if (c.type === 'lead') {
+    if (!String(c.name || '').trim()) return { ...fail('Enter the lead’s name.'), field: 'customer' };
+    const leadId = String(c.leadId || '').trim().toUpperCase();
+    if (leadId && !/^L-\d{3,6}$/.test(leadId)) return { ...fail('A lead ID looks like L-1120.'), field: 'leadId' };
+    customer = { type: 'lead', name: String(c.name).trim(), leadId };
+  } else if (c.type === 'other') {
+    if (!String(c.name || '').trim()) return { ...fail('Enter the customer’s name.'), field: 'customer' };
+    customer = { type: 'other', name: String(c.name).trim(), phone: String(c.phone || '').trim() };
+  } else return { ...fail('Pick who it is for.'), field: 'customer' };
+  const qty = Number(f.qty);
+  if (!qty || qty <= 0) return { ...fail('Enter the quantity.'), field: 'qty' };
+  const price = num(f.unitPrice);
+  if (!price || price <= 0) return { ...fail('Enter the price.'), field: 'unitPrice' };
+  const vatPct = f.vatPct === '' || f.vatPct == null ? (sv ? sv.vat : 15) : Number(f.vatPct);
+  if (!(vatPct >= 0 && vatPct <= 100)) return { ...fail('VAT is a percent from 0 to 100.'), field: 'vatPct' };
+  const tot = lineTotals(qty, price, f.discount, vatPct);
+  if (tot.discount > tot.gross) return { ...fail('The discount is more than the price.'), field: 'discount' };
+  return finance.commit((F, t) => {
+    const when = f.at && f.at <= t + 60e3 ? f.at : t;
+    let pay = null;
+    if (f.pay) {
+      const chk = checkPayment(db, F, f.pay, tot.total, null);
+      if (!chk.ok) return chk;
+      pay = { amount: chk.amt, account: f.pay.account, method: f.pay.method, txId: chk.tx };
+    }
+    const left = tot.total - (pay ? pay.amount : 0);
+    const dueAt = left > 0 ? (f.dueAt || when + 7 * DAY) : null;
+    if (left > 0 && dueAt < startOfDay(when)) return { ...fail('The due date can’t be before the date of the work.'), field: 'dueAt' };
+    const who = me2();
+    const nos = nextIncomeNo(F, when);
+    const rec = {
+      ...nos, at: when, serviceId: sv ? sv.id : null, serviceName: name, category: sv ? sv.category : 'Other', incomeCat: sv ? sv.incomeCat : (f.incomeCat || 'other'),
+      customer, description: String(f.description || '').trim(), qty, unit: sv ? sv.unit : (f.unit || 'oneoff'), unitPrice: price, discount: tot.discount,
+      vatPct, vat: tot.vat, total: tot.total, dueAt, payments: [], createdBy: who, createdAt: t,
+      attachments: String(f.attachment || '').trim() ? [String(f.attachment).trim()] : [], note: String(f.note || '').trim(), voided: null,
+      history: [{ at: t, by: who, text: 'Recorded' }],
+    };
+    if (pay) {
+      rec.payments.push({ id: rec.id + '-P1', at: when, ...pay, by: who });
+      rec.history.push({ at: t, by: who, text: `${taka(pay.amount)} received by ${pay.method}` });
+    }
+    F.income.push(rec);
+    return { ok: true, income: rec };
+  });
+}
+
+/** Add a payment to a record that is still due. */
+export function addIncomePayment(id, f) {
+  const db = platformDB();
+  return finance.commit((F, t) => {
+    const r = incomeBy(F, id);
+    if (!r) return fail('That record is gone.');
+    if (r.voided) return fail('A void record takes no payments.');
+    const st = incomeState(r, t);
+    if (!st.balance) return fail('Nothing is left to pay on it.');
+    const chk = checkPayment(db, F, f, st.balance, null);
+    if (!chk.ok) return chk;
+    const who = me2();
+    const p = { id: `${r.id}-P${r.payments.length + 1}`, at: f.at && f.at <= t ? f.at : t, amount: chk.amt, account: f.account, method: f.method, txId: chk.tx, by: who };
+    r.payments.push(p);
+    r.history.push({ at: t, by: who, text: `${taka(p.amount)} received by ${p.method}` });
+    return { ok: true, payment: p, left: st.balance - p.amount };
+  });
+}
+
+/**
+ * Void a record entered in error (twice, wrong store, work not done): it leaves the income and its payments leave the
+ * accounts. A reason is needed, and the person who recorded it can't void it — a second person (finance or an admin)
+ * does. Money really returned to a customer is a refund, not a void.
+ */
+export function voidIncome(id, reason) {
+  const s = staff();
+  if (!String(reason || '').trim()) return { ...fail('Say why it is voided.'), field: 'reason' };
+  return finance.commit((F, t) => {
+    const r = incomeBy(F, id);
+    if (!r) return fail('That record is gone.');
+    if (r.voided) return fail('It is already void.');
+    if (!canApprove(s)) return fail('Only finance or an admin can void income.');
+    if (s.name === r.createdBy) return fail('You recorded this income, so someone else in finance voids it.');
+    r.voided = { at: t, by: s.name, reason: String(reason).trim() };
+    r.history.push({ at: t, by: s.name, text: 'Voided: ' + r.voided.reason });
+    return { ok: true, income: r };
+  });
+}
+
+/** Add a service to the catalogue. */
+export function addService(f) {
+  const name = String(f.name || '').trim();
+  const price = num(f.price);
+  if (!name) return { ...fail('Enter the service’s name.'), field: 'name' };
+  if (!SERVICE_CATEGORIES.includes(f.category)) return { ...fail('Pick a category.'), field: 'category' };
+  if (!price || price <= 0) return { ...fail('Enter the price.'), field: 'price' };
+  const vat = f.vat === '' || f.vat == null ? 15 : Number(f.vat);
+  if (!(vat >= 0 && vat <= 100)) return { ...fail('VAT is a percent from 0 to 100.'), field: 'vat' };
+  return finance.commit((F, t) => {
+    if (F.services.some((s) => s.name.toLowerCase() === name.toLowerCase())) return { ...fail(`${name} is already in the catalogue.`), field: 'name' };
+    const sv = { id: 'SV-' + String(F.seq.sv++).padStart(2, '0'), name, category: f.category, price, unit: f.unit || 'oneoff', vat, incomeCat: f.incomeCat || 'services', description: String(f.description || '').trim(), active: true, history: [{ at: t, price, by: me2(), note: 'First price' }], createdAt: t };
+    F.services.push(sv);
+    return { ok: true, service: sv };
+  });
+}
+/** Change a service; a new price is added to its price history (records keep the price they were sold at). */
+export function updateService(id, f) {
+  return finance.commit((F, t) => {
+    const sv = serviceBy(F, id);
+    if (!sv) return fail('That service is gone.');
+    const name = f.name != null ? String(f.name).trim() : sv.name;
+    if (!name) return { ...fail('Enter the service’s name.'), field: 'name' };
+    if (F.services.some((s) => s.id !== id && s.name.toLowerCase() === name.toLowerCase())) return { ...fail(`${name} is already in the catalogue.`), field: 'name' };
+    const price = f.price != null ? num(f.price) : sv.price;
+    if (!price || price <= 0) return { ...fail('Enter the price.'), field: 'price' };
+    const vat = f.vat != null && f.vat !== '' ? Number(f.vat) : sv.vat;
+    if (!(vat >= 0 && vat <= 100)) return { ...fail('VAT is a percent from 0 to 100.'), field: 'vat' };
+    if (price !== sv.price) sv.history.push({ at: t, price, by: me2(), note: String(f.priceNote || '').trim() || 'Price changed' });
+    Object.assign(sv, { name, category: f.category || sv.category, price, unit: f.unit || sv.unit, vat, incomeCat: f.incomeCat || sv.incomeCat, description: f.description != null ? String(f.description).trim() : sv.description });
+    return { ok: true, service: sv };
+  });
+}
+/** Switch a service on or off (off: not offered when recording income; records keep it). */
+export function setServiceActive(id, on) {
+  return finance.commit((F) => {
+    const sv = serviceBy(F, id);
+    if (!sv) return fail('That service is gone.');
+    sv.active = !!on;
+    return { ok: true, service: sv };
   });
 }
 

@@ -151,6 +151,7 @@ export default function MerchantProfile() {
     key === 'trial' || primary === A.activateTrial ? null : !paying && key !== 'suspended' ? { label: 'Activate trial', onClick: () => open('trial') } : null,
     late && openInvoices(db, shop.id).some((i) => i.dueAt < t + 864e5) ? { label: 'Extend grace', onClick: () => open('grace'), tone: 'danger' } : null,
     { label: 'Add credits', onClick: () => open('credits') },
+    { label: 'Record service income', href: '/admin/income?new=1&store=' + shop.id },
     { label: 'Enable or disable a module', onClick: () => go('modules') },
     { label: 'Assign account manager', onClick: () => open('manager') },
     { label: 'Send password reset', onClick: async () => { if (await confirmDialog({ title: 'Send a password reset link?', body: `The owner gets a reset link by SMS${shop.owner && shop.owner.phone ? ' at ' + shop.owner.phone : ''}.`, confirmLabel: 'Send link' })) { sendReset(shop.id); toast('Reset link sent by SMS'); } } },

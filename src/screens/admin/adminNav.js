@@ -110,6 +110,7 @@ export const AREAS = [
   ] },
   { id: 'area-finance', layer: 'company', label: 'Finance', icon: 'landmark', pages: [
     P('finance', 'Overview', '/admin/finance', 12, 'adapt', '/accounts-home', { built: true }),
+    P('income', 'Income', '/admin/income', 12, 'new', '', { built: true }),
     P('revenue', 'Revenue', '/admin/revenue', 12, 'new', '', { built: true }),
     P('payments', 'Payments', '/admin/payments', 12, 'adapt', '/money', { built: true }),
     P('expenses', 'Expenses', '/admin/expenses', 12, 'adapt', '/expenses-bills', { built: true }),

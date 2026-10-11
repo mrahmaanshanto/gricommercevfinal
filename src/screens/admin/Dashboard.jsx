@@ -124,7 +124,7 @@ export default function Dashboard() {
       [],
       ['Funnel', 'Count'], ...FUNNEL.map(([k, l]) => [l, x.funnel[k]]), ['Lost', x.funnel.lost],
       [],
-      ['Money', 'Value'], ['Revenue', Math.round(x.finance.revenue)], ...x.finance.costs.map((c) => [c.name, c.value]), ['Net', Math.round(x.finance.net)],
+      ['Money', 'Value'], ['Revenue', Math.round(x.finance.revenue)], ['of which services', Math.round(x.finance.services || 0)], ...x.finance.costs.map((c) => [c.name, c.value]), ['Net', Math.round(x.finance.net)],
     ]);
     toast('Dashboard exported');
   };
@@ -269,6 +269,7 @@ export default function Dashboard() {
             <div className="dash-rows" aria-label={'Money, ' + periodName.toLowerCase()}>
               <Link className="dash-row" href="/admin/revenue"><span>Subscriptions collected</span><b>{money(fin.subs)}</b></Link>
               <Link className="dash-row" href="/admin/revenue"><span>Messaging resold</span><b>{money(fin.comms)}</b></Link>
+              <Link className="dash-row" href="/admin/income"><span>Services</span><b>{money(fin.services)}</b></Link>
               {fin.costs.map((c) => <Link key={c.key} className="dash-row" href="/admin/expenses"><span>{c.name}</span><b>{money(c.value)}</b></Link>)}
               <Link className="dash-row" href="/admin/payments"><span>Refunds</span><b>{money(fin.refunds)}</b></Link>
               <div className="dash-row"><span>Net</span><b className={fin.net < 0 ? 'dash-net--bad' : ''}>{fin.net < 0 ? '−' : ''}{money(Math.abs(fin.net))}</b></div>

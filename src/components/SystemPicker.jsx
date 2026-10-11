@@ -7,7 +7,7 @@
 // Demo: tapping a system signs in at once (onPick). The system you are on (this site's, or the previewed edition on
 // the full site) is outlined. Arrow keys move between them. Rendered after mount (the edition preview is client-only).
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { EDITIONS, LOCKED, currentEditionId } from '@/lib/edition';
@@ -39,8 +39,16 @@ const CSS = `
 @media (prefers-reduced-motion:reduce){.sp__spin{animation-duration:2s}.sp__go{transition:none}}
 `;
 
+/** Where "Super admin" opens: the start page chosen in the super admin's account menu (gc.admin.start), else /admin. */
+function useAdminStart() {
+  const [href, setHref] = useState('/admin');
+  useEffect(() => { try { const v = window.localStorage.getItem('gc.admin.start'); if (v && v.startsWith('/admin')) setHref(v); } catch { /* ignore */ } }, []);
+  return href;
+}
+
 export function SystemPicker({ onPick, busy }) {
   const here = currentEditionId();
+  const adminHref = useAdminStart();
   if (LOCKED) return (
     <div className="sp">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -49,7 +57,7 @@ export function SystemPicker({ onPick, busy }) {
         {`Open the ${EDITIONS[here] ? EDITIONS[here].short : ''} demo`}
       </button>
       <span className="sp__hint">Demo: no password needed. Or sign in with any email below.</span>
-      <Link href="/admin" className="sp__adminlink"><Icon name="shield" width="14" height="14" aria-hidden="true" />GridCommerce team? Open the super admin</Link>
+      <Link href={adminHref} className="sp__adminlink"><Icon name="shield" width="14" height="14" aria-hidden="true" />GridCommerce team? Open the super admin</Link>
     </div>
   );
   // a site locked to one edition lists only its own system; the full product site lists the three to preview
@@ -73,7 +81,7 @@ export function SystemPicker({ onPick, busy }) {
             {busy === s.ed ? <span className="sp__spin" role="status" aria-label="Signing in" /> : <Icon name="chevron-right" width="18" height="18" className="sp__go" aria-hidden="true" />}
           </button>
         ))}
-        <Link href="/admin" className="sp__opt sp__opt--admin" onKeyDown={(e) => keys(e, list.length)}>
+        <Link href={adminHref} className="sp__opt sp__opt--admin" onKeyDown={(e) => keys(e, list.length)}>
           <span className="sp__ic"><Icon name="shield" width="18" height="18" aria-hidden="true" /></span>
           <span className="sp__txt"><b>Super admin</b><small>GridCommerce team · merchants, billing, company</small></span>
           <Icon name="chevron-right" width="18" height="18" className="sp__go" aria-hidden="true" />

@@ -23,7 +23,7 @@ export function useFinance() {
 }
 
 /** One colour per revenue source, the same on every Finance chart. */
-export const SOURCE_COLORS = { subs: 'var(--viz-1)', addons: 'var(--viz-3)', messaging: 'var(--viz-4)', oneoffs: 'var(--viz-7)' };
+export const SOURCE_COLORS = { subs: 'var(--viz-1)', addons: 'var(--viz-3)', messaging: 'var(--viz-4)', oneoffs: 'var(--viz-7)', services: 'var(--viz-5)' };
 
 // ---- words --------------------------------------------------------------------------------------------------------
 export const money = (n) => formatBDT(Math.round(Math.abs(Number(n) || 0)));
@@ -151,7 +151,7 @@ export function Letterhead({ kind, title, meta = [] }) {
       <header className="fn-lh">
         <div className="fn-lh__brand">
           <svg width="44" height="44" viewBox="0 0 52 52"><rect width="52" height="52" rx="12" fill="var(--primary)" /><path d="M35 19a10 10 0 1 0 1 13v-6h-9" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <div><b>{COMPANY.name}</b><span>{COMPANY.address}</span><span>{COMPANY.phone} · {COMPANY.email}</span><span>{COMPANY.web} · BIN {COMPANY.bin}</span></div>
+          <div><b>{COMPANY.name} · {COMPANY.brand}</b><span>{COMPANY.address}</span><span>{COMPANY.phone} · {COMPANY.email}</span><span>{COMPANY.web} · BIN {COMPANY.bin}</span></div>
         </div>
         <div className="fn-lh__meta">
           <span className="fn-lh__kind">{kind}</span>

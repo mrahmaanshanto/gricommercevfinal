@@ -406,7 +406,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   Marketing, People, Finance, Website (managing gridcommerce.net's real pages and copy), Storefront themes, Administration.
   Each module keeps its demo data in `lib/admin/<module>.js` through `lib/admin/store.js` (`createStore`, `useAdminStore`
   — `live` only after mount, so the UTC prerender always matches), and never reads the merchant panel's libs. Menu areas
-  per role: `lib/admin/roles.js`, overridden by Administration › Roles & permissions once loaded.
+  per role: `lib/admin/roles.js`, overridden by Administration › Roles & permissions once loaded. The top bar
+  (`screens/admin/AdminTopbar.jsx`) mirrors the merchant one (Help, scoped search, quick links, View website, Inbox, Alerts,
+  person menu). Service income (paid onboarding, migration, training and future services) is Finance › Income
+  (`/admin/income`, catalogue + records in `lib/admin/finance.js`, feeding the books, dashboard and merchant profile).
   **Merchant AI** (Platform area, `/admin/merchant-ai`, `/plans`, `/models`; `lib/admin/merchantAi.js`) controls the
   Grid AI stores use: AI per plan and trial, markup, each store's usage / credits / limit rule / rate limit / suspend,
   providers, models per tier for every store, model releases gated by the platform test set, cost against AI billing.

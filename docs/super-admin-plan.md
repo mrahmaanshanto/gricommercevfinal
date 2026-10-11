@@ -13,7 +13,9 @@ the new pages read it.
 | | |
 |---|---|
 | Menu (areas, pages, build step, merchant source) | `src/screens/admin/adminNav.js` |
-| Shell (menu, top bar, Ctrl K search, alerts, staff switch, platform status) | `src/screens/admin/AdminShell.jsx`, `src/styles/admin.css` |
+| Shell: side menu (areas, platform status, person card → My profile) | `src/screens/admin/AdminShell.jsx`, `src/styles/admin.css` |
+| Top bar like the merchant panel's: crumb · Help (Shift ?) · scoped search (Ctrl K: pages, merchants, leads, tickets, invoices, staff) · Settings / Invoices / Tasks · View website · Inbox (unread) · Alerts · person menu (My tasks, My profile, security, settings, start page, demo staff switch, merchant panel, restart demo, sign out) | `src/screens/admin/AdminTopbar.jsx` |
+| Service income (onboarding, migration, training … any service): catalogue + income records with payments into the accounts, VAT, service invoices / receipts, transaction IDs once across all money | Finance › Income `/admin/income`, data in `src/lib/admin/finance.js`; shows in Revenue, Accounts, P&L, the dashboard's Money card and the merchant profile's Billing tab |
 | Sign-in entry | the sign-in page's system picker (`components/SystemPicker.jsx`) has a **Super admin** row → `/admin` |
 | Who sees which area | `src/lib/admin/roles.js` (built-in roles) + Administration › Roles & permissions (`lib/admin/admin.js` matrix, read by `access.js › canOpen` once loaded) |
 | Platform data (stores, plans, invoices, payments, events) | `src/lib/platform` |
@@ -178,6 +180,7 @@ cost against AI billing. Data: `lib/admin/merchantAi.js` (store `merchantAi`; us
 | | Page | Area | Address | Approach | Starts from |
 |---|---|---|---|---|---|
 | ✅ | Overview | Finance | `/admin/finance` | Adapt | `/accounts-home` |
+| ✅ | Income | Finance | `/admin/income` | New | — |
 | ✅ | Revenue | Finance | `/admin/revenue` | New | — |
 | ✅ | Payments | Finance | `/admin/payments` | Adapt | `/money` |
 | ✅ | Expenses | Finance | `/admin/expenses` | Adapt | `/expenses-bills` |

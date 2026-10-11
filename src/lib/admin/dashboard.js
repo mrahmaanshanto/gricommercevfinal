@@ -18,7 +18,7 @@ import { marketing, records as mkRecords, inRange as mkInRange, sum as mkSum } f
 
 /** Marketing spend in [from, to) from the campaigns and ads (lib/admin/marketing.js). */
 function adSpend(from, to, t) { marketing.load(); return mkSum(mkInRange(mkRecords(marketing.get(), t), from, to)).spend || 0; }
-import { costs as bookCosts } from './finance';
+import { costs as bookCosts, serviceIncome } from './finance';
 
 /** The company's costs in [from, to) from the books (lib/admin/finance.js): the four biggest and the rest as Other. */
 function costs(from, to) {
@@ -133,12 +133,13 @@ export function executive(db, t, period = 'month') {
   const other = otherIncome(R.from, R.to);
   const cost = costs(R.from, R.to);
   const costTotal = cost.reduce((s, c) => s + c.value, 0);
-  const revenue = inNow + other.comms;
+  const svcIncome = serviceIncome(R.from, R.to);
+  const revenue = inNow + other.comms + svcIncome;
   const finMonths = [];
   for (let i = 5; i >= 0; i--) {
     const from = addMonths(startOfMonth(t), -i, 1);
     const to = i === 0 ? t : addMonths(startOfMonth(t), -i + 1, 1);
-    const rev = collected(db, from, to) + otherIncome(from, to).comms;
+    const rev = collected(db, from, to) + otherIncome(from, to).comms + serviceIncome(from, to);
     const out = costs(from, to).reduce((s, c) => s + c.value, 0);
     finMonths.push({ label: monthOf(from), title: monthOf(from) + (i === 0 ? ' (so far)' : ''), values: [rev], line: out });
   }
@@ -163,7 +164,7 @@ export function executive(db, t, period = 'month') {
     funnel: f, funnelPrev: fPrev,
     support: desk,
     services: svc, load, svcIssues: svc.filter((s) => s.status !== 'ok'),
-    finance: { revenue, subs: inNow, comms: other.comms, refunds: other.refunds, costs: cost, costTotal, net: revenue - costTotal, owed, months: finMonths },
+    finance: { revenue, subs: inNow, comms: other.comms, services: svcIncome, refunds: other.refunds, costs: cost, costTotal, net: revenue - costTotal, owed, months: finMonths },
   };
 }
 

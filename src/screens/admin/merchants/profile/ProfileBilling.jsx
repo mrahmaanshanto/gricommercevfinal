@@ -12,6 +12,9 @@ import { dm, dmy, daysBetween, taka, monthLong, num } from '@/lib/platform/util'
 import { REASON_LABEL, viaLabel } from '@/lib/platform/catalogue';
 import { openInvoices, balance, invoiceState, storeCredit, sendPayLinks, paidVia } from '@/lib/platform/billing';
 import { walletOf } from '@/lib/admin/merchants';
+import Link from 'next/link';
+import { useAdminStore } from '@/lib/admin/store';
+import { finance, storeIncome, incomeState } from '@/lib/admin/finance';
 import { Card, Row, Empty, when } from './profileShared';
 
 const INV_STATE = {
@@ -20,6 +23,25 @@ const INV_STATE = {
 };
 const ADJ_STATE = { pending: ['Waiting 2nd approval', 'warning'], approved: ['Applied', 'success'], rejected: ['Rejected', 'neutral'] };
 const ADJ_TYPE = { credit: 'Credit note', discount: 'Discount', charge: 'Extra charge', waive: 'Waiver' };
+
+/** Services the store bought from GridCommerce (lib/admin/finance service income), newest first. */
+function ServicesBought({ shop, t }) {
+  const fin = useAdminStore(finance);
+  const recs = fin.live ? storeIncome(fin.data, shop.id) : [];
+  const href = '/admin/income?new=1&store=' + shop.id;
+  return (
+    <Card title="Services bought" action={<Link className="ix-btn ix-btn--sm" href={href}>Record income</Link>} flush>
+      {!fin.live ? <Empty text="Loading…" /> : recs.length ? recs.slice(0, 6).map((r) => {
+        const st = incomeState(r, t);
+        return (
+          <Row key={r.id} title={<><Link href={'/admin/income?id=' + r.id} className="mp-data">{r.invNo}</Link> · {r.serviceName}</>}
+            sub={`${dmy(r.at)} · ${taka(r.total)}${st.balance && !r.voided ? ` · ${taka(st.balance)} due` : ''}`} end={<StatusBadge tone={st.tone}>{st.label}</StatusBadge>} />
+        );
+      }) : <Empty text="No services bought yet." action={{ label: 'Record income', href }} />}
+      {recs.length > 6 ? <Empty text={`${recs.length - 6} more`} action={{ label: 'All of them', href: '/admin/income?tab=all' }} /> : null}
+    </Card>
+  );
+}
 
 function Bills({ ctx }) {
   const { db, t, shop } = ctx;
@@ -90,6 +112,8 @@ export function BillingTab({ ctx }) {
               sub={<>{paidVia(p)}{p.txId ? <> · <span className="mp-data">{p.txId}</span></> : null} · {p.by} · {when(p.at, t)}</>} />
           )) : <Empty text="No payments yet." />}
         </Card>
+
+        <ServicesBought shop={shop} t={t} />
 
         <Card title="Credit notes and adjustments" action={<span className="mp-tools"><InfoTip label="About adjustments" text={`Bills are never edited: corrections are credit notes. Up to ${taka(threshold)} an adjustment applies at once; above it a second person (Finance or an Admin) approves, never the one who asked.`} /><button type="button" className="ix-btn ix-btn--sm" onClick={() => open('adjust')}>Request adjustment</button></span>} flush>
           {adjs.length || credits.length ? (

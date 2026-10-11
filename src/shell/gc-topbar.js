@@ -11,7 +11,8 @@ import { routeOf, navigate } from '../runtime/routes';
 import { getLocale, setLocale, toast } from '../runtime/ui';
 import { t } from './i18n';
 import { NAV, NAV_ALIAS } from './navigation';
-import { currentEdition, EDITION_EVENT } from '../lib/edition';
+import { currentEdition, currentEditionId, previewEdition, LOCKED, EDITIONS, EDITION_EVENT } from '../lib/edition';
+import { SYSTEMS } from '../lib/systems';
 import { onKeys as proposalsOn, PROPOSAL_EVENT } from '../lib/proposal';
 
 // The crumb follows the menu: the page's menu group (or its parent item), found from the side menu's active id
@@ -72,6 +73,9 @@ const later = () => { try { return JSON.parse(window.sessionStorage.getItem(LATE
 export function defineGcTopbar() {
   if (typeof window === 'undefined' || customElements.get('gc-topbar')) return;
   const P = {
+    layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+    bag: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+    shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
     search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
     scan: '<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M14 8v8M17 8v8"/>',
     gear: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
@@ -353,6 +357,14 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         <label class="it" style="cursor:default;align-items:center"><span class="ico">${ic('flag', 16)}</span><b style="white-space:nowrap">${L('Start page')}</b><select class="lsel" data-act="landing" aria-label="${L('Start page')}">${landingOpts}</select></label>
         <a class="it" href="/subscription"><span class="ico">${ic('store', 16)}</span><span><b>${esc(shopName())}</b><small>${esc(L(plan.name + ' plan'))} · ${esc(L(placesLine()))}</small></span><span class="t" style="color:#047857">${ic('check', 14, 2.5)}</span></a>
         <div class="it" style="cursor:default;align-items:center"><span class="ico">${ic('kb', 16)}</span><b>${L('Language')}</b><span class="seg" role="group" aria-label="${L('Language')}"><button data-lang="en" class="${locale === 'en' ? 'on' : ''}" aria-pressed="${locale === 'en'}">EN</button><button data-lang="bn" lang="bn" class="${locale === 'bn' ? 'on' : ''}" aria-pressed="${locale === 'bn'}">বাংলা</button></span></div>
+        ${LOCKED ? '' : (() => {
+          // the full site holds all four systems in one place: switch here without signing out (lib/systems.js)
+          const ed = currentEditionId();
+          const SI = { 'retail-wholesale': 'store', online: 'bag', 'retail-online': 'layers' };
+          return `<div class="hr"></div><div class="ph"><span>${L('Switch system')}</span></div>`
+            + SYSTEMS.map((x) => `<button class="it" data-act="system" data-ed="${esc(x.ed)}" style="width:100%;text-align:left"><span class="ico">${ic(SI[x.ed] || 'store', 16)}</span><span><b>${esc(L(EDITIONS[x.ed].short))}</b><small>${esc(L(x.blurb))}</small></span>${x.ed === ed ? `<span class="t" style="color:#047857">${ic('check', 14, 2.5)}</span>` : ''}</button>`).join('')
+            + `<a class="it" href="/admin"><span class="ico" style="background:#003087;color:#fff">${ic('shield', 16)}</span><span><b>${L('Super admin')}</b><small>${L('GridCommerce team · merchants, billing, company')}</small></span></a>`;
+        })()}
         <div class="hr"></div>
         <a class="it" href="/set-profile"><span class="ico">${ic('user', 16)}</span><span><b>${L('Profile type')}</b><small>${L('Switch to a team member’s profile')}</small></span></a>
         <div class="hr"></div>
@@ -420,6 +432,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         try { window.sessionStorage.setItem(LATER_KEY, JSON.stringify([...later(), e.currentTarget.getAttribute('data-id')])); } catch { /* ignore */ }
         this.render();
       });
+      this.root.querySelectorAll('[data-act="system"]').forEach((b) => b.addEventListener('click', () => { const ed = b.getAttribute('data-ed'); this._open = ''; previewEdition(ed); navigate('/merchant-overview?edition=' + ed); }));
       on('[data-act="signout"]', 'click', () => { this._open = ''; signOut(); navigate(routeOf('merchant-signin/MerchantSignIn.dc.html')); });
       on('[data-lang]', 'click', (e) => {
         const next = e.currentTarget.getAttribute('data-lang');
