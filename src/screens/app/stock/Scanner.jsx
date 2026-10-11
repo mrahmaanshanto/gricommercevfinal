@@ -33,7 +33,9 @@ export function useCamera(videoRef, { on = true, onCode } = {}) {
     if (!on) return undefined;
     let stop = false, timer = 0, stream = null, last = { code: '', at: 0 };
     const md = typeof navigator !== 'undefined' && navigator.mediaDevices;
-    if (!md || !md.getUserMedia) { setState('nocam'); return undefined; }
+    // no camera in the All screens gallery's thumbnails (a framed page), so it never asks for permission there
+    const framed = (() => { try { return window.self !== window.top; } catch { return true; } })();
+    if (!md || !md.getUserMedia || framed) { setState('nocam'); return undefined; }
     setState('starting');
     md.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }).then(async (s) => {
       if (stop) { s.getTracks().forEach((t) => t.stop()); return; }

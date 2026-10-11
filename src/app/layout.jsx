@@ -21,19 +21,26 @@ export const metadata = {
 const DEMO_DATA = 'dazzle-1';
 const RESET = `(function(){try{var k='gc.demo.data',v='${DEMO_DATA}';if(localStorage.getItem(k)===v)return;var keep={'gc.edition.preview':1,'gc.locale':1,'gc.session':1,'gc.platform.db':1};for(var i=localStorage.length-1;i>=0;i--){var n=localStorage.key(i);if(n&&n.indexOf('gc.')===0&&!keep[n])localStorage.removeItem(n);}localStorage.setItem(k,v);}catch(e){}})();`;
 
+// A page shown inside another (the mobile app's All screens gallery, /app-screens) is marked data-framed on <html> before
+// it paints, so the host's badge and floating buttons stay out of the thumbnails (phone-app.css).
+const FRAMED = `(function(){try{if(window.self!==window.top)document.documentElement.setAttribute('data-framed','');}catch(e){document.documentElement.setAttribute('data-framed','');}})();`;
+
 const FONTS ='https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap';
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: RESET }} />
+        <script dangerouslySetInnerHTML={{ __html: FRAMED }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link rel="stylesheet" href={FONTS} />
       </head>
       <body>
         {children}
+        {/* phone app screens on a computer: back to the gallery of every screen (shown by phone-app.css only there) */}
+        <a className="app-allscreens" href="/app-screens">← All screens</a>
         <NavigationBridge />
         <Overlays />
         <GridAi />

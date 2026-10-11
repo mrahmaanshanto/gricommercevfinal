@@ -32,6 +32,7 @@ export default function MCallActiveScreen() {
   const [now, setNow] = useState(0);
   const [ended, setEnded] = useState(null);     // { call, dur } after End
   const [xfer, setXfer] = useState(false);
+  const [preview, setPreview] = useState(null); // ?preview=1 (the All screens gallery): a sample call, nothing saved
   useEffect(() => {
     setNow(Date.now());
     const id = window.setInterval(() => setNow(Date.now()), 500);
@@ -41,13 +42,14 @@ export default function MCallActiveScreen() {
   // no call on: start one from the address (?phone=&name=&conv=), else back to Calls
   useEffect(() => {
     if (!ready || ended) return;
-    if (liveNow()) return;
     const p = new URLSearchParams(window.location.search);
+    if (p.get('preview')) { setPreview({ phone: '01553336655', name: 'Nusrat Jahan', state: 'live', liveAt: Date.now() - 74000, hold: false, muted: false, speaker: false, back: '/m-calls' }); return; }
+    if (liveNow()) return;
     if (p.get('phone')) { startCall({ phone: p.get('phone'), name: p.get('name') || '', conv: p.get('conv') || '', dir: 'out', back: p.get('back') || '/m-calls' }); return; }
     router.replace('/m-calls');
   }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const call = ready && now ? liveNow(now) : null;
+  const call = preview || (ready && now ? liveNow(now) : null);
   const shown = ended ? ended.call : call;
   const data = useMemo(() => {
     if (!ready || !shown) return null;

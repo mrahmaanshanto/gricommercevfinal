@@ -138,3 +138,46 @@
   /* the app design-system board is a reference page: the GridAI button would sit on its cards */
   body:has([data-screen="AppSystem"]) .gc-ai { display: none; }
 }
+
+/* ---- On a computer (above 480px): the screen sits in an iPhone frame, as on the mobileview site ----
+   Centred on a grey desk, a 10px dark bezel with 44px corners, and scaled down on shorter windows so the whole
+   390 x 844 screen (tab bar included) is always in view. "All screens" (top left, wide windows) opens the gallery,
+   /app-screens. The design-system board (data-board) keeps its own page. */
+.app-allscreens { display: none; }
+@media (min-width: 481px) {
+  html:has([data-screen] > .ph:not([data-board])),
+  body:has([data-screen] > .ph:not([data-board])) { background: #dfe5ee; }
+  [data-screen] > .ph:not([data-board]) {
+    flex: none;
+    margin: 34px auto;
+    border-radius: 44px;
+    outline: 10px solid #0f172a;
+    box-shadow: 0 30px 60px -30px rgba(15, 23, 42, .35);
+  }
+  /* fit the frame (844 + bezel + margins = 912px) to the window's height */
+  @media (max-height: 911px) { [data-screen] > .ph:not([data-board]) { zoom: .9; } }
+  @media (max-height: 839px) { [data-screen] > .ph:not([data-board]) { zoom: .82; } }
+  @media (max-height: 771px) { [data-screen] > .ph:not([data-board]) { zoom: .74; } }
+  @media (max-height: 699px) { [data-screen] > .ph:not([data-board]) { zoom: .66; } }
+  @media (max-height: 629px) { [data-screen] > .ph:not([data-board]) { zoom: .58; } }
+  /* the web panel's floating GridAI button belongs to the web panel, not the phone */
+  body:has([data-screen] > .ph:not([data-board])) .gc-ai { display: none; }
+}
+@media (min-width: 900px) {
+  body:has([data-screen] > .ph:not([data-board])) .app-allscreens { display: inline-flex; }
+  .app-allscreens {
+    position: fixed; top: 16px; left: 16px; z-index: 50;
+    align-items: center; gap: 8px; height: 40px; padding: 0 16px;
+    border-radius: var(--radius-full); background: #fff; color: #003087;
+    font: var(--weight-semibold) var(--text-sm)/1 var(--font-sans); text-decoration: none;
+    box-shadow: 0 4px 14px -4px rgba(15, 23, 42, .25);
+  }
+  .app-allscreens:hover { background: #f5f8fd; }
+  .app-allscreens:focus-visible { outline: 3px solid rgba(0, 48, 135, .4); outline-offset: 2px; }
+}
+
+/* inside the gallery's thumbnails (a framed page, html[data-framed]): no host badge, no floating buttons */
+html[data-framed] #nl-badge-frame,
+html[data-framed] .gc-ai,
+html[data-framed] .app-allscreens,
+html[data-framed] nextjs-portal { display: none !important; }

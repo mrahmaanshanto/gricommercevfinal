@@ -404,7 +404,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   (`/m-gridai`; setup stays on the web), Finance, Payouts, Dues, Add expense, Reports, Social posts (`lib/socialPosts.js`,
   shared with the web calendar and composer), Staff & HR, Tasks, Settings (profile, devices, phone notifications, switch
   system), Support tickets (`lib/supportTickets.js`, shared with `/support-tickets`), Notifications. Phone rules:
-  `src/styles/phone-app.css` (the 390×844 board is the real app below 480px).
+  `src/styles/phone-app.css` (the 390×844 board is the real app below 480px; above it the screen sits in an iPhone frame
+  scaled to the window's height, with "← All screens" from the root layout). `/app-screens` (`screens/app/AppScreens.jsx`)
+  is the gallery of every app screen as live thumbnails (framed pages get `html[data-framed]`: no host badge, no camera;
+  `/m-call-active?preview=1` shows a sample call without saving one). AppScreen draws the tab bar on every screen
+  (`tabs={false}` for call, scanner, live chat, Ask GridAI).
 - Responsive rules for fixed design boards (`data-board`, zoomed to fit) are in
   `src/styles/console-responsive.css`. `?quiet=1` stops the evening payout check from opening by itself (tests, screenshots).
 - Super admin (`/admin`, GridCommerce's own panel; branch `claude/super-admin`, Oct 2026; map, data agreements and the
