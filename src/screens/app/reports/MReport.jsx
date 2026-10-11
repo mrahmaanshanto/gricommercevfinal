@@ -65,7 +65,6 @@ export default function MReportScreen() {
           <Card style={{ marginTop: '8px' }}><EmptyState icon="chart" title="This report isn’t here. It may not be part of your plan, or it reads better on a computer." action={{ label: 'All reports', href: '/m-reports' }} /></Card>
         )}
       </Content>
-      <TabBar />
     </AppScreen>
   );
 }
@@ -328,7 +327,6 @@ function DailyView({ ready, tick, ctx }) {
         )}
         <div style={{ height: '8px' }} />
       </Content>
-      <TabBar />
     </AppScreen>
   );
 }

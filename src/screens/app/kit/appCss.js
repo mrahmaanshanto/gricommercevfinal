@@ -154,6 +154,31 @@ button.sw::after{transition:left .15s}
 .ph:not([data-board]):has(> .tabs):has(> .fab) > .content{padding-bottom:180px}
 .ph:not([data-board]):not(:has(> .tabs)):has(> .fab) > .content{padding-bottom:104px}
 .ph:not([data-board]):not(:has(> .tabs)):not(:has(> .actbar)):not(:has(> .fab)) > .content{padding-bottom:40px}
+
+/* ---- phone scale (Oct 2026 polish) ----
+   One step under the web's type scale, scoped to the app: every size in the app (kit, screen CSS, inline styles)
+   reads these tokens, so the whole app moves together. Body 13px, row titles 13px semibold, helper 12px, page
+   titles 24px. Controls one size down too: buttons and fields 40px, chips and segments 32px, list icons 40px. */
+.ph{--text-3xl:24px;--text-3xl-lh:1.3;--text-2xl:20px;--text-2xl-lh:1.35;--text-xl:18px;--text-xl-lh:1.4;--text-lg:16px;--text-lg-lh:1.45;--text-base:15px;--text-base-lh:1.5;--text-sm-plus:13px;--text-sm-plus-lh:20px;--text-xs-plus:12px;--text-xs-plus-lh:18px;font-size:var(--text-sm)}
+.big h1{line-height:30px}
+.btn{height:40px;padding:0 16px}
+.inp{height:40px}
+.chip{height:32px;padding:0 12px;font-size:var(--text-xs)}
+.seg span,.seg button{height:32px}
+.srch{height:42px}
+.pchip{height:34px}
+.av,.ico{width:40px;height:40px}
+.tile .ico{width:48px;height:48px}
+.fab{width:52px;height:52px}
+.row .t{line-height:18px}.row .s{line-height:17px}
+.ph .sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0}
+
+/* every screen carries the tab bar (AppScreen draws it); a screen's own action bar sits just above the pill, on a
+   soft band of the page colour (no hard edge), and the body clears both */
+.ph:has(> .tabs) > .actbar{bottom:80px;padding:14px 20px 8px;background:linear-gradient(to top,var(--bg) 64%,rgba(245,247,250,0));border-top:0;-webkit-backdrop-filter:none;backdrop-filter:none}
+.ph:has(> .tabs):has(> .actbar) > .content{bottom:0!important}
+.ph:not([data-board]):has(> .tabs):has(> .actbar) > .content{padding-bottom:170px}
+.ph:has(> .tabs):has(> .actbar) > .fab{bottom:146px}
 `;
 
 /** Everything a kit screen needs: the boards' CSS, then the kit's additions. */

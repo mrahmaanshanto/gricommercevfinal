@@ -165,7 +165,6 @@ export default function MStockScreen() {
         ) : <div className="card" style={{ margin: '14px 20px 0' }}><EmptyState icon="check" title={view === 'action' ? 'Nothing is low or out' : 'No products here'} action={view === 'action' ? { label: 'All items', onClick: () => setView('all') } : null} /></div>}
         <div style={{ height: '8px' }} />
       </Content>
-      <TabBar active="stock" />
 
       <Sheet open={!!sel} onClose={() => setOpen('')} title={sel ? sel.r.name : ''}
         footer={sel ? <>

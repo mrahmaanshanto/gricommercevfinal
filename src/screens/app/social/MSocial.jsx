@@ -264,7 +264,6 @@ export default function MSocialScreen() {
         <div style={{ height: '8px' }} />
       </Content>
       {comms ? <Fab href={day && day >= (today || '') && calendar ? `/m-post-new?day=${day}` : '/m-post-new'} label="Create post" /> : null}
-      <TabBar />
       <PostSheet post={open} onClose={() => setOpenId('')} />
     </AppScreen>
   );

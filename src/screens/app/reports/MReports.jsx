@@ -76,7 +76,6 @@ export default function MReportsScreen() {
         )}
         <div style={{ height: '8px' }} />
       </Content>
-      <TabBar />
     </AppScreen>
   );
 }

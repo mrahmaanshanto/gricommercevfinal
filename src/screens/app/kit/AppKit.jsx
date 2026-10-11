@@ -10,13 +10,14 @@
 //     <Content top={47|103} bottom={0|98}>…</Content>   the scrolling body (.content). top 47 under a LargeHeader
 //                                                (which goes INSIDE Content), 103 under an AppBar; bottom 98 above
 //                                                an ActionBar, else 0 (the tab bar floats over the body)
-//     <Fab …/>  <TabBar/>  or  <ActionBar>…</ActionBar>   bottom chrome (phone-app.css pins them on a phone)
+//     <Fab …/>  <ActionBar>…</ActionBar>          bottom chrome (phone-app.css pins them on a phone); the tab bar is
+//                                               drawn by <AppScreen> itself, the action bar sits just above it
 //     <Sheet open …/>                           bottom sheets last (they cover the screen)
 //   </AppScreen>
 // Body content uses 20px side margins like the boards: Card / Section / Chips / Segmented / SearchField already do.
 //
 // ---- frame ----
-// AppScreen  { name, css?, title?, statusTone? ('dark' | 'light'), children }  name = data-screen (scope a screen's
+// AppScreen  { name, css?, title?, statusTone? ('dark' | 'light'), tabs? (default true: draws <TabBar/>), children }  name = data-screen (scope a screen's
 //            own css as [data-screen="<name>"] …); css = extra CSS string; title = aria-label of the device
 // Content    { top=47, bottom=0, pad? (bool: 20px sides), gap? (px, makes it a flex column), style?, children }
 // LargeHeader { title, eyebrow?, actions? (IconButtons), children? (under the title row) }  the boards' big-title
@@ -239,13 +240,16 @@ function StatusBar({ tone = 'dark' }) {
 }
 
 /** The device: data-screen wrapper, .ph, fake status bar and home indicator (hidden on a real phone). */
-export function AppScreen({ name, css = '', title, statusTone = 'dark', children }) {
+export function AppScreen({ name, css = '', title, statusTone = 'dark', tabs = true, children }) {
+  // every screen carries the bottom tab bar (it finds its tab from the address); full-screen tools — a call in
+  // progress, the camera scanner, a chat with its composer — pass tabs={false}
   return (
     <div className="dc-screen" data-screen={name}>
       <style dangerouslySetInnerHTML={{ __html: APP_CSS + css }} />
       <div className="ph" aria-label={title}>
         <StatusBar tone={statusTone} />
         {children}
+        {tabs ? <TabBar /> : null}
         <div className="hi" aria-hidden="true" />
       </div>
     </div>

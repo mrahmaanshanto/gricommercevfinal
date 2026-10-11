@@ -69,7 +69,6 @@ export default function MMoreScreen() {
           <Icon name="logout" size={20} />Sign out
         </button>
       </Content>
-      <TabBar active="more" />
     </AppScreen>
   );
 }

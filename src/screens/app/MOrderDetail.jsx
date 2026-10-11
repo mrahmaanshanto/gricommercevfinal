@@ -107,7 +107,8 @@ function Steps({ steps, reached, next, status, stopped }) {
                   {cur ? <span style={{ width: '8px', height: '8px', borderRadius: 'var(--radius-full)', background: 'var(--brand)' }} /> : null}
                 </span>
               )}
-              <span className="ell" style={{ maxWidth: '100%', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)', color: done || cur ? 'var(--ink)' : 'var(--muted)' }}>{SHORT[k]}</span>
+              {/* six labels don't fit a phone's width: only the current step is named (the card title says which step it is) */}
+              <span className={cur ? '' : 'sr-only'} style={cur ? { whiteSpace: 'nowrap', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)', color: 'var(--ink)' } : undefined}>{SHORT[k]}</span>
             </li>
           );
         })}

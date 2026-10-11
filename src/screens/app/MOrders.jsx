@@ -337,7 +337,6 @@ export default function MOrdersScreen() {
       ) : (
         <>
           {canNew ? <Fab href={newHref} label={online ? 'New order' : 'New sale'} /> : null}
-          <TabBar active="orders" />
         </>
       )}
 

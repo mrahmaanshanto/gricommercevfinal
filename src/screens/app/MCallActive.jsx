@@ -78,7 +78,7 @@ export default function MCallActiveScreen() {
   };
 
   return (
-    <AppScreen name="MCallActive" title={'Call with ' + name} statusTone="light">
+    <AppScreen name="MCallActive" title={'Call with ' + name} statusTone="light" tabs={false}>
       <h1 style={{ position: 'absolute', width: '1px', height: '1px', margin: '-1px', overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>{'Call with ' + name}</h1>
       <div style={{ position: 'absolute', inset: '0', background: 'linear-gradient(170deg,#0b1f4d 0%,#012169 45%,#0a1633 100%)' }} />
       <div style={{ position: 'absolute', top: '47px', left: '0', right: '0', display: 'flex', justifyContent: 'space-between', padding: '6px 16px', zIndex: '5' }}>

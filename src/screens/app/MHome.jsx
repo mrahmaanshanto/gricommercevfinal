@@ -226,7 +226,6 @@ export default function MHomeScreen() {
         ) : null}
         <div style={{ height: '8px' }} />
       </Content>
-      <TabBar active="home" />
     </AppScreen>
   );
 }

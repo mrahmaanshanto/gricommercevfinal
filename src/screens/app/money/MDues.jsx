@@ -126,7 +126,6 @@ export default function MDuesScreen() {
         )}
         <div style={{ height: '8px' }} />
       </Content>
-      <TabBar />
 
       {g ? <CustomerSheet key={g.key} g={g} me={me} now={data.now} onClose={() => { setCust(''); refresh(); }} /> : null}
       {s ? <SupplierSheet key={s.id} s={s} me={me} today={data.today} onClose={() => { setSup(''); refresh(); }} /> : null}

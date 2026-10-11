@@ -103,7 +103,6 @@ export default function MCustomersScreen() {
         <div style={{ height: '8px' }} />
       </Content>
       <Fab onClick={() => setAdd({ name: '', phone: '', address: '', error: {} })} label="Add customer" />
-      <TabBar />
 
       <Sheet open={segOpen} onClose={() => setSegOpen(false)} title="Segments">
         <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)' }}>

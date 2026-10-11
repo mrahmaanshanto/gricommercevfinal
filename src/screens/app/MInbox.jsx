@@ -72,7 +72,6 @@ export default function MInboxScreen() {
     return (
       <AppScreen name="MInbox" title="Inbox">
         <Content top={47}><LargeHeader title="Inbox" /><NoAccess title="The Inbox isn’t part of your access in this edition." /></Content>
-        <TabBar active="inbox" />
       </AppScreen>
     );
   }
@@ -253,7 +252,6 @@ export default function MInboxScreen() {
           </>
         ) : null}
       </Content>
-      <TabBar active="inbox" />
 
       {/* a comment */}
       <CommentSheet c={comment} onClose={() => setComment(null)} onReply={replyPublic} onDm={toDm} onHide={hide} onUnhide={unhide}

@@ -137,7 +137,6 @@ export default function MFinanceScreen() {
         )}
         <div style={{ height: '8px' }} />
       </Content>
-      <TabBar />
 
       {form ? <MoneySheet form={form} setForm={setForm} me={me} onDone={() => { setForm(null); refresh(); }} /> : null}
       {req ? <ReviewSheet r={req} me={me} limits={data.limits} onClose={() => setReqId('')} /> : null}

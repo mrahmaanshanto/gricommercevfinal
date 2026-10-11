@@ -132,7 +132,6 @@ export default function MHRScreen() {
               </>)}
         <div style={{ height: '8px' }} />
       </Content>
-      <TabBar />
       {S && me ? <LeaveSheet S={S} me={me} open={leaveOpen} onClose={() => setLeaveOpen(false)} /> : null}
       {S && slip ? <SlipSheet S={S} me={me} row={slip} onClose={() => setSlip(null)} /> : null}
       {S && review ? <ReviewSheet S={S} user={user} pw={pw} req={review} onClose={() => setReview(null)} /> : null}

@@ -28,7 +28,7 @@
     --app-bar-gap: max(var(--space-4, 16px), var(--app-sab));  /* tab bar distance from the bottom */
     --app-tab-top: calc(var(--app-bar-gap) + 56px);            /* top edge of the tab bar */
     --app-fab-gap: max(var(--space-6, 24px), calc(var(--app-sab) + 12px)); /* FAB with no tab bar */
-    --app-act-h: calc(12px + 44px + max(12px, var(--app-sab)) + 1px);      /* action bar height */
+    --app-act-h: calc(12px + 40px + max(12px, var(--app-sab)) + 1px);      /* action bar height */
     width: 100% !important;
     height: calc(100vh + var(--app-sb) - var(--app-sat)) !important;
     height: calc(100dvh + var(--app-sb) - var(--app-sat)) !important;
@@ -83,6 +83,18 @@
   [data-screen] > .ph:not([data-board]) > .actbar { padding-bottom: max(12px, var(--app-sab)) !important; }
   [data-screen] > .ph:not([data-board]):has(> .actbar) > .content {
     padding-bottom: calc(var(--app-act-h) + var(--space-6, 24px)) !important;
+  }
+
+  /* an action bar on a screen with the tab bar sits just above the pill */
+  [data-screen] > .ph:not([data-board]):has(> .tabs) > .actbar {
+    bottom: var(--app-tab-top) !important;
+    padding-bottom: var(--space-2, 8px) !important;
+  }
+  [data-screen] > .ph:not([data-board]):has(> .tabs):has(> .actbar) > .content {
+    padding-bottom: calc(var(--app-tab-top) + 62px + var(--space-6, 24px)) !important;
+  }
+  [data-screen] > .ph:not([data-board]):has(> .tabs):has(> .actbar) > .fab {
+    bottom: calc(var(--app-tab-top) + 62px + var(--space-3, 12px)) !important;
   }
 
   /* chat / ticket reply composer pinned to the bottom (its height is set by the screen) */

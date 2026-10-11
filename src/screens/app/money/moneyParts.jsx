@@ -108,7 +108,6 @@ export function NotHere({ name, title }) {
       <Content top={103}>
         <Card style={{ marginTop: '8px' }}><EmptyState icon="alert" title="This page isn’t open to you here." action={{ label: 'Back to More', href: '/m-more' }} /></Card>
       </Content>
-      <TabBar />
     </AppScreen>
   );
 }

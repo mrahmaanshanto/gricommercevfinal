@@ -78,7 +78,7 @@ export default function MScanScreen() {
   const submit = (e) => { e.preventDefault(); const c = typed.trim(); setTyped(''); handle(c); };
 
   return (
-    <AppScreen name="MScan" title="Scan a barcode" statusTone="light">
+    <AppScreen name="MScan" title="Scan a barcode" statusTone="light" tabs={false}>
       <h1 style={{ position: 'absolute', width: '1px', height: '1px', margin: '-1px', overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>Scan a barcode</h1>
       <div style={{ position: 'absolute', inset: '0', background: 'radial-gradient(120% 80% at 50% 35%,#3b4a61,#0b1220)' }} />
       <video ref={videoRef} muted playsInline aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: cam.state === 'live' && !code ? 'block' : 'none' }} />

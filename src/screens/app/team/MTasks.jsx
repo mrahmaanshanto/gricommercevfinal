@@ -108,7 +108,6 @@ export default function MTasksScreen() {
         <div style={{ height: '8px' }} />
       </Content>
       <Fab onClick={() => setAdding(true)} label="New task" />
-      <TabBar />
       {me ? <NewTaskSheet open={adding} onClose={() => setAdding(false)} me={me} /> : null}
     </AppScreen>
   );

@@ -381,7 +381,7 @@ function AskGridAI({ ctx, first, onBack }) {
   const voice = () => { if (!listening) { setListening(true); return; } setListening(false); ask(VOICE_SAMPLE, true); };
 
   return (
-    <AppScreen name="MGridAI" title="Ask GridAI" css={ASK_CSS}>
+    <AppScreen name="MGridAI" title="Ask GridAI" css={ASK_CSS} tabs={false}>
       <AppBar title="Ask GridAI" onBack={onBack} actions={<span className="num" style={{ width: '64px', textAlign: 'right', fontSize: 'var(--text-xs)', color: 'var(--muted)', paddingRight: '8px' }}>{usage.day ? `${usage.questions}/${LIMIT}` : ''}</span>} />
       <div className="content ga-log" ref={log} aria-live="polite" style={{ top: '103px', bottom: '96px', padding: '6px 16px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {!chat.length ? (

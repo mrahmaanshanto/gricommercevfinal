@@ -284,7 +284,7 @@ export default function MChatScreen() {
 }`;
 
   return (
-    <AppScreen name="MChat" title={conv ? 'Chat with ' + conv.name : 'Chat'} css={css}>
+    <AppScreen name="MChat" title={conv ? 'Chat with ' + conv.name : 'Chat'} css={css} tabs={false}>
       <h1 style={{ position: 'absolute', width: '1px', height: '1px', margin: '-1px', overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>{conv ? 'Chat with ' + conv.name : 'Chat'}</h1>
       <header className="appbar" style={{ height: '64px', background: 'rgba(255,255,255,.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--line)' }}>
         <Link href="/m-inbox" className="ib" aria-label="Back"><Icon name="back" size={24} stroke={2} /></Link>

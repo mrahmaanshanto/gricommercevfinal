@@ -109,7 +109,6 @@ export default function MProductsScreen() {
         )}
       </Content>
       {canAdd ? <Fab href="/m-product-edit" label="Add product" /> : null}
-      <TabBar />
       <Sheet open={filters} onClose={() => setFilters(false)} title="Filters" footer={<Button onClick={() => setFilters(false)}>Show {byStatus.length} products</Button>}>
         <div className="lab" style={{ marginBottom: '8px' }}>Status</div>
         <Segmented items={STATUS} value={status} onChange={setStatus} style={{ margin: 0 }} />

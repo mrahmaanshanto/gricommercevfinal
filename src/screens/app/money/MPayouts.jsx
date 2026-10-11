@@ -150,7 +150,6 @@ export default function MPayoutsScreen() {
         ) : null}
         <div style={{ height: '8px' }} />
       </Content>
-      <TabBar />
 
       {open ? <PayoutSheet key={open.id} pay={open} me={me} onClose={() => { setOpen(null); refresh(); }} /> : null}
       {wallet ? <WithdrawSheet key={wallet.partner} wallet={wallet} me={me} onClose={() => { setWallet(null); refresh(); }} /> : null}
