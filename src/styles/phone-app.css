@@ -38,6 +38,11 @@
     border-radius: 0 !important;
     box-shadow: none !important;
   }
+  /* the host's badge (Netlify's "Powered by", #nl-badge-frame, ~48px at the bottom right) would cover the tab bar's
+     right end and the action bar: on a page that has it, the bottom bars sit above it as if it were the home bar */
+  body:has(#nl-badge-frame) [data-screen] > .ph:not([data-board]) {
+    --app-sab: max(env(safe-area-inset-bottom, 0px), var(--host-badge, 56px));
+  }
   /* screens drawn without a scrolling body (sign-in, call, scanner, welcome) need their full height:
      on a short phone the page scrolls instead of the parts overlapping */
   [data-screen] > .ph:not([data-board]):not(:has(> .content)) { min-height: 800px; }
