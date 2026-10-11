@@ -41,6 +41,7 @@ import {
   courierWebhook, syncCourier, HOOK_LABEL, setLinePhoto, isDigitalOrder, sendDigital,
 } from '@/lib/orderFlow';
 import { courierHistory } from '@/lib/orderLinks';
+import { BrandLogo } from '@/components/BrandLogo';
 import { holdsStock } from '@/lib/edition';
 import { getStockPlaces } from '@/lib/locations';
 import { clockNow } from '@/lib/settlements';
@@ -69,6 +70,13 @@ const CSS = `
 [data-screen="MOrderDetail"] .thumb img{width:100%;height:100%;object-fit:cover}
 [data-screen="MOrderDetail"] .kv{display:flex;justify-content:space-between;gap:12px;padding:10px 16px;font-size:var(--text-sm)}
 [data-screen="MOrderDetail"] .kv + .kv{border-top:1px solid var(--line)}
+[data-screen="MOrderDetail"] .ov-cr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 12px;padding:10px 16px;border-top:1px solid var(--line)}
+[data-screen="MOrderDetail"] .ov-cr b{display:inline-flex;align-items:center;gap:8px;min-width:0;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--ink)}
+[data-screen="MOrderDetail"] .ov-cr > span{font-size:var(--text-xs);color:var(--muted);white-space:nowrap}
+[data-screen="MOrderDetail"] .ov-bar{grid-column:1 / -1;display:flex;height:6px;border-radius:var(--radius-full);background:var(--soft);overflow:hidden}
+[data-screen="MOrderDetail"] .ov-bar em{display:block;height:100%;background:var(--ok)}
+[data-screen="MOrderDetail"] .ov-bar em.ret{background:var(--err)}
+[data-screen="MOrderDetail"] .ov-ret{color:var(--err);font-weight:var(--weight-medium)}
 [data-screen="MOrderDetail"] .kv span:first-child{color:var(--muted)}
 [data-screen="MOrderDetail"] .kv span:last-child{text-align:right;color:var(--ink);min-width:0;overflow-wrap:anywhere}
 [data-screen="MOrderDetail"] .tl{position:relative;display:flex;gap:12px;padding:0 0 14px}
@@ -557,6 +565,27 @@ export default function MOrderDetailScreen() {
           </Section>
         ) : null}
 
+        {!counter ? (
+          <Section title="Order verification" action={<Pill tone={risk[1]}>{risk[0]}</Pill>}>
+            <div className="card" style={{ margin: '0 20px' }}>
+              <div className="kv"><span>Call</span><span>{v ? `${v.state === 'calling' ? 'Calling…' : callResultLabel(v.state)} · ${v.method === 'auto' ? 'Auto call' : 'Call'}${v.at ? ' · ' + timeText(v.at) : ''}` : isNew ? 'Not verified yet' : 'Not called'}</span></div>
+              {record && record.total ? (<>
+                <div className="kv"><span>Parcels</span><span className="num">{record.total}</span></div>
+                <div className="kv"><span>Delivered</span><span className="num">{record.delivered}</span></div>
+                <div className="kv"><span>Returned</span><span className={record.returned ? 'num ov-ret' : 'num'}>{record.returned || 0}</span></div>
+                <div className="kv"><span>Success</span><span className="num">{record.rate}%</span></div>
+                {record.couriers.map((c) => (
+                  <div key={c.name} className="ov-cr">
+                    <b><BrandLogo brand={c.name.toLowerCase().replace(/[^a-z]/g, '')} size={24} decorative />{c.name}</b>
+                    <span>{c.delivered} of {c.total} delivered{c.returned ? <> · <span className="ov-ret">{c.returned} returned</span></> : null}</span>
+                    <i className="ov-bar" aria-hidden="true"><em style={{ width: `${c.total ? (c.delivered / c.total) * 100 : 0}%` }} />{c.returned ? <em className="ret" style={{ width: `${(c.returned / c.total) * 100}%` }} /> : null}</i>
+                  </div>
+                ))}
+              </>) : <div className="kv"><span>Courier record</span><span>{o.phone ? 'None for this number' : 'No mobile number'}</span></div>}
+            </div>
+          </Section>
+        ) : null}
+
         <Section title="Notes">
           <Card pad="14px 16px" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <label className="field">
@@ -578,7 +607,6 @@ export default function MOrderDetailScreen() {
             {soldBy ? <div className="kv"><span>Sold by</span><span>{soldBy}</span></div> : null}
             {!counter ? <div className="kv"><span>Courier</span><span>{o.courier}{o.consignment && o.consignment !== '—' ? ' · ' + o.consignment : ''}</span></div> : null}
             {!counter ? <div className="kv"><span>Stock</span><span>{holdsStock() ? (holds.length ? 'Held at ' + heldAt : isNew ? 'Held when approved' : 'Not held') : o.stockOut ? 'Taken from ' + o.stockOut.place : isNew ? 'Taken out when approved' : 'Not taken out'}</span></div> : null}
-            {!counter && record && record.total ? <div className="kv"><span>Courier record</span><span>{record.delivered} of {record.total} delivered</span></div> : null}
           </div>
         </Section>
 
