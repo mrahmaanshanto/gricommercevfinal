@@ -7,7 +7,7 @@
 //   productOfRow(row)      the product a catalogue row belongs to (products.findProduct)
 //   thumbOf(row)           { src, letter, bg } for the 44–84px square
 //   placeList()            stock places the person can pick (locations.getStockPlaces: one place in the Online edition)
-//   reorderOf(sku)         the reorder level the web Stock page uses (its demo levels; 10 when unknown)
+//   reorderOf(sku, place)  the alert level the web Stock page uses (reorder.js; every place when no place)
 //   stockTone(st, re)      'err' (out) | 'warn' (low: under the reorder level) | 'ok'
 //   soldPerDay(sku)        pieces sold a day over the last 30 days (salesBook.getSaleLines)
 //   me()                   the signed-in person's name (lib/team)
@@ -22,6 +22,7 @@ import { getCatalog, stockAt, productBy, isUntracked } from '@/lib/stock';
 import { findProduct } from '@/lib/products';
 import { getStockPlaces, onlinePlace } from '@/lib/locations';
 import { isOnePlace } from '@/lib/stockSetup';
+import { levelAt, DEFAULT_LEVEL } from '@/lib/reorder';
 import { getSaleLines, getSales } from '@/lib/salesBook';
 import { productCostOf } from '@/lib/productCost';
 import { currentUser, roleOf } from '@/lib/team';
@@ -65,9 +66,8 @@ export function placeList() {
 }
 export const onePlace = () => safe(() => isOnePlace(), false);
 
-// the web Stock page's reorder levels (screens/purchase-stock/Stock.jsx › INFO); 10 for the rest
-const REORDER = { 'AC-CBL-100': 60, 'AC-CLN-KIT': 40, 'AC-GLS-9H': 30, 'AC-OTG-C': 20, 'AC-LNS-PR': 40, 'AC-CSE-A55': 20, 'AC-CHG-25': 10, 'WR-BND-08': 8, 'AC-HLD-CAR': 15, 'AC-CBL-LTG': 30, 'AC-CHG-20': 24, 'AU-EAR-TC': 20, 'PH-RLM-N50': 6, 'AU-EAR-PRO': 10, 'AC-STD-FLD': 30, 'PB-ANK-10K': 5 };
-export const reorderOf = (sku) => REORDER[sku] || 10;
+// the alert level the web Stock page uses (lib/reorder.js: the product's "Alert me when stock is below", or a place's own)
+export const reorderOf = (sku, place) => safe(() => levelAt(productBy(sku) || { sku }, place || ''), DEFAULT_LEVEL);
 /** 'err' out of stock · 'warn' under the reorder level · 'ok' */
 export const stockTone = (available, re) => (available <= 0 ? 'err' : available < re ? 'warn' : 'ok');
 

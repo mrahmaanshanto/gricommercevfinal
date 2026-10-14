@@ -35,13 +35,15 @@ export function splitOldestFirst(invoices, amount) {
 }
 
 export const getAllocations = () => read(ALLOC_KEY);
+/** One allocation (a money receipt) by its PAY- number. */
+export const allocationBy = (id) => getAllocations().find((a) => a.id === id) || null;
 export const allocationsFor = (invoiceId) => getAllocations().filter((a) => a.lines.some((l) => l.id === invoiceId));
 
 /**
- * One payment across several invoices. { key, customer, method, amount, ref, lines: [{ id, amount }], keepExtra }
+ * One payment across several invoices. { key, customer, method, amount, ref, lines: [{ id, amount }], keepExtra, meta }
  * The reference (TrxID / bank ref) is checked once for the whole payment. Returns { ok, message, allocation }.
  */
-export function allocatePayment({ customer, method, amount, ref = '', lines, keepExtra = false }, user = currentUser()) {
+export function allocatePayment({ customer, method, amount, ref = '', lines, keepExtra = false, meta = {} }, user = currentUser()) {
   const total = r2(amount);
   const parts = (lines || []).map((l) => ({ id: l.id, amount: r2(l.amount) })).filter((l) => l.amount > 0);
   const used = r2(parts.reduce((a, l) => a + l.amount, 0));
@@ -65,7 +67,8 @@ export function allocatePayment({ customer, method, amount, ref = '', lines, kee
     // the last invoice keeps what is left over as the customer's credit, when asked
     recordPayment(inv, method, i === parts.length - 1 && extra ? r2(l.amount + extra) : l.amount, user.name, { ref: [ref, id].filter(Boolean).join(' · '), keepExtra: i === parts.length - 1 && extra > 0 });
   });
-  const allocation = { id, at: Date.now(), customer, method, amount: total, ref, lines: parts, extra, by: user.name };
+  // meta: what a money receipt prints later (Collections, WH-F7): { phone, address, owedBefore, owedAfter }
+  const allocation = { ...meta, id, at: Date.now(), customer, method, amount: total, ref, lines: parts, extra, by: user.name };
   write(ALLOC_KEY, [allocation, ...read(ALLOC_KEY)]);
   return { ok: true, message: '', allocation };
 }

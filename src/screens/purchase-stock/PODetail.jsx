@@ -2,25 +2,32 @@
 // PODetail — one purchase order (/po-detail?no=<no>), laid out like Shopify's purchase order page: a record header
 // (back to the list, number, status, supplier and date), the work on the left (products and what has arrived,
 // deliveries, extra costs, history) and the facts on the right (supplier, payment and terms, files, note).
+// What can be done follows the order's status (lib/poFlow.js, PR-F4 / PR-F5):
+//   waiting approval  Approve / Reject (with a reason) by the owner or the warehouse manager, never by the person who
+//                     made it; a rejected order is a draft again with the reason on top
+//   draft             Send for approval (over the limit in Settings › Stock setup) or Place order
+//   approved          Send to supplier: WhatsApp with the order written out, and the printed order (PDF) to attach
+//   sent / partly     Receive goods; Close the rest when part of it will never come
+//   any time          Edit (until everything arrived), Cancel with a reason (before anything arrived), Print, Add a cost
 // - An order made in this browser comes from src/lib/purchaseOrders.js; its payment is read from the supplier bills
-//   made when goods were received (src/lib/supplierBills.js).
-// - A demo order comes from DEMO_POS; PO-2609-0020 (also shown when the number is unknown) carries its deliveries,
-//   payment, extra costs, files, note and history below.
+//   made when goods were received (src/lib/supplierBills.js). Demo orders keep their changes beside them (poFlow.js).
+// - PO-2609-0020 (also shown when the number is unknown) carries its demo deliveries, payment, costs, files, note and history.
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { StatusBadge, InfoTip } from '@/components/ui';
+import { StatusBadge, InfoTip, Dialog } from '@/components/ui';
 import { RecordHeader, KV } from '@/components/ui/IndexKit';
 import { toast } from '@/runtime/ui';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { getPO, updatePO, poPieces, poReceived, PO_STATUS_TONE, DEMO_POS } from '@/lib/purchaseOrders';
 import { getDb, findSupplier, billLeft, termsLabel, daysFrom } from '@/lib/supplierBills';
+import { poOf, approvePO, rejectPO, submitPO, markSent, cancelPO, closeRemaining, editPO, addCost, canApprove, canCancel, canClose, canEdit, needsApproval, approvalLimit, whatsappLink, PO_EVENT } from '@/lib/poFlow';
+import { currentUser, SESSION_EVENT } from '@/lib/team';
+import { MERCHANT } from '@/lib/merchant';
+import { PODocument, printPO, ReasonDialog, PO_DOC_CSS } from './poParts';
 
 const DEFAULT_NO = 'PO-2609-0020';
-const DEMO_LABEL = { draft: 'Draft', approval: 'Waiting approval', approved: 'Approved', ordered: 'Ordered', partial: 'Partly received', received: 'Received', closed: 'Closed', cancelled: 'Cancelled' };
-const DEMO_TONE = { draft: 'slate', approval: 'warning', approved: 'info', ordered: 'primary', partial: 'warning', received: 'success', closed: 'slate', cancelled: 'error' };
 const COST_LABEL = { ship: 'Transport / shipping', customs: 'Customs & LC charges', courier: 'Courier & labour' };
 const at = (m, d, h, min) => new Date(2026, m - 1, d, h, min).getTime();
 // what the demo order PO-2609-0020 has been through
@@ -45,40 +52,27 @@ const DEMO_EXTRA = {
 };
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
-/** One shape for both kinds of order. */
-function storedModel(p) {
-  const bills = getDb().bills.filter((b) => b.po === p.no);
+/** One shape for both kinds of order (poFlow.poOf plus what the page shows). */
+function modelOf(no) {
+  const po = poOf(no) || poOf(DEFAULT_NO);
+  const x = po.demo ? DEMO_EXTRA[po.no] || {} : {};
+  const extra = po.extra || {};
+  const bills = getDb().bills.filter((b) => b.po === po.no);
   const billed = bills.reduce((a, b) => a + (b.amount || 0), 0);
   const left = bills.reduce((a, b) => a + billLeft(b), 0);
-  const extra = p.extra || {};
+  const made = po.demo ? [] : [
+    { at: po.at, text: 'Made as a draft' + (po.from && po.from.length ? ' from staff requests' : '') + (po.by ? ' by ' + po.by : '') },
+    po.sentAt && !(po.log || []).some((l) => /^Sent to/.test(l.text)) ? { at: po.sentAt, text: `Sent to ${po.supplier}` } : null,
+  ];
   return {
-    no: p.no, stored: true, supplier: p.supplier, place: p.place, at: p.at,
-    label: p.approval === 'waiting' && p.status === 'Draft' ? 'Waiting for approval' : p.status, tone: PO_STATUS_TONE[p.status] || 'slate',
-    lines: p.lines, total: p.total, invoice: p.invoice, note: p.note, expected: p.expected, terms: p.terms, from: p.from || [],
-    deliveries: (p.deliveries || []).map((d) => ({ ...d, note: d.place })),
-    costs: Object.keys(COST_LABEL).filter((k) => Number(extra[k]) > 0).map((k) => ({ label: COST_LABEL[k], amt: Number(extra[k]) })),
-    files: [],
-    pay: bills.length ? { billed, paid: billed - left, left } : null,
-    history: [
-      { at: p.at, text: 'Made as a draft' + (p.from && p.from.length ? ' from staff requests' : '') },
-      p.sentAt ? { at: p.sentAt, text: `Sent to ${p.supplier}` } : null,
-      ...(p.deliveries || []).map((d) => ({ at: d.at, text: `${d.qty} pieces received at ${d.place} · ${d.grn}`, ok: true })),
-    ].filter(Boolean).sort((a, b) => b.at - a.at),
-    receive: p.status !== 'Received' ? `/receive-goods?po=${encodeURIComponent(p.no)}` : '',
-    draft: p.status === 'Draft',
-  };
-}
-function demoModel(no) {
-  const r = DEMO_POS.find((x) => x.no === no) || DEMO_POS.find((x) => x.no === DEFAULT_NO);
-  const x = DEMO_EXTRA[r.no] || {};
-  const left = Math.max(0, r.total - r.paid);
-  return {
-    no: r.no, stored: false, supplier: r.supplier, place: r.place, at: r.at, label: DEMO_LABEL[r.s], tone: DEMO_TONE[r.s],
-    lines: r.lines, total: r.total, invoice: x.invoice || '', note: x.note || '', terms: x.terms, from: [],
-    deliveries: x.deliveries || [], costs: x.costs || [], files: x.files || [], history: x.history || [],
-    demoPay: { total: r.total, paid: r.paid, left, paidText: x.paidText, due: r.s === 'cancelled' ? '' : r.due, dueAt: x.dueAt, overdue: !!r.overdue },
-    receive: r.no === DEFAULT_NO ? '/receive-goods' : ['approved', 'ordered', 'partial'].includes(r.s) ? 'demo' : '',
-    draft: false,
+    ...po, invoice: po.invoice || x.invoice || '', note: po.note != null ? po.note : x.note || '', terms: po.terms != null ? po.terms : x.terms, from: po.from || [],
+    deliveries: [...(po.deliveries || []).map((d) => ({ ...d, note: d.place })), ...(x.deliveries || [])],
+    costs: [...(x.costs || []), ...Object.keys(COST_LABEL).filter((k) => Number(extra[k]) > 0).map((k) => ({ label: COST_LABEL[k], amt: Number(extra[k]) })), ...(po.costs || [])],
+    files: x.files || [],
+    history: [...(po.log || []).map((l) => ({ at: l.at, text: l.text, ok: l.ok })), ...(x.history || []), ...made].filter(Boolean).sort((a, b) => b.at - a.at),
+    pay: !po.demo && bills.length ? { billed, paid: billed - left, left } : null,
+    demoPay: po.demo ? { total: po.total, paid: po.paid || 0, left: Math.max(0, po.total - (po.paid || 0)), paidText: x.paidText, due: po.s === 'cancelled' ? '' : po.due, dueAt: x.dueAt, overdue: !!po.overdue } : null,
+    receive: ['approved', 'ordered', 'partial'].includes(po.s) ? `/receive-goods?po=${encodeURIComponent(po.no)}` : '',
   };
 }
 
@@ -104,35 +98,85 @@ const CSS = `
 .pd-costs .ix-kv{margin-bottom:var(--space-3)}
 .pd-sup{display:flex;flex-direction:column;gap:var(--space-2)}
 .pd-sup>a.ix-strong,.pd-sup>span{font-size:var(--text-sm)}
-@media (max-width:640px){.pd-tw .ix-table td:first-child{min-width:0}}
+.pd-banner{display:flex;align-items:center;gap:var(--space-2)}
+.pd-send,.pd-edit{display:flex;flex-direction:column;gap:var(--space-3)}
+.pd-msg{margin:4px 0 0;padding:var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle);font-family:var(--font-sans);font-size:var(--text-sm);white-space:pre-wrap;color:var(--text-body)}
+.pd-send__acts{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.pd-num{width:96px}
+.pd-drop td{opacity:.5;text-decoration:line-through}
+.pd-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+@media (max-width:640px){.pd-tw .ix-table td:first-child{min-width:0}.pd-two{grid-template-columns:minmax(0,1fr)}}
 `;
 
 export default function PODetail() {
   const [po, setPo] = useState(null);
   const [sup, setSup] = useState(null);
+  const [me, setMe] = useState(null);
+  const [ask, setAsk] = useState('');          // 'reject' | 'cancel' | 'close'
+  const [sending, setSending] = useState(false);
+  const [edit, setEdit] = useState(null);      // { lines, note, expected }
+  const [cost, setCost] = useState(null);      // { label, amt, err }
   const load = () => {
     const no = new URLSearchParams(window.location.search).get('no');
-    const stored = no ? getPO(no) : null;
-    const m = stored ? storedModel(stored) : demoModel(no);
-    setPo(m);
+    const m = modelOf(no);
+    setPo(m); setMe(currentUser());
     setSup(findSupplier(m.supplier, getDb().suppliers));
   };
-  useEffect(() => { load(); }, []);
-
-  const markSent = () => {
-    updatePO(po.no, { status: 'Sent', sentAt: Date.now() });
+  useEffect(() => {
     load();
-    toast(`${po.no} marked as sent to ${po.supplier}`);
+    window.addEventListener(PO_EVENT, load); window.addEventListener(SESSION_EVENT, load);
+    return () => { window.removeEventListener(PO_EVENT, load); window.removeEventListener(SESSION_EVENT, load); };
+  }, []);
+
+  const run = (r, okText) => { if (!r.ok) { toast(r.error, { tone: 'error' }); return false; } load(); if (okText) toast(okText); return true; };
+  const approve = () => run(approvePO(po.no, me), `${po.no} approved. Send it to ${po.supplier} next.`);
+  const submit = () => { const r = submitPO(po.no, me); if (run(r)) toast(r.waiting ? `${po.no} sent for approval` : `${po.no} placed. Send it to ${po.supplier} next.`); };
+  const sent = (via) => { const r = markSent(po.no, me, via); if (run(r)) { setSending(false); toast(`${po.no} marked as sent to ${po.supplier}`); } };
+  const doPrint = () => { if (!printPO(po)) toast('The printed order is still loading. Try again.', { tone: 'error' }); };
+  const onReason = (reason) => {
+    const r = ask === 'reject' ? rejectPO(po.no, me, reason) : ask === 'cancel' ? cancelPO(po.no, me, reason) : closeRemaining(po.no, me, reason);
+    if (run(r, ask === 'reject' ? `${po.no} rejected and sent back as a draft` : ask === 'cancel' ? `${po.no} cancelled` : `${po.no} closed. The rest is not coming.`)) setAsk('');
+  };
+  const saveEdit = (e) => {
+    e.preventDefault();
+    const r = editPO(po.no, me, { lines: edit.lines.filter((l) => !l.drop), note: edit.note, expected: edit.expected });
+    if (!r.ok) { toast(r.error, { tone: 'error' }); return; }
+    setEdit(null); load();
+    toast(r.same ? 'Nothing changed' : r.back ? `${po.no} saved. It needs approval again.` : `${po.no} saved`);
+  };
+  const saveCost = (e) => {
+    e.preventDefault();
+    const r = addCost(po.no, me, cost);
+    if (!r.ok) { setCost({ ...cost, err: r.error }); return; }
+    setCost(null); load(); toast('Cost added');
   };
 
   let body = null;
-  if (po) {
-    const pieces = poPieces(po.lines), got = poReceived(po.lines), coming = Math.max(0, pieces - got);
+  if (po && me) {
+    const pieces = po.pieces, got = po.got, coming = Math.max(0, pieces - got);
     const ctot = po.costs.reduce((a, c) => a + c.amt, 0);
     const ledger = sup ? '/supplier-detail?id=' + encodeURIComponent(sup.id) : '/suppliers';
-    const receiveAct = po.receive === 'demo'
-      ? { label: 'Receive goods', icon: 'scan-barcode', onClick: () => toast('This demo order can’t be received. Open PO-2609-0020 or an order you made.', { tone: 'info' }) }
-      : po.receive ? { label: 'Receive goods', icon: 'scan-barcode', href: po.receive } : null;
+    const mine = po.byId && po.byId === me.id;
+    const approver = canApprove(me) && !mine;
+    const over = needsApproval(po.total, me);
+    const sendAct = { label: 'Send to supplier', icon: 'send', onClick: () => setSending(true) };
+    let primary = null;
+    if (po.s === 'approval' && approver) primary = { label: 'Approve', icon: 'check', onClick: approve };
+    else if (po.s === 'draft') primary = { label: over ? 'Send for approval' : 'Place order', icon: 'send', onClick: submit };
+    else if (po.s === 'approved') primary = sendAct;
+    else if (po.receive) primary = { label: 'Receive goods', icon: 'scan-barcode', href: po.receive };
+    const secondary = [];
+    if (po.s === 'approval' && approver) secondary.push({ label: 'Reject', onClick: () => setAsk('reject') });
+    if (po.s === 'approved' && po.receive) secondary.push({ label: 'Receive goods', href: po.receive });
+    const more = [
+      canEdit(po) ? { label: 'Edit order', onClick: () => setEdit({ lines: po.lines.map((l) => ({ ...l, qty: String(l.qty), cost: String(l.cost) })), note: po.note || '', expected: po.expected || '' }) } : null,
+      ['ordered', 'partial'].includes(po.s) ? { label: 'Send to supplier again', onClick: () => setSending(true) } : null,
+      { label: 'Print', onClick: doPrint },
+      canClose(po) ? { label: 'Close the rest', onClick: () => setAsk('close') } : null,
+      canCancel(po) ? { label: 'Cancel order', onClick: () => setAsk('cancel') } : null,
+      { label: 'Return to supplier', href: '/supplier-return' },
+      { label: 'Supplier ledger', href: ledger },
+    ].filter(Boolean);
     const p = po.demoPay;
     const payRows = p ? [
       ['Order total', formatBDT(p.total)],
@@ -147,23 +191,33 @@ export default function PODetail() {
       po.pay ? ['Still to pay', <b key="left" className="ix-strong">{formatBDT(po.pay.left)}</b>] : null,
       po.terms != null ? ['Terms', termsLabel(po.terms)] : null,
     ];
+    const wa = whatsappLink(po, sup && sup.phone, MERCHANT.name);
     body = (<>
       <RecordHeader back="/purchase-orders" backLabel="Back to purchase orders" title={<span className="pd-id">{po.no}</span>}
-        badges={<StatusBadge tone={po.tone}>{po.label}</StatusBadge>}
-        meta={`${po.supplier} · ${formatDate(po.at)} · ${po.place}`}
-        about="Receive the goods when the delivery arrives. The order closes after full payment."
-        secondary={po.draft ? [{ label: 'Mark as sent', icon: 'send', onClick: markSent }] : []}
-        more={[
-          { label: 'Print', onClick: () => toast(`${po.no} sent to the printer`) },
-          { label: 'Return to supplier', href: '/supplier-return' },
-          { label: 'Supplier ledger', href: ledger },
-        ]}
-        primary={receiveAct} />
+        badges={<StatusBadge tone={po.tone}>{po.rejected && po.s === 'draft' ? 'Rejected' : po.label}</StatusBadge>}
+        meta={`${po.supplier} · ${formatDate(po.at)} · ${po.place}${po.by ? ' · by ' + po.by : ''}`}
+        about="Approve, send to the supplier, then receive the goods when they arrive. The order closes after full payment."
+        secondary={secondary} more={more} primary={primary} />
+
+      {po.s === 'approval' ? (
+        <div className="gc-alert gc-alert--soft gc-alert--warning pd-banner" role="status">
+          <Icon name="clock" width="18" height="18" aria-hidden="true" />
+          <span>{approver ? `Waiting for your approval. ${po.by || 'Staff'} made it; it is over ${formatBDT(approvalLimit())}.` : mine ? 'Waiting for approval. Someone else must approve an order you made.' : 'Waiting for approval by the owner or the warehouse manager.'}</span>
+        </div>
+      ) : null}
+      {po.s === 'draft' && po.rejected ? (
+        <div className="gc-alert gc-alert--soft gc-alert--error pd-banner" role="status">
+          <Icon name="circle-x" width="18" height="18" aria-hidden="true" />
+          <span><b>Rejected by {po.rejected.by}:</b> {po.rejected.reason}. Edit the order, then send it again.</span>
+        </div>
+      ) : null}
+      {po.s === 'cancelled' && po.cancelled ? <div className="gc-alert gc-alert--soft gc-alert--error pd-banner" role="status"><Icon name="ban" width="18" height="18" aria-hidden="true" /><span><b>Cancelled by {po.cancelled.by}:</b> {po.cancelled.reason}</span></div> : null}
+      {po.s === 'closed' && po.closed ? <div className="gc-alert gc-alert--soft gc-alert--info pd-banner" role="status"><Icon name="archive" width="18" height="18" aria-hidden="true" /><span><b>Closed by {po.closed.by}:</b> {plural(po.closed.qty, 'piece')} not coming{po.closed.reason ? ' · ' + po.closed.reason : ''}.</span></div> : null}
 
       <div className="ix-record">
         <div className="ix-main">
           <section className="ix-card" aria-labelledby="pd-products">
-            <div className="ix-card__head"><h2 id="pd-products">Products</h2><span className="ix-muted">{got} of {pieces} received{coming ? ` · ${coming} still coming` : ''}</span></div>
+            <div className="ix-card__head"><h2 id="pd-products">Products</h2><span className="ix-muted">{got} of {pieces} received{coming && !['closed', 'cancelled'].includes(po.s) ? ` · ${coming} still coming` : ''}</span></div>
             <div className="ix-card__body" style={{ padding: 0 }}>
               <div className="pd-tw">
                 <table className="ix-table">
@@ -171,7 +225,7 @@ export default function PODetail() {
                   <thead><tr><th scope="col">Product</th><th scope="col" className="ix-num">Ordered</th><th scope="col" className="ix-num">Received</th><th scope="col" className="ix-num">Still coming</th><th scope="col" className="ix-num">Unit cost</th><th scope="col" className="ix-num">Amount</th></tr></thead>
                   <tbody>
                     {po.lines.map((l) => {
-                      const left = Math.max(0, l.qty - (l.received || 0));
+                      const left = ['closed', 'cancelled'].includes(po.s) ? 0 : Math.max(0, l.qty - (l.received || 0));
                       return (
                         <tr key={(l.code || '') + l.name}>
                           <td><span className="ix-strong">{l.name}</span>{l.code ? <span className="pd-sub pd-id">{l.code}</span> : null}</td>
@@ -191,7 +245,7 @@ export default function PODetail() {
           </section>
 
           <section className="ix-card" aria-labelledby="pd-deliveries">
-            <div className="ix-card__head"><h2 id="pd-deliveries">Deliveries received</h2>{po.receive && po.receive !== 'demo' && got ? <Link href={po.receive}>Receive next delivery</Link> : null}</div>
+            <div className="ix-card__head"><h2 id="pd-deliveries">Deliveries received</h2>{po.receive && got ? <Link href={po.receive}>Receive next delivery</Link> : null}</div>
             <div className="ix-card__body">
               {po.deliveries.length ? (
                 <ul className="pd-list">
@@ -207,18 +261,16 @@ export default function PODetail() {
             </div>
           </section>
 
-          {po.costs.length ? (
-            <section className="ix-card pd-costs" aria-labelledby="pd-costs">
-              <div className="ix-card__head">
-                <h2 id="pd-costs">Extra costs <InfoTip text={`Added to the real cost of the ${got} pieces received so far. You can add costs any time, even after the goods arrive.`} /></h2>
-                {got ? <span className="ix-muted">+৳{(ctot / got).toFixed(2)} per piece</span> : null}
-              </div>
-              <div className="ix-card__body">
-                <KV rows={[...po.costs.map((c) => [c.label, formatBDT(c.amt)]), ['Total', <b key="t" className="ix-strong">{formatBDT(ctot)}</b>]]} />
-                <button type="button" className="ix-btn ix-btn--sm" onClick={() => toast('Adding a cost is not available in this demo yet.', { tone: 'info' })}>Add a cost</button>
-              </div>
-            </section>
-          ) : null}
+          <section className="ix-card pd-costs" aria-labelledby="pd-costs">
+            <div className="ix-card__head">
+              <h2 id="pd-costs">Extra costs <InfoTip text="Transport, labour or customs for this order. Added to the real cost of each piece. You can add costs any time, even after the goods arrive." /></h2>
+              {got && ctot ? <span className="ix-muted">+৳{(ctot / got).toFixed(2)} per piece</span> : null}
+            </div>
+            <div className="ix-card__body">
+              {po.costs.length ? <KV rows={[...po.costs.map((c, i) => [c.label + (i ? '' : ''), formatBDT(c.amt)]), ['Total', <b key="t" className="ix-strong">{formatBDT(ctot)}</b>]]} /> : <p className="pd-empty" style={{ marginBottom: 'var(--space-3)' }}>No extra costs yet.</p>}
+              {po.s !== 'cancelled' ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setCost({ label: '', amt: '', err: '' })}>Add a cost</button> : null}
+            </div>
+          </section>
 
           {po.history.length ? (
             <section className="ix-card" aria-labelledby="pd-history">
@@ -242,6 +294,8 @@ export default function PODetail() {
                 ['Deliver to', po.place],
                 po.invoice ? ['Supplier invoice', <span key="inv" className="pd-id">{po.invoice}</span>] : null,
                 po.expected ? ['Expected delivery', po.expected] : null,
+                po.sentAt ? ['Sent', formatDate(po.sentAt) + (po.sentVia ? ' · ' + po.sentVia : '')] : null,
+                po.approvedBy ? ['Approved by', po.approvedBy.by] : null,
                 po.from.length ? ['Staff requests', <Link key="rq" href="/requests" className="pd-id">{po.from.join(', ')}</Link>] : null,
               ]} />
             </div>
@@ -257,7 +311,7 @@ export default function PODetail() {
 
           {po.files.length ? (
             <section className="ix-card" aria-labelledby="pd-files">
-              <div className="ix-card__head"><h2 id="pd-files">Files</h2><button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => toast('Adding files is not available in this demo yet.', { tone: 'info' })}>Add file or photo</button></div>
+              <div className="ix-card__head"><h2 id="pd-files">Files</h2><button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => toast('Coming soon: adding files and photos to an order.', { tone: 'info' })}>Add file or photo</button></div>
               <div className="ix-card__body pd-list">
                 {po.files.map((f) => <div key={f.name} className="pd-file"><Icon name={f.icon} width="16" height="16" aria-hidden="true" /><span>{f.name}</span><span className="ix-muted">{f.size}</span></div>)}
               </div>
@@ -272,12 +326,80 @@ export default function PODetail() {
           ) : null}
         </div>
       </div>
+
+      <PODocument po={po} sup={sup} />
+
+      <ReasonDialog open={!!ask} onClose={() => setAsk('')} onSubmit={onReason} danger={ask !== 'close'} optional={ask === 'close'}
+        title={ask === 'reject' ? `Reject ${po.no}?` : ask === 'cancel' ? `Cancel ${po.no}?` : `Close the rest of ${po.no}?`}
+        body={ask === 'reject' ? `It goes back to ${po.by || 'the person who made it'} as a draft, with your reason.` : ask === 'cancel' ? `Nothing has arrived. Tell ${po.supplier} the order is off.` : `${plural(coming, 'piece')} will not come. What arrived stays in stock and on the bill.`}
+        label={ask === 'close' ? 'Reason (optional)' : 'Reason'} confirmLabel={ask === 'reject' ? 'Reject' : ask === 'cancel' ? 'Cancel order' : 'Close the rest'} />
+
+      <Dialog open={sending} title={`Send ${po.no} to ${po.supplier}`} onClose={() => setSending(false)} width={560}>
+        <div className="pd-send">
+          <KV rows={[['Mobile', sup && sup.phone && sup.phone !== '—' ? sup.phone : 'No number saved'], ['Total', formatBDT(po.total)]]} />
+          <div><span className="gc-label">Message</span><div className="pd-msg">{wa.text}</div></div>
+          <p className="gc-help" style={{ margin: 0 }}>Print or save the order as PDF and attach it in WhatsApp.</p>
+          <div className="pd-send__acts">
+            <button type="button" className="ix-btn" onClick={doPrint}><Icon name="printer" width="16" height="16" aria-hidden="true" /><span>Print or save PDF</span></button>
+            {wa.ok ? <a className="ix-btn ix-btn--primary" href={wa.href} target="_blank" rel="noopener noreferrer" onClick={() => { if (po.s === 'approved' || po.s === 'draft') sent('WhatsApp'); else setSending(false); }}><Icon name="message-circle" width="16" height="16" aria-hidden="true" /><span>Open WhatsApp</span></a> : null}
+          </div>
+          {po.s === 'approved' || po.s === 'draft' ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" style={{ alignSelf: 'flex-start' }} onClick={() => sent('')}>Mark as sent without WhatsApp</button> : null}
+        </div>
+      </Dialog>
+
+      <Dialog open={!!edit} title={`Edit ${po.no}`} onClose={() => setEdit(null)} width={680}>
+        {edit ? (
+          <form className="pd-edit" onSubmit={saveEdit}>
+            <div className="gc-table-wrap">
+              <table className="gc-table gc-table--compact gc-table--keep">
+                <thead><tr><th scope="col">Product</th><th scope="col">Quantity</th><th scope="col">Unit cost (৳)</th><th scope="col"><span className="sr-only">Remove</span></th></tr></thead>
+                <tbody>
+                  {edit.lines.map((l, i) => {
+                    const set = (patch) => setEdit({ ...edit, lines: edit.lines.map((x, k) => (k === i ? { ...x, ...patch } : x)) });
+                    return (
+                      <tr key={l.name + i} className={l.drop ? 'pd-drop' : ''}>
+                        <td>{l.name}{l.received ? <span className="pd-sub">{l.received} received · can’t go lower</span> : null}</td>
+                        <td><input className="gc-input pd-num" inputMode="numeric" aria-label={'Quantity of ' + l.name} value={l.qty} disabled={l.drop} onChange={(e) => set({ qty: e.target.value.replace(/[^0-9]/g, '') })} /></td>
+                        <td><input className="gc-input pd-num" inputMode="numeric" aria-label={'Unit cost of ' + l.name} value={l.cost} disabled={l.drop} onChange={(e) => set({ cost: e.target.value.replace(/[^0-9.]/g, '') })} /></td>
+                        <td>{!l.received ? <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={(l.drop ? 'Keep ' : 'Remove ') + l.name} onClick={() => set({ drop: !l.drop })}><Icon name={l.drop ? 'undo-2' : 'x'} width="16" height="16" aria-hidden="true" /></button> : null}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="pd-two">
+              <div><label className="gc-label" htmlFor="pd-exp">Expected delivery</label><input id="pd-exp" className="gc-input" value={edit.expected} onChange={(e) => setEdit({ ...edit, expected: e.target.value })} placeholder="e.g. 20 Oct 2026" /></div>
+              <div><label className="gc-label" htmlFor="pd-en">Note</label><input id="pd-en" className="gc-input" value={edit.note} onChange={(e) => setEdit({ ...edit, note: e.target.value })} /></div>
+            </div>
+            {['approved', 'ordered'].includes(po.s) && !canApprove(me) ? <p className="gc-help" style={{ margin: 0 }}>A bigger total over {formatBDT(approvalLimit())} needs approval again.</p> : null}
+            <div className="gc-modal__foot" style={{ marginTop: 0 }}>
+              <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setEdit(null)}>Cancel</button>
+              <button type="submit" className="gc-btn gc-btn--solid">Save changes</button>
+            </div>
+          </form>
+        ) : null}
+      </Dialog>
+
+      <Dialog open={!!cost} title="Add a cost" onClose={() => setCost(null)} width={440}>
+        {cost ? (
+          <form className="pd-edit" onSubmit={saveCost}>
+            <div><label className="gc-label" htmlFor="pd-cl">What was it for?</label><input id="pd-cl" className="gc-input" autoFocus value={cost.label} onChange={(e) => setCost({ ...cost, label: e.target.value, err: '' })} placeholder="e.g. Van rent" /></div>
+            <div><label className="gc-label" htmlFor="pd-ca">Amount (৳)</label><input id="pd-ca" className="gc-input" inputMode="numeric" value={cost.amt} onChange={(e) => setCost({ ...cost, amt: e.target.value.replace(/[^0-9]/g, ''), err: '' })} /></div>
+            {cost.err ? <span className="gc-help" role="alert" style={{ color: 'var(--text-danger)' }}>{cost.err}</span> : null}
+            <div className="gc-modal__foot" style={{ marginTop: 0 }}>
+              <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setCost(null)}>Cancel</button>
+              <button type="submit" className="gc-btn gc-btn--solid">Add cost</button>
+            </div>
+          </form>
+        ) : null}
+      </Dialog>
     </>);
   }
 
   return (
     <div className="dc-screen ds" data-screen="PODetail">
-      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: CSS + PO_DOC_CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="po-orders" />
         <main className="gc-shell__main">

@@ -3,7 +3,7 @@
 // lifetime value and orders (from the orders list by phone), tags, the team's note and every
 // other conversation with the same person across channels.
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { summarize } from '@/lib/gridai/engine';
 import { getLeads, stageOf } from '@/lib/leads';
 import { autopilotOn, needsFollowUp } from '@/lib/gridai/inboxAi';
@@ -14,7 +14,7 @@ import { ChannelIcon, StatusBadge } from '@/components/ui';
 import { formatBDT, formatDate } from '@/lib/format';
 import { ORDER_STATUSES } from '@/lib/orderStatus';
 import { orderHref } from '@/lib/orders';
-import { findCustomer, saveCustomerOnce } from '@/lib/customers';
+import { findCustomer, saveCustomerOnce, customerIdOf } from '@/lib/customers';
 import { channelName, samePhone, lastAny, previewOf, ago, statusOf, tagTone } from '@/lib/inbox';
 import { Avatar, Menu, MenuItem } from './parts';
 
@@ -27,6 +27,9 @@ export function CustomerPanel({ conv, convs, orders, customers, tags, now, onOpe
   useEffect(() => { setNote(conv.note || ''); setSaving(null); }, [conv.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const customer = conv.phone ? findCustomer(customers, conv.phone) : null;
+  // the customer page is /customer-crm?id=<customer ID>: the ID behind the chat's number (any customer, not only the book)
+  const crmId = useMemo(() => (conv.phone ? customerIdOf(conv.phone) : ''), [conv.phone, customers]); // eslint-disable-line react-hooks/exhaustive-deps
+  const profileHref = crmId ? '/customer-crm?id=' + encodeURIComponent(crmId) : customer ? '/customer-crm?phone=' + encodeURIComponent(customer.phone) : '';
   const mine = conv.phone ? orders.filter((o) => samePhone(o.phone, conv.phone)).sort((a, b) => b.at - a.at) : [];
   const counted = mine.filter((o) => o.statusKey !== 'cancelled');
   const ltv = counted.reduce((a, o) => a + o.amount, 0);
@@ -61,7 +64,7 @@ export function CustomerPanel({ conv, convs, orders, customers, tags, now, onOpe
       <div className="cp-actions">
         {conv.phone ? <Link className="gc-btn gc-btn--sm gc-btn--neutral" href={`/merchant-calls?dial=${conv.phone}&name=${encodeURIComponent(conv.name)}`}><Icon name="phone" width="16" height="16" aria-hidden="true" />Call</Link> : null}
         <Link className="gc-btn gc-btn--sm gc-btn--neutral" href={'/new-order' + q}><Icon name="shopping-bag" width="16" height="16" aria-hidden="true" />New order</Link>
-        {customer ? <Link className="gc-btn gc-btn--sm gc-btn--neutral" href={`/customer-profile?phone=${customer.phone}`}><Icon name="user-round" width="16" height="16" aria-hidden="true" />Profile</Link>
+        {profileHref ? <Link className="gc-btn gc-btn--sm gc-btn--neutral" href={profileHref}><Icon name="user-round" width="16" height="16" aria-hidden="true" />Profile</Link>
           : <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => setSaving({ name: conv.name.replace(/^@/, ''), phone: conv.phone, address: '' })}><Icon name="user-plus" width="16" height="16" aria-hidden="true" />Save customer</button>}
       </div>
 

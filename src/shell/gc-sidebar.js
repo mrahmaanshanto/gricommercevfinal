@@ -62,6 +62,7 @@ export function defineGcSidebar() {
 .gc-navitem__count{flex:none;display:inline-flex;min-width:20px;height:20px;align-items:center;justify-content:center;border-radius:var(--radius-full);background:var(--surface-subtle,#f1f5f9);padding:0 8px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted,#94a3b8);font-variant-numeric:tabular-nums}
 .gc-navitem__count--live{background:var(--fill-warning-soft,#fff1d6);color:var(--text-warning,#9a4a00)}
 .gc-sub .gc-navitem--active .gc-navitem__count{background:var(--surface-card,#fff);color:var(--primary,#003087)}
+.gc-navitem__ext{flex:none;margin-left:auto;display:inline-flex;color:var(--text-muted,#64748b)}
 .gc-sidebar--collapsed .gc-sidebar__body{padding-left:8px;padding-right:8px;scrollbar-width:none}
 .gc-sidebar--collapsed .gc-sidebar__body::-webkit-scrollbar{display:none}
 .gc-sidebar--collapsed .gc-navitem{flex-direction:column;justify-content:center;gap:2px;padding:4px 0;min-height:52px}
@@ -305,7 +306,8 @@ nav{display:block}
       const path = e.composedPath();
       const hit = (sel) => path.find((el) => el.matches && el.matches(sel));
       const drill = hit('[data-drill]'), back = hit('[data-back]'), group = hit('[data-group]'), toggle = hit('[data-toggle]'), shade = hit('.gc-backdrop'), pin = hit('[data-pin]'), grp = hit('[data-grp]');
-      const link = !drill && !back && !group && !toggle && !pin && !grp ? hit('a[href^="/"]') : null;
+      // a page that opens in a new tab (`newTab` in navigation.js, e.g. the customer's offers page) keeps its own target
+      const link = !drill && !back && !group && !toggle && !pin && !grp ? hit('a[href^="/"]:not([target])') : null;
       if (shade) { this.open = false; this.render(); return; }
       if (grp) {
         e.preventDefault();
@@ -377,7 +379,7 @@ nav{display:block}
         + (collapsed && !it.setup && it.live && countOf(it) ? '<span class="gc-navitem__dot gc-navitem__dot--live" aria-hidden="true"></span>' : '');
       const name = collapsed ? ` title="${esc(label)}" aria-label="${esc(label + (state ? ' · ' + state : ''))}"` : state ? ` aria-label="${esc(label + ', ' + state)}"` : '';
       // an area opens the page last used in it (lib/navProfile.js), else its first page; a locked area opens Upgrade
-      const pagesOf = it.children ? it.children.filter((c) => !c.hidden && c.to && !c.locked) : [];
+      const pagesOf = it.children ? it.children.filter((c) => !c.hidden && c.to && !c.locked && !c.newTab) : [];
       const last = it.children ? lastTabOf(currentUser().id, it.id) : '';
       const to = it.children ? pagesOf.find((c) => c.id === last) || pagesOf[0] || it.children[0] : it;
       const href = it.locked ? upgradeHref(it.locked) : hrefOf(to);
@@ -390,7 +392,9 @@ nav{display:block}
       const pinned = isPinned(currentUser().id, x.id);
       const label = L(x.tab || x.label);
       const pinLabel = (pinned ? L('Unpin') : L('Pin to menu')) + ': ' + label;
-      return `<div class="gc-pinrow${on ? ' is-here' : ''}"><a class="gc-navitem${on ? ' gc-navitem--active' : ''}" href="${hrefOf(x)}"${on ? ' aria-current="page"' : ''}>${inner}</a>`
+      const tab = x.newTab ? ` target="_blank" rel="noopener" aria-label="${esc(label + ', ' + L('opens in a new tab'))}"` : '';
+      const ext = x.newTab ? `<span class="gc-navitem__ext" aria-hidden="true">${glyph('external-link', 13)}</span>` : '';
+      return `<div class="gc-pinrow${on ? ' is-here' : ''}"><a class="gc-navitem${on ? ' gc-navitem--active' : ''}" href="${hrefOf(x)}"${on ? ' aria-current="page"' : ''}${tab}>${inner}${ext}</a>`
         + `<button type="button" class="gc-pin" data-pin="${esc(x.id)}" aria-pressed="${pinned}" aria-label="${esc(pinLabel)}" title="${esc(pinLabel)}">${glyph(pinned ? 'pin-off' : 'pin', 14)}</button></div>`;
     }
 

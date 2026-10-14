@@ -2,7 +2,7 @@
 // WholesaleCustomer — the profile of one wholesale customer (?phone=<mobile number>):
 // who they are and their price list, what they owe, and their entire purchase history —
 // every order, what they bought in total, every payment and every return. A record page (docs/shopify-style.md):
-// RecordHeader (Statement, Take payment, New sale), the four figures, the purchase history on the left and the
+// RecordHeader (Statement, Take payment, New sales order; New quote under More), the four figures, the purchase history on the left and the
 // account and credit limit on the right.
 // Front end only: built from the customer book, the invoices and the return history.
 
@@ -18,6 +18,8 @@ import { getCustomers, findCustomer, tierOf, phoneDigits, updateCustomer } from 
 import { getInvoices, deliveryOf, statusOf, isPaid, paidSoFar, dueForPhone } from '@/lib/invoices';
 import { demoCustomer, saveDemoEdit, mergedPhonesOf } from '@/lib/customerEdits';
 import CustomerEditDialog from './CustomerEditDialog';
+import TakePayment from '@/screens/wholesale/TakePayment';
+import PriceListDialog from '@/components/docs/PriceListDialog';
 import { getReturns } from '@/lib/returns';
 import { INVOICE_STATUS as PAY, paymentsOf } from '@/screens/sales/InvoicePaper';
 import { DELIVERY } from '@/screens/sales/DeliveryDialog';
@@ -55,6 +57,8 @@ export default function WholesaleCustomer() {
   const [tab, setTab] = useState('orders');   // orders | products | payments | returns
   const [demoId, setDemoId] = useState('');   // a demo list customer made wholesale on the Customers page
   const [editing, setEditing] = useState(null);
+  const [taking, setTaking] = useState(null);   // Take payment: one payment across the open invoices (WH-F7)
+  const [plist, setPlist] = useState(null);     // the buyer's price list to share (WH-F5)
   const [rev, setRev] = useState(0);           // bumps after an edit so the demo customer is read again
 
   useEffect(() => {
@@ -126,9 +130,9 @@ export default function WholesaleCustomer() {
       <RecordHeader back="/all-customers?view=wholesale" backLabel="Back to wholesale customers" title={cust.name}
         badges={<StatusBadge tone={tier ? 'primary' : 'neutral'} icon="store">{tier ? 'Wholesale customer' : 'Retail prices'}</StatusBadge>}
         meta={`${cust.shownPhone || cust.phone} · ${cust.address || 'No address on file'}`}
-        secondary={[{ label: 'Statement', href: '/customer-statement?phone=' + cust.phone }, firstUnpaid ? { label: 'Take payment', href: link(firstUnpaid.id) } : null].filter(Boolean)}
-        more={[{ label: 'Edit', onClick: openEdit }]}
-        primary={{ label: 'New sale', href: '/pos' }} />
+        secondary={[{ label: 'Statement', href: '/customer-statement?phone=' + cust.phone }, firstUnpaid ? { label: 'Take payment', onClick: () => setTaking({ name: cust.name, phone: cust.phone, address: cust.address || '' }) } : null].filter(Boolean)}
+        more={[{ label: 'New quote', href: '/quotes?new=1&buyer=' + cust.phone }, { label: 'Sell at the POS', href: '/pos' }, { label: 'Edit', onClick: openEdit }, { label: 'Price list', onClick: () => setPlist(cust) }]}
+        primary={{ label: 'New sales order', href: '/sales-order?buyer=' + cust.phone }} />
 
       <MetricStrip label="Account" items={[
         { label: 'Orders', value: String(orders.length), sub: `${pcs} pcs` },
@@ -217,6 +221,8 @@ export default function WholesaleCustomer() {
         </aside>
       </div>
       <CustomerEditDialog open={!!editing} customer={editing} phoneLocked={!cust.demoId} onSave={saveEdit} onClose={() => setEditing(null)} />
+      <TakePayment buyer={taking} onClose={(saved) => { setTaking(null); if (saved) setInvoices(getInvoices()); }} />
+      <PriceListDialog customer={plist} onClose={() => setPlist(null)} />
     </>
   );
 }

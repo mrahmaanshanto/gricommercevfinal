@@ -5,6 +5,8 @@
 //   Recovery   cart reminders and back-in-stock messages: send({ source: 'Recovery', cls: 'Marketing', … })
 //   Campaigns  campaigns.js sends each recipient with send({ campaignId, cls: 'Marketing' })
 //   Reports    sendReport() delivers a scheduled report to staff (Automation › Scheduled reports)
+//   Sales      quotes, price lists, invoices, statements, challans and money receipts shared on the shop's own
+//              WhatsApp (shareDoc.js › shareWhatsApp: send({ handoff: true }) logs them with status Sent, no cost)
 //
 //   send({ source, event, cls, channel | channels, to, template | text, subject, vars, once, campaignId, ref, at, internal })
 //        → { status, row, duplicate }
@@ -45,8 +47,9 @@ const digits = (p) => String(p || '').replace(/\D/g, '').replace(/^88/, '');
 const hash = (s) => { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 1000003; return h; };
 const uid = () => 'MSG-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
 export const CHANNEL_WORD = { sms: 'SMS', whatsapp: 'WhatsApp', email: 'Email', facebook: 'Messenger' };
-export const SOURCES = ['Orders', 'Campaigns', 'Recovery', 'Loyalty', 'Automations', 'Reports', 'Calls'];
-export const STATUS_TONE = { Queued: 'info', Delivered: 'success', Read: 'success', Failed: 'error', Suppressed: 'warning', Cancelled: 'neutral' };
+export const SOURCES = ['Orders', 'Sales', 'Campaigns', 'Recovery', 'Loyalty', 'Automations', 'Reports', 'Calls'];
+// Sent = handed to the shop's own WhatsApp (a wa.me link, lib/shareDoc.js): the person sends it from there
+export const STATUS_TONE = { Queued: 'info', Sent: 'info', Delivered: 'success', Read: 'success', Failed: 'error', Suppressed: 'warning', Cancelled: 'neutral' };
 
 // ---- templates ----------------------------------------------------------------------------------------------------------
 // { id, name, channel, cls, lang, subject, body, buttons, providerId, providerStatus, version, versions: [{ v, at, by, body, subject }] }
@@ -150,9 +153,17 @@ const BLOCK_STATUS = { invalid: 'Suppressed', channel: 'Suppressed', consent: 'S
  * Send one message through the shared layer. Tries `channels` in order; quiet hours queue it (it goes when they end,
  * after a fresh check). Returns { status, row, duplicate }.
  */
-export function send({ source = 'Automations', event = '', cls = 'Transactional', channel, channels, to = {}, template, text, subject, vars = {}, once = '', campaignId = '', ref = '', at, internal = false, log: batchLog, write: doWrite = true } = {}) {
+export function send({ source = 'Automations', event = '', cls = 'Transactional', channel, channels, to = {}, template, text, subject, vars = {}, once = '', campaignId = '', ref = '', at, internal = false, log: batchLog, write: doWrite = true, handoff = false } = {}) {
   const t = at || now();
   const list = batchLog || getLog();
+  // handoff: the shop's own WhatsApp sends it (a wa.me link the person opens, lib/shareDoc.js) — no gateway and no
+  // cost; it is written to the log so the delivery log shows every document that went out
+  if (handoff) {
+    const address = addressOf(to, 'whatsapp');
+    const row = { id: uid(), at: t, source, event, cls: normClass(cls), channel: 'whatsapp', to: to.name || address || 'Chosen in WhatsApp', address, customerKey: customerKey(to), text: fill(text, { ...baseVars(), ...vars }), subject: '', templateId: '', templateVersion: 0, once, campaignId, ref, internal, cost: 0, retries: 0, fallback: '', status: 'Sent', reason: 'Opened in the shop’s WhatsApp', handoff: true };
+    if (doWrite) saveLog([row, ...list]);
+    return { status: row.status, row, duplicate: false };
+  }
   if (once && list.some((r) => r.once === once && r.status !== 'Failed' && r.status !== 'Cancelled')) return { status: 'Duplicate', duplicate: true, row: list.find((r) => r.once === once) };
   const tpl = template ? templateBy(template) : null;
   const tries = (channels && channels.length ? channels : [channel || (tpl && tpl.channel) || 'sms']);

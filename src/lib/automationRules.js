@@ -8,6 +8,12 @@
 //   restoreVersion(id, v, by)       bring an old version back (as a new version)
 //   SAMPLE_EVENTS            ready test events per trigger (an order, a delivery, low stock …)
 //   simulate(rule, event, at) → { matched, steps: [{ kind, label, ok, detail }], sends: [{ channel, cls, status, reason }] }
+//   Workflow builder (review CX-U1): what the engine supports, so the builder offers nothing else —
+//     BUILDER_TRIGGERS (non-AI triggers), CONDITION_FIELDS[trigger] (fields a condition can test, with their operators),
+//     ACTION_KINDS (message on WhatsApp / SMS / email, a task for a team), TASK_OWNERS, catOfTrigger(trigger)
+//   createRule(input, by)    a new workflow (custom, starts as version 1) → { rule } | { error }
+//   deleteRule(id)           delete a custom workflow (ready-made rules can only be turned off) → { ok } | { error }
+//   validateRule(rule)       → '' or the first problem in plain words
 //     Nothing is sent and nothing changes: messages are checked with the send layer (consent, suppression, quiet hours,
 //     caps) and business actions say which area would be asked to do them (a rule can't change an order by itself).
 // Front end only: kept in this browser.
@@ -16,7 +22,7 @@ import { checkSend, templateBy, fill, baseVars } from './messaging';
 import { capsOf } from './channelCaps';
 import { clockNow } from './settlements';
 
-const K = { edits: 'gc.auto.rules', versions: 'gc.auto.versions', copies: 'gc.auto.copies' };
+const K = { edits: 'gc.auto.rules', versions: 'gc.auto.versions', copies: 'gc.auto.copies', deleted: 'gc.auto.deleted' };
 export const RULES_EVENT = 'gc:auto';
 const isBrowser = typeof window !== 'undefined';
 const read = (k, fb) => { if (!isBrowser) return fb; try { const v = JSON.parse(window.localStorage.getItem(k)); return v == null ? fb : v; } catch { return fb; } };
@@ -93,7 +99,8 @@ export const SAMPLE_EVENTS = {
 const snap = (r) => ({ name: r.name, trigger: r.trigger, conditions: r.conditions, actions: r.actions, wait: r.wait });
 export function getRules() {
   const e = read(K.edits, {});
-  return [...RULES, ...read(K.copies, [])].map((r) => ({ ...r, ...(e[r.id] || {}) }));
+  const gone = read(K.deleted, []);
+  return [...RULES, ...read(K.copies, [])].filter((r) => !gone.includes(r.id)).map((r) => ({ ...r, ...(e[r.id] || {}) }));
 }
 /** A copy of a rule, switched off, to change without touching the original. */
 export function duplicateRule(id) {
@@ -146,6 +153,87 @@ export function restoreVersion(id, v, by = 'Shanto') {
   const old = ruleVersions(id).find((x) => x.v === v);
   if (!old) return { error: 'No such version' };
   return saveRule(id, old.snapshot, by, `Restored version ${v}`);
+}
+
+// ---- the workflow builder: what the engine supports ----------------------------------------------------------------------
+const AI_TRIGGERS = ['message.received', 'intent.product', 'intent.purchase', 'order.confirmed-chat', 'conversation.inactive', 'message.complaint', 'stock.restock', 'followup.due', 'campaign.done', 'automation.failed'];
+/** Triggers a merchant's workflow can start from (Grid AI's own triggers are set up in Grid AI › Automations). */
+export const BUILDER_TRIGGERS = Object.keys(TRIGGERS).filter((k) => !AI_TRIGGERS.includes(k));
+const NUM_OPS = ['gt', 'gte', 'lt'];
+export const OP_LABEL = { is: 'is', gt: 'is more than', gte: 'is at least', lt: 'is less than' };
+// type: money | number | choice | yesno. These are the fields each trigger's event carries (SAMPLE_EVENTS has the same).
+const F = (field, label, type, more = {}) => ({ field, label, type, ops: type === 'choice' || type === 'yesno' ? ['is'] : [...NUM_OPS, 'is'], ...more });
+const PAYMENTS = ['COD', 'bKash', 'Nagad', 'Card'];
+export const CONDITION_FIELDS = {
+  'order.placed': [F('total', 'Order total', 'money'), F('payment', 'Payment', 'choice', { choices: PAYMENTS }), F('newCustomer', 'New customer', 'yesno')],
+  'order.confirmed': [F('total', 'Order total', 'money'), F('payment', 'Payment', 'choice', { choices: PAYMENTS })],
+  'order.packed': [F('total', 'Order total', 'money')],
+  'order.delivered': [F('total', 'Order total', 'money')],
+  'stock.low': [F('available', 'Available', 'number', { alert: true })],
+  'customer.returned': [F('returns', 'Returned orders', 'number', { def: 2 })],
+  'customer.quiet': [F('days', 'Days since the last order', 'number', { def: 60 })],
+  'blog.published': [],
+};
+export const fieldOf = (trigger, field) => (CONDITION_FIELDS[trigger] || []).find((f) => f.field === field) || null;
+/** The plain sentence for a condition ("Order total is more than ৳10,000"). */
+export function conditionLabel(trigger, c) {
+  const f = fieldOf(trigger, c.field);
+  if (!f) return c.label || `${c.field} ${OP_LABEL[c.op] || c.op} ${c.value}`;
+  if (f.type === 'yesno') return c.value ? f.label : `Not ${f.label.toLowerCase()}`;
+  const v = c.value === 'alert' ? 'the alert level' : f.type === 'money' ? tk(c.value) : String(c.value);
+  return `${f.label} ${OP_LABEL[c.op] || c.op} ${v}`;
+}
+export const ACTION_KINDS = [
+  { kind: 'message', channel: 'whatsapp', label: 'WhatsApp message', about: 'To the customer' },
+  { kind: 'message', channel: 'sms', label: 'SMS', about: 'To the customer' },
+  { kind: 'message', channel: 'email', label: 'Email', about: 'To the customer' },
+  { kind: 'task', label: 'Task for a team', about: 'Someone in the team does it' },
+];
+export const TASK_OWNERS = ['Orders', 'Delivery', 'Customers', 'Purchasing', 'Staff', 'Social posts', 'Inbox'];
+export const MESSAGE_CLASSES = ['Transactional', 'Service', 'Marketing'];
+const TRIGGER_CAT = { 'order.confirmed': 'orders', 'order.placed': 'orders', 'order.packed': 'delivery', 'order.delivered': 'delivery', 'stock.low': 'stock', 'customer.returned': 'customers', 'customer.quiet': 'marketing', 'blog.published': 'marketing' };
+export const catOfTrigger = (t) => TRIGGER_CAT[t] || 'orders';
+/** The first problem with a workflow, in plain words, or ''. */
+export function validateRule(r) {
+  if (!r || !String(r.name || '').trim()) return 'Name the workflow';
+  if (!TRIGGERS[r.trigger]) return 'Choose what starts the workflow';
+  const bad = (r.conditions || []).find((c) => c.value === '' || c.value == null || (typeof c.value === 'number' && Number.isNaN(c.value)));
+  if (bad) return 'Fill in every condition';
+  if (!(r.actions || []).length) return 'Add at least one step';
+  for (const a of r.actions) {
+    if (a.kind === 'message' && !String(a.text || '').trim() && !a.template) return 'Write the message';
+    if ((a.kind === 'task' || a.kind === 'ai') && !String(a.label || '').trim()) return 'Say what the task is';
+  }
+  return '';
+}
+const clean = (r) => ({ name: String(r.name).trim(), trigger: r.trigger, cat: r.cat || catOfTrigger(r.trigger), conditions: (r.conditions || []).map((c) => ({ ...c, label: conditionLabel(r.trigger, c) })), actions: r.actions, wait: Math.max(0, Number(r.wait) || 0) });
+/** A new workflow, kept in this browser. */
+export function createRule(input, by = 'Shanto') {
+  const err = validateRule(input);
+  if (err) return { error: err };
+  const id = 'w-' + Date.now().toString(36);
+  const rule = { ...R(id, 'orders', '', input.trigger, [], []), ...clean(input), on: input.on !== false, custom: true, runs: 0, cost: (input.actions || []).some((a) => a.kind === 'message') ? 'Per message' : 'No charge' };
+  write(K.copies, [...read(K.copies, []), rule]);
+  const all = read(K.versions, {});
+  all[id] = [{ v: 1, at: Date.now(), by, note: 'Created', snapshot: snap(rule) }];
+  write(K.versions, all);
+  return { rule };
+}
+/** Save the builder's draft of an existing rule (a new version). */
+export function saveWorkflow(id, draft, by = 'Shanto') {
+  const err = validateRule(draft);
+  if (err) return { error: err };
+  return saveRule(id, clean(draft), by, 'Changed in the workflow builder');
+}
+/** Delete a custom workflow. Ready-made rules stay (turn them off instead). */
+export function deleteRule(id) {
+  const r = ruleBy(id);
+  if (!r) return { error: 'No such rule' };
+  if (!r.custom) return { error: 'Ready-made rules can\'t be deleted. Turn it off instead.' };
+  const copies = read(K.copies, []);
+  if (copies.some((x) => x.id === id)) write(K.copies, copies.filter((x) => x.id !== id));
+  else write(K.deleted, [...new Set([...read(K.deleted, []), id])]);
+  return { ok: true };
 }
 
 // ---- simulator -----------------------------------------------------------------------------------------------------------

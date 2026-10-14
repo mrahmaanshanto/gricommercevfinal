@@ -1107,6 +1107,12 @@ body:has(#nl-badge-frame) :is(.gc-phonebar,.set-bar,.ss-bar,.sn-bar,.gb-bar,.no-
   body:has(#nl-badge-frame) .gc-toasts{bottom:calc(16px + var(--host-badge))}
 }
 body:has(#nl-badge-frame) .au-root{padding-bottom:var(--host-badge)}
+/* a save bar at the bottom (product form, settings, bulk editors): the floating GridAI button sits above it, never on
+   its Save button (phones have their own rule above) */
+@media (min-width:641px){
+  body:has(.savebar, .set-bar, .ss-bar, .sn-bar, .gb-bar, .no-bar, .sb-bar, .gc-sticky-actions, .cs .formbar) .gc-ai{bottom:92px}
+  body:has(#nl-badge-frame):has(.savebar, .set-bar, .ss-bar, .sn-bar, .gb-bar, .no-bar, .sb-bar, .gc-sticky-actions, .cs .formbar) .gc-ai{bottom:calc(92px + var(--host-badge))}
+}
 /* full-height apps (the Inbox) keep filling the window: only what sits under the badge's corner moves aside */
 body:has(#nl-badge-frame){--host-badge-w:196px}
 body:has(#nl-badge-frame) .ibx .gc-shell__content.ibx-content{padding-bottom:var(--space-3)!important}

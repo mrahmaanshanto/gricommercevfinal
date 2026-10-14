@@ -5,12 +5,15 @@
 //   greeting    today's date and "Good afternoon, <first name>"
 //   Sales today the same pack as the web Home and the 8 PM summary (lib/reports/dailySummary.js): sales, change
 //               against the same weekday last week up to this time, and three figures (online editions: orders,
-//               to ship, average order; Retail: sales, returns, average sale)
+//               to ship, average order; Retail: sales, returns, average sale). Only people with the Dashboard or
+//               Finance see the whole shop's; the rest see their part (kit/appScope.js, the web's access rules and
+//               My dashboard's blocks): online sales, their branch's or warehouse's, or their own
 //   quick actions edition- and role-aware (appNav.canUse), at most four
 //   Needs you   the day's to-do as action items (lib/actionItems.js, source 'app'; the same keys as the web Home, so
 //               snoozing or dismissing one on the web hides it here too), at most four, most urgent first
 //   This week   sales of the last 7 days (salesBook.salesByChannel), today in brand blue
-//   Recent orders the latest three (online orders, or counter sales in the Retail edition)
+//   Recent orders the latest three (online orders, or counter sales in the Retail edition); people who can't open
+//               Orders see the latest sales of their part instead
 // Everything is read after mount (Netlify prerenders in UTC) and again when the books change (useAppData).
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -32,6 +35,7 @@ import { orderStatus } from '@/lib/orderStatus';
 import { getBills, billLeft, billStatus } from '@/lib/supplierBills';
 import { liveCount } from '@/lib/liveCounts';
 import { trackItems, ageOf, ageText } from '@/lib/actionItems';
+import { salesScope, scopedSales } from './kit/appScope';
 
 const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch { return fb; } };
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -48,9 +52,13 @@ export function build(ctx) {
   const day = startOfDay(now);
   const d = dailySummary(day, now);
 
-  // sales today against the same weekday last week, up to this time of day
+  // sales today against the same weekday last week, up to this time of day; the whole shop's only for people with
+  // the Dashboard or Finance, else their part (online, their place, or their own)
+  const scope = salesScope(user);
   const all = safe(() => getSales(), []);
-  const revenue = (from, to) => safe(() => salesByChannel(from, to, all).all.revenue, 0);
+  const revenue = scope.kind === 'shop'
+    ? (from, to) => safe(() => salesByChannel(from, to, all).all.revenue, 0)
+    : (from, to) => safe(() => scopedSales(scope, user, from, to, all).total, 0);
   // both sides cover the same hours: today from midnight up to now, and that weekday last week from midnight up to
   // the same time of day (not the whole of last week's day, and not sales stamped later today)
   const upTo = Math.max(1, now - day + 1);
@@ -66,10 +74,14 @@ export function build(ctx) {
   const online = orders.filter((o) => !isCounterSale(o));
   const count = (keys) => online.filter((o) => keys.includes(o.statusKey)).length;
   const oldest = (list, f = (x) => x.at) => { const ts = list.map(f).filter((t) => Number(t) > 0); return ts.length ? Math.min(...ts) : undefined; };
-  const avg = d.sales.orders ? d.sales.total / d.sales.orders : 0;
-  const figures = has('online')
-    ? [[String(d.sales.orders), 'Orders'], [String(count(['approved', 'ready'])), 'To ship'], [money(avg), 'Avg. order']]
-    : [[String(d.sales.orders), 'Sales'], [money(d.sales.returns), 'Returns'], [money(avg), 'Avg. sale']];
+  const mine = scope.kind === 'shop' ? null : safe(() => scopedSales(scope, user, day, addDays(day, 1), all), { total: 0, count: 0, units: 0, recent: [] });
+  const total = mine ? mine.total : d.sales.total;
+  const avg = mine ? (mine.count ? mine.total / mine.count : 0) : d.sales.orders ? d.sales.total / d.sales.orders : 0;
+  let figures;
+  if (scope.kind === 'online') figures = [[String(mine.count), 'Orders'], [String(count(['approved', 'ready'])), 'To ship'], [money(avg), 'Avg. order']];
+  else if (mine) figures = [[String(mine.count), 'Sales'], [String(mine.units), 'Items'], [money(avg), 'Avg. sale']];
+  else if (has('online')) figures = [[String(d.sales.orders), 'Orders'], [String(count(['approved', 'ready'])), 'To ship'], [money(avg), 'Avg. order']];
+  else figures = [[String(d.sales.orders), 'Sales'], [money(d.sales.returns), 'Returns'], [money(avg), 'Avg. sale']];
 
   // the day's to-do (same keys as the web Home: one record per issue)
   const waiting = online.filter((o) => NEW.includes(o.statusKey));
@@ -88,8 +100,10 @@ export function build(ctx) {
   ].filter(Boolean);
   const todo = safe(() => trackItems('app', rows, { user }), rows);
 
-  // recent orders (counter sales in the Retail edition)
-  const recent = [...(has('online') ? online : orders)].sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 3);
+  // recent orders (counter sales in the Retail edition); people who can't open Orders see their part's latest sales
+  const ordersOpen = use('/m-orders') && (scope.kind === 'shop' || scope.kind === 'online');
+  const recent = ordersOpen ? [...(has('online') ? online : orders)].sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 3) : [];
+  const recentSales = ordersOpen || !mine ? [] : mine.recent;
 
   // quick actions: the first four this person can use
   const actions = [
@@ -102,7 +116,7 @@ export function build(ctx) {
     ['/m-customers', 'Customers', 'users'],
   ].filter(([r]) => use(r)).slice(0, 4);
 
-  return { now, d, change, figures, trend, todo, recent, actions, place: (user && user.place) || '' };
+  return { now, d, total, scope, change, figures, trend, todo, recent, recentSales, actions, place: (user && user.place) || '' };
 }
 
 function greeting(h) { return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; }
@@ -152,12 +166,12 @@ export default function MHomeScreen() {
 
         <div className="card" style={{ margin: '18px 20px 0', padding: '18px 20px', background: 'linear-gradient(150deg,#012169,#0a4bb5)', color: '#fff', boxShadow: '0 16px 30px -18px rgba(0,48,135,.7)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: 'var(--text-xs-plus)', opacity: '.8' }}>Sales today</span>
+            <span style={{ fontSize: 'var(--text-xs-plus)', opacity: '.8' }}>{data ? data.scope.label : 'Sales today'}</span>
             {data && data.change != null ? (
               <span className="pill" style={{ background: 'rgba(255,255,255,.16)', color: '#fff' }}>{`${data.change >= 0 ? '▲' : '▼'} ${Math.abs(data.change)}% vs last ${WEEKDAYS[now.getDay()]}`}</span>
             ) : null}
           </div>
-          <div className="num" style={{ fontSize: 'var(--text-3xl)', fontWeight: 'var(--weight-semibold)', letterSpacing: 'var(--tracking-tight)', marginTop: '4px' }}>{data ? money(data.d.sales.total) : '—'}</div>
+          <div className="num" style={{ fontSize: 'var(--text-3xl)', fontWeight: 'var(--weight-semibold)', letterSpacing: 'var(--tracking-tight)', marginTop: '4px' }}>{data ? money(data.total) : '—'}</div>
           <div style={{ display: 'flex', gap: '22px', marginTop: '10px', fontSize: 'var(--text-xs-plus)' }}>
             {(data ? data.figures : [['—', hasOnline ? 'Orders' : 'Sales'], ['—', hasOnline ? 'To ship' : 'Returns'], ['—', hasOnline ? 'Avg. order' : 'Avg. sale']]).map(([v, k]) => (
               <span key={k}>
@@ -203,6 +217,23 @@ export default function MHomeScreen() {
             ))}
           </div>
         </Section>
+
+        {data && data.recentSales.length ? (
+          <Section title={data.scope.kind === 'me' ? 'My recent sales' : 'Recent sales'}>
+            <Card>
+              {data.recentSales.map((x) => (
+                <ListRow
+                  key={x.id}
+                  avatar={<Avatar text={initials(x.party)} tone={{ bg: '#e0f3fb', fg: '#003087' }} />}
+                  title={x.party}
+                  sub={<><span className="mono">{x.id}</span> · {ago(x.at, data.now)}</>}
+                  end={<span className="num" style={{ fontWeight: 'var(--weight-semibold)' }}>{money(x.amount)}</span>}
+                  chevron={false}
+                />
+              ))}
+            </Card>
+          </Section>
+        ) : null}
 
         {data && data.recent.length ? (
           <Section title={hasOnline ? 'Recent orders' : 'Recent sales'} action={ctx && canUse('/m-orders', ctx) ? { label: 'See all', href: '/m-orders' } : null}>

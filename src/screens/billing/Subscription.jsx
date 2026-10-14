@@ -25,6 +25,8 @@ import { PLANS, PLAN_IDS, setPlan, entitled, currentPlanId, PLAN_EVENT } from '@
 import { MODULES } from '@/lib/edition';
 import { confirmDialog } from '@/runtime/ui';
 import { businessProfile } from '@/lib/businessProfile';
+import { demoNow } from '@/lib/demoClock';
+import { RENEWS_ON, planPrice } from '@/lib/platformCosts';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -33,7 +35,24 @@ function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == nul
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 function toast(self, m, bad) { __toast(m, bad ? { tone: 'error' } : undefined); }
 
+// The demo's figures were written on 29 Sep 2026 (TODAY). After mount the page follows the real clock: the plan renews
+// on the 12th of each month (platformCosts.js, which also books the charge), trials keep their days left, and the
+// billing history gains a paid invoice for each renewal since then.
 var TODAY = new Date(2026, 8, 29);
+var DAY = 86400000;
+function dayStart(t) { var d = new Date(t); d.setHours(0, 0, 0, 0); return d; }
+function dmy(d) { return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(); }
+/** The next renewal on or after `today` (the 12th), and the one before it. */
+function renewalOf(today) { var d = new Date(today.getFullYear(), today.getMonth(), RENEWS_ON); if (d < today) d = new Date(today.getFullYear(), today.getMonth() + 1, RENEWS_ON); return d; }
+/** Paid renewals after the demo's last invoice (12 Sep) up to today: [no, date, for, paid with, amount, status]. */
+function renewalsSince(today) {
+  var out = [];
+  for (var d = new Date(2026, 9, RENEWS_ON); d <= today; d = new Date(d.getFullYear(), d.getMonth() + 1, RENEWS_ON)) {
+    var end = new Date(d.getFullYear(), d.getMonth() + 1, RENEWS_ON - 1);
+    out.unshift(['GC-' + String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(412 + 37 * out.length).padStart(4, '0'), dmy(d), MON[d.getMonth()] + ' ' + d.getDate() + ' – ' + MON[end.getMonth()] + ' ' + end.getDate() + ' · 7 modules', 'Visa ·· 4417', planPrice(), 'Paid']);
+  }
+  return out;
+}
 // name, desc, status, activated, trialUsed, validUntil (y,m,d) or null, price
 var MODS = [
   ['Core store', 'Orders, products, customers, storefront', 'active', '12 Mar 2026', 14, [2026, 10, 12], 0],
@@ -69,6 +88,7 @@ async function choosePlan(self, id) {
 }
 class Component extends DCLogic {
   componentDidMount() {
+    this.setState({ today: dayStart(demoNow()) });
     this.readUsage = () => { try { this.setState({ usage: usageMeters(), billing: businessProfile().billing }); } catch { /* ignore */ } };
     this.readUsage();
     window.addEventListener('gc:settings', this.readUsage);
@@ -84,8 +104,20 @@ class Component extends DCLogic {
     var active = rows.filter(function (r) { return r.st === 'active' || r.st === 'cancel'; });
     var total = active.reduce(function (a, r) { return a + r.m[6]; }, 0) + 0;
     var trialsEndingSoon = rows.filter(function (r) { return r.st === 'trial'; }).length;
+    // today: the demo's day until the page has mounted, then the real one (prerender-safe)
+    var today = s.today || TODAY;
+    var shift = Math.max(0, Math.round((today - TODAY) / DAY));
+    var renew = s.today ? renewalOf(today) : new Date(2026, 9, RENEWS_ON);
+    var renewText = dmy(renew);
+    var renewEnd = new Date(renew.getFullYear(), renew.getMonth() + 1, RENEWS_ON - 1);
+    var renewIn = Math.round((renew - today) / DAY);
+    // a trial keeps the days it had left on the demo's day; it started that many days later
+    var moved = function (ymd) { return ymd ? new Date(ymd[0], ymd[1] - 1, ymd[2] + shift) : null; };
+    var trialEnds = rows.filter(function (r) { return r.st === 'trial' && r.m[2] === 'trial'; }).map(function (r) { return moved(r.m[5]); }).sort(function (a, b) { return a - b; });
+    var inv = renewalsSince(s.today ? today : TODAY).concat(INV);
+    var paidYear = inv.filter(function (i) { return /2026$/.test(i[1]); });
     var v = {
-      headline: ((s.usage && s.usage.planName) || 'Growth') + ' plan · renews 12 Oct 2026',
+      headline: ((s.usage && s.usage.planName) || 'Growth') + ' plan · renews ' + renewText,
       usage: s.usage || null, billing: s.billing || null,
       upgrade: s.upgrade ? { id: s.upgrade, label: MODULES[s.upgrade].label, plans: PLAN_IDS.filter(function (id) { return entitled(s.upgrade, id); }).map(function (id) { return PLANS[id].name; }) } : null,
       plans: s.usage ? PLAN_IDS.map(function (id) {
@@ -96,9 +128,9 @@ class Component extends DCLogic {
       }) : [],
       tiles: [
         { l: 'Active modules', v: String(active.length), s: 'plus ' + trialsEndingSoon + ' on trial', c: '#34d399' },
-        { l: 'Next renewal', v: '13 days', s: '12 Oct 2026 · ' + bdt(total), c: '#60a5fa' },
-        { l: 'Trials running', v: String(trialsEndingSoon), s: 'first one ends 4 Oct', c: '#fbbf24' },
-        { l: 'Paid this year', v: bdt(9535), s: '6 invoices since March', c: '#a78bfa' }
+        { l: 'Next renewal', v: renewIn === 0 ? 'Today' : renewIn + (renewIn === 1 ? ' day' : ' days'), s: renewText + ' · ' + bdt(total), c: '#60a5fa' },
+        { l: 'Trials running', v: String(trialsEndingSoon), s: trialEnds.length ? 'first one ends ' + trialEnds[0].getDate() + ' ' + MON[trialEnds[0].getMonth()] : 'none ending', c: '#fbbf24' },
+        { l: 'Paid this year', v: bdt(paidYear.reduce(function (a, i) { return a + i[4]; }, 0)), s: paidYear.length + ' invoices since March', c: '#a78bfa' }
       ],
       segs: [['all', 'All'], ['active', 'Active'], ['trial', 'Trial'], ['off', 'Not started']].map(function (o) {
         var n = o[0] === 'all' ? rows.length : rows.filter(function (r) { return r.st === o[0] || (o[0] === 'active' && r.st === 'cancel'); }).length;
@@ -108,10 +140,12 @@ class Component extends DCLogic {
       f: f,
       mods: rows.map(function (r) {
         var m = r.m.slice(), st = r.st, b = ST[st];
-        if (m[2] === 'off' && st === 'trial') { m[3] = '29 Sep 2026'; m[4] = 0; m[5] = [2026, 10, 13]; }
-        if (m[2] === 'trial' && st === 'active') { m[5] = [2026, 10, 12]; }
-        var until = m[5] ? new Date(m[5][0], m[5][1] - 1, m[5][2]) : null;
-        var left = until ? Math.round((until - TODAY) / 86400000) : null;
+        // trials started in the demo keep their days left; one started here starts today; paid modules run to the renewal
+        var until = m[5] ? (m[2] === 'trial' && st === 'trial' ? moved(m[5]) : renew) : null;
+        if (m[2] === 'trial') m[3] = dmy(moved([2026, 9, Number(String(m[3]).split(' ')[0])]));
+        if (m[2] === 'off' && st === 'trial') { m[3] = dmy(today); m[4] = 0; until = new Date(today.getTime() + 14 * DAY); }
+        if (m[2] === 'trial' && st === 'active') { until = renew; }
+        var left = until ? Math.round((until - today) / DAY) : null;
         var trialOnly = st === 'trial';
         return { n: m[0], d: m[1], st: b[0], tone: b[3], act: m[3], shown: f === 'all' || st === f || (f === 'active' && st === 'cancel'),
           tw: (m[4] / 14 * 100) + '%', tl: st === 'off' ? 'Not used' : m[4] + ' of 14 days',
@@ -124,13 +158,13 @@ class Component extends DCLogic {
           act2: function () {
             var n = assign({}, over);
             if (st === 'off') { n[m[0]] = 'trial'; toast(self, m[0] + ' trial started. 14 days free, no charge until you activate.'); }
-            else if (st === 'trial') { n[m[0]] = 'active'; toast(self, m[0] + ' activated. ' + bdt(m[6]) + ' is added to the 12 Oct renewal.'); }
+            else if (st === 'trial') { n[m[0]] = 'active'; toast(self, m[0] + ' activated. ' + bdt(m[6]) + ' is added to the ' + renew.getDate() + ' ' + MON[renew.getMonth()] + ' renewal.'); }
             else if (st === 'cancel') { n[m[0]] = 'active'; toast(self, m[0] + ' will keep renewing.'); }
-            else if (m[6]) { n[m[0]] = 'cancel'; toast(self, m[0] + ' stays on until 12 Oct 2026, then stops.'); }
+            else if (m[6]) { n[m[0]] = 'cancel'; toast(self, m[0] + ' stays on until ' + renewText + ', then stops.'); }
             self.setState({ over: n }); } };
       }),
-      inv: INV.map(function (i) { var paid = i[5] === 'Paid'; return { no: i[0], d: i[1], f: i[2], pw: i[3], a: bdt(i[4]), st: i[5], tone: paid ? 'success' : 'warning', dl: function () { toast(self, 'Invoice ' + i[0] + ' downloaded.'); } }; }),
-      renewAmt: bdt(total), renewNote: 'Charged on 9 Oct 2026 for 12 Oct – 11 Nov.',
+      inv: inv.map(function (i) { var paid = i[5] === 'Paid'; return { no: i[0], d: i[1], f: i[2], pw: i[3], a: bdt(i[4]), st: i[5], tone: paid ? 'success' : 'warning', dl: function () { toast(self, 'Invoice ' + i[0] + ' downloaded.'); } }; }),
+      renewAmt: bdt(total), renewNote: 'Charged on ' + dmy(new Date(renew.getTime() - 3 * DAY)) + ' for ' + renew.getDate() + ' ' + MON[renew.getMonth()] + ' – ' + renewEnd.getDate() + ' ' + MON[renewEnd.getMonth()] + '.',
       renewLines: active.filter(function (r) { return r.st === 'active'; }).map(function (r) { return { l: r.m[0], v: r.m[6] ? bdt(r.m[6]) : 'Included' }; }).slice(0, 7),
       autoRenew: mkSw(self, 'autoRenew', true),
       changeCard: function () { toast(self, 'SSLCOMMERZ opens to save a new card or mobile wallet.'); }

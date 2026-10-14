@@ -118,7 +118,7 @@ export default class CouponsScreen extends Component {
               <div className="ix-page">
                 <ShopHeader icon="ticket-percent" title="Coupons"
                   about="Discount codes customers type at checkout or at the POS counter. Turn a code off to stop it at once; tap a code to copy it for a post or an SMS."
-                  more={[{ label: 'Offers', href: '/promo' }, { label: 'Flash sales', href: '/flash-sales' }, { label: 'Offers page', href: '/offers' }]}
+                  more={[{ label: 'Offers', href: '/promo' }, { label: 'Flash sales', href: '/flash-sales' }, { label: 'View offers page', icon: 'external-link', onClick: () => window.open('/offers', '_blank', 'noopener') }]}
                   primary={{ label: 'Make a new code', href: '/new-coupon' }} />
 
                 <MetricStrip label="All codes" items={[

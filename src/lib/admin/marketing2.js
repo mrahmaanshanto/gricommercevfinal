@@ -26,7 +26,7 @@
 import { createStore } from './store';
 import { db as platformDb, load as loadPlatform, staff as currentStaff } from '@/lib/platform/store';
 import { DAY, MIN, rng, startOfDay, startOfMonth, addMonths, periodOf, dm, dmy, hm, taka } from '@/lib/platform/util';
-import { PLAN_NAME, LADDERS, ADDONS, addonBy, ladderLabel } from '@/lib/platform/catalogue';
+import { PLAN_NAME, PLAN_IDS, LADDERS, ADDONS, addonBy, ladderLabel } from '@/lib/platform/catalogue';
 import { merchantList } from './merchants';
 
 const H = 3600e3;
@@ -49,7 +49,7 @@ export function planPrice(ladder, plan, billing = 'monthly') {
   if (!p) return 0;
   return billing === 'yearly' ? p.yearly : p.price;
 }
-export const PLAN_KEYS = ['growth', 'business', 'enterprise'];
+export const PLAN_KEYS = PLAN_IDS.slice();
 
 // =====================================================================================================================
 // Social media
@@ -98,7 +98,7 @@ const POSTS = [
   [-33, 21, 'GridAI writes in Bangla', 'GridAI writes product descriptions in Bangla and English.\nOne photo in, a full listing out.', ['fb', 'ig', 'tt', 'yt'], ['MD-06'], ['#GridAI', '#GridCommerce'], ''],
   [-29, 19, 'Merchant story: Rongdhonu Fashion', 'Rongdhonu Fashion sells on Facebook, Instagram and their own site, with one stock count.', ['fb', 'ig', 'yt'], ['MD-12'], ['#SmallBusinessBD', '#OnlineShopBD'], 'https://gridcommerce.net/stories/rongdhonu'],
   [-24, 11, 'We are hiring: support executive', 'Join our support team in Banani. Bangla and English, patient with merchants, quick learner.', ['li', 'fb'], ['MD-13'], ['#Hiring'], 'https://gridcommerce.net/careers'],
-  [-20, 20, 'Pricing for 2026', 'Growth ৳1,000 · Business ৳2,500 · Enterprise ৳5,000 a month.\nPay yearly and save.', ['fb', 'ig', 'li'], ['MD-08'], ['#GridCommerce'], 'https://gridcommerce.net/pricing'],
+  [-20, 20, 'Pricing for 2026', 'Starter ৳1,000 · Growth ৳2,500 · Business ৳5,000 a month.\nPay yearly and save.', ['fb', 'ig', 'li'], ['MD-08'], ['#GridCommerce'], 'https://gridcommerce.net/pricing'],
   [-16, 20, 'Stock count in 10 minutes', 'Count stock with your phone camera. Every shelf, every branch, in one sheet.', ['tt', 'ig', 'yt'], ['MD-15'], ['#POS', '#SmallBusinessBD'], ''],
   [-12, 20, 'Puja offer: 50% off the first month', 'পূজার শুভেচ্ছা! নতুন স্টোরে প্রথম মাসে ৫০% ছাড়, কোড LAUNCH50।\nআজই শুরু করুন।', ['fb', 'ig'], ['MD-01'], ['#GridCommerce', '#BanglaEcommerce'], 'https://gridcommerce.net/start?code=LAUNCH50'],
   [-8, 20, 'Live Q&A this Thursday', 'Live Q&A with our product team, Thursday 8 PM on Facebook.\nBring your questions about orders, courier and POS.', ['fb', 'yt'], ['MD-14'], ['#GridCommerce'], ''],
@@ -597,11 +597,11 @@ function seedPromos(now, rows) {
   const P = [
     { code: 'LAUNCH50', name: 'Launch offer · first month half price', type: 'percent', value: 50, bills: 1, newOnly: true, billing: 'monthly', ladders: [], plans: [], total: 300, perStore: 1, start: -100, end: 81, status: 'active', by: 'Tania Sultana' },
     { code: 'PUJA2026', name: 'Puja 2026 · ৳500 off the first bill', type: 'fixed', value: 500, bills: 1, newOnly: true, billing: 'any', ladders: ['online', 'retail'], plans: [], total: 150, perStore: 1, start: -10, end: 14, status: 'active', by: 'Sharmin Nahar' },
-    { code: 'ANNUAL20', name: 'Yearly plans · 20% off', type: 'percent', value: 20, bills: 1, newOnly: false, billing: 'yearly', ladders: [], plans: ['business', 'enterprise'], total: 0, perStore: 1, start: -220, end: null, status: 'active', by: 'Nusrat Islam' },
+    { code: 'ANNUAL20', name: 'Yearly plans · 20% off', type: 'percent', value: 20, bills: 1, newOnly: false, billing: 'yearly', ladders: [], plans: ['growth', 'business'], total: 0, perStore: 1, start: -220, end: null, status: 'active', by: 'Nusrat Islam' },
     { code: 'EID2026', name: 'Eid ul-Adha 2026 · 30% off for 3 months', type: 'percent', value: 30, bills: 3, newOnly: true, billing: 'monthly', ladders: [], plans: [], total: 200, perStore: 1, start: -150, end: -118, status: 'active', by: 'Tania Sultana' },
-    { code: 'WHOLESALE25', name: 'Wholesale starter · 25% off 2 months', type: 'percent', value: 25, bills: 2, newOnly: true, billing: 'monthly', ladders: ['wholesale'], plans: [], total: 6, perStore: 1, start: -75, end: 30, status: 'active', by: 'Tania Sultana' },
-    { code: 'INBOX3', name: 'Inbox and automation free for 3 months', type: 'addon', value: 3, addon: 'G3', bills: 3, newOnly: false, billing: 'any', ladders: [], plans: ['business', 'enterprise'], total: 100, perStore: 1, start: -60, end: 45, status: 'paused', by: 'Mahin Khan', reason: 'Inbox servers at capacity until the upgrade on 20 Oct' },
-    { code: 'BIJOY71', name: 'Victory Day · first 2 months free', type: 'months', value: 2, bills: 2, newOnly: true, billing: 'monthly', ladders: [], plans: ['growth', 'business'], total: 71, perStore: 1, start: 52, end: 70, status: 'active', by: 'Sharmin Nahar' },
+    { code: 'SHOPWEB25', name: 'Retail + Online starter · 25% off 2 months', type: 'percent', value: 25, bills: 2, newOnly: true, billing: 'monthly', ladders: ['retail-online'], plans: [], total: 6, perStore: 1, start: -75, end: 30, status: 'active', by: 'Tania Sultana' },
+    { code: 'INBOX3', name: 'Inbox and automation free for 3 months', type: 'addon', value: 3, addon: 'G3', bills: 3, newOnly: false, billing: 'any', ladders: [], plans: ['growth', 'business'], total: 100, perStore: 1, start: -60, end: 45, status: 'paused', by: 'Mahin Khan', reason: 'Inbox servers at capacity until the upgrade on 20 Oct' },
+    { code: 'BIJOY71', name: 'Victory Day · first 2 months free', type: 'months', value: 2, bills: 2, newOnly: true, billing: 'monthly', ladders: [], plans: ['starter', 'growth'], total: 71, perStore: 1, start: 52, end: 70, status: 'active', by: 'Sharmin Nahar' },
     { code: 'TRAINING1000', name: 'Training attendees · ৳1,000 off', type: 'fixed', value: 1000, bills: 1, newOnly: true, billing: 'any', ladders: [], plans: [], total: 40, perStore: 1, start: -200, end: -20, status: 'ended', by: 'Tania Sultana', reason: 'Replaced by LAUNCH50' },
   ];
   const promos = P.map((p, i) => ({
@@ -612,7 +612,7 @@ function seedPromos(now, rows) {
   }));
   // redemptions by real stores
   const redemptions = [];
-  const want = { LAUNCH50: 18, PUJA2026: 7, ANNUAL20: 9, EID2026: 14, WHOLESALE25: 6, INBOX3: 5, TRAINING1000: 11 };
+  const want = { LAUNCH50: 18, PUJA2026: 7, ANNUAL20: 9, EID2026: 14, SHOPWEB25: 6, INBOX3: 5, TRAINING1000: 11 };
   const r = rng('promo-red');
   const used = new Set();
   for (const p of promos) {
@@ -1226,7 +1226,7 @@ export function markPayoutPaid(id, { method, txn }) {
 // =====================================================================================================================
 export const mk2 = createStore({
   key: 'marketing2',
-  version: 2,
+  version: 3,   // 3: promotions on the product's editions and plans
   seed: (now) => {
     loadPlatform();
     const rows = merchantList(platformDb(), now).rows;

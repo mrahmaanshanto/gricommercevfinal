@@ -18,6 +18,7 @@ import { downloadCsv } from '@/lib/reports/period';
 import { SETS, MODULES, TRIALABLE } from '@/lib/platform/catalogue';
 import { subState, isLiveStore } from '@/lib/platform/billing';
 import { setModule } from '@/lib/admin/merchants';
+import { rightOf } from '@/lib/admin/actionRights';
 import { moduleRows, moduleAccess, simulate, addonStats } from '@/lib/admin/packages';
 import { AdminShell, usePlatform } from '../AdminShell';
 import { PK_CSS, usePackages, money, plural, Rule, Row, PriceForm, TrialRuleForm } from './pkgShared';
@@ -73,6 +74,7 @@ function ModuleSheet({ code, db, data, t, rows, onClose }) {
   const stats = m.price ? addonStats(db, t, m.code) : null;
   const ownTrial = TRIALABLE.some((x) => x.code === m.code) || !!data.trialRules[m.code];
   const reset = async (o) => {
+    if (!rightOf('module').ok) { toast(rightOf('module').reason); return; }
     if (!(await confirmDialog({ title: `${m.name} back to the package for ${o.name}?`, body: 'The store gets what its package gives for this module.', confirmLabel: 'Reset' }))) return;
     const r = setModule(o.shopId, m.code, null);
     toast(r.ok ? `${o.name} follows its package again` : r.error);

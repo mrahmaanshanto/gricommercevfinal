@@ -9,7 +9,7 @@
 //       kind 'oauth'       sign in with Meta, Google, TikTok, LinkedIn, X, Pinterest… (social, inbox, ads)
 //       kind 'keys'        an address and keys or a provider (SMS, email, Telegram bot)
 //       kind 'gateway'     payment gateways and couriers — components/GatewaySetup.jsx and lib/settlements.js
-//       kind 'page'        set up on its own page (attendance machines, AI, storage, backups, tracking guides)
+//       kind 'page'        set up on its own page (attendance machines, Grid AI, tracking guides)
 //   statusOf(id)           { state: 'connected' | 'attention' | 'off', account, note } from whichever lib owns it
 //   connectApp / disconnectApp / reconnectApp
 //   inboxApps()            the apps that bring messages, comments or reviews into the Inbox, with their state
@@ -34,7 +34,7 @@ export const GROUPS = [
   { id: 'delivery', label: 'Delivery', sub: 'Couriers that pick up, deliver and collect cash for you.', icon: 'truck' },
   { id: 'messages', label: 'SMS & email', sub: 'Order updates, codes and alerts to customers and staff.', icon: 'mail' },
   { id: 'meetings', label: 'Meetings', sub: 'Video calls with customers and leads. The meeting link is made and sent for you.', icon: 'video' },
-  { id: 'tools', label: 'Devices & tools', sub: 'Attendance machines, the AI assistant, file storage and backups.', icon: 'cpu' },
+  { id: 'tools', label: 'Devices & tools', sub: 'Attendance machines and the AI assistant.', icon: 'cpu' },
 ];
 export const groupBy = (id) => GROUPS.find((g) => g.id === id) || null;
 
@@ -107,9 +107,8 @@ export const APPS = [
     pick: { label: 'Google calendar', items: [['mehedi@dazzleshop.com.bd', 'Primary calendar']] } },
   // ---- devices and tools ----
   { id: 'attendance', group: 'tools', name: 'Attendance machines', sub: 'Fingerprint and face machines', brand: 'attendance', kind: 'page', module: 'hr', page: '/attendance-devices', add: '/attendance-devices?add=1', uses: ['Attendance'] },
-  { id: 'ai', group: 'tools', name: 'AI assistant', sub: 'Auto-replies, writing and AI calls', brand: 'ai', kind: 'page', module: 'core', page: '/set-ai', uses: ['AI'] },
-  { id: 'storage', group: 'tools', name: 'File storage', sub: 'Product photos and documents', brand: 'storage', kind: 'page', module: 'core', page: '/set-storage', uses: ['Files'] },
-  { id: 'backup', group: 'tools', name: 'Google Drive backup', sub: 'Nightly copies of your data', brand: 'google', kind: 'page', module: 'core', page: '/set-security#s1', uses: ['Backups'] },
+  { id: 'ai', group: 'tools', name: 'AI assistant', sub: 'Auto-replies, writing and AI calls', brand: 'ai', kind: 'page', module: 'core', page: '/ai-behaviour', uses: ['AI'] },
+  // file storage and backups are run by GridCommerce (Settings › API keys & backups shows the backup status)
 ];
 export const appBy = (id) => APPS.find((a) => a.id === id) || null;
 /** Apps in this edition. */
@@ -136,9 +135,7 @@ function seed(now) {
       email: { account: 'Amazon SES · orders@dazzleshop.com.bd', at: now - 210 * DAY, lastSync: now - 25 * MIN },
       zoom: { account: 'Zoom Pro · mehedi@dazzleshop.com.bd', at: now - 30 * DAY, lastSync: now - 12 * MIN },
       'google-meet': { account: 'mehedi@dazzleshop.com.bd', at: now - 30 * DAY, lastSync: now - 8 * MIN },
-      ai: { account: 'Anthropic · Claude', at: now - 50 * DAY },
-      storage: { account: 'Cloudflare R2 · 6.2 GB of 50 GB', at: now - 400 * DAY },
-      backup: { account: 'Google Drive · last copy 2:00 AM', at: now - 400 * DAY, attention: 'Last night’s file backup failed. Check the Drive folder.' },
+      ai: { account: 'Grid AI · included in your plan', at: now - 50 * DAY },
     },
   };
 }

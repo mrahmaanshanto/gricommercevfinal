@@ -3,6 +3,8 @@
 //   Follow-ups: overdue, today and coming, with a quick "log the call and set the next one"
 //   Pipeline: a board by stage (drag a card to move it) · List: every lead with filters
 // A lead opens with its details, history, next follow-up, call / WhatsApp, move stage, won (adds the customer) or lost.
+// A business lead (Corporate / Wholesale / with a company) gets "Create quote" (Orders › Quotes); its "Quote sent" stage
+// links to the quote (WH-F4).
 // Laid out like a Shopify list: the views are tabs, Mine / Everyone and search sit on the right, a row opens the lead.
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -13,9 +15,12 @@ import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
 import { MetricStrip, IndexTabs, SearchField, LearnMore } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { USERS, roleOf } from '@/lib/team';
-import { STAGES, OPEN_STAGES, SOURCES, KINDS, LOG_KINDS, LOST_REASONS, STAGE_WEIGHT, stageOf, saveLead, logActivity, moveStage, removeLead, followState } from '@/lib/leads';
+import { STAGES, OPEN_STAGES, SOURCES, ALL_KINDS, isBusinessLead, LOG_KINDS, LOST_REASONS, STAGE_WEIGHT, stageOf, saveLead, logActivity, moveStage, removeLead, followState } from '@/lib/leads';
 import { saveTask } from '@/lib/tasks';
-import { hasModule } from '@/lib/edition';
+import { hasModule, routeInEdition } from '@/lib/edition';
+import { useWholesale } from '@/lib/useWholesale';
+import { quoteBy, quoteState, quoteTotals, QUOTE_STATE } from '@/lib/quotes';
+import QuoteDialog from '@/screens/merchant-orders/QuoteDialog';
 import { TeamPage, useMe, useLeads, UserAvatar, userName, rowGo } from './teamShared';
 
 const money = (n) => formatBDT(Math.round(n || 0));
@@ -41,6 +46,11 @@ const CSS = `
 .ld-src{display:grid;grid-template-columns:minmax(0,1fr) 110px 80px;gap:var(--space-3);align-items:center;min-height:40px;font-size:var(--text-sm)}
 .ld-src i{display:block;height:6px;border-radius:var(--radius-full);background:var(--primary)}
 .ld-split{display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:var(--space-4);align-items:start}
+.ld-quote{display:flex;align-items:center;gap:var(--space-2);width:100%;min-height:40px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;font-size:var(--text-sm);color:var(--text-body);text-align:left;cursor:pointer}
+.ld-quote:hover{border-color:var(--primary)}
+.ld-quote span{flex:1;min-width:0}
+.ld-qlink{border:0;background:none;padding:0;font:inherit;color:var(--primary);cursor:pointer}
+.ld-qlink:hover{text-decoration:underline}
 .ld-person{display:flex;align-items:center;gap:var(--space-2);min-height:40px}
 @media (max-width:1100px){.ld-split{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){.ld-fu{padding:6px var(--space-3)}.ld-fu__when{width:64px}.ld-src{grid-template-columns:minmax(0,1fr) 72px}.ld-src > span:nth-child(2){display:none}}
@@ -51,6 +61,8 @@ const waOf = (phone) => 'https://wa.me/88' + String(phone).replace(/\D/g, '');
 
 export default function SalesLeads() {
   const { me } = useMe();
+  const ws = useWholesale();
+  const KINDS = ALL_KINDS.filter((k) => k !== 'Wholesale' || ws);
   const { leads, ready } = useLeads();
   const now = Date.now();
   const allSee = roleOf(me).access === '*' || ['online-sales', 'shop-manager'].includes(me.role);
@@ -239,7 +251,7 @@ export default function SalesLeads() {
       </div>
       <LearnMore topic="leads" />
 
-      {lead ? <LeadDialog lead={lead} me={me} onMove={move} onClose={() => setOpenId('')} /> : null}
+      {lead ? <LeadDialog lead={lead} me={me} kinds={KINDS} onMove={move} onClose={() => setOpenId('')} /> : null}
       <Dialog open={!!lostFor} title={lostFor ? `Lost · ${lostFor.name}` : 'Lost'} onClose={() => setLostFor(null)} width={460}
         footer={null}>
         {lostFor ? (
@@ -277,7 +289,11 @@ export default function SalesLeads() {
   );
 }
 
-function LeadDialog({ lead, me, onMove, onClose }) {
+function LeadDialog({ lead, me, kinds: KINDS, onMove, onClose }) {
+  const [quote, setQuote] = useState(null);   // the quote dialog (new for this lead, or the linked one)
+  const [canQuote, setCanQuote] = useState(false);
+  useEffect(() => { setCanQuote(routeInEdition('/quotes')); }, []);
+  const q = lead.quoteId ? quoteBy(lead.quoteId) : null;
   const [log, setLog] = useState({ kind: 'call', text: '', nextAt: toLocal(Date.now() + DAY), nextWhat: '', setNext: true });
   const [edit, setEdit] = useState(null);
   const [, sl, tone] = stageOf(lead.stage);
@@ -292,7 +308,7 @@ function LeadDialog({ lead, me, onMove, onClose }) {
   const saveEdit = (e) => { e.preventDefault(); saveLead({ id: lead.id, name: edit.name.trim(), company: edit.company, phone: edit.phone, area: edit.area, interest: edit.interest, value: edit.value, kind: edit.kind, source: edit.source, owner: edit.owner }); toast('Lead saved.'); setEdit(null); };
   const task = () => { const t = saveTask({ assignees: [lead.owner], title: `Follow up ${lead.name}${lead.company ? ' · ' + lead.company : ''}`, assignee: lead.owner, by: me.id, due: lead.next ? new Date(lead.next.at).toISOString().slice(0, 10) : '', priority: 'high', team: 'sales', tags: ['customer'], notes: lead.next ? lead.next.what : lead.interest, link: { href: `/sales-leads?lead=${lead.id}`, label: lead.id } }); toast(`Task ${t.id} added for ${userName(lead.owner)}.`); };
   const remove = async () => { if (await confirmDialog({ title: `Delete ${lead.name}?`, body: 'The lead and its history go for good.', confirmLabel: 'Delete', tone: 'danger' })) { removeLead(lead.id); toast('Lead deleted.'); onClose(); } };
-  return (
+  return (<>
     <Dialog open title={`${lead.name}${lead.company ? ' · ' + lead.company : ''}`} onClose={onClose} width={760}
       footer={edit ? <><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setEdit(null)}>Cancel</button><button type="submit" form="ld-edit" className="gc-btn gc-btn--solid">Save</button></> : <><button type="button" className="gc-btn gc-btn--flat" onClick={remove}><Icon name="trash-2" width="16" height="16" aria-hidden="true" /> Delete</button><button type="button" className="gc-btn gc-btn--neutral" onClick={task}><Icon name="list-plus" width="16" height="16" aria-hidden="true" /> Make a task</button><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setEdit({ ...lead })}><Icon name="pencil" width="16" height="16" aria-hidden="true" /> Edit</button></>}>
       {edit ? (
@@ -322,7 +338,15 @@ function LeadDialog({ lead, me, onMove, onClose }) {
             <a className="gc-btn gc-btn--sm gc-btn--neutral" href={waOf(lead.phone)} target="_blank" rel="noreferrer"><Icon name="message-circle" width="14" height="14" aria-hidden="true" /> WhatsApp</a>
             {hasModule('comms') ? <Link className="gc-btn gc-btn--sm gc-btn--neutral" href={'/meetings?new=1&lead=' + encodeURIComponent(lead.id)}><Icon name="video" width="14" height="14" aria-hidden="true" /> Schedule meeting</Link> : null}
             {lead.customer ? <Link className="gc-btn gc-btn--sm gc-btn--neutral" href="/all-customers"><Icon name="user-check" width="14" height="14" aria-hidden="true" /> Customer</Link> : null}
+            {canQuote && isBusinessLead(lead) && OPEN_STAGES.includes(lead.stage) ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setQuote({ id: '', lead: lead.id })}><Icon name="file-plus" width="14" height="14" aria-hidden="true" /> Create quote</button> : null}
           </div>
+          {canQuote && q ? (
+            <button type="button" className="ld-quote" onClick={() => setQuote({ id: q.id })}>
+              <Icon name="file-text" width="16" height="16" aria-hidden="true" />
+              <span>Quote <b>{q.id}</b> · {formatBDT(quoteTotals(q).total)} · valid until {formatDate(q.validUntil)}</span>
+              <StatusBadge tone={QUOTE_STATE[quoteState(q)][1]}>{QUOTE_STATE[quoteState(q)][0]}</StatusBadge>
+            </button>
+          ) : null}
           <div>
             <span className="gc-label">Stage</span>
             <div role="group" aria-label="Stage" style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
@@ -345,11 +369,12 @@ function LeadDialog({ lead, me, onMove, onClose }) {
           <div>
             <span className="gc-label">History</span>
             <ul className="ld-tl">
-              {[...lead.log].reverse().map((x, i) => { const [l, ic] = LOG_KINDS[x.kind] || LOG_KINDS.note; return <li key={i}><span className="tm-tile"><Icon name={ic} width="16" height="16" aria-hidden="true" /></span><div style={{ minWidth: 0 }}><span className="tm-strong">{x.text}</span><span className="tm-sub">{l} · {userName(x.by)} · {formatDate(x.at)} {formatTime(x.at)}</span></div></li>; })}
+              {[...lead.log].reverse().map((x, i) => { const [l, ic] = LOG_KINDS[x.kind] || LOG_KINDS.note; return <li key={i}><span className="tm-tile"><Icon name={ic} width="16" height="16" aria-hidden="true" /></span><div style={{ minWidth: 0 }}><span className="tm-strong">{x.text}{x.quoteId && canQuote ? <> · <button type="button" className="ld-qlink" onClick={() => setQuote({ id: x.quoteId })}>Open quote</button></> : null}</span><span className="tm-sub">{l} · {userName(x.by)} · {formatDate(x.at)} {formatTime(x.at)}</span></div></li>; })}
             </ul>
           </div>
         </div>
       )}
     </Dialog>
-  );
+    {quote ? <QuoteDialog open={quote} onClose={() => setQuote(null)} onDone={() => setQuote(null)} /> : null}
+  </>);
 }

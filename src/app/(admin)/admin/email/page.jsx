@@ -1,6 +1,6 @@
-import Screen from '@/screens/admin/comms/Email';
+import Screen from '@/screens/admin/email/MailDirectory';
 
-export const metadata = { title: 'Email · Admin' };
+export const metadata = { title: 'Business email · Admin' };
 
 export default function Page() {
   return <Screen />;

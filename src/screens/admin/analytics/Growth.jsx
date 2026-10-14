@@ -14,6 +14,7 @@ import { MetricStrip } from '@/components/ui/IndexKit';
 import { ColumnChart, HBars, Legend, CHART_CSS } from '@/components/charts/DashCharts';
 import { downloadCsv } from '@/lib/reports/period';
 import { dmy } from '@/lib/platform/util';
+import { LADDERS as EDITION_LADDERS } from '@/lib/platform/catalogue';
 import { acquisitions, growth, growthFunnel } from '@/lib/admin/analytics';
 import { AdminShell } from '../AdminShell';
 import { AN_CSS, useAnalytics, useQuery, usePeriod, AnHeader, Card, Funnel, Loading, ErrorCard, attempt, money, short, num, pct, moneyTick, tick, deltaText } from './anShared';
@@ -29,7 +30,8 @@ small.gr-none{font-family:var(--font-sans);font-size:var(--text-xs)}
 .gr-left{display:flex;flex-direction:column;gap:2px;min-width:0}
 .gr-left small{font-size:var(--text-xs);color:var(--text-muted)}
 `;
-const LADDERS = [['Online', 'var(--viz-1)'], ['Retail', 'var(--viz-3)'], ['Wholesale', 'var(--viz-4)']];
+// the editions, in catalogue order, with the colours the Dashboard and Revenue use
+const LADDERS = EDITION_LADDERS.map((l, k) => [l.label, ['var(--viz-1)', 'var(--viz-3)', 'var(--viz-4)', 'var(--viz-5)'][k]]);
 const heat = (x) => (x == null ? null : { background: `color-mix(in srgb, var(--viz-3) ${Math.round(10 + x * 45)}%, var(--surface-card))` });
 
 export default function Growth() {

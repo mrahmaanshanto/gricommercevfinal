@@ -27,6 +27,10 @@ import { ModulesTab } from './profile/ProfileModules';
 import { BillingTab, CreditsTab } from './profile/ProfileBilling';
 import { MessagingTab, ResourcesTab, BusinessTab } from './profile/ProfileUsage';
 import { SupportTab, ActivityTab, LicenceTab } from './profile/ProfileRecord';
+import { rightOf } from '@/lib/admin/actionRights';
+import { accessRight } from '@/lib/admin/supportAccess';
+import { AccessSheet } from '../access/StoreAccess';
+import { StoreRequests } from '../access/StoreRequests';
 
 const TABS = [
   ['overview', 'Overview', OverviewTab], ['subscription', 'Subscription', SubscriptionTab], ['modules', 'Modules', ModulesTab],
@@ -51,6 +55,7 @@ export default function MerchantProfile() {
   const { db, t, live } = usePlatform();
   const [q, setQ] = useState(null);           // { id, tab } from the address, after mount
   const [sheet, setSheet] = useState(null);   // the open action sheet: { kind, n, …params }
+  const [accessOpen, setAccessOpen] = useState(false);   // Store access (ask the owner, start a session)
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
@@ -99,7 +104,7 @@ export default function MerchantProfile() {
     const row = merchantRow(db, shop, t);
     const view = merchantView(db, t, shop.id, staff());
     const owed = openInvoices(db, shop.id).reduce((s, i) => s + balance(db, i), 0);
-    ctx = { db, t, me: staff(), shop, sub, st, row, view, owed, open, go, retry };
+    ctx = { db, t, me: staff(), shop, sub, st, row, view, owed, open, go, retry, requestAccess: () => setAccessOpen(true) };
   } catch (e) {
     error = e;
   }
@@ -137,7 +142,7 @@ export default function MerchantProfile() {
     resume: { label: 'Resume store', icon: 'play', onClick: async () => { if (await confirmDialog({ title: `Resume ${shop.name}?`, body: 'The storefront opens again and billing restarts today.', confirmLabel: 'Resume' })) { resumeStore(shop.id); toast('Store resumed'); } } },
     restore: { label: 'Restore store', icon: 'archive-restore', onClick: async () => { if (await confirmDialog({ title: `Restore ${shop.name}?`, body: 'The store opens again with its data, and billing starts today.', confirmLabel: 'Restore' })) { restoreStore(shop.id); toast('Store restored'); } } },
   };
-  const primary = key === 'suspended' ? A.reactivate
+  let primary = key === 'suspended' ? A.reactivate
     : late ? A.pay
       : key === 'trial' ? A.extendTrial
         : key === 'paused' ? A.resume
@@ -146,20 +151,27 @@ export default function MerchantProfile() {
               : key === 'failed' ? null
                 : A.plan;
   const secondary = [owed > 0 && !(primary === A.reactivate && !shop.control) ? A.pay : null, closed || setup ? null : A.plan].filter((a) => a && a !== primary);
+  // what this person may do to a store (Roles & permissions › Edit / Approve; lib/admin/actionRights.js): actions they
+  // may not do are left out of the menu, and one greyed line at its foot says which rights are missing
+  const may = Object.fromEntries(['suspend', 'unsuspend', 'pause', 'cancel', 'grace', 'credits', 'module'].map((k) => [k, rightOf(k).ok]));
+  const missing = [!may.suspend ? 'suspend, pause, cancel' : null, !may.grace ? 'grace' : null, !may.credits ? 'credits' : null, !may.module ? 'modules' : null].filter(Boolean);
+  if (primary === A.reactivate && shop.control === 'suspended' && !may.unsuspend) primary = null;
   const more = [
     { label: 'Edit details', onClick: () => open('edit') },
     key === 'trial' || primary === A.activateTrial ? null : !paying && key !== 'suspended' ? { label: 'Activate trial', onClick: () => open('trial') } : null,
-    late && openInvoices(db, shop.id).some((i) => i.dueAt < t + 864e5) ? { label: 'Extend grace', onClick: () => open('grace'), tone: 'danger' } : null,
-    { label: 'Add credits', onClick: () => open('credits') },
+    may.grace && late && openInvoices(db, shop.id).some((i) => i.dueAt < t + 864e5) ? { label: 'Extend grace', onClick: () => open('grace'), tone: 'danger' } : null,
+    may.credits ? { label: 'Add credits', onClick: () => open('credits') } : null,
     { label: 'Record service income', href: '/admin/income?new=1&store=' + shop.id },
-    { label: 'Enable or disable a module', onClick: () => go('modules') },
+    { label: may.module ? 'Enable or disable a module' : 'See modules', onClick: () => go('modules') },
     { label: 'Assign account manager', onClick: () => open('manager') },
     { label: 'Send password reset', onClick: async () => { if (await confirmDialog({ title: 'Send a password reset link?', body: `The owner gets a reset link by SMS${shop.owner && shop.owner.phone ? ' at ' + shop.owner.phone : ''}.`, confirmLabel: 'Send link' })) { sendReset(shop.id); toast('Reset link sent by SMS'); } } },
-    key === 'suspended' ? (primary === A.reactivate ? null : A.reactivate) : closed || setup ? null : { label: 'Suspend store', onClick: () => open('control', { action: 'suspend' }), tone: 'danger' },
-    shop.control === 'readonly' ? { label: 'Restore full access', onClick: () => open('control', { action: 'unsuspend' }) } : null,
-    key === 'paused' ? (primary === A.resume ? null : A.resume) : paying || key === 'trial' ? { label: 'Pause store', onClick: () => open('control', { action: 'pause' }), tone: 'danger' } : null,
-    closed ? (primary === A.restore ? null : A.restore) : setup ? null : { label: 'Cancel store', onClick: () => open('control', { action: 'cancel' }), tone: 'danger' },
+    accessRight(staff()).ok && !setup ? { label: 'Request store access', onClick: () => setAccessOpen(true) } : null,
+    key === 'suspended' ? (primary === A.reactivate || !may.unsuspend || !shop.control ? null : A.reactivate) : closed || setup || !may.suspend ? null : { label: 'Suspend store', onClick: () => open('control', { action: 'suspend' }), tone: 'danger' },
+    shop.control === 'readonly' && may.unsuspend ? { label: 'Restore full access', onClick: () => open('control', { action: 'unsuspend' }) } : null,
+    key === 'paused' ? (primary === A.resume ? null : A.resume) : (paying || key === 'trial') && may.pause ? { label: 'Pause store', onClick: () => open('control', { action: 'pause' }), tone: 'danger' } : null,
+    closed ? (primary === A.restore ? null : A.restore) : setup || !may.cancel ? null : { label: 'Cancel store', onClick: () => open('control', { action: 'cancel' }), tone: 'danger' },
     { label: 'Review activity', onClick: () => go('activity') },
+    missing.length ? { label: `Your role can’t: ${missing.join(', ')}`, disabled: true } : null,
   ].filter(Boolean).map(({ icon, ...a }) => a);
 
   const Tab = (TABS.find((x) => x[0] === q.tab) || TABS[0])[2];
@@ -177,6 +189,8 @@ export default function MerchantProfile() {
           meta={<><span className="mp-data">#{shop.id}</span> · {row.packageName}<span className="mp-wide"> · {row.owner || 'No owner'} · {row.domain}</span></>}
           secondary={secondary} more={more} primary={primary} />
 
+        <StoreRequests shopId={shop.id} />
+
         <section className="ix-card mp-tabs" aria-label="Sections">
           <IndexTabs label="Merchant sections" tabs={TABS.map(([k, l]) => ({ key: k, id: 'mp-tab-' + k, label: l, count: counts[k], on: q.tab === k, onClick: () => go(k) }))} />
         </section>
@@ -186,6 +200,7 @@ export default function MerchantProfile() {
         </div>
       </div>
       <ActionSheets sheet={sheet} ctx={ctx} close={close} />
+      {accessOpen ? <AccessSheet shopId={shop.id} onClose={() => setAccessOpen(false)} /> : null}
     </AdminShell>
   );
 }

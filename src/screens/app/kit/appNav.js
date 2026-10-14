@@ -47,7 +47,7 @@ export const APP_ROUTES = {
   '/m-purchase': { label: (c) => (c && !hasModule('purchasing', c.ed) ? 'Purchases' : 'Purchase orders'), icon: 'clipboard', group: 'stock', module: 'catalog', nav: ['po-orders', 'po-buy'] },
   '/m-receive': { label: 'Receive goods', icon: 'download', group: 'stock', module: 'purchasing', nav: ['po-receive'] },
   '/m-transfers': { label: 'Transfers', icon: 'arrows', group: 'stock', module: 'places', nav: ['stock-transfers'] },
-  '/m-adjust': { label: 'Adjust & count', icon: 'edit', group: 'stock', module: 'places', nav: ['stock-adjust', 'stock-count'] },
+  '/m-adjust': { label: 'Adjust & count', icon: 'edit', group: 'stock', module: 'catalog', nav: ['stock-adjust', 'stock-count'] },
   // Messages
   '/m-inbox': { label: 'Inbox', icon: 'chat', group: 'messages', module: 'comms', nav: ['inbox', 'inbox-comments', 'inbox-mentions'] },
   '/m-gridai': { label: 'GridAI', icon: 'sparkles', group: 'messages', module: 'gridai', nav: ['ai-assistant'] },

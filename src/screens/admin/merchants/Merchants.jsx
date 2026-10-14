@@ -19,7 +19,8 @@ import { downloadCsv } from '@/lib/reports/period';
 import { formatBDT } from '@/lib/format';
 import { dmy, dm } from '@/lib/platform/util';
 import { LADDERS, PLAN_IDS, PLAN_NAME, SOURCES, DISTRICTS, STAFF, CONTROL_REASONS } from '@/lib/platform/catalogue';
-import { setControl, sendPayLinks } from '@/lib/platform/billing';
+import { sendPayLinks } from '@/lib/platform/billing';
+import { ask, rightOf, ruleFor } from '@/lib/admin/actionRights';
 import { VIEWS, merchantList, assignManager } from '@/lib/admin/merchants';
 import { AdminShell, usePlatform } from '../AdminShell';
 
@@ -198,11 +199,14 @@ export default function Merchants() {
   const doSuspend = () => {
     if (!suspend.reason) { setSuspend({ ...suspend, error: 'Pick a reason.' }); return; }
     const targets = selRows.filter((r) => r.stateKey !== 'suspended');
-    let n = 0;
-    for (const r of targets) if ((setControl(r.id, 'suspended', suspend.reason) || {}).ok) n++;
+    if (!targets.length) { setSuspend(null); toast('The selected stores were already suspended'); return; }
+    // the rights and the second person (Security › Approvals) are checked for the whole batch, on its monthly bills
+    const value = targets.reduce((n, r) => n + (r.monthly || 0), 0);
+    const r = ask({ action: 'bulkSuspend', shopIds: targets.map((x) => x.id), value, reason: suspend.reason, db });
+    if (!r.ok) { setSuspend({ ...suspend, error: r.error }); return; }
     setSuspend(null);
     clearSel();
-    toast(n ? `${plural(n, 'store')} suspended` : 'The selected stores were already suspended');
+    toast(r.pending ? `Sent to ${r.request.approver} for a second approval` : `${plural(r.result.n, 'store')} suspended`);
   };
 
   const tabs = VIEWS.map(([k, label]) => ({ key: k, id: 'mer-tab-' + k, label, count: live ? counts[k] || 0 : null, on: view === k, onClick: () => { setView(k); } }));
@@ -243,7 +247,7 @@ export default function Merchants() {
             <button type="button" className="ix-btn ix-btn--sm" onClick={doPayLinks}><Icon name="send" width="16" height="16" aria-hidden="true" />Send payment links</button>
             <button type="button" className="ix-btn ix-btn--sm" onClick={() => exportCsv(selRows, 'gridcommerce-merchants-selected.csv')}><Icon name="download" width="16" height="16" aria-hidden="true" />Export selected</button>
             <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[
-              { label: 'Suspend stores', onClick: () => setSuspend({ reason: '' }), tone: 'danger' },
+              rightOf('bulkSuspend').ok ? { label: 'Suspend stores', onClick: () => setSuspend({ reason: '' }), tone: 'danger' } : { label: 'Suspend stores: needs Approve rights', disabled: true },
               { label: 'Clear selection', onClick: clearSel },
             ]} />
           </div>
@@ -310,7 +314,7 @@ export default function Merchants() {
                       <td><span className="mer-owner"><span>{r.owner || '—'}</span>{r.phone ? <small>{r.phone}</small> : null}</span></td>
                       <td className="ix-muted"><span className="mer-email" title={r.email || undefined}>{r.email || '—'}</span></td>
                       <td>{r.packageName}</td>
-                      <td className="ix-num"><span className="mer-mods" title={r.modules.length ? r.modules.join(', ') : 'Only the everyday core'}>{r.moduleCount}</span></td>
+                      <td className="ix-num"><span className="mer-mods" title={r.modules.length ? r.modules.join(', ') : 'No modules on'}>{r.moduleCount}</span></td>
                       <td className="ix-muted">{dmy(r.registered)}</td>
                       <td className={r.stateKey === 'trial' && r.trialLeft != null && r.trialLeft <= 3 ? 'ix-warn' : 'ix-muted'}>{renewalText(r)}</td>
                       <td><StatusBadge tone={r.tone}>{r.stateLabel}</StatusBadge></td>
@@ -378,6 +382,8 @@ export default function Merchants() {
               </select>
               {suspend.error ? <p className="gc-help gc-help--error" role="alert">{suspend.error}</p> : null}
             </div>
+            {ruleFor('bulkSuspend', selRows.filter((x) => x.stateKey !== 'suspended').reduce((n, x) => n + (x.monthly || 0), 0))
+              ? <p className="gc-help">Their bills come to more than the Security › Approvals amount: a second person approves this, never you.</p> : null}
           </div>
         ) : null}
       </Dialog>

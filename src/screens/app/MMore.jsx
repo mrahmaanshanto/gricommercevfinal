@@ -3,7 +3,7 @@
 //   the person's card (lib/team.js: name, role titles, shop name) and the edition chip (lib/edition.js),
 //   the hub: appNav.moreGroups (Sell · Stock · Messages · Money · Team · Settings), only the pages this edition has,
 //   this person's role can open and that are built (appNav.ROUTES_BUILT),
-//   language (EN / বাংলা), the web panel, refresh, and Sign out (→ /merchant-sign-in).
+//   language (EN / বাংলা), the web panel, refresh, and Sign out (→ the app's sign-in, /onb-sign-in).
 
 import React, { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -30,7 +30,7 @@ export default function MMoreScreen() {
 
   const out = () => {
     signOut();
-    router.push('/merchant-sign-in');
+    router.replace('/onb-sign-in');
   };
   const reload = () => { refresh(); toast('Up to date'); };
 

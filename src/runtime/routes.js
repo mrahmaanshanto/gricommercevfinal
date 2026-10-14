@@ -47,6 +47,10 @@ const NAMED_ROUTES = {
   "WooCommerce": "/woocommerce",
   // Grid AI pages live under /ai-… (their names alone are too general)
   "Knowledge": "/ai-knowledge", "Behaviour": "/ai-behaviour",
+  // Online Store › SEO (Module C, Oct 2026)
+  "SeoTools": "/seo",
+  // Settings › Business email (Module D)
+  "BusinessEmail": "/email",
 };
 
 /** Maps a design link to its app route. Anything else is returned unchanged. */

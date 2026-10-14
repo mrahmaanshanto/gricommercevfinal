@@ -7,12 +7,11 @@ import React, { useEffect, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { Dialog } from '@/components/ui';
 import { PRICE_TIERS, CUSTOMER_TYPES as ALL_TYPES } from '@/lib/customers';
-import { wholesaleOn } from '@/lib/edition';
+import { useWholesale } from '@/lib/useWholesale';
+import { TERMS, termsOf, setTerms } from '@/lib/buyerTerms';
 
-// wholesale (type, price list) only while it is on (edition.js; off for now). The credit limit is for every customer:
-// it caps what they may owe (retail dues: Settings › Customers › Credit & dues).
-const WS = wholesaleOn();
-const CUSTOMER_TYPES = ALL_TYPES.filter((t) => t !== 'Wholesale' || WS);
+// wholesale (type, price list) only while it is on (edition.js; off for now; read after mount, useWholesale). The credit
+// limit is for every customer: it caps what they may owe (retail dues: Settings › Customers › Credit & dues).
 import { formatBDT } from '@/lib/format';
 
 const compact = (x) => String(x || '').replace(/[\s\-().]/g, '').toLowerCase();
@@ -46,10 +45,12 @@ const Err = ({ id, text }) => (<p id={id} className="gc-help gc-help--error ce-e
 export default function CustomerEditDialog({ open, customer, phoneLocked, phoneTaken, onSave, onClose }) {
   const [f, setF] = useState(null);
   const [errs, setErrs] = useState({});
+  const WS = useWholesale();
+  const CUSTOMER_TYPES = ALL_TYPES.filter((t) => t !== 'Wholesale' || WS);
 
   useEffect(() => {
     if (!open || !customer) return;
-    setF({ name: customer.name || '', phone: customer.phone || '', address: customer.address || '', types: (customer.types || []).slice(), tier: customer.tier || 'A', credit: customer.creditLimit ? String(customer.creditLimit) : '' });
+    setF({ name: customer.name || '', phone: customer.phone || '', address: customer.address || '', types: (customer.types || []).slice(), tier: customer.tier || 'A', credit: customer.creditLimit ? String(customer.creditLimit) : '', terms: (() => { const t = termsOf(customer.id || customer.phone); return t && t.from === 'buyer' ? t.terms : ''; })() });
     setErrs({});
   }, [open, customer]);
 
@@ -81,6 +82,8 @@ export default function CustomerEditDialog({ open, customer, phoneLocked, phoneT
       setTimeout(() => { const el = document.getElementById(first === 'types' ? 'ce-type-Online' : 'ce-' + first); if (el) el.focus(); }, 0);
       return;
     }
+    // payment terms (WH-F6) are kept per buyer in buyerTerms.js; the caller saves the rest
+    if (whole) { const t = termsOf(customer.id || customer.phone); if ((t && t.from === 'buyer' ? t.terms : '') !== f.terms) setTerms(customer.id || customer.phone, f.terms); }
     onSave({ name, phone, address: f.address.trim(), types: f.types, tier: whole ? f.tier : undefined, creditLimit: Math.round(credit) });
   };
 
@@ -115,7 +118,7 @@ export default function CustomerEditDialog({ open, customer, phoneLocked, phoneT
         </fieldset>
         <div className="ce-pair">
             {whole ? <div className="ce-field">
-              <label className="gc-label" htmlFor="ce-tier">Wholesale price list</label>
+              <label className="gc-label" htmlFor="ce-tier">Customer group</label>
               <select id="ce-tier" className="gc-input gc-select" value={f.tier} onChange={(e) => set('tier', e.target.value)}>
                 {Object.keys(PRICE_TIERS).map((k) => (<option key={k} value={k}>{PRICE_TIERS[k].label} · {PRICE_TIERS[k].off}% off</option>))}
               </select>
@@ -126,6 +129,14 @@ export default function CustomerEditDialog({ open, customer, phoneLocked, phoneT
               {errs.credit ? <Err id="ce-credit-err" text={errs.credit} /> : <p id="ce-credit-help" className="gc-help">{Number(f.credit) > 0 ? 'Can owe up to ' + formatBDT(Number(f.credit)) + '.' : whole ? '0 means no limit.' : '0 uses the shop’s default limit.'}</p>}
             </div>
           </div>
+        {whole ? <div className="ce-field">
+          <label className="gc-label" htmlFor="ce-terms">Payment terms</label>
+          <select id="ce-terms" className="gc-input gc-select" value={f.terms} onChange={(e) => set('terms', e.target.value)} aria-describedby="ce-terms-help">
+            <option value="">Shop default · Net 30</option>
+            {TERMS.map((x) => <option key={x.k} value={x.k}>{x.label}</option>)}
+          </select>
+          <p id="ce-terms-help" className="gc-help">Sets each invoice’s due date. Price lists are given in Orders › Price lists.</p>
+        </div> : null}
       </form>
     </Dialog>
   );

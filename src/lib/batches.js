@@ -1,5 +1,5 @@
 // batches — stock that expires. A purchase line with an expiry date (Purchases › New purchase) becomes a batch:
-//   { id, sku, name, place, qty, expiry (end of that day, ms), ref (bill no.), supplier, at, done, doneAt, doneWhy }
+//   { id, sku, name, place, qty, expiry (end of that day, ms), ref (bill no. or GRN), supplier, lot, at, done, doneAt, doneWhy }
 // leftOf(batch): what is still on the shelf from it — the batch's pieces, never more than the place has now (sales
 // take the oldest first, so a later batch keeps its pieces longest).
 // expiryList(): batches that are expired or expire within `days`, with what is left, for Damaged & expired.
@@ -26,11 +26,11 @@ const read = () => { if (typeof window === 'undefined') return SEED; try { const
 const write = (list) => { try { window.localStorage.setItem(KEY, JSON.stringify(list)); window.dispatchEvent(new CustomEvent(BATCH_EVENT)); } catch { /* ignore */ } };
 export const getBatches = () => read();
 
-/** Add batches from a purchase: lines [{ sku, name, qty, expiry (ms) }]. */
+/** Add batches from a purchase or a delivery: lines [{ sku, name, qty, expiry (ms), lot (the maker's batch no., optional) }]. */
 export function addBatches(lines, { place = onlinePlace(), ref = '', supplier = '' } = {}) {
   const list = read();
   const n = list.length;
-  const made = lines.filter((l) => l.expiry && l.qty > 0).map((l, i) => ({ id: 'BT-' + String(n + i + 1).padStart(4, '0'), sku: l.sku, name: l.name, place, qty: l.qty, expiry: endOf(...isoParts(l.expiry)), ref, supplier, at: Date.now(), done: false }));
+  const made = lines.filter((l) => l.expiry && l.qty > 0).map((l, i) => ({ id: 'BT-' + String(n + i + 1).padStart(4, '0'), sku: l.sku, name: l.name, place, qty: l.qty, expiry: endOf(...isoParts(l.expiry)), ref, supplier, at: Date.now(), done: false, ...(l.lot ? { lot: String(l.lot).trim() } : {}) }));
   if (made.length) write([...made, ...list]);
   return made;
 }

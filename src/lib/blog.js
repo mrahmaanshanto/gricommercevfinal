@@ -15,6 +15,9 @@
 // Front end only: everything lives in this browser (localStorage), seeded with demo content.
 // Every write fires a 'gc:blog' window event so open screens re-read.
 
+import { toHandle } from './handles';
+import { autoRedirect } from './redirects';
+
 const KEY = 'gc.blog.v1';
 const AUTOSAVE = 'gc.blog.autosave';
 export const SITE = 'dazzleshop.com.bd';
@@ -96,7 +99,7 @@ export const cloneBlock = (b) => ({ ...JSON.parse(JSON.stringify(b)), id: uid('b
 
 // ---- text helpers ---------------------------------------------------------------------------
 /** Markdown-lite to plain text. */
-export const plain = (s) => String(s || '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
+export const plain = (s) => String(s || '').replace(/\[([^\]]*)\]\([^)]*\)(\{[a-z ,]*\})?/g, '$1').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
 export function blockText(b) {
   if (!b) return '';
   switch (b.type) {
@@ -116,11 +119,8 @@ export const wordCount = (blocks) => words((blocks || []).map(blockText).join(' 
 export const readingTime = (blocks) => Math.max(1, Math.ceil(wordCount(blocks) / 200));
 export const hasBangla = (s) => /[ঀ-৿]/.test(String(s || ''));
 
-/** "Eid wardrobe: 7 looks!" -> "eid-wardrobe-7-looks". Bangla-only text falls back to "post". */
-export function slugify(text) {
-  return String(text || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
-    .replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 70).replace(/-+$/, '');
-}
+/** "Eid wardrobe: 7 looks!" -> "eid-wardrobe-7-looks". Bangla is written in Latin letters or kept (lib/handles.js). */
+export const slugify = (text) => toHandle(text);
 /** A slug not used by any other item in `list` ({ id, slug }): adds -2, -3 … when needed. */
 export function uniqueSlug(base, list, selfId) {
   const root = slugify(base) || 'post';
@@ -334,6 +334,9 @@ export function savePost(p) {
   const db = read();
   const saved = { ...p, readingTime: readingTime(p.blocks), updatedAt: new Date().toISOString() };
   const i = db.posts.findIndex((x) => x.id === p.id);
+  // a live post that moved keeps its old address working (Online Store › SEO › Redirects)
+  const old = i >= 0 ? db.posts[i] : null;
+  if (old && old.status === 'published' && old.slug && saved.slug && old.slug !== saved.slug) autoRedirect('/blog/' + old.slug, '/blog/' + saved.slug, 'Post address changed');
   const posts = db.posts.slice();
   if (i >= 0) posts[i] = saved; else posts.unshift(saved);
   write({ ...db, posts });
@@ -358,7 +361,7 @@ export function publishProblems(p, { scheduling = false } = {}) {
   const out = [];
   if (!String(p.title || '').trim()) out.push({ field: 'bl-title', message: 'Add a title.' });
   if (!(p.categoryIds || []).length) out.push({ field: 'bl-cats', message: 'Choose at least one category.' });
-  if (!String((p.seo || {}).metaDescription || '').trim()) out.push({ field: 'bl-meta-desc', message: 'Write a meta description for search results.' });
+  if (!String((p.seo || {}).metaDescription || '').trim()) out.push({ field: 'bl-seo-desc', message: 'Write a meta description for search results.' });
   if (!String((p.cover || {}).alt || '').trim()) out.push({ field: 'bl-cover-alt', message: 'Describe the cover image (alt text).' });
   if (scheduling && (!p.publishAt || new Date(p.publishAt).getTime() <= Date.now())) out.push({ field: 'bl-publish-at', message: 'Pick a date and time in the future to schedule.' });
   return out;

@@ -4,41 +4,44 @@
 //
 // The stores and situations follow the console's design boards: Dhaka Gadget Hub in grace on day 3, Bindu Beauty
 // past due and read-only, Rupsha Sports suspended, trials ending, a provisioning run stopped at Domain, the ৳833
-// outage credit waiting for a second approval, and so on. The rest of the 62 stores are generated (fixed seed).
+// outage credit waiting for a second approval, and so on. Dazzle Shop (#0090) is the merchant panel's own demo store. The rest of the 63 stores are generated (fixed seed).
 
 import { DAY, MIN, rng, pad4, addMonths, at, periodOf, yearOf, dayOfMonth, weekday, TZ } from './util';
-import { basePlans, STAGES, ADDONS } from './catalogue';
+import { basePlans, STAGES, ADDONS, PLAN_NAME, ladderLabel, channelsOf } from './catalogue';
 
-// [tid, name, ladder, plan, scenario, extra]
+// [tid, name, ladder (edition: online · retail · retail-online · connect), plan (starter · growth · business), scenario, extra]
+//   extra.cycle 'yearly': the plan is billed in full once a year (the rest of the bill stays monthly)
 //   scenario: active · grace:<days overdue> · pastdue:<days> · suspended:<days> · trial:<day> · paused · cancelled ·
 //             archived · failed (provisioning stopped) · running (provisioning now) · due:<days until due, 0 = today>
 /** Bump when the demo data's shape or seed changes: saved data from an older version is replaced (store.js). */
-export const DATA_VERSION = 2;
+export const DATA_VERSION = 4;   // 4: Dazzle Shop (#0090), the merchant panel's demo store, is a platform store too
 
 const NAMED = [
-  ['0007', 'Rongdhonu Fashion', 'online', 'business', 'active', { months: 14, src: 'Meta ads', by: 'Tania Sultana', dist: 'Dhaka', am: 'Tania Sultana', cat: 'Fashion', h: 86, orders: 1840, every: 1, mods: ['Landing pages', 'Loyalty', 'Cart recovery', 'Inbox'], dom: 'rongdhonu.com.bd', items: ['G3'], owner: 'Nusrat Jahan' }],
-  ['0009', 'Dhaka Shoe Corner', 'online', 'growth', 'active', { months: 18, src: 'Website', by: 'Tania Sultana', dist: 'Dhaka', cat: 'Fashion', sub: 'dhakashoe', every: 1 }],
-  ['0012', 'Mohona Traders', 'wholesale', 'enterprise', 'active', { months: 13, src: 'Event', by: 'Mahin Khan', dist: 'Dhaka', am: 'Mahin Khan', cat: 'Grocery', h: 90, orders: 3120, every: 1, mods: ['Wholesale dues', 'Warehouse', 'Payroll', 'Inbox', 'AI products'], dom: 'mohonatraders.com.bd', items: ['G3', 'G5'], pays: 'bank' }],
-  ['0017', 'Shonali Crafts', 'online', 'growth', 'active', { months: 10, src: 'Reference', by: 'Tania Sultana', dist: 'Dhaka', am: 'Tania Sultana', cat: 'Fashion', h: 78, orders: 410, every: 1, mods: ['POS', 'Landing pages'], dom: 'shonalicrafts.com', segs: ['Online', 'Retail'], modTrial: 'M04', owner: 'Rumana Akter' }],
-  ['0023', 'Ghorer Bazar BD', 'online', 'business', 'due:0', { months: 9, src: 'YouTube ads', by: 'Mahin Khan', dist: 'Dhaka', am: 'Mahin Khan', cat: 'Grocery', h: 69, orders: 1320, last: 8, mods: ['Landing pages', 'Cart recovery', 'Inbox'], dom: 'ghorerbazarbd.com' }],
-  ['0028', 'Tech Zone Uttara', 'retail', 'growth', 'due:2', { months: 11, src: 'Physical visit', by: 'Rakib Hasan', dist: 'Dhaka', am: 'Rakib Hasan', cat: 'Electronics', h: 63, orders: 205, last: 34, mods: ['POS'], dom: 'techzoneuttara.com.bd', ref: '0031' }],
-  ['0031', 'Dhaka Gadget Hub', 'retail', 'business', 'grace:3', { months: 14, src: 'Physical visit', by: 'Rakib Hasan', helper: 'Tania Sultana', campaign: 'Elephant Road campaign', dist: 'Dhaka', am: 'Farhana Akter', cat: 'Electronics', h: 54, orders: 960, every: 1, mods: ['POS', 'Loyalty', 'Cart recovery', 'Warehouse', 'Blasts'], dom: 'dhakagadgethub.com.bd', owner: 'Arif Hossain', modTrial: 'M05', items: ['SMS'] }],
-  ['0038', 'Rupsha Sports', 'retail', 'growth', 'suspended:19', { months: 8, src: 'YouTube ads', by: 'Rakib Hasan', dist: 'Khulna', am: 'Rakib Hasan', cat: 'Fashion', h: 18, orders: 0, last: 19, mods: ['POS'], dom: 'rupshasports.com.bd', items: ['M05'] }],
-  ['0044', 'Bindu Beauty', 'online', 'business', 'pastdue:9', { months: 7, src: 'Meta ads', by: 'Rakib Hasan', dist: 'Chattogram', am: 'Rakib Hasan', cat: 'Beauty', h: 33, orders: 640, last: 9, mods: ['Landing pages', 'Loyalty', 'Blasts'], dom: 'bindubeauty.com.bd' }],
-  ['0058', 'Nodi Organic', 'online', 'growth', 'trial:9', { src: 'Meta ads', by: 'Rakib Hasan', dist: 'Bogura', am: null, cat: 'Grocery', h: 41, orders: 12, last: 6, mods: ['Landing pages'] }],
-  ['0061', 'Kolpo Books', 'online', 'growth', 'trial:12', { src: 'Website', by: 'Tania Sultana', dist: 'Dhaka', am: 'Tania Sultana', cat: 'Fashion', h: 72, orders: 48, every: 1, mods: ['Landing pages'] }],
-  ['0066', 'Mehedi Traders', 'wholesale', 'business', 'active', { months: 12, src: 'Event', by: 'Farhana Akter', dist: 'Narayanganj', am: 'Farhana Akter', cat: 'Grocery', h: 81, orders: 780, every: 2, mods: ['Wholesale dues', 'Warehouse', 'Loyalty'], dom: 'meheditraders.com.bd', items: ['M05'], pays: 'nagad' }],
-  ['0069', 'Pabna Dairy Hub', 'wholesale', 'growth', 'trial:13', { src: 'Affiliate', by: 'Mahin Khan', dist: 'Pabna', am: 'Mahin Khan', cat: 'Grocery', h: 58, orders: 4, last: 2, mods: ['Wholesale dues'] }],
-  ['0072', 'Sabuj Bazar', 'online', 'business', 'trial:6', { src: 'Meta ads', by: 'Tania Sultana', dist: 'Sylhet', am: 'Tania Sultana', cat: 'Grocery', h: 82, orders: 31, every: 1, mods: ['Landing pages', 'Cart recovery'] }],
-  ['0074', 'Rongin Saree', 'online', 'growth', 'trial:5', { src: 'Reference', by: 'Farhana Akter', dist: 'Tangail', am: 'Farhana Akter', cat: 'Fashion', h: 77, orders: 22, every: 1, mods: ['Landing pages'] }],
-  ['0075', 'Ruposhi Jewels', 'online', 'business', 'failed', { src: 'Physical visit', by: 'Rakib Hasan', dist: 'Dhaka', cat: 'Jewellery and accessories', sub: 'ruposhi', owner: 'Nasrin Sultana' }],
-  ['0076', 'Chaldal Mini Mart', 'online', 'growth', 'running', { src: 'Website', by: 'Tania Sultana', dist: 'Dhaka', cat: 'Grocery' }],
-  ['0021', 'Adda Foods', 'online', 'growth', 'archived', { months: 9, src: 'Meta ads', by: 'Tania Sultana', dist: 'Dhaka', cat: 'Grocery', last: 95 }],
-  ['0047', 'Mobile Bari', 'retail', 'business', 'active', { months: 9, src: 'Reference', by: 'Rakib Hasan', dist: 'Dhaka', cat: 'Electronics', every: 1, ref: '0031', mods: ['POS'] }],
-  ['0052', 'Gadget Corner Mirpur', 'retail', 'growth', 'active', { months: 6, src: 'Reference', by: 'Rakib Hasan', dist: 'Dhaka', cat: 'Electronics', every: 2, ref: '0031', mods: ['POS'] }],
-  ['0070', 'Smart Shop BD', 'retail', 'growth', 'trial:14', { src: 'Affiliate', by: 'Rakib Hasan', dist: 'Dhaka', cat: 'Electronics', every: 1, ref: '0031', mods: ['POS'] }],
-  ['0073', 'Phone Point', 'retail', 'growth', 'trial:4', { src: 'Affiliate', by: 'Rakib Hasan', dist: 'Dhaka', cat: 'Electronics', every: 1, ref: '0031', mods: ['POS'] }],
-  ['0035', 'Dhaka Denim Works', 'online', 'growth', 'paused', { months: 8, src: 'Meta ads', by: 'Tania Sultana', dist: 'Dhaka', cat: 'Fashion', last: 12 }],
+  // the merchant panel's demo shop: its service orders, store access and invoices meet the super admin here
+  ['0090', 'Dazzle Shop', 'retail-online', 'business', 'active', { months: 15, src: 'Reference', by: 'Tania Sultana', dist: 'Dhaka', am: 'Tania Sultana', cat: 'Electronics', h: 88, orders: 2400, every: 1, mods: ['POS', 'Landing pages', 'Loyalty', 'Inbox'], dom: 'dazzleshop.com.bd', sub: 'dazzleshop', owner: 'Mehedi Rahman' }],
+  ['0007', 'Rongdhonu Fashion', 'online', 'growth', 'active', { months: 14, src: 'Meta ads', by: 'Tania Sultana', dist: 'Dhaka', am: 'Tania Sultana', cat: 'Fashion', h: 86, orders: 1840, every: 1, mods: ['Landing pages', 'Loyalty', 'Cart recovery', 'Inbox'], dom: 'rongdhonu.com.bd', items: ['G3'], owner: 'Nusrat Jahan', cycle: 'yearly' }],
+  ['0009', 'Dhaka Shoe Corner', 'online', 'starter', 'active', { months: 18, src: 'Website', by: 'Tania Sultana', dist: 'Dhaka', cat: 'Fashion', sub: 'dhakashoe', every: 1, cycle: 'yearly' }],
+  ['0012', 'Mohona Traders', 'retail-online', 'business', 'active', { months: 13, src: 'Event', by: 'Mahin Khan', dist: 'Dhaka', am: 'Mahin Khan', cat: 'Grocery', h: 90, orders: 3120, every: 1, mods: ['POS', 'Warehouse', 'Payroll', 'Inbox', 'AI products'], dom: 'mohonatraders.com.bd', items: ['G3', 'G5'], pays: 'bank' }],
+  ['0017', 'Shonali Crafts', 'retail-online', 'starter', 'active', { months: 10, src: 'Reference', by: 'Tania Sultana', dist: 'Dhaka', am: 'Tania Sultana', cat: 'Fashion', h: 78, orders: 410, every: 1, mods: ['POS', 'Landing pages'], dom: 'shonalicrafts.com', modTrial: 'M05', owner: 'Rumana Akter' }],
+  ['0023', 'Ghorer Bazar BD', 'online', 'growth', 'due:0', { months: 9, src: 'YouTube ads', by: 'Mahin Khan', dist: 'Dhaka', am: 'Mahin Khan', cat: 'Grocery', h: 69, orders: 1320, last: 8, mods: ['Landing pages', 'Cart recovery', 'Inbox'], dom: 'ghorerbazarbd.com' }],
+  ['0028', 'Tech Zone Uttara', 'retail', 'starter', 'due:2', { months: 11, src: 'Physical visit', by: 'Rakib Hasan', dist: 'Dhaka', am: 'Rakib Hasan', cat: 'Electronics', h: 63, orders: 205, last: 34, mods: ['POS'], dom: 'techzoneuttara.com.bd', ref: '0031' }],
+  ['0031', 'Dhaka Gadget Hub', 'retail', 'growth', 'grace:3', { months: 14, src: 'Physical visit', by: 'Rakib Hasan', helper: 'Tania Sultana', campaign: 'Elephant Road campaign', dist: 'Dhaka', am: 'Farhana Akter', cat: 'Electronics', h: 54, orders: 960, every: 1, mods: ['POS', 'Loyalty', 'Cart recovery', 'Warehouse', 'Blasts'], dom: 'dhakagadgethub.com.bd', owner: 'Arif Hossain', modTrial: 'M05', items: ['SMS'] }],
+  ['0038', 'Rupsha Sports', 'retail', 'starter', 'suspended:19', { months: 8, src: 'YouTube ads', by: 'Rakib Hasan', dist: 'Khulna', am: 'Rakib Hasan', cat: 'Fashion', h: 18, orders: 0, last: 19, mods: ['POS'], dom: 'rupshasports.com.bd', items: ['M05'] }],
+  ['0044', 'Bindu Beauty', 'online', 'growth', 'pastdue:9', { months: 7, src: 'Meta ads', by: 'Rakib Hasan', dist: 'Chattogram', am: 'Rakib Hasan', cat: 'Beauty', h: 33, orders: 640, last: 9, mods: ['Landing pages', 'Loyalty', 'Blasts'], dom: 'bindubeauty.com.bd' }],
+  ['0058', 'Nodi Organic', 'online', 'starter', 'trial:9', { src: 'Meta ads', by: 'Rakib Hasan', dist: 'Bogura', am: null, cat: 'Grocery', h: 41, orders: 12, last: 6, mods: ['Landing pages'] }],
+  ['0061', 'Kolpo Books', 'online', 'starter', 'trial:12', { src: 'Website', by: 'Tania Sultana', dist: 'Dhaka', am: 'Tania Sultana', cat: 'Fashion', h: 72, orders: 48, every: 1, mods: ['Landing pages'] }],
+  ['0066', 'Mehedi Traders', 'retail', 'growth', 'active', { months: 12, src: 'Event', by: 'Farhana Akter', dist: 'Narayanganj', am: 'Farhana Akter', cat: 'Grocery', h: 81, orders: 780, every: 2, mods: ['Warehouse', 'Loyalty'], dom: 'meheditraders.com.bd', items: ['M05'], pays: 'nagad' }],
+  ['0069', 'Pabna Dairy Hub', 'retail-online', 'starter', 'trial:13', { src: 'Affiliate', by: 'Mahin Khan', dist: 'Pabna', am: 'Mahin Khan', cat: 'Grocery', h: 58, orders: 4, last: 2, mods: ['POS'] }],
+  ['0072', 'Sabuj Bazar', 'online', 'growth', 'trial:6', { src: 'Meta ads', by: 'Tania Sultana', dist: 'Sylhet', am: 'Tania Sultana', cat: 'Grocery', h: 82, orders: 31, every: 1, mods: ['Landing pages', 'Cart recovery'] }],
+  ['0074', 'Rongin Saree', 'online', 'starter', 'trial:5', { src: 'Reference', by: 'Farhana Akter', dist: 'Tangail', am: 'Farhana Akter', cat: 'Fashion', h: 77, orders: 22, every: 1, mods: ['Landing pages'] }],
+  ['0075', 'Ruposhi Jewels', 'online', 'growth', 'failed', { src: 'Physical visit', by: 'Rakib Hasan', dist: 'Dhaka', cat: 'Jewellery and accessories', sub: 'ruposhi', owner: 'Nasrin Sultana' }],
+  ['0076', 'Chaldal Mini Mart', 'online', 'starter', 'running', { src: 'Website', by: 'Tania Sultana', dist: 'Dhaka', cat: 'Grocery' }],
+  ['0021', 'Adda Foods', 'online', 'starter', 'archived', { months: 9, src: 'Meta ads', by: 'Tania Sultana', dist: 'Dhaka', cat: 'Grocery', last: 95 }],
+  ['0047', 'Mobile Bari', 'retail', 'growth', 'active', { months: 9, src: 'Reference', by: 'Rakib Hasan', dist: 'Dhaka', cat: 'Electronics', every: 1, ref: '0031', mods: ['POS'] }],
+  ['0052', 'Gadget Corner Mirpur', 'retail', 'starter', 'active', { months: 6, src: 'Reference', by: 'Rakib Hasan', dist: 'Dhaka', cat: 'Electronics', every: 2, ref: '0031', mods: ['POS'] }],
+  ['0070', 'Smart Shop BD', 'retail', 'starter', 'trial:14', { src: 'Affiliate', by: 'Rakib Hasan', dist: 'Dhaka', cat: 'Electronics', every: 1, ref: '0031', mods: ['POS'] }],
+  ['0073', 'Phone Point', 'retail', 'starter', 'trial:4', { src: 'Affiliate', by: 'Rakib Hasan', dist: 'Dhaka', cat: 'Electronics', every: 1, ref: '0031', mods: ['POS'] }],
+  ['0035', 'Dhaka Denim Works', 'online', 'starter', 'paused', { months: 8, src: 'Meta ads', by: 'Tania Sultana', dist: 'Dhaka', cat: 'Fashion', last: 12 }],
 ];
 
 const NAMES = [
@@ -55,18 +58,19 @@ const GEN_DIST = ['Dhaka', 'Dhaka', 'Dhaka', 'Chattogram', 'Sylhet', 'Khulna', '
 const GEN_SRC = ['Meta ads', 'Meta ads', 'Website', 'Reference', 'Physical visit', 'YouTube ads', 'Affiliate', 'Event'];
 const GEN_BY = ['Tania Sultana', 'Rakib Hasan', 'Farhana Akter', 'Mahin Khan'];
 const GEN_CAT = ['Fashion', 'Grocery', 'Electronics', 'Beauty', 'Fashion', 'Jewellery and accessories'];
-const MODS = { online: ['Landing pages', 'Cart recovery', 'Loyalty', 'Inbox', 'Blasts'], retail: ['POS', 'Loyalty', 'Warehouse'], wholesale: ['Wholesale dues', 'Warehouse', 'Loyalty'] };
+const MODS = { online: ['Landing pages', 'Cart recovery', 'Loyalty', 'Inbox', 'Blasts'], retail: ['POS', 'Loyalty', 'Warehouse'], 'retail-online': ['POS', 'Landing pages', 'Cart recovery', 'Loyalty', 'Warehouse'], connect: ['Inbox', 'Blasts', 'Loyalty'] };
 
-// what the generated stores are: [ladder, plan, scenario] — with the named ones this gives 62 live stores:
-// Online 41 (Growth 19, Business 17, Enterprise 5), Retail 12, Wholesale 9; 18 in trial; 41 paying.
+// what the generated stores are: [ladder, plan, scenario] — with the named ones this gives 62 live stores across the
+// four editions (Online, Retail, Retail + Online, Connect) and the three plans (Starter, Growth, Business).
 const GEN = [
-  ...Array(9).fill(['online', 'growth', 'active']), ...Array(9).fill(['online', 'business', 'active']), ...Array(4).fill(['online', 'enterprise', 'active']),
-  ['online', 'growth', 'trial:3'], ['online', 'business', 'trial:8'], ['online', 'growth', 'trial:11'], ['online', 'business', 'trial:2'], ['online', 'enterprise', 'trial:7'],
-  ['online', 'growth', 'trial:13'], ['online', 'business', 'trial:5'],
-  ['online', 'growth', 'cancelled'], ['online', 'business', 'cancelled'], ['online', 'business', 'pastdue:11'],
-  ['online', 'business', 'due:1'], ['online', 'growth', 'due:4'],
-  ['retail', 'growth', 'active'], ['retail', 'business', 'active'], ['retail', 'growth', 'trial:10'], ['retail', 'business', 'trial:1'],
-  ['wholesale', 'growth', 'active'], ['wholesale', 'business', 'active'], ['wholesale', 'enterprise', 'active'], ['wholesale', 'business', 'trial:4'], ['wholesale', 'growth', 'trial:12'], ['wholesale', 'business', 'due:3'],
+  ...Array(9).fill(['online', 'starter', 'active']), ...Array(8).fill(['online', 'growth', 'active']), ...Array(3).fill(['online', 'business', 'active']),
+  ['online', 'starter', 'trial:3'], ['online', 'growth', 'trial:8'], ['online', 'starter', 'trial:11'], ['online', 'growth', 'trial:2'], ['online', 'business', 'trial:7'],
+  ['online', 'starter', 'trial:13'], ['online', 'growth', 'trial:5'],
+  ['online', 'starter', 'cancelled'], ['online', 'growth', 'cancelled'], ['online', 'growth', 'pastdue:11'],
+  ['online', 'growth', 'due:1'],
+  ['retail', 'starter', 'active'], ['retail', 'growth', 'active'], ['retail', 'starter', 'trial:10'], ['retail', 'growth', 'trial:1'],
+  ['retail-online', 'starter', 'active'], ['retail-online', 'growth', 'active'], ['retail-online', 'business', 'active'], ['retail-online', 'growth', 'trial:4'], ['retail-online', 'starter', 'trial:12'], ['retail-online', 'growth', 'due:3'],
+  ['connect', 'starter', 'active'], ['connect', 'growth', 'active'], ['connect', 'starter', 'due:4'],
 ];
 
 const COLLECT_BY = ['Rakib Hasan', 'Rakib Hasan', 'Rakib Hasan', 'Farhana Akter', 'Mahin Khan'];
@@ -94,7 +98,7 @@ export function buildSeed(anchor) {
       const x = {
         months: sc.startsWith('trial') ? 0 : r.int(3, 20), src: r.pick(GEN_SRC), by: r.pick(GEN_BY), dist: r.pick(GEN_DIST),
         cat: r.pick(GEN_CAT), every: r.pick([1, 1, 1, 2, 3]), mods: MODS[ladder].filter(() => r.chance(0.4)),
-        orders: plan === 'enterprise' ? r.int(2000, 6000) : plan === 'business' ? r.int(300, 2100) : r.int(40, 460),
+        orders: plan === 'business' ? r.int(2000, 6000) : plan === 'growth' ? r.int(300, 2100) : r.int(40, 460),
         h: r.int(62, 94), owner: r.pick(OWNERS), autoCharge: r.chance(0.15),
       };
       if (sc === 'cancelled') x.last = r.int(20, 60);
@@ -115,7 +119,7 @@ export function buildSeed(anchor) {
     else if (kind === 'failed') created = A - 38 * MIN;
     else if (kind === 'running') created = A - 50 * 1000;
     else created = addMonths(A, -(x.months || 6), r.int(2, 27)) - 15 * DAY;
-    const segs = x.segs || [ladder === 'online' ? 'Online' : ladder === 'retail' ? 'Retail' : 'Wholesale'];
+    const segs = x.segs || (ladder === 'connect' ? ['Connect'] : channelsOf(ladder));
     const ownerName = x.owner || r.pick(OWNERS);
     const shop = {
       id: tid, name, legal: name, cat: x.cat || 'Fashion', dist: x.dist || 'Dhaka', address: '',
@@ -129,6 +133,7 @@ export function buildSeed(anchor) {
       resetAt: null, resetBy: null,
     };
     if (tid === '0031') { shop.address = 'Elephant Road, Dhaka'; shop.desc = 'Mobile accessories and gadgets'; shop.resetAt = A - 18 * DAY - 25 * 3600e3; shop.resetBy = 'Farhana Akter'; }
+    if (tid === '0090') { shop.address = 'House 42, Road 27, Dhanmondi, Dhaka 1209'; shop.desc = 'Phones, accessories and repairs · 2 branches'; shop.owner.phone = '+880 1711-000001'; shop.owner.email = 'mehedi@dazzleshop.com.bd'; }
     if (tid === '0075') shop.address = 'Shop 22, Bashundhara City, Panthapath';
     db.shops.push(shop);
 
@@ -137,8 +142,9 @@ export function buildSeed(anchor) {
     const paidFrom = created + 15 * DAY;
     const billDay = Math.min(dayOfMonth(paidFrom), 28);
     const version = ladder === 'online' ? (x.months > 12 ? 2 : 3) : ladder === 'retail' ? 2 : 1;
+    const yearly = x.cycle === 'yearly';
     const sub = {
-      shopId: tid, ladder, plan, version, cycle: 'monthly', billDay,
+      shopId: tid, ladder, plan, version, cycle: yearly ? 'yearly' : 'monthly', billDay,
       status: kind === 'trial' ? 'trial' : kind === 'paused' ? 'paused' : kind === 'cancelled' ? 'cancelled' : kind === 'archived' ? 'archived' : kind === 'failed' || kind === 'running' ? 'setup' : 'active',
       trialStart, trialDays: 15, nextDue: null,
       autoCharge: !!x.autoCharge, payMethod: x.pays === 'card' ? 'Card' : x.pays === 'bank' ? 'Bank transfer' : x.pays === 'nagad' ? 'Nagad' : 'bKash',
@@ -146,9 +152,9 @@ export function buildSeed(anchor) {
     };
     const upgradeAt = addMonths(A, -7, 27);
     if (tid === '0031') {
-      // started on Growth, moved to Business after the Analytics trial
-      sub.items.push({ id: 'IT' + db.seq.item++, kind: 'plan', code: 'growth', name: null, price: null, period: 'Monthly', since: paidFrom, until: upgradeAt });
-      sub.items.push({ id: 'IT' + db.seq.item++, kind: 'plan', code: 'business', name: null, price: null, period: 'Monthly', since: upgradeAt, until: null });
+      // started on Starter, moved to Growth after the Analytics trial
+      sub.items.push({ id: 'IT' + db.seq.item++, kind: 'plan', code: 'starter', name: null, price: null, period: 'Monthly', since: paidFrom, until: upgradeAt });
+      sub.items.push({ id: 'IT' + db.seq.item++, kind: 'plan', code: 'growth', name: null, price: null, period: 'Monthly', since: upgradeAt, until: null });
     } else {
       sub.items.push({ id: 'IT' + db.seq.item++, kind: 'plan', code: plan, name: null, price: null, period: 'Monthly', since: paidFrom, until: null });
     }
@@ -168,9 +174,12 @@ export function buildSeed(anchor) {
     db.subs[tid] = sub;
 
     // ---- bills: one invoice per month from the first paid month up to the latest that is issued ----
-    const priceOf = (it) => it.kind === 'plan' ? db.plans[ladder].versions.find((v) => v.v === version).plans[it.code].price : it.price;
+    const planDef = (code) => db.plans[ladder].versions.find((v) => v.v === version).plans[code];
+    const priceOf = (it) => it.kind === 'plan' ? (yearly ? planDef(it.code).yearly : planDef(it.code).price) : it.price;
+    const planLabel = (code) => `${ladderLabel(ladder)} · ${PLAN_NAME[code]} plan${yearly ? ', yearly' : ''}`;
+    let lastYearBill = null;
     if (kind === 'trial' || kind === 'failed' || kind === 'running') {
-      if (kind === 'trial') invoice(db, { shopId: tid, issuedAt: created + 60000, dueAt: created + 60000, period: periodOf(created), lines: [{ label: `${cap(ladder)} · ${cap(plan)} plan, 15-day trial`, amount: 0 }], noCharge: true });
+      if (kind === 'trial') invoice(db, { shopId: tid, issuedAt: created + 60000, dueAt: created + 60000, period: periodOf(created), lines: [{ label: `${ladderLabel(ladder)} · ${PLAN_NAME[plan]} plan, 15-day trial`, amount: 0 }], noCharge: true });
     } else {
       // when the latest bill fell due (or falls due): scenario decides
       let lastDue;
@@ -194,9 +203,11 @@ export function buildSeed(anchor) {
           if (it.until && it.until <= due) continue;
           if (it.period === 'Once') { if (it.since > due - 31 * DAY && it.since <= due) lines.push({ label: it.name, amount: it.price, kind: it.kind }); continue; }
           if (it.since > due + DAY) continue;
-          lines.push({ label: it.kind === 'plan' ? `${cap(ladder)} · ${cap(it.code)} plan` : it.name, amount: priceOf(it), kind: it.kind });
+          // a yearly plan is billed in full on the first bill and then every twelfth month
+          if (it.kind === 'plan' && yearly) { if (k % 12) continue; lastYearBill = due; }
+          lines.push({ label: it.kind === 'plan' ? planLabel(it.code) : it.name, amount: priceOf(it), kind: it.kind, ...(it.kind === 'plan' && yearly ? { yearly: true } : {}) });
         }
-        if (tid === '0031' && due > upgradeAt && due - upgradeAt < 31 * DAY) lines.push({ label: 'Plan changed Growth → Business, prorated', amount: 1050, kind: 'proration' });
+        if (tid === '0031' && due > upgradeAt && due - upgradeAt < 31 * DAY) lines.push({ label: 'Plan changed Starter → Growth, prorated', amount: 1050, kind: 'proration' });
         if (tid === '0017' && periodOf(due) === periodOf(addMonths(A, -1, 1))) lines.push({ label: 'Top-up: 200 extra orders', amount: 600, kind: 'topup' });
         if (!lines.length) { k++; due = at(addMonths(due, 1, sub.billDay), 0, 0); continue; }
         const inv = invoice(db, { shopId: tid, issuedAt: due - 7 * DAY + r.int(0, 3) * 3600e3, dueAt: due, period: periodOf(due), lines });
@@ -216,6 +227,8 @@ export function buildSeed(anchor) {
         due = at(addMonths(due, 1, sub.billDay), 0, 0);
       }
       sub.nextDue = due;
+      // a yearly plan is next billed a year after its last yearly bill
+      if (yearly && lastYearBill) for (const it of sub.items) if (it.kind === 'plan' && !it.until) it.nextBill = at(addMonths(lastYearBill, 12, sub.billDay), 0, 0);
       // one-off items were billed in the months above
       for (const it of sub.items) if (it.period === 'Once') it.billedIn = 'seed';
       if (kind === 'paused') sub.pausedAt = A - 12 * DAY;
@@ -251,7 +264,7 @@ export function buildSeed(anchor) {
   adjust(db, { id: 'ADJ-0039', shopId: '0038', invoiceId: rs.id, type: 'waive', amount: rs.total, reason: 'GOODWILL', note: 'Waive the bill · store closed for flood repairs', by: 'Rakib Hasan', at: at(A - 5 * DAY, 13), status: 'rejected', decidedBy: 'Nusrat Islam', decidedAt: at(A - 4 * DAY, 10), decisionNote: 'Store was trading online during the repairs.' });
   adjust(db, { id: 'ADJ-0040', shopId: '0017', invoiceId: sc.id, type: 'credit', amount: 500, reason: 'OUTAGE-CREDIT', linked: 'INC-108 · courier outage', note: 'Credit ৳500 · courier outage, 2 days', by: 'Farhana Akter', at: sc.dueAt + 2 * DAY, status: 'approved', decidedBy: 'Mahin Khan', decidedAt: sc.dueAt + 2 * DAY + 3600e3 });
   const mt = inv('0012');
-  adjust(db, { id: 'ADJ-0041', shopId: '0012', invoiceId: 'next', type: 'discount', amount: 12000, pct: 20, reason: 'PREPAY-DISCOUNT', note: 'Discount 20% for yearly prepay', by: 'Mahin Khan', at: at(A - DAY, 15, 20), status: 'pending' });
+  adjust(db, { id: 'ADJ-0041', shopId: '0012', invoiceId: 'next', type: 'discount', amount: 14000, pct: 20, reason: 'PREPAY-DISCOUNT', note: 'Discount 20% for yearly prepay', by: 'Mahin Khan', at: at(A - DAY, 15, 20), status: 'pending' });
   adjust(db, { id: 'ADJ-0042', shopId: '0031', invoiceId: dgh.id, type: 'credit', amount: 833, reason: 'OUTAGE-CREDIT', linked: 'INC-114 · Steadfast webhook delays', note: 'Credit for 10 days of Steadfast delivery failures caused by the courier outage.', by: 'Farhana Akter', at: at(A, 10, 40), status: 'pending', approver: 'Nusrat Islam', remindedAt: at(A, 13) });
   smallCredits.forEach(([tid, amt, reason], i) => {
     const target = inv(tid);
@@ -271,12 +284,11 @@ export function buildSeed(anchor) {
   ev(db, '0031', at(A - DAY, 14, 33), 'staff', 'Store opened by support with the owner\'s PIN, 6 min');
   ev(db, '0031', at(A - 8 * DAY, 11, 30), 'staff', 'Warehouse trial started for 14 days, by Farhana Akter');
   ev(db, '0031', shopById(db, '0031').resetAt, 'staff', 'Password reset link sent by SMS, by Farhana Akter');
-  ev(db, '0031', addMonths(A, -7, 27), 'staff', 'Plan changed Growth → Business, prorated ৳1,050');
+  ev(db, '0031', addMonths(A, -7, 27), 'staff', 'Plan changed Starter → Growth, prorated ৳1,050');
   for (const s of db.shops) ev(db, s.id, s.createdAt, 'owner', s.src === 'Physical visit' ? 'Store created on a field visit' : 'Store created · came from ' + s.src);
   return db;
 }
 
-const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 /** Days from `ms` to the next Sunday (1–7). */
 const nextSunday = (ms) => (7 - new Date(ms + TZ).getUTCDay()) % 7 || 7;
 const txid = (r) => Array.from({ length: 9 }, () => '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ'[r.int(0, 33)]).join('');

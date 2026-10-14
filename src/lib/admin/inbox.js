@@ -143,7 +143,7 @@ const TOPICS = [
     'Noted. Cancelling takes effect at the end of this billing month; your store stays open until then and you can export everything.',
   ] },
   { re: /discount|price|plan|package|pricing|cost|কত|দাম|upgrade|commission/i, drafts: [
-    'Hi {{first}}! Our plans are Growth ৳1,000, Business ৳2,500 and Enterprise ৳5,000 a month, each with a 15-day free trial. Yearly saves two months.',
+    'Hi {{first}}! Our plans are Starter ৳1,000, Growth ৳2,500 and Business ৳5,000 a month, each with a 15-day free trial. Yearly saves two months.',
     'Most stores your size start on Growth (৳1,000/month) and move to Business when they add a second branch or staff. Shall I book a 20-minute demo?',
     'I can send you the full price sheet with every module. Which matters most to you: online orders, the POS or courier booking?',
   ] },
@@ -426,7 +426,7 @@ const SCRIPTS = [
 const REPLIES = [
   { id: 'r1', title: 'Greeting', short: 'hi', lang: 'en', body: 'Hi {{first}}! This is {{agent}} from GridCommerce. How can I help you today?' },
   { id: 'r2', title: 'শুভেচ্ছা', short: 'salam', lang: 'bn', body: 'আসসালামু আলাইকুম {{first}}! আমি GridCommerce থেকে {{agent}}। কীভাবে সাহায্য করতে পারি?' },
-  { id: 'r3', title: 'Plans and prices', short: 'price', lang: 'en', body: 'Our plans: Growth ৳1,000, Business ৳2,500 and Enterprise ৳5,000 a month. Every plan starts with a 15-day free trial, no card needed.' },
+  { id: 'r3', title: 'Plans and prices', short: 'price', lang: 'en', body: 'Our plans: Starter ৳1,000, Growth ৳2,500 and Business ৳5,000 a month. Every plan starts with a 15-day free trial, no card needed.' },
   { id: 'r4', title: 'Book a demo', short: 'demo', lang: 'en', body: 'I would love to show you GridCommerce, {{first}}. Pick a time that suits you: https://gridcommerce.net/demo' },
   { id: 'r5', title: 'How to pay', short: 'pay', lang: 'en', body: 'You can pay your bill in Settings › Subscription & billing by bKash, Nagad or card. The invoice updates as soon as the payment arrives.' },
   { id: 'r6', title: 'Ticket opened', short: 'ticket', lang: 'en', body: 'Thanks {{first}}, I have opened a support ticket for {{store}}. Our tech team replies within 4 working hours.' },

@@ -459,3 +459,42 @@ export function idOf(x) {
   return (resolveCustomer(x) || {}).id || '';
 }
 export const customerId = idOf;
+
+// ---- many at once (Settings › Import data, lib/dataImport.js) ----------------------------------------------------
+/**
+ * Add many customers in one write (an import of thousands would be slow one by one). rows: [{ name, phone, address,
+ * types, signup, src, addedFrom, email, tags, externalIds }] → the saved rows with their customer IDs.
+ */
+export function addCustomers(rows) {
+  if (ssr() || !rows || !rows.length) return [];
+  const ids = readIds();
+  let n = Number(readJSON(NEXT_ID_KEY, 20001)) || 20001;
+  const mine = readJSON(IDENTITY_KEY, {});
+  const out = rows.map((r) => {
+    const digits = phoneDigits(r.phone);
+    const id = ids[digits] || 'C-' + n++;
+    ids[digits] = id;
+    const { email, tags, externalIds, ...rest } = r;
+    const o = {};
+    if (email) o.emails = [{ value: email, label: 'Personal', verified: false, primary: true }];
+    if (tags && tags.length) o.tags = tags.slice();
+    if (externalIds && externalIds.length) o.externalIds = externalIds.slice();
+    if (Object.keys(o).length) mine[id] = { ...(IDENTITY_SEED[id] || {}), ...(mine[id] || {}), ...o };
+    return { creditLimit: 0, ...rest, phone: digits, id };
+  });
+  const fresh = new Set(out.map((r) => r.phone));
+  try {
+    window.localStorage.setItem(CUSTOMER_KEY, JSON.stringify([...out, ...saved().filter((c) => !fresh.has(c.phone))]));
+    window.localStorage.setItem(IDS_KEY, JSON.stringify(ids));
+    window.localStorage.setItem(NEXT_ID_KEY, JSON.stringify(n));
+  } catch { /* storage full */ }
+  writeJSON(IDENTITY_KEY, mine);
+  return out;
+}
+/** Identity changes for many customers in one write: { customerId: patch }. */
+export function updateIdentities(patches) {
+  if (ssr()) return;
+  const mine = readJSON(IDENTITY_KEY, {});
+  Object.keys(patches || {}).forEach((id) => { mine[id] = { ...(IDENTITY_SEED[id] || {}), ...(mine[id] || {}), ...patches[id] }; });
+  writeJSON(IDENTITY_KEY, mine);
+}

@@ -13,9 +13,18 @@
 // the way the real gateway would refuse it, and a customer with no email address gets no email.
 // Orders the demo generates (orders.js, liveOrders.js) get the rows their past events would have sent.
 
+// WhatsApp (review CX-F2): a third channel next to SMS and email, to the customer only. Each event has an approved-template
+// style message (name, language, body with {{variables}}, an optional "Track order" button). It goes out through the one
+// send layer (messaging.js › send: consent, suppression, caps and quiet hours; a quiet-hours message waits as Queued), so
+// its rows live in the shared delivery log with ref = the order id; notificationLog() merges them into the order's log.
+// "Fall back to SMS" sends the event's SMS text instead when WhatsApp isn't connected, the template isn't approved, the
+// number can't get WhatsApp or the provider refuses it (only when the event's SMS isn't already on).
+// Template review is simulated: an edited template is "In review" for two minutes, then Approved (a server would read
+// Meta's answer); a utility template that reads like an offer is Rejected the way Meta rejects it.
+
 import { MERCHANT } from './merchant';
 import { formatBDT } from './format';
-import { checkSend } from './messaging';
+import { checkSend, send as sendMessage, deliveryLog, retry as retryMessage } from './messaging';
 
 const SETTINGS_KEY = 'gc.notify.settings';
 const LOG_KEY = 'gc.notify.log';
@@ -116,11 +125,38 @@ const MERCHANT_SMS = {
   'payment-proof-received': 'Payment proof for {{order_id}} ({{paid_amount}}). Review it.',
 };
 
+// ---- WhatsApp templates ------------------------------------------------------------------------------------
+const TRACK_EVENTS = ['in-transit', 'out-for-delivery', 'delivery-failed'];
+export const WA_LANGS = ['English', 'Bangla'];
+/** The default WhatsApp template of an event: the SMS text without the shop prefix, greeted and signed. */
+const waDefault = (e) => ({
+  waName: 'order_' + e.key.replace(/-/g, '_') + '_v1', waLang: 'English',
+  waBody: 'Hi {{customer_name}},\n\n' + String(e.sms).replace(/^\{\{store_name\}\}:\s*/, '') + '\n\n{{store_name}}',
+  waButton: TRACK_EVENTS.includes(e.key), waEditedAt: 0,
+});
+const OFFER_WORDS = /\b(offer|discount|sale|coupon|% off|free gift|cashback)\b/i;
+/** A template's review state: { state: 'Approved' | 'In review' | 'Rejected', reason }. */
+export function waTemplateState(t, at = Date.now()) {
+  if (!t) return { state: 'Rejected', reason: 'No template' };
+  const body = String(t.waBody || '');
+  if (!body.replace(/\{\{\s*[a-z_]+\s*\}\}/g, '').trim()) return { state: 'Rejected', reason: 'A template needs words besides the variables' };
+  if (OFFER_WORDS.test(body)) return { state: 'Rejected', reason: 'Reads like an offer. Order updates can\'t carry offers' };
+  if (!/^[a-z0-9_]+$/.test(String(t.waName || ''))) return { state: 'Rejected', reason: 'Name: small letters, numbers and _ only' };
+  if (t.waEditedAt && at - t.waEditedAt < 2 * 60 * 1000) return { state: 'In review', reason: 'WhatsApp is checking it. This usually takes a few minutes' };
+  return { state: 'Approved', reason: '' };
+}
+/** Is WhatsApp Business connected (Settings › Connections)? Read straight from its store, so this lib stays light;
+ *  a browser that never opened Connections has the demo's connected account (connections.js › seed). */
+export function waConnected() {
+  if (typeof window === 'undefined') return true;
+  try { const s = JSON.parse(window.localStorage.getItem('gc.connections')); if (!s || s.v !== 1) return true; return !!(s.apps && s.apps.whatsapp); } catch { return true; }
+}
+
 // ---- settings --------------------------------------------------------------------------------------------
 const defaults = () => ({
   senderName: MERCHANT.name, emailFrom: MERCHANT.name, replyTo: 'support@dazzleshop.com.bd',
-  adminPhone: '01700-000000', adminEmail: 'orders@dazzleshop.com.bd',
-  events: Object.fromEntries(EVENTS.map((e) => [e.key, { sms: e.customer || e.merchant, email: e.customer || e.merchant, customer: e.customer, merchant: e.merchant, smsText: e.sms, subject: e.subject, body: e.body, merchantText: MERCHANT_SMS[e.key] || '' }])),
+  adminPhone: '01700-000000', adminEmail: 'orders@dazzleshop.com.bd', waFallback: true,
+  events: Object.fromEntries(EVENTS.map((e) => [e.key, { sms: e.customer || e.merchant, email: e.customer || e.merchant, whatsapp: false, customer: e.customer, merchant: e.merchant, smsText: e.sms, subject: e.subject, body: e.body, merchantText: MERCHANT_SMS[e.key] || '', ...waDefault(e) }])),
 });
 export function getNotifySettings() {
   const d = defaults();
@@ -202,16 +238,40 @@ export function notify(o, event, extra = {}) {
   if (toCustomer && t.email && o.email) add('Customer', 'Email', o.email, fill(t.body, vars), fill(t.subject, vars));   // most orders have a phone only
   if (t.merchant && t.sms) add('Shop', 'SMS', s.adminPhone, fill(t.merchantText || t.smsText, vars));
   if (t.merchant && t.email) add('Shop', 'Email', s.adminEmail, fill(t.merchantText || t.body, vars), fill(t.subject, vars));
+  // WhatsApp to the customer, through the shared send layer (its rows go to the shared delivery log, ref = order id)
+  let waSent = 0;
+  if (toCustomer && t.whatsapp) {
+    const cls = eventClass(event);
+    const person = { name: o.customer, phone: o.phone, email: o.email };
+    const fb = s.waFallback !== false && !t.sms;
+    const smsInstead = () => { if (!fb) return; sendMessage({ source: 'Orders', event: ev.label + ' · SMS instead of WhatsApp', cls, channel: 'sms', to: person, text: fill(t.smsText, vars), once: `${once}|wa-sms`, ref: o.id, at }); waSent += 1; };
+    const tpl = waTemplateState(t, Date.now());
+    const block = !waConnected() ? 'WhatsApp isn\'t connected' : tpl.state !== 'Approved' ? `WhatsApp template ${tpl.state.toLowerCase()}` : '';
+    if (block) {
+      rows.push({ id: 'NT-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), once, order: o.id, event, label: ev.label, trigger: extra.trigger || ev.when, recipient: 'Customer', channel: 'WhatsApp', to: o.phone, text: fill(t.waBody, vars), at, retries: 0, cls, status: 'Skipped', error: block + (fb ? '. Sent by SMS instead' : '') });
+      smsInstead();
+    } else {
+      const r = sendMessage({ source: 'Orders', event: ev.label, cls, channel: 'whatsapp', to: person, text: fill(t.waBody, vars) + (t.waButton && vars.tracking_url ? `\n\n[Track order] ${vars.tracking_url}` : ''), once: `${once}|wa`, ref: o.id, at });
+      waSent += 1;
+      const st = r.row ? r.row.status : '';
+      if (st === 'Failed' || (st === 'Suppressed' && r.row.block !== 'capped')) smsInstead();
+    }
+  }
   // nothing turned on: the event is still marked, so a repeat stays a repeat
   write(LOG_KEY, [...(rows.length ? rows : [{ id: 'NT-' + Date.now().toString(36), once, order: o.id, event, label: ev.label, trigger: extra.trigger || ev.when, recipient: '', channel: '', to: '', text: '', at, retries: 0, status: 'Off', quiet: true }]), ...log].slice(0, 3000));
-  return { sent: rows.length, duplicate: false };
+  return { sent: rows.length + waSent, duplicate: false };
 }
 
 /** Send a failed message again (the demo gateway takes it the second time). */
 export function retryNotification(id) {
   const log = getLog();
   const row = log.find((r) => r.id === id);
-  if (!row) return null;
+  if (!row) {
+    // a WhatsApp row (or its SMS instead) lives in the shared delivery log
+    const m = retryMessage(id);
+    try { window.dispatchEvent(new CustomEvent(NOTIFY_EVENT)); } catch { /* ignore */ }
+    return m ? { ...m, status: m.status } : null;
+  }
   const next = { ...row, retries: (row.retries || 0) + 1, lastTry: Date.now(), ...(row.channel === 'SMS' && /^01[3-9]\d{8}$/.test(digits(row.to)) ? { status: 'Delivered', error: '' } : {}) };
   write(LOG_KEY, log.map((r) => (r.id === id ? next : r)));
   return next;
@@ -234,13 +294,24 @@ function synthLog(o) {
     if (t.customer && t.sms) out.push({ ...base, id: `${o.id}-${event}-cs`, recipient: 'Customer', channel: 'SMS', to: o.phone, text: fill(t.smsText, vars), ...outcome('SMS', o.phone, o.id + event) });
     if (t.customer && t.email && o.email) out.push({ ...base, id: `${o.id}-${event}-ce`, recipient: 'Customer', channel: 'Email', to: o.email, text: fill(t.body, vars), subject: fill(t.subject, vars), ...outcome('Email', o.email, '') });
     if (t.merchant && t.sms) out.push({ ...base, id: `${o.id}-${event}-ms`, recipient: 'Shop', channel: 'SMS', to: s.adminPhone, text: fill(t.merchantText || t.smsText, vars), status: 'Delivered' });
+    if (t.customer && t.whatsapp && o.phone) out.push({ ...base, id: `${o.id}-${event}-cw`, recipient: 'Customer', channel: 'WhatsApp', to: o.phone, text: fill(t.waBody, vars), status: hash(o.id + event) % 3 ? 'Read' : 'Delivered' });
   });
   return out;
+}
+const WORD = { whatsapp: 'WhatsApp', sms: 'SMS', email: 'Email' };
+/** The order's WhatsApp messages (and SMS sent instead) from the shared delivery log, in this log's shape. */
+function sharedRows(o) {
+  return deliveryLog({ source: 'Orders', ref: o.id }).filter((r) => !r.fromNotify && !r.demo).map((r) => ({
+    id: r.id, order: o.id, event: String(r.once || '').split('|')[1] || '', label: r.event, recipient: 'Customer', channel: WORD[r.channel] || r.channel,
+    to: r.address, text: r.text, at: r.at, retries: r.retries || 0, cls: r.cls,
+    status: r.status === 'Suppressed' ? 'Skipped' : r.status,
+    error: r.status === 'Queued' ? `${r.reason || 'Quiet hours'}. Goes out when they end` : r.reason || '',
+  }));
 }
 /** Every message for an order, newest first. */
 export function notificationLog(o) {
   if (!o) return [];
-  const mine = getLog().filter((r) => r.order === o.id && !r.quiet);
+  const mine = [...getLog().filter((r) => r.order === o.id && !r.quiet), ...sharedRows(o)];
   const done = new Set(mine.map((r) => r.event));
   return [...mine, ...synthLog(o).filter((r) => !done.has(r.event))].sort((a, b) => b.at - a.at);
 }

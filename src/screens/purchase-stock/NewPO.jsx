@@ -18,6 +18,8 @@ import { STOCK_PLACES, getReceivingPlaces } from '@/lib/locations';
 import { productBy } from '@/lib/stock';
 import { formatBDT, formatDate } from '@/lib/format';
 import { clockNow } from '@/lib/settlements';
+import { approvalLimit, needsApproval, canApprove } from '@/lib/poFlow';
+import { currentUser } from '@/lib/team';
 
 // ---- form helpers: required marker, field error text, invalid attributes, focus the first error ----
 function __Req() { return <span aria-hidden="true" style={{ color: 'var(--text-danger)' }}> *</span>; }
@@ -59,11 +61,11 @@ class Component extends DCLogic {
   }
   componentDidMount() {
     var d = new Date(clockNow()); d.setHours(0, 0, 0, 0);   // the app clock (gc.clock.offset moves it for testing)
-    this.setState({ sups: getSuppliers(), pos: getPOs(), today: d.getTime(), places: getReceivingPlaces() });   // live places that can receive deliveries
+    this.setState({ sups: getSuppliers(), pos: getPOs(), today: d.getTime(), places: getReceivingPlaces(), me: currentUser(), limit: approvalLimit() });   // who is ordering and the approval limit (Settings › Stock setup)   // live places that can receive deliveries
   }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
-    var self = this, s = this.st(), limit = this.props.approvalLimit ?? 50000;
+    var self = this, s = this.st(), st0 = this.state || {}, limit = st0.limit != null ? st0.limit : 50000, me = st0.me || null;
     var set = function (patch) { self.setState(patch); };
     var sub = 0, vat = 0, pieces = 0;
     s.lines.forEach(function (l) { var p = CATALOG[l.i]; sub += p.cost * l.qty; vat += p.cost * l.qty * p.vat / 100; pieces += l.qty; });
@@ -87,8 +89,9 @@ class Component extends DCLogic {
     var lastPo = mine.length ? [mine[0].no, formatDate(mine[0].at)] : DEMO_LAST[s.sup] || null;
     var supNote = supRow ? s.sup + ' gives you ' + termsLabel(supRow.terms).replace('Pay on delivery', 'no credit: pay on delivery') + '.' : '';
     var lastNote = lastPo ? ' Last order: ' + lastPo[0] + ' on ' + lastPo[1] + '.' : ' No orders from them yet.';
-    var admin = (this.props.role ?? 'admin') === 'admin';
-    var needs = !admin && total > limit;
+    // who may approve (lib/poFlow.js): the owner and the warehouse manager place any order; other staff need approval over the limit
+    var admin = !me || canApprove(me);
+    var needs = !!me && needsApproval(total, me);
     var num = function (k) { return function (e) { var v = e.target.value.replace(/[^0-9]/g, ''); var p = {}; p[k] = v === '' ? 0 : +v; set(p); }; };
     // Validate, show each problem under its field and focus the first one. A draft only needs a supplier.
     // Saving stores the order: a draft or one waiting for an admin stays 'Draft'; a placed order is 'Sent'.
@@ -101,11 +104,11 @@ class Component extends DCLogic {
       if (first) { set({ errs: er }); __focusSoon(first); return; }
       var status = draft || needs ? 'Draft' : 'Sent';
       var po = addPOs([{
-        supplier: s.sup, place: s.place || 'Central Warehouse', status: status, approval: !draft && needs ? 'waiting' : undefined,
+        supplier: s.sup, place: s.place || 'Central Warehouse', status: status, approval: !draft && needs ? 'waiting' : undefined, by: me ? me.name : '', byId: me ? me.id : '', sentAt: status === 'Sent' ? Date.now() : undefined,
         lines: s.lines.map(function (l) { var p = CATALOG[l.i]; return { name: p.name, code: p.code, sku: (productBy(p.name) || {}).sku || '', qty: l.qty, cost: p.cost }; }),
         terms: s.term, expected: s.date.trim(), invoice: s.inv.trim(), note: s.note.trim(), extra: { ship: +s.ship || 0, customs: +s.customs || 0, courier: +s.courier || 0, split: s.split }
       }])[0];
-      var how = draft ? 'saved as a draft' : needs ? 'saved and sent to an admin for approval' : 'placed with ' + s.sup;
+      var how = draft ? 'saved as a draft' : needs ? 'saved and sent for approval' : 'placed with ' + s.sup;
       set({ errs: {}, saved: { no: po.no, status: status, how: how, total: po.total } });
       __toast(po.no + ' ' + how + ' · ' + formatBDT(po.total) + ' of products');
     };
@@ -150,7 +153,7 @@ class Component extends DCLogic {
       terms: TERMS.map(function (t) { var on = t.d === s.term; return { label: t.label, on: on, pick: function () { set({ term: t.d }); } }; }),
       dueDate: due,
       sub: bdt(sub), vat: bdt(vat), extra: bdt(extra), total: bdt(total),
-      needsApproval: needs, noApproval: !needs, isAdmin: admin, smallOrder: !admin && total <= limit,
+      needsApproval: needs, noApproval: !needs, isAdmin: admin, smallOrder: !admin && !needs, limitTxt: formatBDT(limit), noLimit: !limit,
       primaryLabel: needs ? 'Send for approval' : 'Place order'
     };
   }
@@ -391,9 +394,9 @@ export default class NewPOScreen extends Component {
                         <KV rows={[['Products (' + v.pieces + ' pcs)', v.sub], ['VAT', v.vat], ['Extra costs', v.extra]]} />
                         <div className="np-total"><span>Total</span><b>{v.total}</b></div>
                         <KV rows={[['Pay by', v.dueDate]]} />
-                        {v.needsApproval ? <div className="gc-alert gc-alert--soft gc-alert--warning" role="status"><span><b>Admin approval needed.</b> Staff orders above ৳50,000 are checked by an admin before they go to the supplier.</span></div> : null}
-                        {v.isAdmin ? <p className="gc-help" style={{ margin: 0 }}><b>You’re ordering as admin.</b> No approval needed — the order goes straight to the supplier.</p> : null}
-                        {v.smallOrder ? <p className="gc-help" style={{ margin: 0 }}>Under ৳50,000 — no approval needed. You can order right away.</p> : null}
+                        {v.needsApproval ? <div className="gc-alert gc-alert--soft gc-alert--warning" role="status"><span><b>Approval needed.</b> Orders above {v.limitTxt} are checked by the owner or the warehouse manager before they go to the supplier.</span></div> : null}
+                        {v.isAdmin ? <p className="gc-help" style={{ margin: 0 }}><b>You can approve orders.</b> No approval needed — the order goes straight to the supplier.</p> : null}
+                        {v.smallOrder ? <p className="gc-help" style={{ margin: 0 }}>{v.noLimit ? 'No approval needed. You can order right away.' : 'Up to ' + v.limitTxt + ' — no approval needed. You can order right away.'}</p> : null}
                         {v.isSaved ? (
                           <div className="np-saved" role="status">
                             <span><b className="np-id">{v.saved?.no}</b> {v.saved?.how}. It is in Purchase orders{v.saved?.status === "Sent" ? " and ready to receive when the goods arrive" : ""}.</span>

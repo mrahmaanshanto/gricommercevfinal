@@ -1883,11 +1883,55 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "Quotes",
+    "route": "/quotes",
+    "folder": "merchant-orders",
+    "title": "Quotes",
+    "description": "Orders › Quotes: quotes (proformas) for business buyers — companies, leads and wholesale buyers; send, accept and convert to an order after the POS checks.",
+    "canvasPage": "Orders",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "SalesOrder",
+    "route": "/sales-order",
+    "folder": "sales",
+    "title": "New sales order",
+    "description": "Wholesale orders › New sales order: an order taken at the desk for a wholesale buyer, with their price list, MOQ and credit checks, hold stock or deliver now, and an unpaid invoice on their payment terms.",
+    "canvasPage": "22 · Sales & wholesale",
+    "width": 1440,
+    "height": 1100,
+    "interactive": true
+  },
+  {
     "name": "WholesaleOrders",
     "route": "/wholesale-orders",
     "folder": "sales",
     "title": "Wholesale orders",
     "description": "Orders — wholesale orders with their delivery: not delivered, partly delivered or delivered, pieces sent, and payment.",
+    "canvasPage": "22 · Sales & wholesale",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "PriceLists",
+    "route": "/price-lists",
+    "folder": "sales",
+    "title": "Price lists",
+    "description": "Orders — wholesale price lists: a fixed price or % off retail per product, quantity prices, given to buyers, companies, tags or customer groups; CSV import and export.",
+    "canvasPage": "22 · Sales & wholesale",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "Collections",
+    "route": "/collections",
+    "folder": "wholesale",
+    "title": "Collections",
+    "description": "Orders — what buyers owe by due date and area; take one payment across several invoices and give a money receipt.",
     "canvasPage": "22 · Sales & wholesale",
     "width": 1440,
     "height": 900,
@@ -2103,17 +2147,6 @@ export const SCREENS = [
     "interactive": true
   },
   {
-    "name": "SetAi",
-    "route": "/set-ai",
-    "folder": "settings-console",
-    "title": "SetAi",
-    "description": "",
-    "canvasPage": "11 · Settings",
-    "width": 1380,
-    "height": 880,
-    "interactive": true
-  },
-  {
     "name": "SetDelivery",
     "route": "/set-delivery",
     "folder": "settings-console",
@@ -2162,17 +2195,6 @@ export const SCREENS = [
     "route": "/set-preference",
     "folder": "settings-console",
     "title": "SetPreference",
-    "description": "",
-    "canvasPage": "11 · Settings",
-    "width": 1380,
-    "height": 880,
-    "interactive": true
-  },
-  {
-    "name": "SetRules",
-    "route": "/set-rules",
-    "folder": "settings-console",
-    "title": "SetRules",
     "description": "",
     "canvasPage": "11 · Settings",
     "width": 1380,
@@ -2257,25 +2279,25 @@ export const SCREENS = [
     "interactive": true
   },
   {
-    "name": "SetStorage",
-    "route": "/set-storage",
+    "name": "SetUsers",
+    "route": "/set-users",
     "folder": "settings-console",
-    "title": "SetStorage",
-    "description": "",
+    "title": "Users & roles",
+    "description": "Who can sign in: invite, change role and places, deactivate; built-in and custom roles with POS limits; seats against the plan.",
     "canvasPage": "11 · Settings",
     "width": 1380,
-    "height": 880,
+    "height": 1100,
     "interactive": true
   },
   {
-    "name": "SetUsage",
-    "route": "/set-usage",
+    "name": "ImportData",
+    "route": "/import-data",
     "folder": "settings-console",
-    "title": "SetUsage",
-    "description": "",
+    "title": "Import data",
+    "description": "Bring data from another system: customers, opening stock per place and past orders from CSV or Excel, checked before importing, run in the background.",
     "canvasPage": "11 · Settings",
     "width": 1380,
-    "height": 880,
+    "height": 1100,
     "interactive": true
   },
   {
@@ -2345,6 +2367,17 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "MyAccount",
+    "route": "/my-account",
+    "folder": "team",
+    "title": "My account",
+    "description": "The signed-in person's own account: name, photo, phone, email, language, password, two-step sign-in, devices and recent sign-ins.",
+    "canvasPage": "Team",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
     "name": "Tasks",
     "route": "/tasks",
     "folder": "team",
@@ -2364,6 +2397,17 @@ export const SCREENS = [
     "canvasPage": "Customers",
     "width": 1440,
     "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "EmailInbox",
+    "route": "/email-inbox",
+    "folder": "merchant-inbox",
+    "title": "Email",
+    "description": "The shop's email (info@, sales@, support@, orders@) in one list: read, reply, forward, notes and assign.",
+    "canvasPage": "Inbox",
+    "width": 1440,
+    "height": 1000,
     "interactive": true
   },
   {
@@ -2562,6 +2606,215 @@ export const SCREENS = [
     "canvasPage": "08 · Storefront",
     "width": 1440,
     "height": 3100,
+    "interactive": true
+  },
+  {
+    "name": "StorePage",
+    "route": "/page",
+    "folder": "storefront",
+    "title": "Store page",
+    "description": "Customer storefront — one of the store's pages (?handle=about-us) with the header and footer menus.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },
+  {
+    "name": "StorePages",
+    "route": "/store-pages",
+    "folder": "online-store",
+    "title": "Pages",
+    "description": "Online Store › Pages: About us, Contact us, delivery, returns, privacy and terms; status views, search, bulk publish / hide / delete.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1000,
+    "interactive": true
+  },
+  {
+    "name": "SeoTools",
+    "route": "/seo",
+    "folder": "online-store",
+    "title": "SEO",
+    "description": "Online Store \u203a SEO: store SEO health with issues to fix, redirects (auto-made when an address changes), not-found log, sitemap and robots.txt.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "SeoBulk",
+    "route": "/seo-bulk",
+    "folder": "online-store",
+    "title": "SEO bulk editor",
+    "description": "Online Store \u203a SEO \u203a Bulk editor: addresses, meta titles, descriptions and image alt text of many items at once.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "StoreBlogPost",
+    "route": "/blog-post",
+    "folder": "storefront",
+    "title": "Blog post",
+    "description": "Customer storefront \u2014 one blog post (?slug=) with its SEO head tags.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },
+  {
+    "name": "StoreProduct",
+    "route": "/product",
+    "folder": "storefront",
+    "title": "Product",
+    "description": "Customer storefront \u2014 one product (?handle=) with Product schema and SEO head tags.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },
+  {
+    "name": "StoreCategory",
+    "route": "/category",
+    "folder": "storefront",
+    "title": "Category",
+    "description": "Customer storefront \u2014 one product category (?handle=) with its products and SEO head tags.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },
+  {
+    "name": "StoreLanding",
+    "route": "/lp",
+    "folder": "storefront",
+    "title": "Landing page",
+    "description": "Customer storefront \u2014 a published landing page (?handle=) with its SEO head tags.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "Services",
+    "route": "/services",
+    "folder": "services",
+    "title": "Get expert help",
+    "description": "Services \u203a Get expert help: the service catalogue by category with packages, prices and ratings.",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "ServiceDetail",
+    "route": "/service-detail",
+    "folder": "services",
+    "title": "Service",
+    "description": "One service: what you get, packages, add-ons, how it works, questions.",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "ServiceOrder",
+    "route": "/service-order",
+    "folder": "services",
+    "title": "Order a service",
+    "description": "Order a service: package and add-ons, the brief, demo payment and the invoice.",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "MyServices",
+    "route": "/my-services",
+    "folder": "services",
+    "title": "My services",
+    "description": "Services \u203a My services: orders by status (Needs you, In progress, Done).",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "MyService",
+    "route": "/my-service",
+    "folder": "services",
+    "title": "Service order",
+    "description": "A service order: steps, store access approval, extra work, approve or change, messages, files, reports, rating.",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "BusinessEmail",
+    "route": "/email",
+    "folder": "settings-console",
+    "title": "Business email",
+    "description": "Settings \u203a Business email: setup (domain, plan, verify, DNS), mailboxes, addresses, DNS, plan & usage, apps with QR, import, spam.",
+    "canvasPage": "Settings",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "Webmail",
+    "route": "/webmail",
+    "folder": "settings-console",
+    "title": "Webmail",
+    "description": "Stand-in for the mail provider's webmail.",
+    "canvasPage": "Settings",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "StorePageEdit",
+    "route": "/store-page-edit",
+    "folder": "online-store",
+    "title": "Edit page",
+    "description": "Add or edit a store page: ready templates, address, block content, visibility, search engine listing.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1600,
+    "interactive": true
+  },
+  {
+    "name": "StoreMenus",
+    "route": "/store-menus",
+    "folder": "online-store",
+    "title": "Menus",
+    "description": "Online Store › Menus: header and footer menus with links to pages, categories, products, offers and the blog; live preview.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },
+  {
+    "name": "ProductReviews",
+    "route": "/product-reviews",
+    "folder": "online-store",
+    "title": "Reviews",
+    "description": "Online Store › Reviews: product reviews with verified buyers, publish / hide with a reason / spam, public replies, auto-publish and the review request.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },
+  {
+    "name": "LandingPages",
+    "route": "/landing-pages",
+    "folder": "online-store",
+    "title": "Landing pages",
+    "description": "Online Store › Landing pages: single-product pages with status, link, visits, orders and sales; new, edit, duplicate, publish, delete.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1000,
     "interactive": true
   },
   {

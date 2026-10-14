@@ -14,17 +14,18 @@ import { routeOf } from '../runtime/routes';
 export const MODULES = {
   core: {
     label: 'Core', desc: 'Dashboard, team tasks and chat, customers and leads, settings',
-    nav: ['home', 'my-dash', 'tasks', 'team-chat', 'customers', 'leads', 'cust-settings', 'connections', 'settings', 'set-store', 'set-billing', 'set-help'],
-    routes: ['/connect', '/set-profile', '/set-privacy', '/settings-history', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-storage', '/set-media', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
+    nav: ['home', 'my-dash', 'tasks', 'team-chat', 'customers', 'leads', 'cust-settings', 'connections', 'settings', 'set-store', 'set-users', 'set-import', 'set-billing', 'set-help', 'svc-shop', 'svc-detail', 'svc-order', 'svc-mine', 'svc-view', 'set-email'],
+    routes: ['/connect', '/my-account', '/set-profile', '/set-privacy', '/settings-history', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-media', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
   },
   catalog: {
-    label: 'Products, stock & purchases', desc: 'Products, stock, direct purchases, suppliers and their dues, damaged and expired stock, warranty',
-    nav: ['stock-activity', 'products', 'products-all', 'products-add', 'products-cats', 'products-brands', 'products-setup', 'products-media', 'products-catalogue', 'stock-list', 'po-buy', 'po-suppliers', 'stock-more', 'stock-expiry', 'stock-labels', 'stock-wpol', 'stock-wclaims'],
+    label: 'Products, stock & purchases', desc: 'Products, stock, adjustments and counts, direct purchases, suppliers and their dues, damaged and expired stock, warranty',
+    // stock adjustments and counts belong here too: a one-place (Online) shop also corrects and counts its stock
+    nav: ['stock-activity', 'products', 'products-all', 'products-add', 'products-cats', 'products-brands', 'products-setup', 'products-media', 'products-catalogue', 'stock-list', 'po-buy', 'po-suppliers', 'stock-more', 'stock-expiry', 'stock-labels', 'stock-wpol', 'stock-wclaims', 'stock-adjust', 'stock-count'],
     routes: ['/bulk-edit', '/supplier-detail', '/supplier-return', '/buy-goods', '/stock-setup'],
   },
   places: {
-    label: 'Warehouses & branches', desc: 'Many stock places, racks and bins, transfers, adjustments, counts and stock holds',
-    nav: ['stock-places', 'stock-wh', 'stock-branches', 'stock-racks', 'stock-transfers', 'stock-adjust', 'stock-count', 'stock-holds'],
+    label: 'Warehouses & branches', desc: 'Many stock places, racks and bins, transfers and stock holds',
+    nav: ['stock-places', 'stock-wh', 'stock-branches', 'stock-racks', 'stock-transfers', 'stock-holds'],
     routes: ['/new-transfer'],
   },
   purchasing: {
@@ -48,8 +49,9 @@ export const MODULES = {
     routes: ['/staff-profile', '/staff-create'],
   },
   commerce: {
-    label: 'Orders & returns', desc: 'All orders, returns and exchanges, payment settings',
-    nav: ['orders', 'orders-all', 'sales-return', 'pay-setup'],
+    label: 'Orders & returns', desc: 'All orders, quotes for business buyers, returns and exchanges, payment settings',
+    // quotes are for any business buyer (companies, leads, wholesale buyers), so every edition that takes orders has them
+    nav: ['orders', 'orders-all', 'orders-quotes', 'sales-return', 'pay-setup'],
     routes: ['/order-detail', '/return-history', '/set-payments'],
   },
   marketing: {
@@ -59,19 +61,19 @@ export const MODULES = {
   },
   pos: {
     label: 'POS', desc: 'The counter register, counters, shifts, cash pickups and the sales book',
-    nav: ['pos-register', 'pos-counters'],
+    nav: ['pos-register', 'pos-counters', 'pos-book'],
     routes: ['/new-sale', '/sales-book', '/return-exchange', '/pos-active', '/pos-close', '/pos-idle', '/pos-keypad', '/pos-offline', '/pos-open', '/pos-pay', '/pos-return', '/pos-sales'],
   },
   // switched off for now (WHOLESALE below): the module stays defined so it can come back with one change
   wholesale: {
     label: 'Wholesale', desc: 'Wholesale orders, deliveries in parts, price lists',
-    nav: ['orders-wholesale'],
+    nav: ['orders-wholesale', 'orders-collections', 'orders-price-lists', 'orders-sales-new'],
     routes: ['/wholesale-customer', '/wholesale-invoices', '/wholesale-invoice-edit'],
   },
   online: {
     label: 'Online', desc: 'Online orders and couriers, the online store, blog, flash sales, cart recovery and ads tracking',
-    nav: ['orders-rto', 'orders-courier', 'orders-work', 'orders-settings', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'rec-offers', 'rec-audiences', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'storefront', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
-    routes: ['/order-settings', '/order-work', '/set-notifications', '/ad-accounts', '/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-seo', '/set-domains', '/checkout', '/offer-detail', '/offers', '/order-link'],
+    nav: ['orders-rto', 'orders-courier', 'orders-work', 'orders-settings', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'rec-offers', 'rec-audiences', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'storefront', 'store-pages', 'store-menus', 'store-reviews', 'store-seo', 'store-seo-bulk', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
+    routes: ['/order-settings', '/order-work', '/set-notifications', '/ad-accounts', '/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-seo', '/set-domains', '/checkout', '/offer-detail', '/offers', '/order-link', '/store-page-edit', '/page', '/landing-page-builder'],
   },
   channels: {
     label: 'Sales channels', desc: 'Product sync to the Meta catalog, Google Merchant Center, WooCommerce and Shopify; Google Business Profile',
@@ -80,15 +82,15 @@ export const MODULES = {
   },
   comms: {
     label: 'Communication', desc: 'Inbox for Facebook, Instagram, WhatsApp and more, calls, AI calls, support tickets, social posts',
-    nav: ['inbox', 'inbox-comments', 'inbox-mentions', 'calls', 'comm-ai', 'tickets', 'social', 'comm-cal', 'comm-new', 'set-wallet', 'msg-campaigns', 'meetings'],
-    routes: ['/meetings', '/social-connections', '/auto-call-settings', '/team-report', '/set-rules'],
+    nav: ['inbox', 'inbox-comments', 'inbox-mentions', 'inbox-email', 'calls', 'comm-ai', 'tickets', 'social', 'comm-cal', 'comm-new', 'set-wallet', 'msg-campaigns', 'meetings'],
+    routes: ['/meetings', '/social-connections', '/auto-call-settings', '/team-report'],
   },
   // Grid AI: one shared AI for every edition (lib/gridai/*). Customer-facing parts (Inbox Copilot / Autopilot) only act
   // where the edition has the Inbox; the assistant, knowledge, tests, approvals and cost are in every edition.
   gridai: {
     label: 'Grid AI', desc: 'The assistant, agents, knowledge and training, tests, AI automations, approvals, analytics and cost',
     nav: ['ai-overview', 'ai-assistant', 'ai-agents', 'ai-knowledge', 'ai-test', 'ai-automations', 'ai-activity', 'ai-analytics', 'ai-usage', 'ai-behaviour', 'ai-models'],
-    routes: ['/set-ai', '/set-usage'],
+    routes: [],
   },
   automation: {
     label: 'Automation', desc: 'Rules, the workflow builder and workflow settings',
@@ -99,8 +101,9 @@ export const MODULES = {
 
 const BACK_OFFICE = ['core', 'catalog', 'money', 'reports', 'hr', 'commerce', 'marketing', 'gridai'];
 // Wholesale is switched off for now (Oct 2026, docs/wholesale-audit.md): no edition has the module or the channel.
-// Set WHOLESALE = true to bring it back (pages, fields, filters and reports follow hasModule('wholesale')).
-export const WHOLESALE = false;
+// Wholesale is off unless the site is built with NEXT_PUBLIC_WHOLESALE=true (pages, fields, filters and reports follow
+// hasModule('wholesale')). Off by default until the partners decide; a preview site can switch it on with the env var.
+export const WHOLESALE = process.env.NEXT_PUBLIC_WHOLESALE === 'true';
 const W = WHOLESALE ? ['wholesale'] : [];
 const WC = WHOLESALE ? ['Wholesale'] : [];
 // a shop with a store or a warehouse network: many stock places and purchase orders (stockSetup.js)

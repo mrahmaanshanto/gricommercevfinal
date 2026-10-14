@@ -20,6 +20,8 @@ const MOVED = {
   '/social-connections': '/connections?group=social',
   // one Add product editor and one Settings page (the settings frame pieces are components, not pages)
   '/add-product-tabs': '/add-product', '/set-chrome': '/set-general', '/set-rail': '/set-general', '/set-topbar': '/set-general',
+  // AI is set up only in the Grid AI area; storage and backups are run by GridCommerce (review MS-U1 / MS-U4)
+  '/set-ai': '/ai-models', '/set-usage': '/ai-usage', '/set-rules': '/ai-behaviour', '/set-storage': '/set-security#backups',
 };
 
 const nextConfig = {

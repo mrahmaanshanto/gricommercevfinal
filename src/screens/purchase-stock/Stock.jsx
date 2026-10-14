@@ -14,6 +14,7 @@ import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { EmptyState as __EmptyState, StatusBadge as __StatusBadge, Sheet as __Sheet } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, KV } from '@/components/ui/IndexKit';
 import { getCatalog, stockAt, getMoves, unitValue } from '@/lib/stock';
+import { activity } from '@/lib/stockActivity';
 import { getHolds } from '@/lib/stockHolds';
 import { getTransfers } from '@/lib/transfers';
 import { STOCK_PLACES, getStockPlaces, getPlaces, placeByName, namesOf } from '@/lib/locations';
@@ -28,6 +29,7 @@ import { resolveScan } from '@/lib/identifiers';
 import { toast as __toast } from '@/runtime/ui';
 import { currentUser } from '@/lib/team';
 import { ModuleSetup } from '@/components/ModuleSetup';
+import { levelAt, placeLevel, productLevel, setPlaceLevel, isLow as lowBy, isOut as outBy, REORDER_EVENT } from '@/lib/reorder';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -36,30 +38,32 @@ var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov',
 // Products come from the catalogue (src/lib/stock.js getCatalog: the demo list plus products saved in
 // Products; a new product starts with 0 on hand everywhere); the numbers per place come from stockAt():
 // on hand, held for orders (stock holds), damaged, available to sell and in transit (transfers on the way).
-// Reorder level and cost are this screen's demo data. Bins come from Racks & bins (src/lib/racks.js binsFor).
+// Low stock is below the product's alert level (lib/reorder.js: the product's "Alert me when stock is below", or the
+// level set here for one place; with All places, the levels of the places that carry it added up).
+// Cost is this screen's demo data. Bins come from Racks & bins (src/lib/racks.js binsFor).
 // Places are the live list (getStockPlaces) after mount, the built-in list on the first render.
 var INFO = {
-  'AC-CBL-100': [60, 'G-1', 612], 'AC-CLN-KIT': [40, 'G-2', 130], 'AC-GLS-9H': [30, 'G-3', 331], 'AC-OTG-C': [20, 'G-3', 262], 'AC-LNS-PR': [40, 'G-4', 118, true],
-  'AC-CSE-A55': [20, 'C-3', 436.2], 'AC-CHG-25': [10, 'C-4', 980], 'WR-BND-08': [8, 'C-6', 2150], 'AC-HLD-CAR': [15, 'C-5', 748],
-  'AC-CBL-LTG': [30, 'A-5', 290], 'AC-CHG-20': [24, 'A-2', 561.6, true], 'AU-EAR-TC': [20, 'A-3', 455],
-  'PH-RLM-N50': [6, 'E-1', 11800], 'AU-EAR-PRO': [10, 'E-2', 2210], 'AC-STD-FLD': [30, 'H-2', 310], 'PB-ANK-10K': [5, 'H-4', 2050]
+  'AC-CBL-100': ['G-1', 612], 'AC-CLN-KIT': ['G-2', 130], 'AC-GLS-9H': ['G-3', 331], 'AC-OTG-C': ['G-3', 262], 'AC-LNS-PR': ['G-4', 118, true],
+  'AC-CSE-A55': ['C-3', 436.2], 'AC-CHG-25': ['C-4', 980], 'WR-BND-08': ['C-6', 2150], 'AC-HLD-CAR': ['C-5', 748],
+  'AC-CBL-LTG': ['A-5', 290], 'AC-CHG-20': ['A-2', 561.6, true], 'AU-EAR-TC': ['A-3', 455],
+  'PH-RLM-N50': ['E-1', 11800], 'AU-EAR-PRO': ['E-2', 2210], 'AC-STD-FLD': ['H-2', 310], 'PB-ANK-10K': ['H-4', 2050]
 };
-function info(p) { var i = INFO[p.sku] || [10, '—', unitValue(p)]; return { re: i[0], rack: i[1], cost: i[2], exp: !!i[3] }; }
+function info(p) { var i = INFO[p.sku] || ['—', unitValue(p)]; return { rack: i[0], cost: i[1], exp: !!i[2] }; }
 function setQuery(key, value) { if (typeof window === 'undefined') return; var u = new URL(window.location.href); if (value) u.searchParams.set(key, value); else u.searchParams.delete(key); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); }
 function getQuery(key) { if (typeof window === 'undefined') return ''; return new URLSearchParams(window.location.search).get(key) || ''; }
 var WHS = STOCK_PLACES;
 function whKey(w) { return w.toLowerCase().replace(/[^a-z0-9]+/g, '-'); }
-var HIST = [['29 Sep', 'Sold', -2, 'POS · Dhanmondi'], ['27 Sep', 'Sold', -5, 'Online orders'], ['24 Sep', 'Received', 24, 'PO-1042 · Dhaka Gadget Hub'], ['20 Sep', 'Stock count', -1, 'Counted by Suman'], ['14 Sep', 'Moved', -6, 'To Dhanmondi branch']];
-var KIND = { adjust: 'Adjusted', count: 'Stock count', transfer: 'Transfer', receive: 'Received', sale: 'Sold', delivery: 'Delivered', return: 'Returned', writeoff: 'Written off', 'write-off': 'Written off', opening: 'Opening stock', 'custody out': 'Sent to vendor', 'custody back': 'Back from vendor', assemble: 'Assembled', disassemble: 'Taken apart', rto: 'Courier return', exchange: 'Given in exchange' };
+// the stock panel lists the product's latest moves (at most HIST_MAX); the rest are on Stock activity
+var HIST_MAX = 8;
 var FL = [{ k: 'all', label: 'All' }, { k: 'low', label: 'Low stock' }, { k: 'out', label: 'Out of stock' }, { k: 'exp', label: 'Expiring soon' }];
 class Component extends DCLogic {
-  componentWillUnmount() { if (this.re) { window.removeEventListener(STOCK_EVENT, this.re); window.removeEventListener(CUSTODY_EVENT, this.re); } }
+  componentWillUnmount() { if (this.re) { window.removeEventListener(STOCK_EVENT, this.re); window.removeEventListener(CUSTODY_EVENT, this.re); window.removeEventListener(REORDER_EVENT, this.re); } }
   // stock moves and custody change the numbers: read them again
   reload() { this.setState({ holds: getHolds(), moves: getMoves(), transfers: getTransfers(), catalog: getCatalog() }); }
   componentDidMount() {
     var self = this;
     this.re = function () { self.reload(); };
-    window.addEventListener(STOCK_EVENT, this.re); window.addEventListener(CUSTODY_EVENT, this.re);
+    window.addEventListener(STOCK_EVENT, this.re); window.addEventListener(CUSTODY_EVENT, this.re); window.addEventListener(REORDER_EVENT, this.re);
     var p = { holds: getHolds(), moves: getMoves(), transfers: getTransfers(), catalog: getCatalog(), whs: getStockPlaces(), plist: getPlaces(), racks: getRackData(), one: isOnePlace() }, f = getQuery('filter'), w = getQuery('warehouse'), q = getQuery('q'), sku = getQuery('sku');
     if (FL.some(function (x) { return x.k === f; })) p.f = f;
     if (p.whs.some(function (x) { return whKey(x) === w; })) p.wh = w;
@@ -82,14 +86,18 @@ class Component extends DCLogic {
     var holds = st.holds || [], moves = st.moves || [], transfers = st.transfers || null;
     // a scanned code (pack barcode, other barcode, PLU, serial …) finds its product (identifiers.js)
     var scan = q && st.catalog ? resolveScan(st.q.trim()) : null;
+    // which places have had a stock move of a product (with the base counts: the places that carry it)
+    var movedAt = {}; moves.forEach(function (m) { if (m.status === 'done' && m.qty > 0) movedAt[m.sku + '|' + m.place] = true; });
     var all = !ready ? [] : st.catalog.filter(function (p) { return !isUntracked(p); }).map(function (p) {
       var n = stockAt(p.sku, place, holds, moves, transfers), i = info(p);
+      var carried = whl.filter(function (x) { return baseAt(p, x) > 0 || namesOf(x).some(function (nm) { return movedAt[p.sku + '|' + nm]; }); });
+      i.re = levelAt(p, place, carried);
       var places = whl.filter(function (x) { return baseAt(p, x) > 0; }).length;
       // bins from Racks & bins: at the chosen place, or every place
       var bins = place ? binsFor(placeId, p.sku, racks) : plist.reduce(function (a, pl) { return a.concat(binsFor(pl.id, p.sku, racks)); }, []);
       return { p: p, n: n, i: i, places: places, bins: bins };
     });
-    var isOut = function (r) { return r.n.available === 0; }, isLow = function (r) { return r.n.available > 0 && r.n.available < r.i.re; };
+    var isOut = function (r) { return outBy(r.n.available); }, isLow = function (r) { return lowBy(r.n.available, r.i.re); };
     // the products at the chosen place (every product for All places); the views and the figures count these
     var here = all.filter(function (r) { return !place || baseAt(r.p, place) || r.n.onHand || r.n.transit; });
     var rows = here.filter(function (r) {
@@ -101,8 +109,8 @@ class Component extends DCLogic {
         onHand: n.onHand, held: n.held, damaged: n.damaged, available: n.available, transit: n.transit,
         tone: out ? 'ix-bad' : low ? 'ix-warn' : '',
         flag: p.format === 'licence' ? ['Licence keys', 'info'] : p.bundle && p.bundle.type !== 'kit' ? ['From parts', 'info'] : out ? ['Out of stock', 'error'] : low ? ['Low stock', 'warning'] : r.i.exp ? ['Expiring soon', 'warning'] : null,
-        open: function () { self.setState({ hist: p.sku }); },
-        onRowClick: function (e) { if (e.target.closest && e.target.closest('a,button,input,select,label')) return; self.setState({ hist: p.sku }); } };
+        open: function () { self.setState({ hist: p.sku, reN: null }); },
+        onRowClick: function (e) { if (e.target.closest && e.target.closest('a,button,input,select,label')) return; self.setState({ hist: p.sku, reN: null }); } };
     });
     var real = here.filter(function (r) { return !isVirtualRow(r.p); });
     var value = real.reduce(function (a, r) { return a + r.n.onHand * r.i.cost; }, 0);
@@ -112,22 +120,25 @@ class Component extends DCLogic {
     var counts = { all: here.length, low: lowN, out: outN, exp: expN };
     // the stock panel of one product (row click): its numbers here, cost, bins and history
     var hr = st.hist ? all.filter(function (r) { return r.p.sku === st.hist; })[0] : null;
-    var mine = hr ? moves.filter(function (m) { return m.sku === hr.p.sku && m.status === 'done' && (!place || m.place === place); }) : [];
-    var liveRows = mine.map(function (m) { var d = new Date(m.at); return { d: d.getDate() + ' ' + MONTHS[d.getMonth()], what: KIND[m.kind] || 'Stock change', qty: (m.qty > 0 ? '+' : '−') + Math.abs(m.qty), up: m.qty > 0, note: [m.reason, m.place, m.by].filter(Boolean).join(' · ') }; });
+    // its stock history: the real moves that changed what is on hand (the same rows as Stock activity), newest first
+    var mine = hr && ready ? activity({ place: place }).filter(function (r) { return r.sku === hr.p.sku && r.status === 'done' && r.effect === 'onhand' && r.qty; }) : [];
+    var liveRows = mine.slice(0, HIST_MAX).map(function (r) { var d = new Date(r.at); return { d: d.getDate() + ' ' + MONTHS[d.getMonth()], what: r.label, qty: (r.qty > 0 ? '+' : '−') + Math.abs(r.qty), up: r.qty > 0, note: [r.reason, place ? '' : r.place, r.ref, r.by].filter(Boolean).join(' · ') }; });
     var link = hr ? '?sku=' + encodeURIComponent(hr.p.sku) + (place ? '&place=' + encodeURIComponent(place) : '') : '';
     var sheet = hr ? {
-      title: hr.p.name, code: [hr.p.sku, hr.p.variant].filter(Boolean).join(' · '), where: place || 'All places',
+      title: hr.p.name, code: [hr.p.sku, hr.p.variant].filter(Boolean).join(' · '), where: place || (st.one ? whl[0] : 'All places'),
       onHand: hr.n.onHand, held: hr.n.held, damaged: hr.n.damaged, available: hr.n.available, transit: hr.n.transit, reorder: hr.i.re,
+      // the alert level can be changed for one place (a place picked, or a one-place shop); All places adds them up
+      reAt: place || (st.one ? whl[0] : ''), reOwn: place || st.one ? placeLevel(hr.p, place || whl[0]) != null : false, reDefault: productLevel(hr.p),
       cost: '৳' + hr.i.cost.toFixed(2), value: bdt(hr.n.onHand * hr.i.cost),
       wh: place || (hr.places + (hr.places === 1 ? ' place' : ' places')),
       rack: !hr.bins.length ? 'Not in a bin' : place ? hr.bins.map(function (b) { return b.code + ' · ' + b.qty; }).join(', ') : 'In ' + hr.bins.length + (hr.bins.length === 1 ? ' bin · ' : ' bins · ') + hr.bins.reduce(function (a, b) { return a + b.qty; }, 0) + ' pcs',
-      adjustHref: '/stock-adjustments' + link, transferHref: '/new-transfer' + (place ? '?from=' + encodeURIComponent(place) : ''),
+      adjustHref: '/stock-adjustments' + link + (!place && st.one && whl[0] ? '&place=' + encodeURIComponent(whl[0]) : ''), transferHref: '/new-transfer' + (place ? '?from=' + encodeURIComponent(place) : ''),
       productHref: hr.p.productId ? '/add-product?id=' + encodeURIComponent(hr.p.productId) : '',
       vendor: st.catalog ? withVendor(hr.p.sku, place) : 0, packs: packsOf(hr.p).length ? fmtQty(hr.p, hr.n.onHand) : '',
       kind: hr.p.format === 'licence' ? 'Licence keys: stock is the free keys' : hr.p.bundle && hr.p.bundle.type !== 'kit' ? 'Combo: sells as many as its parts allow' : '',
       kit: !!(hr.p.bundle && hr.p.bundle.type === 'kit'), kitPlace: place || whl[0], kitCan: hr.p.bundle && hr.p.bundle.type === 'kit' && st.catalog ? canAssemble(hr.p.sku, place || whl[0]) : 0,
       activityHref: '/stock-activity?q=' + encodeURIComponent(hr.p.sku),
-      history: liveRows.concat(HIST.map(function (h) { return { d: h[0], what: h[1], qty: (h[2] > 0 ? '+' : '−') + Math.abs(h[2]), up: h[2] > 0, note: h[3] }; }))
+      history: liveRows, histMore: mine.length > HIST_MAX ? mine.length : 0
     } : null;
     var closeFind = function () { self.setState({ find: false, q: '' }); setQuery('q', ''); };
     // kits: assemble from parts, or take apart (bundles.js)
@@ -139,7 +150,21 @@ class Component extends DCLogic {
       self.reload();
       __toast((apart ? n + ' taken apart at ' : n + ' assembled at ') + at);
     };
-    return { rows: rows, empty: ready && rows.length === 0, loading: !ready, one: !!st.one, place: place, kVendor: vendorAll,
+    if (sheet) sheet.reHint = !sheet.reAt ? 'Alert level: all places added up. Pick a place to change it there.'
+      : st.one ? (sheet.reOwn ? 'The product’s level is ' + sheet.reDefault + '.' : '')
+      : sheet.reOwn ? 'For ' + sheet.reAt + ' only. The product’s level is ' + sheet.reDefault + '.' : 'From the product. Saving changes it for ' + sheet.reAt + ' only.';
+    // the alert level box in the stock panel (saved when you press Save)
+    var reSave = function (clear) {
+      if (!hr || !sheet.reAt) return;
+      var typed = String(st.reN == null ? '' : st.reN).trim();
+      if (!clear && !/^\d+$/.test(typed)) { __toast('Enter a whole number, for example 5.', { tone: 'error' }); return; }
+      var now = setPlaceLevel(hr.p, sheet.reAt, clear ? null : Number(typed));
+      self.setState({ reN: null });
+      __toast(clear ? 'Alert level at ' + sheet.reAt + ' follows the product: below ' + now : 'Alert level at ' + sheet.reAt + ': below ' + now);
+    };
+    return { rows: rows, empty: ready && rows.length === 0,
+      reN: st.reN != null ? st.reN : sheet ? String(sheet.reorder) : '', typeReN: function (e) { self.setState({ reN: e.target.value.replace(/\D/g, '') }); },
+      saveRe: function (e) { if (e && e.preventDefault) e.preventDefault(); reSave(false); }, clearRe: function () { reSave(true); }, loading: !ready, one: !!st.one, place: place, kVendor: vendorAll,
       kitN: st.kitN || '1', typeKitN: function (e) { self.setState({ kitN: e.target.value.replace(/\D/g, '') }); }, assemble: function () { kitRun(false); }, takeApart: function () { kitRun(true); },
       kValue: ready ? bdt(value) : '—', kInStock: ready ? String(inStock) : '—', kPlaces: place ? 'at ' + place : 'in ' + whl.length + ' places',
       kHeld: ready ? String(here.reduce(function (a, r) { return a + r.n.held; }, 0)) : '—', kTransit: ready ? String(here.reduce(function (a, r) { return a + r.n.transit; }, 0)) : '—',
@@ -150,7 +175,7 @@ class Component extends DCLogic {
       find: !!(st.find || q), openFind: function () { self.setState({ find: true }); }, closeFind: closeFind,
       emptyTitle: q ? 'No products match “' + (st.q || '').trim() + '”' : 'No products match these filters',
       clearAll: function () { self.setState({ f: 'all', wh: 'all', q: '', find: false }); setQuery('filter', ''); setQuery('warehouse', ''); setQuery('q', ''); },
-      sheet: sheet, closeHist: function () { self.setState({ hist: null }); },
+      sheet: sheet, closeHist: function () { self.setState({ hist: null, reN: null }); },
       countLabel: rows.length === 1 ? '1 product' : rows.length + ' products',
       tabs: FL.map(function (x) { return { key: x.k, id: 'st-tab-' + x.k, label: x.label, count: ready ? counts[x.k] : null, on: x.k === f, onClick: function () { self.setState({ f: x.k }); setQuery('filter', x.k === 'all' ? '' : x.k); } }; }) };
   }
@@ -183,6 +208,8 @@ const CSS = `
 .st-hist b{font-family:var(--font-data);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
 .st-up{color:var(--text-success)}.st-down{color:var(--text-danger)}
 .st-kitn{width:72px;height:28px}
+.st-re{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-heading)}
+.st-re label{font-weight:var(--weight-medium)}
 `;
 
 // ---- markup ----
@@ -192,7 +219,7 @@ export default class StockScreen extends Component {
     const v = this.renderVals() || {};
     const s = v.sheet;
     const more = v.one
-      ? [{ label: 'Stock activity', href: '/stock-activity' }, { label: 'Damaged & expired', href: '/expiry-disposal' }]
+      ? [{ label: 'Stock adjustments', href: '/stock-adjustments' }, { label: 'Stock activity', href: '/stock-activity' }, { label: 'Damaged & expired', href: '/expiry-disposal' }]
       : [{ label: 'Stock activity', href: '/stock-activity' }, { label: 'Stock holds', href: '/stock-holds' }, { label: 'Transfers', href: '/transfers' }, { label: 'Damaged & expired', href: '/expiry-disposal' }, { label: 'Racks & bins', href: '/racks' }];
     return (
       <div className="dc-screen ds" data-screen="Stock">
@@ -205,7 +232,7 @@ export default class StockScreen extends Component {
               <div className="ix-page">
                 <ShopHeader icon="boxes" title="Stock list"
                   about="How many of each product you have at each place: damaged, held for orders, available to sell and on hand. Open a product to see its cost, bins and stock history."
-                  secondary={v.one ? [{ label: 'Print labels', href: '/barcode-labels' }] : [{ label: 'Stock count', href: '/stock-count' }, { label: 'Print labels', href: '/barcode-labels' }]}
+                  secondary={[{ label: 'Stock count', href: '/stock-count' }, { label: 'Print labels', href: '/barcode-labels' }]}
                   more={more}
                   primary={v.one ? { label: 'New purchase', href: '/buy-goods' } : { label: 'Stock adjustments', href: '/stock-adjustments' }} />
                 <StockSetupBanner />
@@ -315,14 +342,23 @@ export default class StockScreen extends Component {
               s.vendor ? ['With vendor', s.vendor] : null,
               s.packs ? ['In packs', s.packs] : null,
               s.kind ? ['Kind', s.kind] : null,
-              ['Buy again at', s.reorder],
+              s.reAt ? null : ['Alert when below', s.reorder],
               ['Cost', s.cost + ' each'],
               ['Stock value', s.value],
               v.one ? null : ['Where', s.wh],
               v.one ? null : ['Bins', s.rack],
             ]} />
+            {s.reAt ? (
+              <form className="st-re" onSubmit={v.saveRe}>
+                <label htmlFor="st-re-n">Alert when below</label>
+                <input id="st-re-n" className="gc-input st-kitn" inputMode="numeric" value={v.reN} onChange={v.typeReN} />
+                <button type="submit" className="ix-btn ix-btn--sm">Save</button>
+                {s.reOwn ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.clearRe}>{`Use the product’s (${s.reDefault})`}</button> : null}
+              </form>
+            ) : null}
+            {s.reHint ? <p className="st-sub">{s.reHint}</p> : null}
             <div className="st-acts">
-              {v.one ? null : <__Link href={s.adjustHref} className="ix-btn ix-btn--sm"><__Icon name="sliders-horizontal" width="16" height="16" aria-hidden="true" />Adjust stock</__Link>}
+              <__Link href={s.adjustHref} className="ix-btn ix-btn--sm"><__Icon name="sliders-horizontal" width="16" height="16" aria-hidden="true" />Adjust stock</__Link>
               {v.one ? null : <__Link href={s.transferHref} className="ix-btn ix-btn--sm"><__Icon name="arrow-left-right" width="16" height="16" aria-hidden="true" />Move</__Link>}
               <__Link href="/barcode-labels" className="ix-btn ix-btn--sm"><__Icon name="printer" width="16" height="16" aria-hidden="true" />Print label</__Link>
               {s.productHref ? <__Link href={s.productHref} className="ix-btn ix-btn--sm"><__Icon name="package" width="16" height="16" aria-hidden="true" />Open product</__Link> : null}
@@ -338,6 +374,8 @@ export default class StockScreen extends Component {
               </div>
             </>) : null}
             <h3 className="ix-section-title">Stock history</h3>
+            {s.history.length ? null : <p className="st-sub">No stock moves yet.</p>}
+            {s.histMore ? <p className="st-sub"><__Link href={s.activityHref}>{`See all ${s.histMore} in Stock activity`}</__Link></p> : null}
             <ul className="st-hist">
               {s.history.map((h, i) => (
                 <li key={i}>

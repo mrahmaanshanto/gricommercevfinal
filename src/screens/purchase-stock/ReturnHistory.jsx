@@ -10,7 +10,7 @@ import { Sidebar, Topbar } from '@/shell/Shell';
 import { EmptyState, Sheet, StatusBadge } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, KV } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { getReturns, RETURN_CHANNELS } from '@/lib/returns';
+import { getReturns, returnChannels } from '@/lib/returns';
 
 const MONEY = { refunded: 'Refunded', collected: 'Collected', credited: 'Taken off due', even: 'Even swap' };
 const money = (n) => formatBDT(n, { decimals: Number.isInteger(n) ? 0 : 2 });
@@ -32,13 +32,13 @@ export default function ReturnHistory() {
   const [open, setOpen] = useState(null);
   useEffect(() => { setRows(getReturns()); }, []);
 
-  const counts = { all: rows.length, ...Object.fromEntries(RETURN_CHANNELS.map((c) => [c, rows.filter((r) => r.channel === c).length])) };
+  const counts = { all: rows.length, ...Object.fromEntries(returnChannels().map((c) => [c, rows.filter((r) => r.channel === c).length])) };
   const shown = useMemo(() => {
     const text = q.trim().toLowerCase();
     return rows.filter((r) => (tab === 'all' || r.channel === tab) && (!type || r.type === type || r.stock === type) && (!text || (r.ref + ' ' + r.customer + ' ' + r.items).toLowerCase().includes(text)));
   }, [rows, tab, type, q]);
   const refunded = shown.reduce((a, r) => a + (r.money === 'refunded' || r.money === 'credited' ? r.amount : 0), 0);
-  const tabs = [['all', 'All'], ...RETURN_CHANNELS.map((c) => [c, c])].map(([id, label]) => ({ key: id, id: 'rh-tab-' + id, label, count: counts[id], on: tab === id, onClick: () => setTab(id) }));
+  const tabs = [['all', 'All'], ...returnChannels().map((c) => [c, c])].map(([id, label]) => ({ key: id, id: 'rh-tab-' + id, label, count: counts[id], on: tab === id, onClick: () => setTab(id) }));
   const closeFind = () => { setFind(false); setQ(''); setType(''); };
   const finding = find || !!q || !!type;
   const r = open;

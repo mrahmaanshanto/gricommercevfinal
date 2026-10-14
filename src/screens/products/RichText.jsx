@@ -9,7 +9,7 @@ import { Icon } from '@/runtime/dc';
 import { readImage } from '@/screens/channels/chShared';
 
 const TAGS = { P: 1, BR: 1, B: 1, STRONG: 1, I: 1, EM: 1, U: 1, H2: 1, H3: 1, H4: 1, UL: 1, OL: 1, LI: 1, A: 1, IMG: 1, TABLE: 1, THEAD: 1, TBODY: 1, TR: 1, TH: 1, TD: 1, DIV: 1, SPAN: 1, BLOCKQUOTE: 1, HR: 1 };
-const ATTRS = { A: ['href', 'title'], IMG: ['src', 'alt', 'width', 'height'], TD: ['colspan', 'rowspan'], TH: ['colspan', 'rowspan'] };
+const ATTRS = { A: ['href', 'title', 'rel', 'target'], IMG: ['src', 'alt', 'width', 'height'], TD: ['colspan', 'rowspan'], TH: ['colspan', 'rowspan'] };
 const safeUrl = (u, img) => { const s = String(u || '').trim(); return /^(https?:|mailto:|tel:|\/|#)/i.test(s) || (img && /^data:image\/(png|jpe?g|gif|webp);/i.test(s)) ? s : ''; };
 
 /** Only the tags and attributes a product description needs; scripts, styles, handlers and odd URLs are dropped. */
@@ -26,7 +26,14 @@ export function sanitizeHtml(html) {
       if (!TAGS[tag]) { ch.replaceWith(...Array.from(ch.childNodes)); return; }
       const keep = ATTRS[tag] || [];
       Array.from(ch.attributes).forEach((a) => { if (keep.indexOf(a.name) < 0) ch.removeAttribute(a.name); });
-      if (tag === 'A') { const h = safeUrl(ch.getAttribute('href')); if (h) { ch.setAttribute('href', h); ch.setAttribute('rel', 'noopener'); } else ch.removeAttribute('href'); }
+      // a link keeps its SEO options (Search engine listing › Links): nofollow / sponsored / ugc, and a new tab
+      if (tag === 'A') {
+        const h = safeUrl(ch.getAttribute('href'));
+        const rel = String(ch.getAttribute('rel') || '').toLowerCase().split(/\s+/).filter((x) => ['nofollow', 'sponsored', 'ugc'].indexOf(x) >= 0);
+        const tab = ch.getAttribute('target') === '_blank';
+        if (h) { ch.setAttribute('href', h); ch.setAttribute('rel', rel.concat(['noopener']).join(' ')); } else ch.removeAttribute('href');
+        if (tab) ch.setAttribute('target', '_blank'); else ch.removeAttribute('target');
+      }
       if (tag === 'IMG') { const s = safeUrl(ch.getAttribute('src'), true); if (s) ch.setAttribute('src', s); else ch.remove(); }
     });
   };

@@ -323,6 +323,7 @@ export function Overlays() {
 
     // a control with no handler still answers: it says it is not available yet
     const onClick = (e) => {
+      if (e.target && e.target.closest && e.target.closest('select,input,textarea')) return; // a field (e.g. a select laid over an icon) answers itself
       const el = e.target && e.target.closest ? e.target.closest('button,a,[role="button"]') : null;
       if (!el || !el.closest('.dc-screen') || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
       if (el.tagName === 'A') {
@@ -339,7 +340,7 @@ export function Overlays() {
     const reach = () => {
       queued = 0;
       for (const el of document.querySelectorAll('.dc-screen div, .dc-screen span, .dc-screen li, .dc-screen article, .dc-screen tr')) {
-        if (el.hasAttribute('role') || el.hasAttribute('tabindex') || el.closest('button,a,label,[role="button"]')) continue;
+        if (el.hasAttribute('role') || el.hasAttribute('tabindex') || el.closest('button,a,label,[role="button"]') || el.querySelector(':scope > select, :scope > input')) continue;
         if (getComputedStyle(el).cursor !== 'pointer') continue;
         if (el.parentElement && getComputedStyle(el.parentElement).cursor === 'pointer') continue;
         if (el.tagName !== 'TR') el.setAttribute('role', 'button');

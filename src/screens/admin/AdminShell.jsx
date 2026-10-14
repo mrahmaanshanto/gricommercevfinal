@@ -5,7 +5,8 @@
 //
 //   <AdminShell active="dashboard">…page…</AdminShell>     active: a page id from adminNav.js (or an ALIAS key)
 //
-// The menu is a 76px rail below 1280px (or when collapsed by hand) and a drawer below 1024px.
+// The menu is a 76px rail below 1280px (or when collapsed by hand) and a drawer below 1024px. While the signed-in person
+// has a support access session on a store, a banner sits above every page (access/StoreAccess.jsx › AccessBanner).
 
 import React, { useEffect, useReducer, useState } from 'react';
 import Link from 'next/link';
@@ -18,6 +19,9 @@ import { people } from '@/lib/admin/people';
 import { ops as opsStore, services } from '@/lib/admin/ops';
 import { LAYERS, AREAS, ALIAS, RECORDS, pageById } from './adminNav';
 import { Topbar, Search, HelpSheet } from './AdminTopbar';
+import { AccessBanner } from './access/StoreAccess';
+import { syncServices } from '@/lib/admin/servicesSync';
+import { EVENT as SERVICES_EVENT } from '@/lib/platform/services';
 
 const LOGO = '/assets/62dadbbb3f365aebdd41bb9975f5931f.png';
 const LOGO_MINI = '/assets/9b6f9ad369f1cbde65271a968e6ba1f1.png';
@@ -146,6 +150,13 @@ export function AdminShell({ active, title, children }) {
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState('');   // '' closed, else the scope it opened with
   const [help, setHelp] = useState(false);
+  // Services orders paid, refunded or approved in a merchant's panel reach the books here (lib/admin/servicesSync.js)
+  useEffect(() => {
+    if (!live) return undefined;
+    syncServices();
+    window.addEventListener(SERVICES_EVENT, syncServices);
+    return () => window.removeEventListener(SERVICES_EVENT, syncServices);
+  }, [live]);
   useEffect(() => {
     const k = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearch('all'); return; }
@@ -165,7 +176,7 @@ export function AdminShell({ active, title, children }) {
         <main className="gc-shell__main" id="main">
           <Topbar crumb={area ? area.label : 'Admin'} title={heading} onMenu={() => setDrawer(true)} onSearch={(scope) => setSearch(scope || 'all')} onHelp={() => setHelp(true)}
             db={db} t={t} live={live} me={me} matrix={matrix} />
-          <div className="gc-shell__content">{children}</div>
+          <div className="gc-shell__content"><AccessBanner />{children}</div>
         </main>
       </div>
       <Search open={!!search} scope={search || 'all'} onClose={() => setSearch('')} me={me} db={db} matrix={matrix} />

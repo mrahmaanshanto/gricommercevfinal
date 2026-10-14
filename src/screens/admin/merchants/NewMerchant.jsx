@@ -19,7 +19,8 @@ import { CATEGORIES, DISTRICTS, SOURCES, ONBOARDERS, ADDONS, PLAN_IDS, PLAN_NAME
 import { provisionStore, subdomainFree } from '@/lib/platform/shops';
 import { AdminShell, usePlatform } from '../AdminShell';
 
-const SEGS = LADDERS.map((l) => l.label);   // Online · Retail · Wholesale
+// what a store can buy: the product's editions (Online · Retail · Retail + Online · Connect)
+const EDITION_HINT = { online: 'Online store and orders', retail: 'Shop counter (POS)', 'retail-online': 'Shop counter and online store', connect: 'Inbox, CRM and POS' };
 const LANGS = ['বাংলা', 'English'];
 const BASE = '.gridcommerce.com.bd';
 
@@ -45,6 +46,7 @@ const CSS = `
 .nm-choice__txt small{font-size:var(--text-xs);color:var(--text-muted)}
 .nm-choice__price{flex:none;font-family:var(--font-data);font-size:var(--text-sm);color:var(--text-heading)}
 .nm-plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}
+.nm-eds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
 .nm-list{display:flex;flex-direction:column;gap:var(--space-2)}
 .nm-send{display:flex;align-items:flex-start;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-heading);cursor:pointer}
 .nm-send input{flex:none;margin-top:1px;accent-color:var(--primary)}
@@ -60,7 +62,7 @@ const CSS = `
 .nm-alert{margin:0}
 @media (max-width:1023px){.nm-side{position:static}}
 @media (max-width:640px){
-  .nm-grid,.nm-plans{grid-template-columns:minmax(0,1fr)}
+  .nm-grid,.nm-plans,.nm-eds{grid-template-columns:minmax(0,1fr)}
   .nm-bar{display:none}
   .nm-page{padding-bottom:var(--space-16)}
 }
@@ -75,7 +77,6 @@ const localPhone = (s) => {
   if (d.startsWith('0')) d = d.slice(1);
   return d.length > 4 ? d.slice(0, 4) + '-' + d.slice(4) : d;
 };
-const ladderOf = (segs) => (segs.includes('Online') ? 'online' : segs.includes('Retail') ? 'retail' : segs.includes('Wholesale') ? 'wholesale' : null);
 /** The live price list of a ladder. */
 function livePlans(db, ladder) {
   const l = db.plans && db.plans[ladder];
@@ -88,7 +89,7 @@ const EMPTY = {
   name: '', legal: '', cat: CATEGORIES[0], dist: DISTRICTS[0], address: '', licence: '', tin: '',
   owner: '', phone: '', email: '', lang: LANGS[0],
   sub: '', domain: '',
-  segs: ['Online'], plan: 'growth', trial: true, modules: [],
+  ladder: 'online', plan: 'growth', cycle: 'monthly', trial: true, modules: [],
   src: SOURCES[0], by: ONBOARDERS[0], helper: 'Unassigned', campaign: '', refCode: '',
   sendLogin: true,
 };
@@ -132,16 +133,18 @@ export default function NewMerchant() {
   const avail = live && sub ? subdomainFree(db, sub) : null;
 
   // the summary
-  const ladder = ladderOf(f.segs);
+  const ladder = f.ladder;
   const prices = ladder ? livePlans(db, ladder) : null;
+  const yearly = f.cycle === 'yearly';
   const planPrice = prices && prices[f.plan] ? prices[f.plan].price : 0;
+  const yearPrice = prices && prices[f.plan] ? prices[f.plan].yearly : 0;
   const picked = ADDONS.filter((a) => f.modules.includes(a.code));
   const monthlyAddons = picked.filter((a) => a.period !== 'Once').reduce((s, a) => s + a.price, 0);
   const onceAddons = picked.filter((a) => a.period === 'Once').reduce((s, a) => s + a.price, 0);
   const trialDays = (prices && prices[f.plan] && prices[f.plan].trialDays) || TRIAL_DAYS;
 
   const focus = (field) => setTimeout(() => {
-    const el = document.getElementById('nm-' + (field === 'segs' ? 'seg-0' : field));
+    const el = document.getElementById('nm-' + (field === 'ladder' ? 'ed-0' : field));
     if (el) { el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
   }, 0);
 
@@ -260,17 +263,17 @@ export default function NewMerchant() {
             <section className="ix-card" aria-labelledby="nm-h-package">
               <header className="ix-card__head"><h2 id="nm-h-package">Package</h2></header>
               <div className="ix-card__body nm-list">
-                <fieldset className="nm-fieldset" aria-describedby={errors.segs ? 'nm-segs-err' : undefined}>
-                  <legend className="gc-label">Sells</legend>
-                  <div className="nm-checks">
-                    {SEGS.map((x, i) => (
-                      <label key={x} className="nm-choice">
-                        <input id={'nm-seg-' + i} type="checkbox" className="gc-check" checked={f.segs.includes(x)} onChange={() => toggleIn('segs', x)} />
-                        <span className="nm-choice__txt">{x}</span>
+                <fieldset className="nm-fieldset" aria-describedby={errors.ladder ? 'nm-ladder-err' : undefined}>
+                  <legend className="gc-label">Edition</legend>
+                  <div className="nm-eds">
+                    {LADDERS.map((l, i) => (
+                      <label key={l.id} className="nm-choice">
+                        <input id={'nm-ed-' + i} type="radio" name="nm-ed" className="gc-check gc-check--radio" checked={f.ladder === l.id} onChange={() => set('ladder')(l.id)} />
+                        <span className="nm-choice__txt">{l.label}<small>{EDITION_HINT[l.id] || ''}</small></span>
                       </label>
                     ))}
                   </div>
-                  {errors.segs ? <p className="nm-err" id="nm-segs-err" role="alert">{errors.segs}</p> : null}
+                  {errors.ladder ? <p className="nm-err" id="nm-ladder-err" role="alert">{errors.ladder}</p> : null}
                 </fieldset>
                 <fieldset className="nm-fieldset">
                   <legend className="gc-label">Plan</legend>
@@ -278,9 +281,22 @@ export default function NewMerchant() {
                     {PLAN_IDS.map((p) => (
                       <label key={p} className="nm-choice">
                         <input type="radio" name="nm-plan" className="gc-check gc-check--radio" checked={f.plan === p} onChange={() => set('plan')(p)} />
-                        <span className="nm-choice__txt">{PLAN_NAME[p]}<small>{prices && prices[p] ? money(prices[p].price) + ' a month' : '—'}</small></span>
+                        <span className="nm-choice__txt">{PLAN_NAME[p]}<small>{prices && prices[p] ? (yearly ? money(prices[p].yearly) + ' a year' : money(prices[p].price) + ' a month') : '—'}</small></span>
                       </label>
                     ))}
+                  </div>
+                </fieldset>
+                <fieldset className="nm-fieldset">
+                  <legend className="gc-label">Billing</legend>
+                  <div className="nm-plans">
+                    <label className="nm-choice">
+                      <input type="radio" name="nm-cycle" className="gc-check gc-check--radio" checked={!yearly} onChange={() => set('cycle')('monthly')} />
+                      <span className="nm-choice__txt">Monthly<small>One bill a month</small></span>
+                    </label>
+                    <label className="nm-choice">
+                      <input type="radio" name="nm-cycle" className="gc-check gc-check--radio" checked={yearly} onChange={() => set('cycle')('yearly')} />
+                      <span className="nm-choice__txt">Yearly<small>Plan billed once a year</small></span>
+                    </label>
                   </div>
                 </fieldset>
                 <fieldset className="nm-fieldset">
@@ -354,16 +370,17 @@ export default function NewMerchant() {
               <div className="ix-card__body">
                 <dl className="nm-sum">
                   <dt>Package</dt><dd style={{ fontFamily: 'var(--font-sans)' }}>{ladder ? `${ladderLabel(ladder)} · ${PLAN_NAME[f.plan]}` : '—'}</dd>
-                  <dt>Plan</dt><dd>{planPrice ? money(planPrice) : '—'}</dd>
+                  <dt>Plan</dt><dd>{yearly ? (yearPrice ? money(yearPrice) + ' a year' : '—') : planPrice ? money(planPrice) : '—'}</dd>
                   {monthlyAddons ? <><dt>Add-ons</dt><dd>{money(monthlyAddons)}</dd></> : null}
-                  <dt className="is-total">Monthly</dt><dd className="is-total">{money(planPrice + monthlyAddons)}</dd>
+                  {yearly
+                    ? <><dt className="is-total">Monthly add-ons</dt><dd className="is-total">{money(monthlyAddons)}</dd></>
+                    : <><dt className="is-total">Monthly</dt><dd className="is-total">{money(planPrice + monthlyAddons)}</dd></>}
                   {onceAddons ? <><dt>One-off</dt><dd>{money(onceAddons)}</dd></> : null}
                 </dl>
                 <p className="nm-note">
                   {f.trial
                     ? (live ? `Free until ${dmy(t + trialDays * DAY)}; the first bill follows.` : `Free for ${trialDays} days; the first bill follows.`)
                     : 'The first bill is due today.'}
-                  {f.segs.length > 1 ? ` Sells ${f.segs.join(' + ')}; billed on the ${ladder ? ladderLabel(ladder) : ''} package.` : ''}
                 </p>
               </div>
             </section>
@@ -371,7 +388,7 @@ export default function NewMerchant() {
         </form>
       </div>
 
-      <PhoneActionBar note={ladder ? money(planPrice + monthlyAddons) + ' a month' : null} label="Create store">
+      <PhoneActionBar note={ladder ? (yearly ? money(yearPrice) + ' a year' : money(planPrice + monthlyAddons) + ' a month') : null} label="Create store">
         <button type="button" className="gc-btn gc-btn--solid" onClick={submit} disabled={busy || !live}>Create store</button>
       </PhoneActionBar>
     </AdminShell>

@@ -9,6 +9,8 @@
 //               plan (a module the plan lacks is `locked`, shown only to people who manage billing) → "Set up" state
 //               (`setup` on an area, from lib/navSetup.js) → areas left with no page are dropped
 //   pinsFor(u, nav) · landingChoices(u, nav) · homeOf(u)  the person's pins and start page (lib/navProfile.js)
+//   allUsers() · roleById(id)  with Settings › Users & roles (lib/shopUsers.js): invited people, changed roles and
+//               places, deactivated people (they can't sign in) and custom roles, which drive the menu like built-in ones
 // The side menu shows only the role's items; a page in the menu that the role cannot open shows a notice
 // (components/RoleGuard.jsx). Front end only: there are no passwords in the demo.
 
@@ -18,6 +20,8 @@ import { navForEdition, currentEditionId, hasModule, moduleOfNav } from './editi
 import { navForSetup, getStockSetup } from './stockSetup';
 import { currentPlanId, entitled } from './plans';
 import { landingOf, pinsOf } from './navProfile';
+import { withAccount } from './myAccount';
+import { applyUserChanges, addedUsers, roleDefOf, noteSignIn, canSignIn } from './shopUsers';
 
 export const SESSION_KEY = 'gc.session';
 export const SESSION_EVENT = 'gc:session';
@@ -28,18 +32,18 @@ const BASE = ['my-dash', 'tasks', 'team-chat', 'ai-assistant'];
 
 export const ROLES = {
   ceo: { title: 'CEO', icon: 'crown', tone: 'primary', blurb: 'Everything: sales, profit, cash, people and approvals.', access: '*' },
-  cto: { title: 'CTO', icon: 'cpu', tone: 'info', blurb: 'Website, integrations, payment gateways, devices and automations.', access: ['ai-overview', 'ai-assistant', 'ai-agents', 'ai-knowledge', 'ai-test', 'ai-automations', 'ai-activity', 'ai-analytics', 'ai-usage', 'ai-behaviour', 'ai-models', 'connections', 'ch-woo', 'ch-shopify', 'ch-home', 'ch-meta', 'ch-gmc', 'ch-gbp', 'ch-issues', 'ch-settings', 'storefront', 'storefront-pages', 'storefront-wp', 'storefront-theme', 'storefront-nav', 'settings', 'set-store', 'set-all', 'set-wallet', 'set-billing', 'set-help', 'auto-rules', 'auto-builder', 'auto-settings', 'auto-reports', 'ta-track', 'ta-health', 'ta-conn', 'ta-setup', 'comm-conn', 'hr-devices', 'pos-settings', 'acc-setup', 'pay-setup', 'tickets', 'products-setup', 'rep-all', 'rep-daily'] },
-  content: { title: 'Social media & content', icon: 'clapperboard', tone: 'secondary', blurb: 'Posts, blog, comments and the post calendar.', access: ['ch-gbp', 'comm-cal', 'comm-new', 'comm-conn', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors', 'storefront-pages', 'products-media', 'promo-page', 'promo-flash', 'rep-marketing'] },
-  orders: { title: 'Order management', icon: 'package-check', tone: 'warning', blurb: 'Confirm, pack, ship and follow up every order.', access: ['orders', 'orders-all', 'orders-work', 'orders-online', 'orders-pos', 'orders-wholesale', 'orders-rto', 'orders-courier', 'sales-invoices', 'sales-return', 'customers', 'leads', 'meetings', 'inbox', 'inbox-comments', 'inbox-mentions', 'calls', 'comm-ai', 'rec-carts', 'rec-auto', 'rec-offers', 'stock-holds', 'products-all', 'rep-online', 'rep-daily'] },
-  comms: { title: 'Communications', icon: 'messages-square', tone: 'info', blurb: 'Inbox, calls, comments and support tickets.', access: ['ai-overview', 'ai-assistant', 'ai-knowledge', 'ai-test', 'ai-activity', 'ai-behaviour', 'inbox', 'inbox-comments', 'inbox-mentions', 'calls', 'tickets', 'comm-ai', 'comm-cal', 'customers', 'leads', 'meetings', 'orders', 'orders-all', 'orders-online', 'rec-carts', 'rep-marketing'] },
+  cto: { title: 'CTO', icon: 'cpu', tone: 'info', blurb: 'Website, integrations, payment gateways, devices and automations.', access: ['svc-shop', 'svc-detail', 'svc-order', 'svc-mine', 'svc-view', 'set-email', 'ai-overview', 'ai-assistant', 'ai-agents', 'ai-knowledge', 'ai-test', 'ai-automations', 'ai-activity', 'ai-analytics', 'ai-usage', 'ai-behaviour', 'ai-models', 'connections', 'ch-woo', 'ch-shopify', 'ch-home', 'ch-meta', 'ch-gmc', 'ch-gbp', 'ch-issues', 'ch-settings', 'storefront', 'storefront-pages', 'store-pages', 'store-menus', 'store-reviews', 'store-seo', 'store-seo-bulk', 'storefront-wp', 'storefront-theme', 'storefront-nav', 'settings', 'set-store', 'set-all', 'set-wallet', 'set-billing', 'set-help', 'auto-rules', 'auto-builder', 'auto-settings', 'auto-reports', 'ta-track', 'ta-health', 'ta-conn', 'ta-setup', 'comm-conn', 'hr-devices', 'pos-settings', 'acc-setup', 'pay-setup', 'tickets', 'products-setup', 'rep-all', 'rep-daily'] },
+  content: { title: 'Social media & content', icon: 'clapperboard', tone: 'secondary', blurb: 'Posts, blog, comments and the post calendar.', access: ['ch-gbp', 'comm-cal', 'comm-new', 'comm-conn', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors', 'storefront-pages', 'store-pages', 'store-menus', 'store-reviews', 'store-seo', 'store-seo-bulk', 'products-media', 'promo-page', 'promo-flash', 'rep-marketing'] },
+  orders: { title: 'Order management', icon: 'package-check', tone: 'warning', blurb: 'Confirm, pack, ship and follow up every order.', access: ['orders', 'orders-all', 'orders-work', 'orders-online', 'orders-pos', 'orders-wholesale', 'orders-quotes', 'orders-sales-new', 'orders-collections', 'orders-price-lists', 'orders-rto', 'orders-courier', 'sales-invoices', 'sales-return', 'customers', 'leads', 'meetings', 'inbox', 'inbox-comments', 'inbox-mentions', 'inbox-email', 'calls', 'comm-ai', 'rec-carts', 'rec-auto', 'rec-offers', 'stock-holds', 'products-all', 'rep-online', 'rep-daily'] },
+  comms: { title: 'Communications', icon: 'messages-square', tone: 'info', blurb: 'Inbox, calls, comments and support tickets.', access: ['ai-overview', 'ai-assistant', 'ai-knowledge', 'ai-test', 'ai-activity', 'ai-behaviour', 'inbox', 'inbox-comments', 'inbox-mentions', 'inbox-email', 'calls', 'tickets', 'comm-ai', 'comm-cal', 'customers', 'leads', 'meetings', 'orders', 'orders-all', 'orders-online', 'rec-carts', 'rep-marketing'] },
   ads: { title: 'Ads & tracking', icon: 'target', tone: 'error', blurb: 'Ad spend, return on ads, pixels, offers and campaigns.', access: ['ch-woo', 'ch-shopify', 'ch-home', 'ch-meta', 'ch-gmc', 'ch-issues', 'ta-track', 'ta-health', 'ta-conn', 'ta-setup', 'promo-home', 'promo-coupons', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'rec-offers', 'rec-audiences', 'comm-conn', 'loy-home', 'loy-referrals', 'rep-marketing', 'rep-online', 'rep-customers'] },
   'wh-manager': { title: 'Warehouse manager', icon: 'warehouse', tone: 'warning', blurb: 'Stock, purchase, receiving, transfers and the warehouse team.', access: ['po-orders', 'po-receive', 'po-requests', 'po-buy', 'po-suppliers', 'stock-list', 'stock-activity', 'stock-holds', 'stock-adjust', 'stock-count', 'stock-transfers', 'stock-expiry', 'stock-wpol', 'stock-wclaims', 'stock-wh', 'stock-racks', 'stock-labels', 'products', 'products-all', 'products-inventory', 'products-low', 'products-barcodes', 'orders', 'orders-online', 'hr-time', 'hr-attendance', 'hr-shifts', 'hr-leave', 'rep-inventory', 'rep-purchase'] },
   'wh-supervisor': { title: 'Warehouse supervisor', icon: 'boxes', tone: 'slate', blurb: 'Picking, packing, receiving and counts on the floor.', access: ['po-receive', 'po-buy', 'stock-list', 'stock-holds', 'stock-count', 'stock-transfers', 'stock-expiry', 'stock-racks', 'stock-labels', 'orders', 'orders-online', 'products-low', 'hr-time', 'hr-attendance'] },
-  'shop-manager': { title: 'Shop manager', icon: 'store', tone: 'success', blurb: 'Branch sales, counters, cash, stock and the shop team.', access: ['ch-gbp', 'sales', 'sales-new', 'sales-invoices', 'sales-return', 'orders', 'orders-pos', 'pos', 'pos-register', 'pos-counters', 'pos-shifts', 'pos-cash', 'customers', 'leads', 'meetings', 'stock-list', 'stock-transfers', 'stock-count', 'stock-branches', 'products', 'products-all', 'products-low', 'promo-coupons', 'loy-members', 'hr-time', 'hr-attendance', 'hr-shifts', 'hr-leave', 'rep-sales', 'rep-pos', 'rep-daily'] },
-  'shop-supervisor': { title: 'Shop supervisor', icon: 'clipboard-check', tone: 'success', blurb: 'Counters, shifts, cash pickups and the floor.', access: ['sales', 'sales-new', 'sales-return', 'orders', 'orders-pos', 'pos', 'pos-register', 'pos-counters', 'pos-shifts', 'pos-cash', 'customers', 'stock-list', 'products-low', 'hr-time', 'hr-attendance', 'hr-shifts'] },
+  'shop-manager': { title: 'Shop manager', icon: 'store', tone: 'success', blurb: 'Branch sales, counters, cash, stock and the shop team.', access: ['ch-gbp', 'sales', 'sales-new', 'sales-invoices', 'sales-return', 'orders', 'orders-pos', 'orders-quotes', 'pos', 'pos-register', 'pos-counters', 'pos-shifts', 'pos-cash', 'pos-book', 'customers', 'leads', 'meetings', 'stock-list', 'stock-transfers', 'stock-count', 'stock-branches', 'products', 'products-all', 'products-low', 'promo-coupons', 'loy-members', 'hr-time', 'hr-attendance', 'hr-shifts', 'hr-leave', 'rep-sales', 'rep-pos', 'rep-daily'] },
+  'shop-supervisor': { title: 'Shop supervisor', icon: 'clipboard-check', tone: 'success', blurb: 'Counters, shifts, cash pickups and the floor.', access: ['sales', 'sales-new', 'sales-return', 'orders', 'orders-pos', 'pos', 'pos-register', 'pos-counters', 'pos-shifts', 'pos-cash', 'pos-book', 'customers', 'stock-list', 'products-low', 'hr-time', 'hr-attendance', 'hr-shifts'] },
   seller: { title: 'Shop seller', icon: 'shopping-bag', tone: 'primary', blurb: 'Sell at the counter, look up stock, help customers.', access: ['sales', 'sales-new', 'sales-return', 'pos', 'pos-register', 'customers', 'products', 'products-all', 'stock-list', 'loy-members'] },
   hr: { title: 'HR', icon: 'contact', tone: 'secondary', blurb: 'People, attendance, leave, payroll and documents.', access: ['hr-home', 'hr-people', 'hr-staff', 'hr-add', 'hr-positions', 'hr-idcards', 'hr-time', 'hr-attendance', 'hr-shifts', 'hr-leave', 'hr-devices', 'hr-pay', 'hr-payroll', 'hr-statements', 'hr-changes', 'hr-gratuity', 'hr-loans', 'hr-setup', 'pos-shifts', 'acc-liab', 'rep-hr'] },
-  'online-sales': { title: 'Online sales expert', icon: 'trending-up', tone: 'success', blurb: 'Leads, follow-ups, online orders and repeat buyers.', access: ['leads', 'meetings', 'orders', 'orders-all', 'orders-online', 'sales', 'sales-new', 'customers', 'inbox', 'inbox-comments', 'inbox-mentions', 'calls', 'rec-carts', 'rec-auto', 'rec-offers', 'promo-coupons', 'loy-home', 'loy-members', 'rep-online', 'rep-customers', 'rep-sales'] },
+  'online-sales': { title: 'Online sales expert', icon: 'trending-up', tone: 'success', blurb: 'Leads, follow-ups, online orders and repeat buyers.', access: ['leads', 'meetings', 'orders', 'orders-all', 'orders-quotes', 'orders-online', 'sales', 'sales-new', 'customers', 'inbox', 'inbox-comments', 'inbox-mentions', 'inbox-email', 'calls', 'rec-carts', 'rec-auto', 'rec-offers', 'promo-coupons', 'loy-home', 'loy-members', 'rep-online', 'rep-customers', 'rep-sales'] },
 };
 
 // [id, name, role, email, phone, staff code on the HR list (or ''), place, more roles]
@@ -59,15 +63,21 @@ const ROWS = [
   ['arafat', 'Arafat Hossain', 'online-sales', 'sales@dazzleshop.com.bd', '01611-000013', '', 'Head office'],
 ];
 export const USERS = ROWS.map(([id, name, role, email, phone, staff, place, more = []]) => ({ id, name, role, roles: [role, ...more], email, phone, staff, place, initials: name.split(' ').map((x) => x[0]).slice(0, 2).join('') }));
-export const userBy = (id) => USERS.find((u) => u.id === id) || null;
+// Settings › Users & roles (lib/shopUsers.js): changes to these people (role, places, deactivated) and the people
+// invited in the shop; a custom role is read through roleById
+export const userBy = (id) => applyUserChanges(USERS.find((u) => u.id === id) || addedUsers().find((u) => u.id === id) || null);
+/** Everyone who can sign in or is invited: the built-in people with the shop's changes, then the invited ones. */
+export const allUsers = () => [...USERS.map(applyUserChanges), ...addedUsers()];
+/** A built-in role or a custom one (Settings › Users & roles). */
+export const roleById = (r) => ROLES[r] || roleDefOf(r);
 /** The role ids a person holds (the first is their main role). */
-export const rolesOf = (u) => ((u && Array.isArray(u.roles) && u.roles.length ? u.roles : [(u || {}).role]).filter((r) => ROLES[r]));
+export const rolesOf = (u) => ((u && Array.isArray(u.roles) && u.roles.length ? u.roles : [(u || {}).role]).filter((r) => roleById(r)));
 /** The person's role; with several roles, one merged role: titles joined with " + ", access = the union. */
 export function roleOf(u) {
   const ids = rolesOf(u);
   if (!ids.length) return ROLES.ceo;
-  if (ids.length === 1) return ROLES[ids[0]];
-  const list = ids.map((r) => ROLES[r]);
+  if (ids.length === 1) return roleById(ids[0]);
+  const list = ids.map((r) => roleById(r));
   return {
     ...list[0],
     title: list.map((r) => r.title).join(' + '),
@@ -76,17 +86,20 @@ export function roleOf(u) {
     roles: ids,
   };
 }
-export const roleTitles = (u) => rolesOf(u).map((r) => ROLES[r].title);
+export const roleTitles = (u) => rolesOf(u).map((r) => roleById(r).title);
 export const firstName = (u) => String((u || {}).name || '').split(' ')[0];
 
 const ssr = () => typeof window === 'undefined';
-/** The signed-in demo user (the CEO until someone signs in as another role). */
+/** The signed-in demo user (the CEO until someone signs in as another role), with their own name, photo, phone and
+ *  email from My account (lib/myAccount.js). */
 export function currentUser() {
   if (ssr()) return USERS[0];
-  try { return userBy(window.localStorage.getItem(SESSION_KEY)) || USERS[0]; } catch { return USERS[0]; }
+  // a person who was deactivated is signed out
+  try { const u = userBy(window.localStorage.getItem(SESSION_KEY)); return withAccount(canSignIn(u) ? u : userBy(USERS[0].id)); } catch { return USERS[0]; }
 }
 export function signInAs(id) {
-  try { window.localStorage.setItem(SESSION_KEY, id); window.dispatchEvent(new CustomEvent(SESSION_EVENT)); } catch { /* ignore */ }
+  if (!canSignIn(userBy(id))) return null;
+  try { window.localStorage.setItem(SESSION_KEY, id); noteSignIn(id); window.dispatchEvent(new CustomEvent(SESSION_EVENT)); } catch { /* ignore */ }
   return userBy(id);
 }
 export function signOut() {

@@ -8,6 +8,7 @@
 //   supplierChanges  goods from a direct purchase can go back to the supplier (Supplier return) — off when the supplier
 //             takes nothing back after the sale
 //   wholesale  wholesale price, MOQ and "sell to" on products (only with the 'wholesale' module)
+//   poLimit   staff purchase orders above this total (৳) wait for approval (0 = never; poFlow.js)
 //   edition   the edition the setup was made for: when the shop moves to another edition, Stock setup (/stock-setup)
 //             asks again (name the online place, how you buy, merge stock into one place)
 // Kept in this browser (gc.stock.setup). Leaf module: imports only edition.js.
@@ -26,7 +27,7 @@ export const isOnePlace = (ed = currentEditionId()) => !hasModule('places', ed);
 
 /** What a new shop in this edition starts with. */
 export function defaultsFor(ed = currentEditionId()) {
-  return { mode: isOnePlace(ed) ? 'one' : 'many', homeId: DEFAULT_HOME_ID, buying: hasModule('purchasing', ed) ? 'both' : 'direct', supplierChanges: true, wholesale: hasModule('wholesale', ed) };
+  return { mode: isOnePlace(ed) ? 'one' : 'many', homeId: DEFAULT_HOME_ID, buying: hasModule('purchasing', ed) ? 'both' : 'direct', supplierChanges: true, wholesale: hasModule('wholesale', ed), poLimit: 50000 };
 }
 
 /** The setup in use. What the edition allows always wins (an online-only shop is one place, buys direct, no wholesale). */

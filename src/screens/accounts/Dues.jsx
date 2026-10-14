@@ -3,7 +3,7 @@
 //   Figures       net, overdue, what payment partners hold (→ Payouts) and what is held for customers
 //                 (loyalty points + wallet money, loyalty.js; not in "You owe": customers use it rather than
 //                 being paid; → Customer wallets)
-//   You will get  ageing from the invoice date (terms are not stored), then customers with money due on
+//   You will get  ageing from each invoice's due date (the buyer's payment terms, buyerTerms.js), then customers with money due on
 //                 their invoices (wholesale customers, and retail sales left on credit). A row opens its
 //                 invoices, "Record payment" (one payment across several invoices, duesParts.jsx), "Write off" on
 //                 a small balance (waits for approval), "Remind" (copies a polite reminder to paste into SMS or
@@ -22,7 +22,7 @@ import { EmptyState, InfoTip, StatusBadge } from '@/components/ui';
 import { MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import { formatDate } from '@/lib/format';
 import { MERCHANT } from '@/lib/merchant';
-import { getInvoices } from '@/lib/invoices';
+import { getInvoices, dueDateOf } from '@/lib/invoices';
 import { getBills, billLeft, getSuppliers, findSupplier, dayStart, daysFrom } from '@/lib/supplierBills';
 import { getLiabilities, leftOf, liabStatus, LIAB_TYPES, LIAB_TONE } from '@/lib/liabilities';
 import { getPartners, heldBy, clockNow } from '@/lib/settlements';
@@ -37,7 +37,7 @@ const digits = (p) => String(p || '').replace(/[^0-9]/g, '').replace(/^88/, '');
 const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 
 // ageing buckets: [key, label, tone]
-const GET_AGES = [['0', 'Not due', 'success'], ['30', '1–30 days', 'info'], ['60', '31–60 days', 'warning'], ['90', '60+ days', 'error']];
+const GET_AGES = [['0', 'Not due yet', 'success'], ['30', 'Overdue 1–30 days', 'info'], ['60', 'Overdue 31–60', 'warning'], ['90', 'Overdue 60+', 'error']];
 const OWE_AGES = [['0', 'Not due yet', 'success'], ['30', 'Overdue 1–30 days', 'warning'], ['60', 'Overdue 31–60', 'error'], ['90', 'Overdue 60+', 'error']];
 /** Bucket for an age in days (0 or less = not due). */
 const bucketOf = (days) => (days <= 0 ? '0' : days <= 30 ? '30' : days <= 60 ? '60' : '90');
@@ -110,13 +110,13 @@ export default function Dues() {
       g.wholesale = g.wholesale || !!inv.wholesale;
       g.due = r2(g.due + inv.due);
       g.oldest = Math.min(g.oldest, inv.at);
-      g.ages[bucketOf(-daysFrom(inv.at, today))] += inv.due;
+      g.ages[bucketOf(-daysFrom(dueDateOf(inv), today))] += inv.due;   // counted from the due date (payment terms)
     });
     const customers = [...byCustomer.values()].map((g) => ({ ...g, invoices: g.invoices.sort((a, b) => a.at - b.at) })).sort((a, b) => b.due - a.due);
     const getAges = emptyAges();
     customers.forEach((g) => Object.keys(getAges).forEach((k) => { getAges[k] += g.ages[k]; }));
     const customerDue = r2(customers.reduce((a, g) => a + g.due, 0));
-    const lateInvoices = customers.flatMap((g) => g.invoices).filter((inv) => -daysFrom(inv.at, today) > 30);
+    const lateInvoices = customers.flatMap((g) => g.invoices).filter((inv) => daysFrom(dueDateOf(inv), today) < 0);
 
     // ---- money partners hold
     const partners = getPartners().map((p) => ({ p, held: heldBy(p.id) })).filter((x) => x.held > 0).sort((a, b) => b.held - a.held);
@@ -359,7 +359,7 @@ export default function Dues() {
         <div className="ix-bar">
           <IndexTabs tabs={tabs} label="Dues" />
           <span className="ix-tools">
-            <InfoTip text={tab === 'get' ? 'Counted from the invoice date. Payment terms are not stored, so an invoice from today is not due yet. Money with payment partners is in You will get.' : 'Counted from each bill’s due date. Customer wallets and points are not in You owe: customers use them when they buy, or ask for them back.'} />
+            <InfoTip text={tab === 'get' ? 'Counted from each invoice’s due date: the sale date plus the buyer’s payment terms (Net 7, Net 30 …). Money with payment partners is in You will get.' : 'Counted from each bill’s due date. Customer wallets and points are not in You owe: customers use them when they buy, or ask for them back.'} />
           </span>
         </div>
         <div role="tabpanel" id={'du-panel-' + tab} aria-labelledby={'du-tab-' + tab}>

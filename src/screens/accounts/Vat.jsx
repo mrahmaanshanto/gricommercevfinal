@@ -12,7 +12,9 @@ import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Dialog, InfoTip, StatusBadge } from '@/components/ui';
 import { MetricStrip, Menu } from '@/components/ui/IndexKit';
-import { loadVat, saveVat } from '@/lib/vat';
+import { loadVat, saveVat, vatRateFor, vatOf, topCategory, VAT_CATEGORIES, VAT_RATES } from '@/lib/vat';
+import { getCatalog } from '@/lib/stock';
+import { demoNow } from '@/lib/demoClock';
 import { AccPage } from './accShared';
 
 // ---- demo figures ---------------------------------------------------------------------------------
@@ -21,9 +23,9 @@ function m2(n) { const x = Math.round(n * 100); const ip = Math.floor(x / 100), 
 const pct = (r) => String(r) + '%';
 // month: key, name, share of September's sales, VAT paid on purchases, paid note, last date to pay
 const MON = [['jul', 'July', 1162800 / 1286400, 28900, 'Paid · 14 Aug', '15 Aug'], ['aug', 'August', 1244100 / 1286400, 30100, 'Paid · 13 Sep', '15 Sep'], ['sep', 'September', 1, 31240, '', '15 Oct']];
-// category: key, name, default rate, VAT included in the price, September sales
-const CATS = [['rice', 'Cables & chargers', 0, true, 482000], ['oil', 'Cases & covers', 5, true, 246500], ['soap', 'Screen care', 7.5, true, 158400], ['snack', 'Audio', 5, true, 112300], ['drink', 'Power banks', 5, true, 64900], ['cloth', 'Wearables', 7.5, false, 134300], ['elec', 'Phones', 15, false, 88000]];
-const RATES = [0, 5, 7.5, 15];
+// September sales by product category (demo figures); the rates are the real ones the register charges (lib/vat.js)
+const CAT_SALES = { Accessories: 886900, Audio: 112300, 'Power banks': 64900, Wearables: 134300, Phones: 88000 };
+const RATES = VAT_RATES;
 // the sample memo on the VAT invoice: item, qty, price, VAT rate
 const ITEMS = [['20W USB-C fast charger', 1, 890, 5], ['Lightning cable 1 m', 2, 135, 0], ['Micro-USB cable 1 m', 2, 145, 0], ['Screen cleaning wipes', 4, 65, 7.5], ['Shockproof case A15', 2, 180, 7.5], ['Cleaning spray 100 ml', 1, 240, 7.5], ['Cable protector pack', 4, 35, 5]];
 const TIERS = [['Under ৳50 lakh a year', 'Usually no VAT or turnover tax', false], ['৳50 lakh to ৳3 crore', 'Turnover tax — 4% of sales, return every 3 months (Mushak-9.2)', true], ['Over ৳3 crore', 'VAT registration is required', false]];
@@ -34,7 +36,6 @@ const CSS = `
 .vt-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums}
 .vt-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3)}
 .vt-switch{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);cursor:pointer}
-.vt-inc{display:inline-flex;align-items:center;gap:var(--space-2);color:var(--text-body)}
 .vt-rate{width:96px}
 .vt-checks{list-style:none;margin:0;padding:0}
 .vt-check{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);min-height:44px;padding:var(--space-2) var(--space-4);border-top:1px solid var(--border-subtle)}
@@ -76,28 +77,36 @@ const CSS = `
 export default function Vat() {
   const [rates, setRates] = useState({});
   const [nr, setNr] = useState(false);
-  const [inc, setInc] = useState({});
+  const [inc, setInc] = useState(true);               // prices include VAT (MRP)
+  const [cats, setCats] = useState(VAT_CATEGORIES);   // the shop's top categories (read after mount)
   const [mon, setMon] = useState('sep');
   const [paidCh, setPaidCh] = useState(false);
   const [totSw, setTotSw] = useState(true);
   const [receipt, setReceipt] = useState(false);
   const loaded = useRef(false);
+  // days left to pay September's return (due 15 Oct), from the real clock after mount
+  const [today, setToday] = useState(null);
+  useEffect(() => { const d = new Date(demoNow()); d.setHours(0, 0, 0, 0); setToday(d.getTime()); }, []);
 
   // the rates and the "not registered" switch are kept, and the POS register charges VAT from them
-  useEffect(() => { const saved = loadVat(); setRates(saved.rates || {}); setNr(!!saved.notReg); loaded.current = true; }, []);
-  useEffect(() => { if (loaded.current) saveVat({ rates: rates || {}, notReg: !!nr }); }, [rates, nr]);
+  useEffect(() => {
+    const saved = loadVat(); setRates(saved.rates || {}); setNr(!!saved.notReg); setInc(saved.inclusive !== false); loaded.current = true;
+    try { const own = [...new Set(getCatalog().map((c) => topCategory(c.cat)).filter(Boolean))]; setCats([...VAT_CATEGORIES, ...own.filter((c) => !VAT_CATEGORIES.includes(c))]); } catch { /* catalogue not ready */ }
+  }, []);
+  useEffect(() => { if (loaded.current) saveVat({ rates: rates || {}, notReg: !!nr, inclusive: !!inc }); }, [rates, nr, inc]);
 
   const M = MON.find((m) => m[0] === mon) || MON[2];
   const isCur = mon === 'sep';
   const paid = paidCh || !isCur;
+  const left = today == null ? null : Math.round((new Date(2026, 9, 15).getTime() - today) / 864e5);
+  const leftText = left == null ? '' : paid ? 'Paid' : left > 1 ? left + ' days left' : left === 1 ? '1 day left' : left === 0 ? 'Due today' : 'Overdue by ' + -left + (left === -1 ? ' day' : ' days');
   let totSales = 0, out = 0;
-  const rows = CATS.map((c) => {
-    const r = rates[c[0]] == null ? c[2] : rates[c[0]];
-    const ic = inc[c[0]] == null ? c[3] : inc[c[0]];
-    const sales = Math.round(c[4] * M[2]);
-    const v = Math.round(ic ? sales * r / (100 + r) : sales * r / 100);
+  const rows = cats.map((c) => {
+    const r = vatRateFor(c, { rates, notReg: false });
+    const sales = Math.round((CAT_SALES[c] || 0) * M[2]);
+    const v = Math.round(vatOf(sales, r, inc));
     totSales += sales; out += v;
-    return { key: c[0], label: c[1], rate: r, inc: ic, sales, vat: v };
+    return { key: c, label: c, rate: r, sales, vat: v };
   });
   const inp = M[3], pay = Math.max(0, out - inp);
   let rcVat = 0, rcTot = 0;
@@ -136,15 +145,24 @@ export default function Vat() {
           { label: 'VAT collected on sales', value: money(out), sub: 'Taken from customers' },
           { label: 'VAT paid on purchases', value: money(inp), sub: 'Deducted' },
           { label: 'To pay this month', value: money(pay), sub: 'Collected − paid' },
-          { label: 'Last date to pay', value: M[5], sub: isCur ? '16 days left' : M[4] },
+          { label: 'Last date to pay', value: M[5], sub: isCur ? leftText : M[4] },
         ]} />
 
         <section className="ix-card" aria-labelledby="vt-rates">
-          <header className="ix-card__head"><h2 id="vt-rates">VAT rate by category <InfoTip text={'Change a rate or the "included" switch and the totals above update. VAT paid on supplier invoices is deducted from what you collected.'} /></h2></header>
+          <header className="ix-card__head">
+            <h2 id="vt-rates">VAT rate by category <InfoTip text="The register, receipts, invoices and Create order charge these rates. VAT paid on supplier invoices is deducted from what you collected." /></h2>
+            <span className="vt-switch">
+              <label className="vt-switch" htmlFor="vt-inc">
+                <button id="vt-inc" type="button" role="switch" aria-checked={inc} className="gc-switch" onClick={() => setInc(!inc)}><span className="gc-switch__knob" /></button>
+                <span>Prices include VAT (MRP)</span>
+              </label>
+              <InfoTip text="On: the shelf price already holds the VAT, so a ৳780 item rings up at ৳780 and the receipt shows the VAT inside it. Off: VAT is added on top at the till." />
+            </span>
+          </header>
           <div className="ix-table-wrap ix-table-wrap--show" style={{ marginTop: 'var(--space-3)' }}>
             <table className="ix-table ix-table--static">
               <caption className="sr-only">VAT rate by category, {M[1]}</caption>
-              <thead><tr><th scope="col">Category</th><th scope="col">Rate</th><th scope="col">VAT in price?</th><th scope="col" className="ix-num">Sales</th><th scope="col" className="ix-num">VAT</th></tr></thead>
+              <thead><tr><th scope="col">Category</th><th scope="col">Rate</th><th scope="col" className="ix-num">Sales</th><th scope="col" className="ix-num">{inc ? 'VAT in sales' : 'VAT'}</th></tr></thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.key}>
@@ -154,14 +172,11 @@ export default function Vat() {
                         {RATES.map((x) => <option key={x} value={String(x)}>{pct(x)}</option>)}
                       </select>
                     </td>
-                    <td>
-                      <span className="vt-inc"><button type="button" role="switch" aria-checked={r.inc} aria-label={`VAT in price? ${r.label}`} className="gc-switch" onClick={() => setInc({ ...inc, [r.key]: !r.inc })}><span className="gc-switch__knob" /></button>{r.inc ? 'Yes' : 'No, added on top'}</span>
-                    </td>
                     <td className="ix-num vt-fig">{money(r.sales)}</td>
                     <td className={'ix-num vt-fig' + (r.vat ? ' ix-strong' : ' ix-muted')}>{r.vat ? money(r.vat) : '—'}</td>
                   </tr>
                 ))}
-                <tr className="ac-grp"><th scope="row" colSpan={3}>Total</th><td className="ix-num vt-fig">{money(totSales)}</td><td className="ix-num vt-fig">{money(out)}</td></tr>
+                <tr className="ac-grp"><th scope="row" colSpan={2}>Total</th><td className="ix-num vt-fig">{money(totSales)}</td><td className="ix-num vt-fig">{money(out)}</td></tr>
               </tbody>
             </table>
           </div>

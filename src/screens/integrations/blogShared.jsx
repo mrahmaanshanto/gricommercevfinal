@@ -10,6 +10,7 @@ import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, StatusBadge, ChannelIcon } from '@/components/ui';
 import { formatBDT, formatDate } from '@/lib/format';
 import { getCatalog } from '@/lib/stock';
+import { linkAttrs, parseLinkOpts, parsePath, demoHref } from '@/lib/seo';
 import {
   getBlog, toneOf, TONES, STATUSES, ROLES, seoScore, hasBangla, youtubeId, saveAuthor, initials, BLOG_BASE, postDate,
 } from '@/lib/blog';
@@ -219,18 +220,21 @@ export function ChipsInput({ id, value, onChange, placeholder, suggestions = [],
 
 // ---- markdown-lite ----------------------------------------------------------------------------
 const safeUrl = (u) => (/^(https?:\/\/|\/|#|mailto:)/i.test(String(u || '').trim()) ? String(u).trim() : '#');
+/** On a customer view (live), a link to the shop's own page opens that page in this demo (/products/x → /product?handle=x). */
+const liveHref = (u) => { const p = parsePath(u); return p && /^(\/|https?:\/\/(www\.)?dazzleshop\.com\.bd)/i.test(String(u)) ? demoHref(p.kind, p.handle) : safeUrl(u); };
 const previewClick = (e) => { e.preventDefault(); toast('Links open on the live website. This is a preview.', { tone: 'info' }); };
 /** **bold**, *italic* and [text](url) as React nodes. Anything else stays plain text. */
-export function Inline({ text }) {
+export function Inline({ text, live }) {
   const s = String(text || '');
   const out = [];
-  const re = /(\*\*([^*]+)\*\*|\*([^*]+)\*|\[([^\]]+)\]\(([^)\s]+)\))/g;
+  // a link may carry its options after it: [text](url){nofollow sponsored ugc new} (lib/seo.js)
+  const re = /(\*\*([^*]+)\*\*|\*([^*]+)\*|\[([^\]]+)\]\(([^)\s]+)\)(\{([a-z ,]*)\})?)/g;
   let last = 0, m, k = 0;
   while ((m = re.exec(s))) {
     if (m.index > last) out.push(s.slice(last, m.index));
     if (m[2] != null) out.push(<strong key={k++}>{m[2]}</strong>);
     else if (m[3] != null) out.push(<em key={k++}>{m[3]}</em>);
-    else out.push(<a key={k++} href={safeUrl(m[5])} onClick={previewClick}>{m[4]}</a>);
+    else out.push(<a key={k++} href={live ? liveHref(m[5]) : safeUrl(m[5])} {...linkAttrs(m[5], parseLinkOpts(m[7]))} onClick={live ? undefined : previewClick}>{m[4]}</a>);
     last = m.index + m[0].length;
   }
   if (last < s.length) out.push(s.slice(last));
@@ -255,7 +259,7 @@ function ProductCard({ sku, catalog }) {
 }
 
 /** One block as the storefront shows it. Headings step down one level inside the admin page. */
-export function BlockView({ block: b, catalog }) {
+export function BlockView({ block: b, catalog, live }) {
   switch (b.type) {
     case 'h2': return b.text ? <h3 className={'bl-a-h2 ' + (bn(b.text) || '')}>{b.text}</h3> : null;
     case 'h3': return b.text ? <h4 className={'bl-a-h3 ' + (bn(b.text) || '')}>{b.text}</h4> : null;
@@ -263,9 +267,9 @@ export function BlockView({ block: b, catalog }) {
       const items = (b.items || []).filter((x) => String(x).trim());
       if (!items.length) return null;
       const Tag = b.ordered ? 'ol' : 'ul';
-      return <Tag>{items.map((x, i) => <li key={i} className={bn(x)}><Inline text={x} /></li>)}</Tag>;
+      return <Tag>{items.map((x, i) => <li key={i} className={bn(x)}><Inline text={x} live={live} /></li>)}</Tag>;
     }
-    case 'quote': return b.text ? <blockquote className={bn(b.text)}><Inline text={b.text} />{b.cite ? <cite>— {b.cite}</cite> : null}</blockquote> : null;
+    case 'quote': return b.text ? <blockquote className={bn(b.text)}><Inline text={b.text} live={live} />{b.cite ? <cite>— {b.cite}</cite> : null}</blockquote> : null;
     case 'image': return b.src ? <figure><img src={b.src} alt={b.alt || ''} loading="lazy" />{b.caption ? <figcaption>{b.caption}</figcaption> : null}</figure> : null;
     case 'product': return <ProductCard sku={b.sku} catalog={catalog} />;
     case 'cta': return b.label ? <p style={{ textAlign: 'center' }}><a className={'gc-btn ' + (b.style === 'outline' ? 'gc-btn--outlined' : 'gc-btn--solid')} href={safeUrl(b.url)} onClick={previewClick} style={{ textDecoration: 'none' }}>{b.label}</a></p> : null;
@@ -291,12 +295,12 @@ export function BlockView({ block: b, catalog }) {
       if (!items.length) return null;
       return <div className="bl-a-faq">{items.map((x, i) => <details key={i}><summary className={bn(x.q)}>{x.q}</summary><p className={bn(x.a)}>{x.a}</p></details>)}</div>;
     }
-    default: return b.text ? <p className={bn(b.text)}><Inline text={b.text} /></p> : null;
+    default: return b.text ? <p className={bn(b.text)}><Inline text={b.text} live={live} /></p> : null;
   }
 }
 
 /** The post as the storefront shows it: cover, categories, title, byline, blocks, tags, author box, related products. */
-export function PostPreview({ post, db, device = 'desktop' }) {
+export function PostPreview({ post, db, device = 'desktop', live = false }) {
   const author = db.authors.find((a) => a.id === post.authorId);
   const cats = (post.categoryIds || []).map((id) => db.categories.find((c) => c.id === id)).filter(Boolean);
   const related = (post.relatedProductSkus || []).filter(Boolean);
@@ -304,13 +308,13 @@ export function PostPreview({ post, db, device = 'desktop' }) {
     <article className={'bl-article' + (device === 'mobile' ? ' bl-article--mobile' : '')} data-preview="">
       <Cover cover={post.cover} label={(post.cover || {}).alt || 'Cover image'} />
       {cats.length ? <div className="bl-wrap">{cats.map((c) => <CatChip key={c.id} cat={c} />)}</div> : null}
-      <h2 className={'bl-a-title ' + (bn(post.title) || '')}>{post.title || 'Untitled post'}</h2>
+      {live ? <h1 className={'bl-a-title ' + (bn(post.title) || '')}>{post.title || 'Untitled post'}</h1> : <h2 className={'bl-a-title ' + (bn(post.title) || '')}>{post.title || 'Untitled post'}</h2>}
       <div className="bl-a-meta">
         {author ? <><Avatar author={author} size={28} /><span style={{ color: 'var(--text-heading)', fontWeight: 'var(--weight-medium)' }}>{author.name}</span><span aria-hidden="true">·</span></> : null}
         <span>{formatDate(postDate(post))}</span><span aria-hidden="true">·</span><span>{post.readingTime || 1} min read</span>
       </div>
       {post.excerpt ? <p className={'bl-a-lead ' + (bn(post.excerpt) || '')}>{post.excerpt}</p> : null}
-      {(post.blocks || []).map((b) => <BlockView key={b.id} block={b} catalog={db.catalog} />)}
+      {(post.blocks || []).map((b) => <BlockView key={b.id} block={b} catalog={db.catalog} live={live} />)}
       {(post.tags || []).length ? <div className="bl-wrap">{post.tags.map((t) => <span key={t} className="bl-chip" style={{ background: 'var(--surface-subtle)', color: 'var(--text-body)' }}>#{t}</span>)}</div> : null}
       {author ? (
         <div className="bl-a-author">

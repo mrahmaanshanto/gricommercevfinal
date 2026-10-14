@@ -525,9 +525,9 @@ export const LIMITS = [
 const limitLabel = (key) => (LIMITS.find((l) => l.key === key) || {}).label || key;
 /** Limits the plans don't carry yet: email and background jobs by plan; the API cap as on the merchant page. */
 const EXTRA = {
-  growth: { api: 250000, email: 2000, jobs: 20000 },
-  business: { api: 250000, email: 10000, jobs: 100000 },
-  enterprise: { api: 250000, email: 50000, jobs: 500000 },
+  starter: { api: 250000, email: 2000, jobs: 20000 },
+  growth: { api: 250000, email: 10000, jobs: 100000 },
+  business: { api: 250000, email: 50000, jobs: 500000 },
 };
 /** The plan defaults: one row per package (ladder × plan) from the live plan version. */
 export function planDefaults(db) {
@@ -561,7 +561,7 @@ export function limitsOf(db, shop, t) {
   const jobs = Math.round(u.orders * 9 + (res.sms ? res.sms.used : 0) + email + 400 * r());
   const used = { api: res.api ? res.api.used : 0, storage: res.storage ? res.storage.used : 0, orders: res.orders ? res.orders.used : 0, ai: res.ai ? res.ai.used : 0, sms: res.sms ? res.sms.used : 0, email, jobs };
   const lim = plan.limits || {};
-  const ex = EXTRA[sub.plan] || EXTRA.growth;
+  const ex = EXTRA[sub.plan] || EXTRA.starter;
   const base = { api: ex.api, storage: lim.storage ?? 0, orders: lim.orders ?? 0, ai: lim.ai ?? 0, sms: lim.sms ?? 0, email: ex.email, jobs: ex.jobs };
   const ovs = overridesOf(shop.id, t);
   return LIMITS.map((l) => {

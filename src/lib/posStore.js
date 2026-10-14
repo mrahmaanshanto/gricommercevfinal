@@ -177,18 +177,31 @@ export function postSaleTenders(sale) {
 }
 
 /** Everything a shift sold and the cash its drawer should hold, from the sales and cash movements. */
+const RETURNS_KEY = 'gc.returns';   // the return history (returns.js, which reads this file: read here directly)
 export function shiftReport(shift, sales, cash, until = Infinity) {
   // a voided offline sale gave the money back: it does not count
   const mine = sales.filter((s) => s.at >= shift.openedAt && s.at <= until && !s.voided);
   const byMethod = {};
   let refunds = 0, cashRefunds = 0, cashCollected = 0, discounts = 0, units = 0;
+  // Refunds and money collected on returns and exchanges count when and where they happened: at this counter
+  // during the shift, whatever day the sale itself was made. Return & exchange notes on each return the counter
+  // whose shift is open on that device (else the counter that made the sale) and the cash in and out of its drawer.
+  const inShift = (at) => at >= shift.openedAt && at <= until;
+  load(RETURNS_KEY, []).forEach((r) => {
+    if (r.counter !== shift.counter || !inShift(r.at)) return;
+    if (r.money === 'refunded') refunds += r.amount || 0;
+    cashRefunds += (r.drawer && r.drawer.out) || 0;
+    cashCollected += (r.drawer && r.drawer.in) || 0;
+  });
+  // entries saved on a sale before returns noted their counter: counted at the counter that made the sale
+  sales.forEach((s) => (s.refunds || []).forEach((r) => {
+    if (r.counter !== undefined || s.counter !== shift.counter || !inShift(r.at)) return;
+    refunds += r.amount || 0;
+    if (r.method === 'Cash') { cashRefunds += r.amount || 0; cashCollected += r.collected || 0; }
+  }));
   mine.forEach((s) => {
     s.tenders.forEach((x) => { byMethod[x.method] = (byMethod[x.method] || 0) + x.amount; });
     if (s.change) byMethod.Cash = (byMethod.Cash || 0) - s.change;
-    (s.refunds || []).forEach((r) => {
-      refunds += r.amount;
-      if (r.method === 'Cash') { cashRefunds += r.amount; cashCollected += r.collected || 0; }
-    });
     const t = s.totals;
     discounts += (t.lineDisc || 0) + (t.cartDisc || 0) + (t.couponDisc || 0) + (t.memberDisc || 0) + (t.pointsDisc || 0);
     units += t.units;

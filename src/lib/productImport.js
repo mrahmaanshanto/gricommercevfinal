@@ -33,7 +33,8 @@ const ALL_FIELDS = [
   { k: 'long', label: 'Description', alias: ['description', 'long description', 'body', 'details'] },
 ];
 // wholesale price and minimum order are imported only while wholesale is on (edition.js; off for now)
-export const IMPORT_FIELDS = ALL_FIELDS.filter((f) => !['wholesale', 'moq'].includes(f.k) || wholesaleOn());
+/** The columns an import can fill; read when called (the wholesale switch and the edition preview are known by then). */
+export const importFields = () => ALL_FIELDS.filter((f) => !['wholesale', 'moq'].includes(f.k) || wholesaleOn());
 export const STATUS_OK = { active: 'active', draft: 'draft', archived: 'archived', published: 'active', live: 'active', hidden: 'draft' };
 
 /** CSV text → rows of cells. */
@@ -57,7 +58,7 @@ export function autoMap(headers) {
   const used = new Set(), map = {};
   headers.forEach((h, i) => {
     const t = String(h || '').trim().toLowerCase();
-    const f = IMPORT_FIELDS.find((x) => !used.has(x.k) && (x.alias.includes(t) || x.label.toLowerCase() === t));
+    const f = importFields().find((x) => !used.has(x.k) && (x.alias.includes(t) || x.label.toLowerCase() === t));
     map[i] = f ? f.k : '';
     if (f) used.add(f.k);
   });
@@ -81,7 +82,7 @@ export function dryRun(rows, mapping, { updateExisting = true } = {}) {
     if (!name) errors.push('No title');
     else if (name.length > 120) errors.push('Title over 120 letters');
     const nums = {};
-    ['price', 'mrp', 'cost', 'wholesale'].forEach((k) => { if (v[k] == null || v[k] === '') return; const n = money(v[k]); if (Number.isNaN(n)) errors.push(IMPORT_FIELDS.find((f) => f.k === k).label + ' is not a number'); else nums[k] = n; });
+    ['price', 'mrp', 'cost', 'wholesale'].forEach((k) => { if (v[k] == null || v[k] === '') return; const n = money(v[k]); if (Number.isNaN(n)) errors.push(importFields().find((f) => f.k === k).label + ' is not a number'); else nums[k] = n; });
     let moq = null;
     if (v.moq) { if (!/^\d+$/.test(v.moq) || Number(v.moq) < 1) errors.push('Minimum order is not a whole number'); else moq = Number(v.moq); }
     const sku = v.sku || '';

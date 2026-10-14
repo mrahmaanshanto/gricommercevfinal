@@ -24,8 +24,8 @@ export function LeavingDialog({ S, code, onClose }) {
   const save = (e) => {
     e.preventDefault();
     if (!f.lastDay || f.lastDay < st.joined) { toast('Choose the last working day', { tone: 'error' }); return; }
-    const { liability } = settleLeaving(code, { lastDay: f.lastDay, reason: `${f.reason}${f.note ? ' · ' + f.note : ''}`, account: f.account });
-    toast(liability ? `${st.name} leaves after ${formatDate(fromKey(f.lastDay))}. ${money(fs.net)} final settlement is in Accounts › Liabilities (${liability.id}).` : `${st.name} leaves after ${formatDate(fromKey(f.lastDay))}. Nothing is owed.`);
+    const { liability, mailbox } = settleLeaving(code, { lastDay: f.lastDay, reason: `${f.reason}${f.note ? ' · ' + f.note : ''}`, account: f.account });
+    toast((liability ? `${st.name} leaves after ${formatDate(fromKey(f.lastDay))}. ${money(fs.net)} final settlement is in Accounts › Liabilities (${liability.id}).` : `${st.name} leaves after ${formatDate(fromKey(f.lastDay))}. Nothing is owed.`) + (mailbox ? ' Their mailbox is suspended and its mail forwarded.' : ''));
     onClose(true);
   };
   return (

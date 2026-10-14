@@ -242,7 +242,10 @@ function seed(now) {
       { id: 'plan-price', label: 'Plan price or limit change (a new plan version)', on: true, threshold: null, approver: 'Finance or Admin', live: 'plans' },
       { id: 'payroll', label: 'Run payroll', on: true, threshold: null, approver: 'HR and Finance' },
       { id: 'refund', label: 'Refund to a merchant', on: true, threshold: 1000, approver: 'Finance or Admin' },
-      { id: 'licence-revoke', label: 'Revoke a licence', on: true, threshold: null, approver: 'Admin only' },
+      { id: 'store-control', label: 'Suspend, pause or cancel a store (its monthly bill above the amount)', on: true, threshold: 2000, approver: 'Finance or Admin', live: 'store' },
+      { id: 'grace', label: 'Extend grace (amount owed above)', on: true, threshold: 5000, approver: 'Finance or Admin', live: 'store' },
+      { id: 'free-credits', label: 'Free credits for a store', on: true, threshold: 1000, approver: 'Finance or Admin', live: 'store' },
+      { id: 'licence-revoke', label: 'Revoke a licence', on: true, threshold: null, approver: 'Admin only', live: 'store' },
       { id: 'archive', label: 'Archive a store', on: true, threshold: null, approver: 'Management or Admin' },
       { id: 'role-change', label: 'Change a role’s rights', on: false, threshold: null, approver: 'Any other administrator' },
     ],
@@ -297,7 +300,8 @@ function seed(now) {
   };
 }
 
-export const admin = createStore({ key: 'admin', version: 1, seed });
+// version 2: approval rules for store controls, grace and free credits (enforced by lib/admin/actionRights.js)
+export const admin = createStore({ key: 'admin', version: 2, seed });
 
 // ---- reads ------------------------------------------------------------------------------------------------------------
 export const roleById = (d, id) => d.roles.find((r) => r.id === id) || null;

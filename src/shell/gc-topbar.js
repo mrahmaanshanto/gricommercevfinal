@@ -154,6 +154,7 @@ input::placeholder{color:var(--muted)}
 .me{display:flex;align-items:center;gap:8px;height:40px;margin-left:4px;padding:0 8px 0 4px;border:0;border-radius:var(--radius-xl);background:transparent;font:inherit;cursor:pointer;text-align:left}
 .me:hover,.me[aria-expanded="true"]{background:var(--hover)}
 .av{position:relative;flex:none;width:30px;height:30px;border-radius:var(--radius-lg);background:linear-gradient(145deg,#2eaee4,#003087);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--text-xs-plus);font-weight:var(--weight-semibold)}
+.av img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .av i{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:var(--radius-full);background:#10b981;border:2px solid var(--bg)}
 .mn{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink);white-space:nowrap}.mr{font-size:var(--text-xs);color:var(--muted);white-space:nowrap}
 .me .chev{color:var(--muted)}
@@ -195,6 +196,13 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 .chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 8px 8px}
 .chip{height:36px;padding:0 14px;border:1px solid var(--line);border-radius:var(--radius-full);background:var(--bg);font:inherit;font-size:var(--text-xs-plus);color:var(--body);cursor:pointer}
 .chip:hover{border-color:var(--navy);color:var(--navy)}
+.it.sel{background:var(--hover);box-shadow:inset 3px 0 0 var(--navy)}
+.it .ico.gs-k{font-family:var(--font-data);font-size:var(--text-2xs)}
+.it mark{background:none;color:var(--navy);font-weight:var(--weight-semibold)}
+.gs-none{margin:8px;font-size:var(--text-sm);color:var(--body)}.gs-none small{display:block;margin-top:2px;font-size:var(--text-xs);color:var(--muted)}
+.gs-hint{display:flex;gap:12px;margin-top:4px;padding:8px 8px 2px;border-top:1px solid var(--line);font-size:var(--text-xs);color:var(--muted)}
+.gs-hint kbd{padding:0 4px;border:1px solid var(--line);border-radius:var(--radius-md);font-family:var(--font-data);font-size:var(--text-2xs)}
+@container (max-width:640px){.gs-hint{display:none}}
 .scanbox{position:relative;height:120px;margin:4px 8px 10px;border-radius:var(--radius-xl);background:#0f172a;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:var(--text-xs-plus)}
 .scanbox::before{content:"";position:absolute;left:16px;right:16px;top:20px;height:2px;background:#ff5724;box-shadow:0 0 12px #ff5724;animation:sl 1.6s ease-in-out infinite alternate}
 @keyframes sl{to{top:98px}}
@@ -237,7 +245,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 
   class GcTopbar extends HTMLElement {
     static get observedAttributes() { return ['crumb', 'page', 'placeholder', 'base', 'theme', 'height']; }
-    constructor() { super(); this.root = this.attachShadow({ mode: 'open' }); this._open = ''; this._unread = 3; this._scanHit = false; }
+    constructor() { super(); this.root = this.attachShadow({ mode: 'open' }); this._open = ''; this._unread = 3; this._scanHit = false; this._q = ''; this._scope = 'all'; this._sel = 0; this._gs = null; }
     connectedCallback() {
       this.render();
       this._doc = (e) => { if (this._open && !e.composedPath().includes(this)) { this._open = ''; this.render(); } };
@@ -260,16 +268,106 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       }).catch(() => {});
       ['gc:connections', 'gc:ledger', 'gc:pos', 'gc:route', 'focus'].forEach((ev) => window.addEventListener(ev, this._setup));
       this._setup();
+      // the search lib (lib/globalSearch.js) loads once the page is up; its index is built on the first search
+      window.setTimeout(() => this.loadSearch(), 1200);
       this._key = (e) => {
         if (e.key === 'Escape' && this._open) { this.close(true); }
-        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); const i = this.root.querySelector('input'); if (i) i.focus(); }
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); const i = this.root.querySelector('input[type="search"]'); if (i) { i.focus(); i.select(); } }
       };
       if (!this._navBound) { this._navBound = true; this.root.addEventListener('click', (e) => { const a = e.composedPath().find((el) => el.matches && el.matches('a[href^="/"]')); if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); this._open = ''; document.documentElement.classList.remove('gc-pop-open'); navigate(a.getAttribute('href')); } }); }
       document.addEventListener('pointerdown', this._doc); document.addEventListener('keydown', this._key);
     }
     disconnectedCallback() { document.documentElement.classList.remove('gc-pop-open'); document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener(EDITION_EVENT, this._loc); window.removeEventListener(PROPOSAL_EVENT, this._loc); window.removeEventListener('gc:settle', this._loc); window.removeEventListener('gc:meet', this._loc); window.removeEventListener(SESSION_EVENT, this._loc); window.removeEventListener(PLAN_EVENT, this._loc); window.removeEventListener(NAV_PROFILE_EVENT, this._loc); window.removeEventListener(LIVE_EVENT, this._inbox); if (this._setup) ['gc:connections', 'gc:ledger', 'gc:pos', 'gc:route', 'focus'].forEach((ev) => window.removeEventListener(ev, this._setup)); }
     /** Closes the open popover; from the keyboard, focus goes back to the button that opened it. */
-    close(refocus) { const k = this._open; this._open = ''; this.render(); if (refocus && k) { const el = this.root.querySelector(k === 'search' ? 'input' : `[data-act="${k}"]`); if (el) el.focus(); } }
+    close(refocus) { const k = this._open; this._open = ''; this.render(); if (refocus && k) { const el = this.root.querySelector(k === 'search' ? 'input[type="search"]' : `[data-act="${k}"]`); if (el) { this._squelch = k === 'search'; el.focus(); this._squelch = false; } } }
+    // ---- global search (MS-F1; the matching is lib/globalSearch.js) ----
+    loadSearch() {
+      if (this._gs || this._gsP) return this._gsP;
+      this._gsP = import('../lib/globalSearch').then((m) => { this._gs = m; if (this._open === 'search') this.render(); return m; }).catch(() => null);
+      return this._gsP;
+    }
+    /** The search popover's inside: recent searches and shortcuts when empty, else the results grouped by kind. */
+    searchBody(L, has) {
+      const hint = `<div class="gs-hint" aria-hidden="true"><span><kbd>↑</kbd> <kbd>↓</kbd> ${L('to move')}</span><span><kbd>Enter</kbd> ${L('to open')}</span><span><kbd>Esc</kbd> ${L('to close')}</span></div>`;
+      const row = (r, i, icon) => `<a class="it gs-r${i === this._sel ? ' sel' : ''}" id="gs-o-${i}" role="option" aria-selected="${i === this._sel}" href="${esc(r.href)}" data-i="${i}"><span class="ico">${ic(icon, 16)}</span><span style="min-width:0"><b>${esc(r.title)}</b>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</span></a>`;
+      const q = this._q.trim();
+      this._res = null;
+      if (!q) {
+        const recent = this._gs ? this._gs.getRecent() : [];
+        const jump = [
+          has('commerce') && canSee(currentUser(), 'orders-all') ? { href: routeOf('merchant-orders/MerchantOrders.dc.html'), title: L('Orders'), sub: L('Search by order number, phone or customer'), icon: 'cart' } : null,
+          has('catalog') && canSee(currentUser(), 'products-all') ? { href: routeOf('products/AllProducts.dc.html'), title: L('Products'), sub: L('Name, SKU or barcode'), icon: 'box' } : null,
+          canSee(currentUser(), 'customers') ? { href: routeOf('customers-crm/AllCustomers.dc.html'), title: L('Customers'), sub: L('Name, phone or email'), icon: 'user' } : null,
+          has('money') && canSee(currentUser(), 'sales-invoices') ? { href: '/sales-invoices', title: L('Invoices'), sub: L('Invoice number or customer'), icon: 'receipt' } : null,
+          has('comms') && canSee(currentUser(), 'inbox') ? { href: routeOf('merchant-inbox/MerchantInbox.dc.html'), title: L('Inbox'), sub: L('Name, phone or message'), icon: 'chat' } : null,
+        ].filter(Boolean);
+        this._rows = jump;
+        return (recent.length ? `<div class="ph">${L('Recent searches')} <button data-act="gs-clear">${L('Clear')}</button></div><div class="chips">${recent.map((x) => `<button class="chip" data-recent="${esc(x)}">${esc(x)}</button>`).join('')}</div>` : '')
+          + `<div class="ph">${L('Jump to')}</div><div role="listbox" id="gs-list" aria-label="${L('Jump to')}">${jump.map((r, i) => row(r, i, r.icon)).join('')}</div>${hint}`;
+      }
+      if (!this._gs) { this._rows = []; return `<p class="gs-none" role="status">${L('Searching…')}</p>`; }
+      let res;
+      try { res = this._gs.search(q, { scope: this._scope }); } catch { res = { groups: [], exact: null }; }
+      this._res = res;
+      const flat = [];
+      const html = res.groups.map((g) => `<div class="ph">${L(g.label)}</div>` + g.items.map((r) => { const i = flat.length; flat.push(r); return row({ ...r, title: g.key === 'pages' ? L(r.title) : r.title }, i, g.icon); }).join('')).join('');
+      this._rows = flat;
+      if (!flat.length) {
+        const scoped = this._scope !== 'all';
+        return `<p class="gs-none" role="status">${L('No results for')} “${esc(q)}”<small>${L('Try an order number, a phone number, a product name or a SKU.')}</small></p>${scoped ? `<button class="it" data-act="gs-all"><span class="ico">${ic('search', 16)}</span><span><b>${L('Search everywhere')}</b></span></button>` : ''}`;
+      }
+      const exact = res.exact ? `<span class="sr" role="status" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">${esc(L('Enter opens') + ' ' + res.exact.title)}</span>` : '';
+      return `${exact}<div role="listbox" id="gs-list" aria-label="${L('Search results')}">${html}</div>${hint}`;
+    }
+    /** Re-draws only the search popover (typing must not rebuild the bar: the input keeps its focus and caret). */
+    refreshSearch() {
+      const box = this.root.querySelector('[data-gs]');
+      if (!box) { this.render(); return; }
+      const ed = currentEdition(); const has = (m) => ed.modules.includes(m); const locale = getLocale(); const L = (x) => t(x, locale);
+      box.innerHTML = this.searchBody(L, has);
+      this.bindSearchBody();
+      const i = this.root.querySelector('input[type="search"]');
+      if (i) i.setAttribute('aria-activedescendant', this._rows && this._rows.length ? 'gs-o-' + this._sel : '');
+    }
+    bindSearchBody() {
+      this.root.querySelectorAll('[data-recent]').forEach((b) => b.addEventListener('click', () => { this._q = b.getAttribute('data-recent'); this._sel = 0; this._moved = false; const i = this.root.querySelector('input[type="search"]'); if (i) { i.value = this._q; i.focus(); } this.refreshSearch(); }));
+      this.root.querySelectorAll('[data-act="gs-clear"]').forEach((b) => b.addEventListener('click', () => { if (this._gs) this._gs.clearRecent(); this.refreshSearch(); const i = this.root.querySelector('input[type="search"]'); if (i) i.focus(); }));
+      this.root.querySelectorAll('[data-act="gs-all"]').forEach((b) => b.addEventListener('click', () => { this._scope = 'all'; this._sel = 0; this.render(); const i = this.root.querySelector('input[type="search"]'); if (i) i.focus(); }));
+      // opening a result remembers the search and closes the popover (a Ctrl / Cmd click opens a new tab as usual)
+      this.root.querySelectorAll('.gs-r').forEach((a) => a.addEventListener('click', (e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+        e.preventDefault(); e.stopPropagation();
+        this.openResult(a.getAttribute('href'));
+      }));
+    }
+    /** Opens a search result: remembers the search, closes the popover and goes there. */
+    openResult(href) {
+      if (!href) return;
+      if (this._gs && this._q.trim()) this._gs.addRecent(this._q);
+      this._q = ''; this._sel = 0; this._moved = false; this._open = '';
+      document.documentElement.classList.remove('gc-pop-open');
+      const i = this.root.querySelector('input[type="search"]'); if (i) i.blur();
+      this.render();
+      navigate(href);
+    }
+    searchKey(e) {
+      const rows = this._rows || [];
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (this._open !== 'search') { this._open = 'search'; this.render(); return; }
+        if (!rows.length) return;
+        e.preventDefault();
+        this._sel = (this._sel + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length;
+        this._moved = true;
+        this.root.querySelectorAll('.gs-r').forEach((a) => { const on = Number(a.getAttribute('data-i')) === this._sel; a.classList.toggle('sel', on); a.setAttribute('aria-selected', String(on)); if (on) a.scrollIntoView({ block: 'nearest' }); });
+        e.currentTarget.setAttribute('aria-activedescendant', 'gs-o-' + this._sel);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        // an exact order / invoice number, customer ID, SKU or barcode opens straight away, unless a row was picked
+        const exact = this._q.trim() && this._res && this._res.exact && !this._moved ? this._res.exact : null;
+        const r = exact || rows[this._sel] || rows[0];
+        if (r) this.openResult(r.href);
+      }
+    }
     attributeChangedCallback() { if (this.isConnected) this.render(); }
     toggle(k) { this._open = this._open === k ? '' : k; if (k === 'scan' && this._open) { this._scanHit = false; clearTimeout(this._st); this._st = setTimeout(() => { this._scanHit = true; if (this._open === 'scan') this.render(); }, 1400); } this.render(); }
     render() {
@@ -282,13 +380,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const title = a('page', ''), crumb = ((c) => (c === title ? '' : c))(menuCrumb(a('crumb', ''))), ph = (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches) ? L('Search') : L(a('placeholder', has('catalog') ? 'Search orders, products, customers, invoices…' : 'Search customers, chats and calls…'));
       const exp = (k) => `aria-expanded="${o === k}" aria-haspopup="true"`;
       const pop = (k, html, style) => (o === k ? `<div class="pop" role="dialog" style="${style}">${html}</div>` : '');
-      const searchPop = `<div class="ph">${L('Recent searches')}</div><div class="chips"><button class="chip">#136779</button><button class="chip">01711-234567</button><button class="chip">Redmi Note 13</button><button class="chip">INV-2026-0912</button></div>
-        <div class="ph">${L('Jump to')}</div>
-        ${has('commerce') ? `<a class="it" href="${routeOf('merchant-orders/MerchantOrders.dc.html')}"><span class="ico">${ic('cart', 16)}</span><span><b>Orders</b><small>Search by order ID, phone or customer</small></span></a>` : ''}
-        ${has('catalog') ? `<a class="it" href="${routeOf('products/AllProducts.dc.html')}"><span class="ico">${ic('box', 16)}</span><span><b>Products</b><small>Name, SKU or barcode</small></span></a>` : ''}
-        <a class="it" href="${routeOf('customers-crm/AllCustomers.dc.html')}"><span class="ico">${ic('user', 16)}</span><span><b>Customers</b><small>Name, phone or email</small></span></a>
-        ${has('commerce') ? `<a class="it" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('receipt', 16)}</span><span><b>Invoices</b><small>Invoice number or amount</small></span></a>` : ''}
-        ${has('comms') ? `<a class="it" href="${routeOf('merchant-inbox/MerchantInbox.dc.html')}"><span class="ico">${ic('user', 16)}</span><span><b>Inbox</b><small>Name, phone or message</small></span></a>` : ''}`;
+      const searchPop = o === 'search' ? `<div data-gs>${this.searchBody(L, has)}</div>` : '';
       const scanPop = `<div class="ph">Scan a barcode <span style="text-transform:none;letter-spacing:0;font-weight:var(--weight-medium)">USB scanner ready</span></div>
         <div class="scanbox">Point the camera at a barcode, or scan with the USB scanner</div>
         ${this._scanHit ? `<div class="hit" role="status"><span class="ok">${ic('check', 16, 2.5)}</span><span><b style="display:block">Baseus Car Phone Holder</b><span style="font-family:var(--font-data);font-size:11.5px;color:var(--muted)">8941200200214 · 40 in stock · ৳1,890</span></span></div>
@@ -315,6 +407,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const pText = L('Proposal: {n} on').replace('{n}', pOn);
       const pChip = pOn ? `<a class="pchip" href="/dev/proposal" aria-label="${esc(pText)}" title="${L('Proposal switches')}">${ic('flask', 15)}<span class="pl">${esc(pText)}</span><span class="pn" aria-hidden="true">${pOn}</span></a>` : '';
       const me = currentUser(), myRole = roleOf(me), titles = roleTitles(me);
+      const avatar = me.photo ? `<img src="${esc(me.photo)}" alt="">` : esc(me.initials);   // photo from My account (lib/myAccount.js)
       // Messenger: the latest chats (lib/inbox.js); picking one opens it as a chat window on this page (ChatDock.jsx)
       const showChats = has('comms') && canSee(me, 'inbox');
       const chatN = showChats ? unreadCount(getConvs()) : 0;
@@ -333,6 +426,9 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const plan = currentPlan();
       // the person's menu (role(s), edition, plan) with the "Set up" checks still to do; the area of this page
       const menu = navFor(me, { setup: this._setupList || [] });
+      // the search's "Search in" list: only kinds whose list page is in this person's menu (lib/globalSearch.js)
+      const scopes = this._gs ? this._gs.scopesFor(menu) : [['all', 'All']];
+      if (!scopes.some(([k]) => k === this._scope)) this._scope = 'all';
       const here = pageArea();
       const hereSetup = (menu.flatMap((g) => g.items).find((it) => it.id === here && it.setup) || {}).setup;
       const hidden = later();
@@ -344,12 +440,12 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       // start page choices: every page the person can open, by area (lib/team.js › landingChoices)
       const landing = landingOf(me.id);
       const landingOpts = `<option value=""${landing ? '' : ' selected'}>${L('My dashboard')}</option>` + landingChoices(me, menu).map((a) => `<optgroup label="${esc(L(a.area))}">${a.items.map((x) => `<option value="${esc(x.href)}"${x.href === landing ? ' selected' : ''}>${esc(L(x.label))}</option>`).join('')}</optgroup>`).join('');
-      const mePop = `<div style="display:flex;align-items:center;gap:10px;padding:8px"><span class="av">${esc(me.initials)}<i></i></span><span><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr" style="display:block;white-space:normal">${esc(titles.map((x) => L(x)).join(' + '))}</span><span class="mr">${esc(me.email)}</span></span></div>
+      const mePop = `<div style="display:flex;align-items:center;gap:10px;padding:8px"><span class="av">${avatar}<i></i></span><span><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr" style="display:block;white-space:normal">${esc(titles.map((x) => L(x)).join(' + '))}</span><span class="mr">${esc(me.email)}</span></span></div>
         <div class="hr"></div>
         <button class="it only-phone" data-act="help"><span class="ico">${ic('help', 16)}</span><span><b>${L('Help')}</b><small>${L('Help for this page')}</small></span></button>
         <a class="it" href="/my-dashboard"><span class="ico">${ic('user', 16)}</span><span><b>${L('My dashboard')}</b><small>${L('Your tasks, numbers and team for today')}</small></span></a>
         <a class="it" href="/tasks"><span class="ico">${ic('check', 16)}</span><span><b>${L('My tasks')}</b></span></a>
-        <a class="it" href="${routeOf('settings-console/SetSecurity.dc.html')}"><span class="ico">${ic('user', 16)}</span><span><b>${L('My profile')}</b><small>${L('Details, password and two-factor sign-in')}</small></span></a>
+        <a class="it" href="/my-account"><span class="ico">${ic('user', 16)}</span><span><b>${L('My account')}</b><small>${L('Details, password and two-step sign-in')}</small></span></a>
         <a class="it" href="${routeOf('settings-console/SetGeneral.dc.html')}"><span class="ico">${ic('gear', 16)}</span><span><b>${L('Store settings')}</b></span></a>
         ${has('online') ? `<a class="it only-narrow" href="${routeOf('storefront/Offers.dc.html')}"><span class="ico">${ic('store', 16)}</span><span><b>${L('View store')}</b></span></a>` : ''}
         ${has('commerce') ? `<a class="it only-narrow" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('receipt', 16)}</span><span><b>${L('Invoices')}</b></span></a>` : ''}
@@ -370,6 +466,10 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         <a class="it" href="/set-profile"><span class="ico">${ic('user', 16)}</span><span><b>${L('Profile type')}</b><small>${L('Switch to a team member’s profile')}</small></span></a>
         <div class="hr"></div>
         <button class="it" data-act="signout" style="width:100%;text-align:left"><span class="ico" style="color:#c2410c">${ic('out', 16)}</span><span><b>${L('Sign out')}</b></span></button>`;
+      // a re-render while typing in the search keeps the field focused with its caret
+      const ae = this.root.activeElement;
+      const typing = !!(ae && ae.matches && ae.matches('input[type="search"]'));
+      const caret = typing ? ae.selectionStart : null;
       this.root.innerHTML = `<style>${CSS}</style>
 <div class="bar${dark ? ' dark' : ''}" role="banner" style="--h:${esc(a('height', '56'))}px">
   <button class="ib menu" data-act="nav" aria-label="${L('Open menu')}" aria-controls="gc-nav">${ic('menu', 20)}</button>
@@ -377,8 +477,8 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
   <button class="helpbtn" data-act="help" aria-label="${L('Help for this page')}" title="${L('Help for this page')} (?)">${ic('help', 17)}<span>${L('Help')}</span></button>
   ${pChip}
   <div class="search wrap">
-    <div class="field"><select class="scope" aria-label="${L('Search in')}"><option>${L('All')}</option><option>${L('Orders')}</option><option>${L('Products')}</option><option>${L('Customers')}</option><option>${L('Invoices')}</option></select>
-      <span class="sic">${ic('search', 17)}</span><input type="search" placeholder="${esc(ph)}" aria-label="${L('Search')}" data-act="sfocus"><span class="kbd">⌘K</span>
+    <div class="field"><select class="scope" data-act="scope" aria-label="${L('Search in')}">${scopes.map(([k, l]) => `<option value="${k}"${k === this._scope ? ' selected' : ''}>${L(l)}</option>`).join('')}</select>
+      <span class="sic">${ic('search', 17)}</span><input type="search" placeholder="${esc(ph)}" aria-label="${L('Search')}" data-act="sfocus" value="${esc(this._q)}" role="combobox" aria-autocomplete="list" aria-expanded="${o === 'search'}" aria-controls="gs-list" autocomplete="off"><span class="kbd">⌘K</span>
       <button class="scanbtn" data-act="scan" ${exp('scan')} aria-label="${L('Scan a barcode')}">${ic('scan', 16)}<span class="lbl">${L('Scan')}</span></button></div>
     ${pop('search', searchPop, 'left:0;right:0')}${pop('scan', scanPop, 'right:0;width:340px')}
   </div>
@@ -392,7 +492,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
   <button class="ib aibtn" data-act="gridai" aria-label="${L('Ask GridAI')}">${ic('sparkles')}</button>
   ${showChats ? `<span class="wrap"><button class="ib chatbtn" data-act="chats" ${exp('chats')} aria-label="${L('Chats')}${chatN ? ', ' + L('{n} unread').replace('{n}', chatN) : ''}">${ic('chat')}${chatN ? `<span class="badge chat-n">${chatN}</span>` : ''}<span class="tip">${L('Chats')}</span></button>${pop('chats', chatPop, 'right:-48px;width:360px')}</span>` : ''}
   <span class="wrap"><button class="ib" data-act="notes" ${exp('notes')} aria-label="${L('Notifications')}${unread ? ', ' + unread + ' unread' : ''}">${ic('bell')}${unread ? `<span class="badge">${unread}</span>` : ''}<span class="tip">${L('Notifications')}</span></button>${pop('notes', notePop, 'right:-8px;width:360px')}</span>
-  <span class="wrap" style="margin-left:auto"><button class="me" data-act="me" ${exp('me')} aria-label="${L('Account menu')}, ${esc(me.name)}"><span class="av">${esc(me.initials)}<i></i></span><span class="mnm"><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr">${esc(L(titles[0] || myRole.title))}${titles.length > 1 ? ' +' + (titles.length - 1) : ''}</span></span><span class="chev">${ic('chev', 16)}</span></button>${pop('me', mePop, 'right:0;width:300px')}</span>
+  <span class="wrap" style="margin-left:auto"><button class="me" data-act="me" ${exp('me')} aria-label="${L('Account menu')}, ${esc(me.name)}"><span class="av">${avatar}<i></i></span><span class="mnm"><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr">${esc(L(titles[0] || myRole.title))}${titles.length > 1 ? ' +' + (titles.length - 1) : ''}</span></span><span class="chev">${ic('chev', 16)}</span></button>${pop('me', mePop, 'right:0;width:300px')}</span>
 </div>${setupBar}`;
       // phones: while a menu is open the page behind it doesn't scroll (a swipe moves the menu, not the page)
       try { document.documentElement.classList.toggle('gc-pop-open', !!o && window.matchMedia('(max-width: 640px)').matches); } catch { /* ignore */ }
@@ -415,7 +515,20 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       on('[data-act="me"]', 'click', () => this.toggle('me'));
       on('[data-act="help"]', 'click', () => { this._open = ''; this.render(); window.dispatchEvent(new CustomEvent('gc:help')); });
       on('[data-act="gridai"]', 'click', () => { this._open = ''; this.render(); window.dispatchEvent(new CustomEvent('gc:gridai', { detail: { q: '' } })); });
-      on('[data-act="sfocus"]', 'focus', () => { if (this._open !== 'search') { this._open = 'search'; this.render(); const i = this.root.querySelector('input'); if (i) i.focus(); } });
+      const openSearch = () => { if (this._open !== 'search' && !this._squelch) { this._open = 'search'; this._sel = 0; this._moved = false; this.loadSearch(); this.render(); } };
+      on('[data-act="sfocus"]', 'focus', openSearch);
+      on('[data-act="sfocus"]', 'click', openSearch);
+      on('[data-act="sfocus"]', 'input', (e) => {
+        this._q = e.currentTarget.value; this._sel = 0; this._moved = false;
+        if (this._open !== 'search') { this._open = 'search'; this.loadSearch(); this.render(); } else this.refreshSearch();
+      });
+      on('[data-act="sfocus"]', 'keydown', (e) => this.searchKey(e));
+      on('[data-act="scope"]', 'change', (e) => {
+        this._scope = e.currentTarget.value; this._sel = 0; this._moved = false; this._open = 'search'; this.render();
+        const i = this.root.querySelector('input[type="search"]'); if (i) { this._squelch = true; i.focus(); this._squelch = false; }
+      });
+      if (o === 'search') this.bindSearchBody();
+      if (typing) { const i = this.root.querySelector('input[type="search"]'); if (i) { this._squelch = true; i.focus(); try { i.setSelectionRange(caret, caret); } catch { /* ignore */ } this._squelch = false; } }
       on('[data-act="readall"]', 'click', () => { this._unread = 0; this.render(); });
       on('[data-act="upload"]', 'click', () => { this.close(true); toast('Choose a file to upload', { tone: 'info' }); });
       on('[data-act="cam"]', 'click', () => { this._scanHit = true; this.render(); });

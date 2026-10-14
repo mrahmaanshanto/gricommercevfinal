@@ -7,7 +7,7 @@ import { SetTips as __SetTips } from './SetChrome';
 import React from 'react';
 import { Icon as __Icon } from '@/runtime/dc';
 import { SettingsSwitcher as __SettingsSwitcher } from '@/shell/Shell';
-import __SetChrome, { SettingsLogic as __SettingsLogic, SetIn as __In, SetErr as __Err, SetSw as __Sw, SetSeg as __Seg, SetSaveBar as __SaveBar } from '@/screens/settings-console/SetChrome';
+import __SetChrome, { SettingsLogic as __SettingsLogic, SetIn as __In, SetErr as __Err, SetSw as __Sw, SetSaveBar as __SaveBar } from '@/screens/settings-console/SetChrome';
 import __SetRail from '@/screens/settings-console/SetRail';
 import __SetTopbar from '@/screens/settings-console/SetTopbar';
 
@@ -25,16 +25,8 @@ class Component extends __SettingsLogic {
     to_be_shipped: {l: "To be shipped", d: true},
     shipped: {l: "Shipped", d: true},
     cancelled: {l: "Cancelled", d: true},
-    products_need_approval: {l: "Products need approval", d: true},
-    brands_need_approval: {l: "Brands need approval", d: true},
-    categories_need_approval: {l: "Categories need approval", d: true},
-    attributes_need_approval: {l: "Attributes need approval", d: false},
-    attribute_values_need_approval: {l: "Attribute values need approval", d: false},
-    sellers_may_add_their_own_delivery_men: {l: "Sellers may add their own delivery men", d: true},
     recently_viewed_products: {l: "Recently viewed products", d: true},
-    applies_to: {l: "Applies to", d: "Platform orders only"},
     customer_id_prefix: {l: "Customer ID prefix", d: "SLC-", req: true},
-    seller_id_prefix: {l: "Seller ID prefix", d: "SLS-", req: true},
     admin_id_prefix: {l: "Admin ID prefix", d: "SLA-", req: true},
     order_code_prefix: {l: "Order code prefix", d: "ORD-", req: true},
     otp_length: {l: "OTP length", d: "6", k: "int", req: true, check: (x) => (+x < 4 || +x > 8 ? "Choose an OTP length from 4 to 8 digits." : "")},
@@ -79,7 +71,7 @@ export default class SetPreferenceScreen extends Component {
                         <span className="gc-pagehead__about" hidden>Nothing is applied until you choose Save changes.</span>
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />Configured · 22 settings</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />Configured · 10 settings</span>
                         <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Saved a moment ago</span>
                       </span>
                     </header>
@@ -89,7 +81,7 @@ export default class SetPreferenceScreen extends Component {
                           <h2 className="set-title">Identifiers</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>4 settings</span>
+                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>3 settings</span>
                         </span>
                       </div>
                       <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px", padding: "16px" }}>
@@ -101,15 +93,6 @@ export default class SetPreferenceScreen extends Component {
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "160px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="customer_id_prefix" labelled desc /></span>
                           <__Err f={v.f} n="customer_id_prefix" />
                           <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "7px", height: "26px", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Next ID<b style={{ fontFamily: "var(--font-data)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.f.get("customer_id_prefix", "SLC-")}004182</b></span>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                            <label htmlFor={v.f.id("seller_id_prefix")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Seller ID prefix <span className="set-req" aria-hidden="true">*</span></label>
-                          </span>
-                          <span id={v.f.id("seller_id_prefix") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Used in seller payouts and commission statements.</span>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "160px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="seller_id_prefix" labelled desc /></span>
-                          <__Err f={v.f} n="seller_id_prefix" />
-                          <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "7px", height: "26px", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Next ID<b style={{ fontFamily: "var(--font-data)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.f.get("seller_id_prefix", "SLS-")}000246</b></span>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
@@ -137,7 +120,7 @@ export default class SetPreferenceScreen extends Component {
                           <h2 className="set-title">Security</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>7 settings</span>
+                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>6 settings</span>
                         </span>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", padding: "6px 18px 18px" }}>
@@ -188,11 +171,6 @@ export default class SetPreferenceScreen extends Component {
                           </span>
                           <__Sw f={v.f} n="secure_delivery_otp" />
                         </div>
-                        <div className="set-flow" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 0 12px 0" }}>
-                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Applies to</span>
-                          <__Seg f={v.f} n="applies_to" opts={["Platform orders only","All sellers"]} />
-                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Turning this on for all sellers notifies 246 sellers by email.</span>
-                        </div>
                       </div>
                     </section>
                     <section id="s2" className="ix-card set-card">
@@ -207,60 +185,6 @@ export default class SetPreferenceScreen extends Component {
                       <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", padding: "16px 18px" }}>
                         <span style={{ flex: "1", minWidth: "200px", fontSize: "var(--text-sm)", color: "var(--text-body)" }}>SMS and email for each order event now live in Order notifications.</span>
                         <a href="/set-notifications" className="gc-btn gc-btn--sm gc-btn--neutral">Open Order notifications</a>
-                      </div>
-                    </section>
-                    <section id="s3" className="ix-card set-card">
-                      <div className="set-head">
-                        <span style={{ display: "block" }}>
-                          <h2 className="set-title">Seller approvals</h2>
-                        </span>
-                        <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>6 settings</span>
-                        </span>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", padding: "6px 18px 18px" }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0" }}>
-                          <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Products need approval</span>
-                            <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>246 sellers · 38 products waiting. Off means seller products go live immediately.</span>
-                          </span>
-                          <__Sw f={v.f} n="products_need_approval" />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
-                          <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Brands need approval</span>
-                            <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Prevents duplicate and misspelled brand records in the catalogue.</span>
-                          </span>
-                          <__Sw f={v.f} n="brands_need_approval" />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
-                          <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Categories need approval</span>
-                            <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Sellers may request a category; your team places it in the tree.</span>
-                          </span>
-                          <__Sw f={v.f} n="categories_need_approval" />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
-                          <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Attributes need approval</span>
-                            <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Keeps the filter set on the storefront clean.</span>
-                          </span>
-                          <__Sw f={v.f} n="attributes_need_approval" />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
-                          <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Attribute values need approval</span>
-                            <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Values like “XL” or “Matte black” added by sellers.</span>
-                          </span>
-                          <__Sw f={v.f} n="attribute_values_need_approval" />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
-                          <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Sellers may add their own delivery men</span>
-                            <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Seller-managed riders can accept secure-delivery OTPs for that seller’s own orders only.</span>
-                          </span>
-                          <__Sw f={v.f} n="sellers_may_add_their_own_delivery_men" />
-                        </div>
                       </div>
                     </section>
                     <section id="s4" className="ix-card set-card">

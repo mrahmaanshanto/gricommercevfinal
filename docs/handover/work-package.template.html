@@ -1,0 +1,191 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Grid Commerce · Work package for Mostafiz vai</title><style>
+@page{size:A4;margin:16mm 14mm 18mm}
+body{font-family:Poppins,"Segoe UI",Arial,sans-serif;font-size:10.8px;line-height:1.55;color:#0d1b3d;margin:0}
+h1{font-size:26px;margin:0 0 6px;line-height:1.2}h2{font-size:17px;margin:20px 0 8px;color:#003087;page-break-after:avoid}
+h3{font-size:12.5px;margin:12px 0 5px;page-break-after:avoid}h4{font-size:11px;margin:10px 0 4px;color:#33415e;page-break-after:avoid}p{margin:0 0 7px}
+.eyebrow{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#0084bd;font-weight:600}
+.lead{font-size:12.5px;color:#33415e}
+.box{border:1px solid #dce2ee;border-radius:10px;padding:9px 13px;margin:9px 0;break-inside:avoid}
+.ai{background:#f3f1fe;border-color:#d9d3fb}.ai b.t{color:#4b3cc4}
+.why{background:#eef6fd;border-color:#cfe4f7}.stop{background:#fdf6e7;border-color:#f3dfb2}.no{background:#fdf0f0;border-color:#f5d0d0}.ok{background:#ecf8f0;border-color:#cdebd6}
+.prompt{font-family:Consolas,"JetBrains Mono",monospace;font-size:9.4px;background:#0d1b3d;color:#e7ecf7;border-radius:8px;padding:10px 12px;white-space:pre-wrap;margin:6px 0 10px;break-inside:avoid}
+.prompt .h{color:#7fd3ff;font-weight:700;display:block;margin-bottom:4px;font-family:Poppins,Arial,sans-serif}
+table{width:100%;border-collapse:collapse;font-size:9.8px;margin:5px 0 9px}th,td{border-bottom:1px solid #e3e8f1;padding:3.5px 6px;text-align:left;vertical-align:top}th{color:#5a6785;font-weight:600}
+tr{break-inside:avoid}
+.flow{display:flex;gap:6px;margin:10px 0}.flow div{flex:1;border:1px solid #dce2ee;border-radius:8px;padding:7px;font-size:9.3px;text-align:center}.flow b{display:block;font-size:10.5px;color:#003087}
+.y{color:#15803d;font-weight:600}.n{color:#b91c1c;font-weight:600}.p{color:#b45309;font-weight:600}
+ul,ol{margin:3px 0 7px;padding-left:17px}li{margin-bottom:2px}
+.pb{page-break-before:always}.small{font-size:9.3px;color:#5a6785}
+.two{display:flex;gap:10px}.two>div{flex:1;min-width:0}
+code{font-family:Consolas,monospace;font-size:9.2px;background:#f1f4fa;padding:0 3px;border-radius:3px}
+.mono{font-family:Consolas,monospace;font-size:9px;color:#003087}
+.bar{display:inline-block;height:6px;border-radius:3px;background:#15803d;vertical-align:middle}
+</style></head><body>
+
+<span class="eyebrow">Grid Commerce · GridGo Technologies · 14 Oct 2026</span>
+<h1>Work package for Mostafiz vai</h1>
+<p class="lead">From Nayeem. Give this PDF to your Claude (Claude Code on your Grid Commerce repo) together with the update zip. It holds: the review of your 12 Oct build and what is already fixed, the four new modules to build, the launch should-haves, and how to send the work back. Your Claude will walk you through it and show the right prompt at each step.</p>
+
+<div class="flow">
+<div><b>Stage 1</b>Apply the 74 fixes, check, deploy</div>
+<div><b>Stage 2</b>4 new modules: SEO, Storefront builder, Services, Business email</div>
+<div><b>Stage 3</b>Launch should-haves + loose ends</div>
+<div><b>Stage 4</b>Change record + zip back to Nayeem</div>
+<div><b>Then</b>Nayeem merges and deploys, then module separation</div>
+</div>
+
+<div class="box ai"><b class="t">For Claude, reading this PDF on Mostafiz vai's computer</b>
+<ol>
+<li>You are guiding Mostafiz vai (COO, designs the Grid Commerce UI) through this package in his Grid Commerce repo. Use simple words; keep messages short.</li>
+<li>Go stage by stage, in order. At the start of each stage and each module, show him: what it is, why, rough time, and the prompt from this PDF (exactly). Start only after he says go. Before building a module, show the screen list and wait for approval.</li>
+<li>At every <b>STOP</b> box, stop and ask. At the end of each stage, show a done/left table and the next prompt. If he comes back later, read this PDF again and continue from where the change records end.</li>
+<li>Rules: front end and browser-side logic only (demo data in the browser like the rest of the app; where a server is needed, build the screens and say so in a code comment, never with a fake "done" message). Follow <code>AGENTS.md</code> and <code>CLAUDE.md</code> (design tokens, IndexKit, short plain copy, English + Bangla strings, prerender-safe dates; new pages go into <code>registry.js</code>, the menu and a module in <code>edition.js</code>). Before calling anything done: <code>npm run build</code>, <code>npx tsc --noEmit</code>, <code>npm run check:screens</code>, <code>npm run test:nav</code> pass and the pages are checked in a browser at 1440 px and 390 px.</li>
+<li>Keep a plain-language change record per feature (Stage 4 format) as you go, not at the end.</li>
+<li>Deploy only where Mostafiz vai tells you. The package ends at Stage 4: say "Done — send this zip to Nayeem."</li>
+</ol></div>
+
+<h2>1 · Where the product stands (review of your 12 Oct build)</h2>
+<p>Nayeem's team reviewed every area in the code and on the running app: 244 findings. All 74 must-fix items are now fixed on Nayeem's copy (68 fully, 6 partly because the rest needs the backend). Scores are from the review, before the fixes.</p>
+{{REVIEW_TABLE}}
+<div class="two"><div class="box ok"><b>Strong already (keep):</b> online order flow and Order work, POS register, Inbox, the one promotion engine, the money ledger, HR, super admin billing and the merchant 360 page.</div>
+<div class="box no"><b>Patterns that caused most findings:</b> buttons that only pretended, demo dates stuck in September, picture-only pages on fixed data, settings saved but ignored, the same setup in many places, leftovers from other products. Watch for these in new work.</div></div>
+<p class="small">Full list of the 74 fixes and every remaining item: Appendix A and B at the end. Detail per ID (evidence, files): <code>docs/review/2026-10-13-full-review.md</code>. Before/Now pictures of every fix: the Phase 1 change record PDF in the zip.</p>
+
+<h2 class="pb">Stage 1 · Apply and check the 74 fixes, then deploy</h2>
+<p><b>Why:</b> your build and Nayeem's copy must match before new work starts, or every later change will conflict. <b>Time:</b> 1–2 hours.</p>
+<ol><li>Unzip the update zip and read its <code>README-for-Claude.md</code>.</li>
+<li>New branch → <code>git apply --3way changes.patch</code> → resolve conflicts with the full copies in <code>files/</code> (keep your newer work, add Nayeem's) → delete the files in <code>deleted.txt</code>.</li>
+<li>Run build, tsc, check:screens, test:nav.</li>
+<li>Spot-check in the browser:</li></ol>
+<table><tr><th>#</th><th>Check</th><th>Where</th></tr>
+<tr><td>1</td><td>Retail sales continue after September; a ৳780 cable rings up at ৳780 (VAT inside)</td><td>Home and POS with <code>?edition=retail-wholesale</code></td></tr>
+<tr><td>2</td><td>Save as draft keeps a draft; date filter and sort on Orders</td><td>Orders</td></tr>
+<tr><td>3</td><td>Store pages, menus, product reviews, landing pages list, real offers page</td><td>Online Store</td></tr>
+<tr><td>4</td><td>COD confirmation and delivery issues queues; checkout creates a real order</td><td>Orders › Order work; /checkout</td></tr>
+<tr><td>5</td><td>Top-bar search; My account; Users &amp; roles (a custom role changes the menu); Import data</td><td>Top bar; Settings</td></tr>
+<tr><td>6</td><td>Live stock in products; categories save; PO approval; barcode labels; IMEI on receiving</td><td>Products, Inventory</td></tr>
+<tr><td>7</td><td>Phone app needs sign-in; new-order alert; edit an order on the phone</td><td>/app</td></tr>
+<tr><td>8</td><td>Super admin sells Online / Retail / Retail + Online / Connect; store access session; role limits</td><td>/admin</td></tr>
+<tr><td>9</td><td>Wholesale work (only with <code>NEXT_PUBLIC_WHOLESALE=true</code> on a local run): price lists, sales order, quotes, collections</td><td>Orders</td></tr></table>
+<ol start="5"><li>Deploy the checked build to your Netlify site. Keep wholesale off on it (the switch is a partner decision).</li></ol>
+<div class="box stop"><b>STOP:</b> send Nayeem "74 fixes applied, checked, deployed at &lt;link&gt;" plus anything that looked wrong. Continue only after that.</div>
+<div class="prompt"><span class="h">Prompt 1 · Stage 1</span>Read the Grid Commerce work package PDF and README-for-Claude.md in the update zip. Make a new branch, apply changes.patch with git apply --3way, resolve conflicts using files/ (keep my newer work and add Nayeem's), delete the paths in deleted.txt, and run build, tsc, check:screens and test:nav until they pass. Then walk me through the 9 spot-checks in the PDF one by one in the browser. Don't deploy until I say so.</div>
+
+<h2 class="pb">Stage 2 · Four new modules</h2>
+<p><b>Order and why:</b> C · SEO first (smallest, and its SEO panel is reused by the storefront builder) → A · Storefront builder (largest; the main thing merchants judge) → B · Services (new revenue; reuses store access sessions) → D · Business email (new revenue; needs Domains). Rough time with Claude: C 1–2 days, A 4–6 days, B 2–3 days, D 2–3 days.</p>
+<p><b>One rule for all four: fewer, better options.</b> Grid Commerce's advantage is ease of use for large shops. Every option must earn its place; good defaults beat settings.</p>
+
+<h3>Module C · SEO controls (store-wide and on every page type)</h3>
+<div class="box why"><b>Why:</b> an SEO manager's checklist for custom websites lists the controls SEO staff need on every editable page. Grid Commerce has some of them in some places (meta title/description on pages, posts, products; canonical only on posts), none on categories or landing pages, and nothing for link nofollow, custom schema, redirects or sitemaps. SEO is also a paid service in Module B, so the tools must be good enough for an expert to work in.</div>
+<h4>C1 · One shared SEO panel (same component everywhere)</h4>
+<table><tr><th style="width:34%">Control</th><th>Behaviour</th><th>Pages</th><th>Posts</th><th>Products</th><th>Categories</th><th>Landing</th></tr>
+<tr><td>Meta title</td><td>Defaults to the page title; length meter (≈60)</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
+<tr><td>Meta description</td><td>Separate from content; length meter (≈155)</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
+<tr><td>Links: follow / nofollow / sponsored / ugc, new tab</td><td>Per link in the editor (visual + HTML view); kept after save; separate from page robots</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td></tr>
+<tr><td>Image alt text</td><td>Featured and in-content images; warns when missing</td><td class="p">Part</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
+<tr><td>Schedule publish</td><td>Date + time, shows Asia/Dhaka; reschedule/cancel; private until then</td><td class="n">No</td><td class="y">Yes</td><td class="p">Check</td><td>—</td><td class="n">No</td></tr>
+<tr><td>Custom schema (JSON-LD)</td><td>Paste or upload .json; validate; edit/remove; merges with auto schema without duplicates</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td></tr>
+<tr><td>Canonical URL</td><td>Defaults to the link; clearing restores the default</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td><td class="n">No</td></tr>
+<tr><td>Robots</td><td>index/noindex and follow/nofollow separately; default index, follow</td><td class="p">Part</td><td class="p">Part</td><td class="p">Part</td><td class="n">No</td><td class="n">No</td></tr>
+<tr><td>Open Graph</td><td>OG title, description, image; default to SEO fields + featured image; own overrides</td><td class="n">No</td><td class="p">Part</td><td class="n">No</td><td class="n">No</td><td class="n">No</td></tr></table>
+<p class="small">Yes/Part/No from a quick code check on 14 Oct — confirm before building. Panel extras: Google result preview (exists in Settings › SEO, reuse), focus keyword with simple checks, Bangla-friendly URL handle (keep Bangla or transliterate).</p>
+<h4>C2 · Automatic schema (so merchants don't have to write JSON)</h4>
+<p>Product (name, image, brand, SKU/GTIN, offers with price in BDT and availability from live stock, aggregate rating from Reviews), BreadcrumbList, Organization/LocalBusiness (from Settings › General: name, logo, address, phone, map), Article (blog), FAQ (when a page has an FAQ block). Custom schema of the same type replaces the automatic one; never output both.</p>
+<h4>C3 · Store-wide SEO tools (Settings › SEO, or Online Store › SEO)</h4>
+<ul><li><b>Redirects:</b> 301/302 list, add/import CSV, auto-create when a page/product/category/post handle changes, loop and chain warnings (review item ON-F19).</li>
+<li><b>404 log:</b> missed addresses with hit counts → one click to create a redirect (demo data).</li>
+<li><b>Sitemap:</b> which types are included, excluded noindex items, last updated; view the list.</li>
+<li><b>robots.txt:</b> safe default, editable with a warning before blocking the whole site.</li>
+<li><b>Bulk SEO editor:</b> a grid (like Bulk edit) for titles, descriptions, handles and image alt across products/categories/pages.</li>
+<li><b>SEO health:</b> a score per item and a list of issues across the store (missing description, duplicate titles, too long, missing alt, noindex by mistake, broken internal links), each with "Fix".</li></ul>
+<div class="box no"><b>Don't build:</b> keyword-rank tracking, backlink tools, AI-written meta for every product by default (offer it per item, reviewed).</div>
+<p><b>Done when:</b> the same panel with all 9 controls is on pages, posts, products, categories and landing pages; the customer view of each outputs the right head tags with no duplicates (check the page source); a renamed product creates a redirect; the health list finds and fixes a missing description.</p>
+<div class="prompt"><span class="h">Prompt 2 · Module C, SEO</span>Build Module C "SEO controls" from the work package PDF. First check the Yes/Part/No table against the code and show me the real gaps. Then build: one shared SEO panel with all 9 controls (C1) used on store pages, blog posts, products, categories and landing pages; automatic schema (C2) that custom JSON-LD replaces without duplicates; and the store-wide tools (C3: redirects with auto-create on handle change, 404 log, sitemap view, robots.txt, bulk SEO editor, SEO health). Customer views must output the right head tags. Front end only, following AGENTS.md. Show me the screen list and wait for my go. Keep a change record per feature.</div>
+
+<h3 class="pb">Module A · Storefront builder (WoodMart-style, minimal)</h3>
+<div class="box why"><b>Why:</b> merchants judge a store builder by how their shop looks and how quickly they get there. Today Grid Commerce has Pages, Menus, Reviews, a landing-page builder and a super admin theme library, but no theme editor and no customer storefront drawn by a theme. Merchants who know WooCommerce themes like WoodMart expect a header builder, reusable blocks, layouts, a mega menu and one-click demos. WoodMart has 300+ options; most merchants touch 20. We build the core that makes a shop look professional, with strong presets.</div>
+<h4>How it fits together (one engine)</h4>
+<p><b>Preset (demo)</b> → sets <b>Theme settings</b> + a <b>Header</b> + <b>Layouts</b> (made of <b>sections</b>) + <b>HTML blocks</b> + menus and sample pages. Sections and HTML blocks are one shared library, also used by landing pages later. Super admin › Storefront themes decides which presets exist, which plans get them and what merchants may edit (switches already there).</p>
+<h4>A1 · Theme settings (Online Store › Theme) — options budget about 60</h4>
+<table><tr><th style="width:22%">Group</th><th>Options (keep to these)</th></tr>
+<tr><td>Brand &amp; colours</td><td>Primary, accent, text, background, sale badge colour (start from Settings › General brand colour); light/dark header; checked for contrast</td></tr>
+<tr><td>Typography</td><td>Heading + body font pairs (5 curated pairs incl. a Bangla font), base size S/M/L</td></tr>
+<tr><td>Layout</td><td>Site width (boxed / full / custom px), corner style (sharp / soft / round), button style (solid / outline), spacing (compact / comfortable)</td></tr>
+<tr><td>Product card</td><td>Image ratio, hover (second image / none), show rating, show stock, quick add on/off, sale badge style</td></tr>
+<tr><td>Product page</td><td>Gallery (thumbnails below / side / grid), sticky Add to cart on phones, show delivery charge + COD note, warranty, EMI line, specs table on/off, related products, reviews position</td></tr>
+<tr><td>Category page</td><td>Columns desktop/phone, filters (left / top / drawer), sort default, products per page, infinite scroll or pages</td></tr>
+<tr><td>Cart &amp; checkout look</td><td>Side cart or cart page, free-delivery progress bar, trust badges (bKash/Nagad/COD marks from Media)</td></tr>
+<tr><td>Footer</td><td>Pick a footer layout or HTML block; payment/delivery marks; copyright from Settings</td></tr>
+<tr><td>Extras</td><td>WhatsApp/Messenger chat button, announcement bar, cookie notice, Custom CSS (plan-gated, off by default)</td></tr></table>
+<p>Search box over options, live preview (desktop / phone toggle), draft → publish, undo to last published, Reset to preset.</p>
+<h4>A2 · Header builder</h4>
+<p>Desktop and mobile built separately. 3 rows (top bar / main / bottom) × 3 areas (left / centre / right). Elements: logo, main menu, category menu ("All categories" drop-down), search (with category picker), cart, account, wishlist, compare, language EN/বাং, phone/hotline, WhatsApp button, custom button, HTML block, social icons, divider/space. Per row: height, colours, sticky. Mobile: drawer menu contents, bottom navigation bar (Home, Categories, Cart, Account). Several saved headers; one default; a layout or page can pick another. Presets ship 3–4 ready headers.</p>
+<h4>A3 · HTML blocks</h4>
+<p>Reusable content blocks made with the existing block editor (Pages/Blog). Types: content, banner, mega-menu column, footer, product-page tab, category top/bottom text. List with type, "used in" and last edited; duplicate; safe delete (warns where used). Demo blocks: delivery info, size guide, warranty info, Eid banner, footer.</p>
+<h4>A4 · Layouts</h4>
+<p>Templates for Home, Product, Category, Page, Cart, Search, 404, built from sections: hero/slider, category tiles, product grid/carousel (by category, new, best sellers, on sale, hand-picked), offer banner, countdown/flash sale (reads Marketing › Flash sales), brands strip, reviews/testimonials (reads Reviews), blog posts, video, text + image, FAQ, newsletter, HTML block. Section settings are short (title, source, count, layout, colours). Conditions: all / a category / a product / a page. Draft, preview, publish, undo. Default layouts come with each preset.</p>
+<h4>A5 · Mega menu (on Online Store › Menus)</h4>
+<p>Any top item can open a mega menu: width (full / container / custom), 2–5 columns, each column a category list, link list, image banner or HTML block; optional promo image; mobile shows a normal list automatically. Show a live preview in the menu editor.</p>
+<h4>A6 · One-click demo import (presets)</h4>
+<p>Start with 3 presets from super admin's theme families: <b>Signal</b> (electronics, matches the demo shop), <b>Nokshi</b> (fashion), <b>Counter</b> (grocery/retail). Preview a preset live with the shop's own products; choose what to import (theme settings, header, layouts, HTML blocks, menus, sample pages — never products, customers or orders); a restore point is made first so one click undoes it. Show what will be replaced before import.</p>
+<div class="box no"><b>Don't build now:</b> theme code editor, popup builder, slider plugin, portfolio, maintenance mode, per-element animations, 40 header styles, page-builder-in-everything. Performance first: pages must stay fast on 3G phones (no heavy effects by default).</div>
+<p><b>Done when:</b> a merchant imports the Signal preset, changes colours and fonts, edits the header (desktop and phone), builds a mega menu and a home layout with 5 sections, previews on phone and desktop, publishes; the customer pages (home, product, category, offers, checkout, store pages) show it; undo restores the previous look; super admin's "merchant editing" switches hide what the plan doesn't allow.</p>
+<div class="prompt"><span class="h">Prompt 3 · Module A, Storefront builder</span>Build Module A "Storefront builder" from the work package PDF (A1-A6): theme settings with an options budget of about 60, search and live preview; header builder (desktop and mobile, 3 rows x 3 areas, the listed elements, several headers); HTML blocks on the existing block editor with "used in"; layouts from a shared section library with conditions; mega menu on Online Store › Menus; one-click demo import with Signal, Nokshi and Counter presets, choose-what-to-import and a restore point. Customer storefront pages must read it, and super admin's merchant-editing switches must limit it. Respect the "don't build now" list. Front end only. Show me the screen list and the order you'll build in, and wait for my go. Keep a change record per feature.</div>
+
+<h3 class="pb">Module B · Services (merchants buy expert help)</h3>
+<div class="box why"><b>Why:</b> merchants need help we can sell: SEO, branding, Meta and Google ads experts, custom store design, product uploading, setup and migration, content. A services shop inside Grid Commerce earns revenue, keeps merchants from leaving for agencies, and makes the product feel complete. Super admin already has a service catalogue and service income (Finance › Income). Store access sessions (built in Phase 1) let an expert work inside a merchant's store safely, with the owner's approval and a time limit.</div>
+<h4>B1 · Merchant side (menu: Services)</h4>
+<ol><li><b>Catalogue:</b> cards by category (Grow sales: SEO, Meta ads, Google ads · Look: branding, custom store design · Setup: product upload, migration, store setup · Content: product descriptions, photography guidance). Each service: what you get, packages (e.g. Starter / Standard / Pro with BDT price, delivery days, revisions, what's included), one-time or monthly (SEO and ads are monthly retainers), FAQs, sample work, rating.</li>
+<li><b>Order:</b> pick package and add-ons → short brief form made for that service (goals, competitors, links, brand files, budget for ads spend — kept separate from our fee) → pay (bKash / Nagad / card or GridCommerce credits; demo) → invoice with VAT as set in admin.</li>
+<li><b>My services:</b> each order shows status (Brief received → In progress → Waiting for you → In review → Delivered → Closed), due date, the expert, a message thread, files and deliverables, "Approve" or "Request a change" (revision count left), rating at the end. Monthly services show this month's report.</li>
+<li><b>Store access:</b> when a service needs to work in the store (product upload, SEO, design), the order asks the owner to approve a store access session with the right scope (e.g. Products only, Online Store only) and duration — uses the Phase 1 access sessions.</li></ol>
+<h4>B2 · Super admin side (Services area)</h4>
+<ul><li><b>Catalogue &amp; packages:</b> services, packages, add-ons, prices, delivery days, revision limits, brief form builder per service, which editions/plans see each service, publish/pause.</li>
+<li><b>Orders board:</b> new / in progress / waiting for merchant / in review / overdue / delivered; SLA timer that pauses while waiting for the merchant; priority; filters by service and expert.</li>
+<li><b>Experts:</b> internal staff and outside partners with skills, capacity, current load, rating, commission %; assign or auto-suggest by load; request store access on the merchant's behalf.</li>
+<li><b>Quality check:</b> optional review by a lead before delivery; revision tracking; scope-change requests become a paid add-on quote.</li>
+<li><b>Money:</b> income to Finance › Income (exists), partner payouts as liabilities, refunds (full before start, partial after, with reason and approval), monthly retainers billed with the subscription.</li>
+<li><b>Reports:</b> orders and revenue by service, on-time %, revisions per order, rating by service and by expert, repeat buyers.</li></ul>
+<div class="box no"><b>Watch out:</b> scope creep (fixed package scope, paid add-ons for more), merchants who go quiet (pause the SLA, auto-close after N days with notice), ad spend vs our fee (never mixed in one charge), experts seeing customer data (scoped, time-limited access only, logged).</div>
+<p><b>Done when:</b> a merchant buys "SEO Standard (monthly)", fills the brief, pays (demo), approves store access for Online Store only, chats with the expert, receives the first month's report and rates it; in super admin the order is assigned, the SLA pauses while waiting, delivery goes through QA, the income shows in Finance and the partner payout as owed.</p>
+<div class="prompt"><span class="h">Prompt 4 · Module B, Services</span>Build Module B "Services" from the work package PDF: merchant side B1 (catalogue with packages and monthly retainers, order with a per-service brief form and demo payment, My services with statuses, messages, deliverables, approve or request a change, rating, and store access approval using the existing access sessions) and super admin side B2 (catalogue and packages with a brief form builder, orders board with an SLA that pauses while waiting for the merchant, experts with load and commission, QA step, income to Finance › Income, partner payouts, refunds, reports). Reuse lib/admin/finance.js service catalogue and the support access sessions. Front end only. Show me the screen list and wait for my go. Keep a change record per feature.</div>
+
+<h3 class="pb">Module D · Business email</h3>
+<div class="box why"><b>Why:</b> businesses get name@theirshop.com from their hosting company. On Grid Commerce there is no separate host, so email must come from us, sold per mailbox. It is also a retention lock: a shop's email living on Grid Commerce makes leaving harder.</div>
+<div class="box stop"><b>Decision for the partners and Bablu vai (not for this front end):</b> run our own mail servers, or resell a provider (Zoho Mail, Google Workspace, Titan, or a self-hosted Mailcow). Reselling is far less risk (spam blacklists, deliverability, uptime, storage). Build the front end provider-neutral so either works.</div>
+<h4>D1 · Merchant side (Settings › Email, or its own menu item under Settings)</h4>
+<ol><li><b>Setup wizard:</b> needs a connected custom domain (link to Settings › Domains if none) → pick a plan → verify the domain (TXT) → DNS records to add (MX, SPF, DKIM, DMARC) with copy buttons and a live status per record (demo: turns green after a moment); if the domain is managed by Grid Commerce, "Add records for me".</li>
+<li><b>Mailboxes:</b> create (name, address, password or invite link, storage), reset password, require two-step sign-in, change storage, suspend, delete with a confirm and a 30-day restore. Connect to Users &amp; roles: inviting a staff member can create their mailbox; HR offboarding suspends it and forwards mail to the manager.</li>
+<li><b>Addresses:</b> aliases (info@ → owner), group addresses (sales@ → 3 people), forwarders (internal/external), catch-all, auto-reply/out-of-office.</li>
+<li><b>Use it:</b> "Open webmail" (opens the provider's webmail; demo page), phone/desktop setup (IMAP/SMTP/POP settings to copy, a QR code for phones), import old mail from the previous host (IMAP import wizard, demo progress).</li>
+<li><b>Plan &amp; usage:</b> mailboxes used/available, storage per mailbox, buy more mailboxes or storage (billed like other add-ons; monthly or yearly), sending limits, a simple spam/quarantine view.</li>
+<li><b>Shop emails:</b> order and notification emails are sent from the shop's own domain once DKIM/SPF are green (ties into Order notifications).</li></ol>
+<h4>D2 · Super admin side</h4>
+<ul><li>Mail plans and prices (per mailbox, storage tiers, included mailboxes per edition/plan, yearly discount); provider settings page (placeholder for the backend).</li>
+<li>Directory: all mail domains and mailboxes by store with DNS health, storage use and last sign-in; filters for problems.</li>
+<li>Abuse and limits: sending caps, spam complaints, suspend a mailbox or a domain with reason (logged, merchant notified).</li>
+<li>Money: email revenue vs provider cost per seat; usage alerts (near quota, failed DNS for 3+ days).</li></ul>
+<p><b>Done when:</b> a merchant connects a domain, sees all four DNS records go green (demo), creates 3 mailboxes, a sales@ group and an info@ alias, buys 10 GB more, sets up the phone app with the QR, and an HR offboarding suspends a mailbox; super admin sees the domain, usage, revenue and can suspend for abuse.</p>
+<div class="prompt"><span class="h">Prompt 5 · Module D, Business email</span>Build Module D "Business email" from the work package PDF, provider-neutral: merchant side D1 (setup wizard with domain check, DNS records MX/SPF/DKIM/DMARC with status, mailboxes with storage, two-step sign-in, suspend/delete with restore, links to Users & roles and HR offboarding, aliases, group addresses, forwarders, catch-all, auto-reply, webmail and IMAP/SMTP setup with QR, IMAP import wizard, plan and usage, buying mailboxes/storage, shop emails from the own domain) and super admin side D2 (mail plans and prices, directory with DNS health, abuse limits and suspension, revenue vs provider cost, usage alerts). Front end only with demo data. Show me the screen list and wait for my go. Keep a change record per feature.</div>
+
+<h2 class="pb">Stage 3 · Launch should-haves and loose ends</h2>
+<p><b>Why:</b> 130 should-have items remain; the ones below are what a merchant meets in the first month. The rest (Appendix B, not starred) wait until after launch. Detail per ID: <code>docs/review/2026-10-13-full-review.md</code>. Skip anything already done and say so. <b>Time:</b> 3–4 days.</p>
+{{LAUNCH_TABLE}}
+<p><b>Loose ends found while fixing:</b> Home's "today vs whole yesterday" figure; product VAT box not saved per product; order-link page adds VAT on top; demo customer's wrong "Gold" badge; IMEI step for quotes that become courier orders; 3 places that read the wholesale switch too early; GridAI floating button covering Save bars.</p>
+<div class="prompt"><span class="h">Prompt 6 · Stage 3</span>Do Stage 3 of the work package PDF: every starred launch item in its table and the loose ends. Read each ID's detail in docs/review/2026-10-13-full-review.md, skip anything already done (tell me which), and work area by area. Front end only, following AGENTS.md. Run build, tsc, check:screens and test:nav at the end. Keep a change record.</div>
+
+<h2>Stage 4 · Send the work back to Nayeem</h2>
+<ol><li><b>Change record PDF</b> for everything in Stages 2–3, in plain words: title ≤ 8 words; "Problem" or "What was missing" ≤ 20 words; "Now" ≤ 25 words; 2–4 "Try it yourself" steps; Before/Now screenshots. Use <code>tools/records/shoot.cjs</code> and <code>tools/records/build-pdf.cjs</code>; copy the format of <code>docs/records/phase1/</code>.</li>
+<li><b>NOTES.md:</b> done, partly done (and why), decisions Nayeem must make, anything you changed in Nayeem's 74 fixes.</li>
+<li><b>Zip</b> the whole project folder without <code>node_modules</code>, <code>.next</code> and <code>.git</code>, plus the PDF and NOTES.md: <code>GridCommerce-from-Mostafiz-&lt;date&gt;.zip</code>. Send it to Nayeem. He merges, checks, deploys, and starts module separation.</li></ol>
+<div class="prompt"><span class="h">Prompt 7 · Stage 4</span>Finish the work package: build the plain-language change-record PDF for everything done in Stages 2 and 3 with tools/records (same format as docs/records/phase1), write NOTES.md (done, partly done and why, decisions for Nayeem, anything changed in Nayeem's 74 fixes), run all checks once more, and zip the project folder without node_modules, .next and .git together with the PDF and NOTES.md as GridCommerce-from-Mostafiz-&lt;today&gt;.zip. Tell me when it's ready to send.</div>
+
+<h2>Decisions still open (three partners)</h2>
+<ul><li>Wholesale on at launch or later. · Editions and plans the super admin sells, and prices. · Prices for service packages and mailboxes. · Email: own servers or a reselling provider (with Bablu vai). · Menu: "Online store" is now "Landing pages"; the storefront builder lives in the Online Store area.</li></ul>
+
+<h2 class="pb">Appendix A · The 74 fixes already done (Phase 1)</h2>
+{{DONE_TABLE}}
+<h2 class="pb">Appendix B · Everything still open from the review (★ = launch set, Stage 3)</h2>
+{{OPEN_TABLE}}
+<p class="small">Grid Commerce is a GridGo Technologies partnership product. This package is front end only; real servers, mail hosting, payments and integrations are backend work.</p>
+</body></html>

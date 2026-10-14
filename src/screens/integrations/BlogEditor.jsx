@@ -32,6 +32,9 @@ import {
   categoryTree, saveCategory, seoScore, GALLERY, COVER_ICONS, VISIBILITY, ROLES, BLOG_BASE, SITE, youtubeId, toneOf,
 } from '@/lib/blog';
 import { BlogFrame, useBlog, queryParam, Cover, Avatar, PostStatus, PostPreview, ChipsInput, Swatches } from './blogShared';
+import SeoPanel, { SEO_PANEL_CSS } from '@/components/seo/SeoPanel';
+import { readSeo, setBlockLink } from '@/lib/seo';
+import { contextOf } from '@/lib/seoItems';
 
 const AUTOSAVE_MS = 4000;
 const clone = (x) => JSON.parse(JSON.stringify(x));
@@ -589,11 +592,6 @@ export default function BlogEditor() {
   const author = db.authors.find((a) => a.id === post.authorId);
   const authorChoices = db.authors.filter((a) => a.active || a.id === post.authorId);
   const slugClash = !!post.slug && slugTaken(post.slug, db.posts, post.id);
-  const metaTitle = post.seo.metaTitle || '';
-  const metaDesc = post.seo.metaDescription || '';
-  const serpTitle = cut(metaTitle || post.title || 'Untitled post', 60);
-  const serpDesc = cut(metaDesc || post.excerpt || 'Write a meta description: Google shows it under the title.', 160);
-  const ogImage = post.seo.ogImage || post.cover.src;
   const statusLine = (() => {
     if (isNew && !hasContent(post)) return <>New post · <b>not saved yet</b></>;
     if (kept && pending) return <>Changes kept on this device · {formatTime(savedAt)} · <b>press {primaryLabel} to put them live</b></>;
@@ -613,7 +611,7 @@ export default function BlogEditor() {
   );
 
   return (
-    <BlogFrame screen="BlogEditor" active={isNew ? 'blog-new' : 'blog-posts'} page={isNew ? 'New post' : 'Edit post'} css={CSS} narrow>
+    <BlogFrame screen="BlogEditor" active={isNew ? 'blog-new' : 'blog-posts'} page={isNew ? 'New post' : 'Edit post'} css={CSS + SEO_PANEL_CSS} narrow>
       <form onSubmit={(e) => e.preventDefault()} style={{ display: 'contents' }}>
         <RecordHeader back="/blog-posts" backLabel="All posts"
           title={isNew ? 'New post' : post.title || 'Untitled post'}
@@ -787,67 +785,13 @@ export default function BlogEditor() {
               </div>
             </Panel>
 
-            <Panel title="SEO" icon="search" extra={<span className={'gc-badge gc-badge--' + seo.tone}>{seo.score}</span>}>
-              <div className="be-score">
-                <div className="gc-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={seo.score} aria-label="SEO score"><div className="gc-progress__fill" style={{ width: seo.score + '%', background: `var(--${seo.tone === 'success' ? 'success' : seo.tone === 'warning' ? 'warning' : 'error'})` }} /></div>
-                <span className="bl-strong" style={{ fontFamily: 'var(--font-data)' }}>{seo.score}/100 · {seo.label}</span>
-              </div>
-              <div><label className="gc-label" htmlFor="bl-kw">Focus keyword</label><input id="bl-kw" className="gc-input" value={post.seo.focusKeyword} placeholder="e.g. best phone under 20000" onChange={(e) => setSeo({ focusKeyword: e.target.value })} /></div>
+            <SeoPanel kind="post" idPrefix="bl-seo" defaultOpen seo={readSeo('post', post)} onChange={setSeo} ctx={contextOf('post', post)}
+              extraChecks={seo.checks.filter((c) => ['length', 'headings', 'internal', 'readable'].includes(c.id)).map((c) => ({ ...c, level: 'warning' }))}
+              onAlt={(img, alt) => (img.cover ? setCover({ alt }) : setBlock(img.block, { alt }))}
+              onLink={(link, patch) => setPost((p) => ({ ...p, blocks: setBlockLink(p.blocks, link, patch) }))}
+              schedule={{ note: 'Set the date and time in Publish above (Bangladesh time).' }}>
               <div><label className="gc-label" htmlFor="bl-kws">More keywords</label><ChipsInput id="bl-kws" label="More keywords" value={post.seo.keywords || []} onChange={(keywords) => setSeo({ keywords })} placeholder="Related phrases, Bangla too" suggestions={allKeywords} /></div>
-              <div>
-                <label className="gc-label" htmlFor="bl-meta-title">SEO title</label>
-                <input id="bl-meta-title" className="gc-input" value={metaTitle} placeholder={post.title || 'Uses the post title'} onChange={(e) => setSeo({ metaTitle: e.target.value })} />
-                <Counter len={(metaTitle || post.title).length} min={50} max={60} />
-              </div>
-              <div>
-                <label className="gc-label" htmlFor="bl-meta-desc">Meta description *</label>
-                <textarea id="bl-meta-desc" className={'gc-input' + (bad('bl-meta-desc') ? ' gc-input--error' : '')} rows={3} value={metaDesc} placeholder="What the reader gets from this post, with the keyword once." onChange={(e) => setSeo({ metaDescription: e.target.value })} />
-                <Counter len={metaDesc.length} min={120} max={160} />
-              </div>
-              <div>
-                <label className="gc-label" htmlFor="bl-seo-slug">Address (slug)</label>
-                <input id="bl-seo-slug" className={'gc-input' + (slugClash ? ' gc-input--error' : '')} value={post.slug} style={{ fontFamily: 'var(--font-data)' }} onChange={(e) => onSlug(e.target.value)} onBlur={() => set({ slug: slugify(post.slug) })} />
-              </div>
-              <div>
-                <label className="gc-label" htmlFor="bl-canonical">Canonical URL</label>
-                <input id="bl-canonical" className="gc-input" value={post.seo.canonical} placeholder={`https://${BLOG_BASE}${post.slug || '…'}`} style={{ fontFamily: 'var(--font-data)' }} onChange={(e) => setSeo({ canonical: e.target.value.trim() })} />
-                <p className="gc-help">Only when this post is copied from another page.</p>
-              </div>
-              <Switch label="Hide from search engines" help="Adds noindex" on={post.seo.noindex} onChange={(v) => setSeo({ noindex: v })} />
-              <div>
-                <span className="gc-label">Google preview</span>
-                <div className="be-serp" aria-label="Google result preview">
-                  <div className="be-serp-site"><span className="be-fav" aria-hidden="true">G</span><div style={{ minWidth: 0 }}><span>Dazzle Shop</span><small>https://{SITE} › blog › {post.slug || '…'}</small></div></div>
-                  <div className="be-serp-title">{serpTitle}</div>
-                  <div className="be-serp-desc">{serpDesc}</div>
-                </div>
-                {post.seo.noindex ? <p className="gc-help gc-help--error">Hidden: this post will not show in Google.</p> : null}
-              </div>
-              <ul className="be-checks" aria-label="SEO checklist">
-                {seo.checks.map((c) => (
-                  <li key={c.id}>
-                    <Icon name={c.ok ? 'circle-check' : 'circle-x'} width="16" height="16" aria-hidden="true" style={{ color: c.ok ? 'var(--text-success)' : 'var(--text-danger)' }} />
-                    <span>{c.label}<span className="sr-only">{c.ok ? ': done' : ': to do'}</span>{c.ok ? null : <small>{c.tip}</small>}</span>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
-
-            <Panel title="Social share" icon="share-2" open={false}>
-              <div><label className="gc-label" htmlFor="bl-og-title">Share title</label><input id="bl-og-title" className="gc-input" value={post.seo.ogTitle} placeholder={metaTitle || post.title || 'Uses the SEO title'} onChange={(e) => setSeo({ ogTitle: e.target.value })} /></div>
-              <div><label className="gc-label" htmlFor="bl-og-desc">Share description</label><textarea id="bl-og-desc" className="gc-input" rows={2} value={post.seo.ogDescription} placeholder={metaDesc || post.excerpt || 'Uses the meta description'} onChange={(e) => setSeo({ ogDescription: e.target.value })} /></div>
-              <div>
-                <label className="gc-label" htmlFor="bl-og-img">Share image</label>
-                <select id="bl-og-img" className="gc-input gc-select" value={post.seo.ogImage} onChange={(e) => setSeo({ ogImage: e.target.value })}>
-                  <option value="">Same as the cover</option>
-                  {GALLERY.map((g) => <option key={g.id} value={g.src}>{g.label}</option>)}
-                </select>
-              </div>
-              <div className="be-og" aria-label="Facebook share preview">
-                <Cover cover={{ ...post.cover, src: ogImage }} />
-                <div className="be-ogtext"><small>{SITE}</small><b>{cut(post.seo.ogTitle || metaTitle || post.title || 'Untitled post', 70)}</b><p>{cut(post.seo.ogDescription || metaDesc || post.excerpt || '', 110)}</p></div>
-              </div>
-            </Panel>
+            </SeoPanel>
 
             <Panel title="Related products" icon="shopping-bag" open={relatedList.length > 0} extra={relatedList.length ? <span className="gc-badge gc-badge--slate">{relatedList.length}</span> : null}>
               <div className="bl-row">
@@ -874,3 +818,6 @@ export default function BlogEditor() {
     </BlogFrame>
   );
 }
+
+// The block editor is shared with Online Store › Pages (screens/online-store/StorePageEdit.jsx).
+export { CSS as BLOCK_EDITOR_CSS, BlockEditor, AddMenu };

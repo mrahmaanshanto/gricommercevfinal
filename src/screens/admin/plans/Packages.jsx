@@ -1,9 +1,9 @@
 'use client';
 // Packages (/admin/packages?tab=online) — what GridCommerce sells. Title row (Export, New custom package), four key
 // figures, the changes waiting for a second person, then one card per tab:
-//   Online · Retail · Wholesale   the live version's three plans side by side (price, stores and their plan revenue,
-//                                 limits, what each module set does), then the versions and drafts of the ladder
-//   Communication only            the Connect edition's own family (lib/admin/packages.js), same layout
+//   Online · Retail · Retail + Online · Connect   the product's editions (lib/edition.js): the live version's three
+//                                 plans (Starter, Growth, Business — lib/plans.js) side by side (price, stores and their
+//                                 plan revenue, limits, what each module does), then the versions and drafts
 //   Add-ons                       ADDONS with today's price, a change waiting to start, stores billed; edit the price
 //   Custom packages               a named set of modules for one merchant at an agreed price; assign puts it on the
 //                                 store's bill (billing.addItem), end takes it off (billing.endItem)
@@ -18,27 +18,27 @@ import { Sheet, StatusBadge, EmptyState, InfoTip } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, KV } from '@/components/ui/IndexKit';
 import { downloadCsv } from '@/lib/reports/period';
 import { dmy, ago } from '@/lib/platform/util';
-import { SETS, MODULES, LIMIT_KEYS, ADDONS, TRIALABLE, moduleBy } from '@/lib/platform/catalogue';
+import { SETS, MODULES, LIMIT_KEYS, ADDONS, TRIALABLE, LADDERS, LADDER_IDS, moduleBy, inEdition } from '@/lib/platform/catalogue';
 import { diff } from '@/lib/platform/plans';
 import { subState, isLiveStore } from '@/lib/platform/billing';
 import {
-  COMMS, COMMS_LIMITS, COMMS_MODULES, FAMILIES, AFTER, familyLabel, planIdsOf, planNameOf, afterLabel,
-  liveOf, versionsOf, draftsOf, pendingDrafts, planStats, setRuleOf, commsDiff, addonPrice, addonStats, trialRule,
+  FAMILIES, AFTER, familyLabel, planIdsOf, planNameOf, afterLabel,
+  liveOf, versionsOf, draftsOf, pendingDrafts, planStats, setRuleOf, addonPrice, addonStats, trialRule,
   customList, customStatus, listPriceOf, saveCustom, assignCustom, endCustom, setTrialPackage, packageFacts,
 } from '@/lib/admin/packages';
 import { AdminShell, usePlatform } from '../AdminShell';
 import { PK_CSS, usePackages, money, limitText, plural, Rule, Field, ctl, Row, PriceForm, TrialRuleForm, toNum } from './pkgShared';
 
 const TABS = [
-  ['online', 'Online'], ['retail', 'Retail'], ['wholesale', 'Wholesale'], ['comms', 'Communication only'],
+  ...LADDERS.map((l) => [l.id, l.label]),
   ['addons', 'Add-ons'], ['custom', 'Custom packages'], ['trials', 'Trial packages'],
 ];
 const TAB_KEYS = TABS.map((x) => x[0]);
 const DRAFT_STATE = { draft: ['Draft', 'neutral'], pending: ['Waiting for approval', 'warning'], rejected: ['Rejected', 'error'], approved: ['Approved', 'success'] };
 const SIGN = { '+': 'is-add', '−': 'is-del', '~': 'is-chg' };
 const editHref = (family, plan, draft) => `/admin/packages/edit?ladder=${family}&plan=${plan}${draft ? '&draft=' + draft : ''}`;
-/** Sets shown on a ladder: the cores, its own segment set, and the sets every plan decides about. */
-const setsFor = (family) => SETS.filter((s) => !s.ladder || s.ladder === family);
+/** Rows shown for an edition: platform core, the product modules the edition uses, credit add-ons. */
+const setsFor = (family) => SETS.filter((s) => s.id !== 'service' && (!s.product || inEdition(family, s.id)));
 
 const CSS = `
 .pkp-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3)}
@@ -74,7 +74,7 @@ function versionDiff(family, prev, ver) {
   for (const p of planIdsOf(family)) {
     const a = prev.plans[p], b = ver.plans[p];
     if (!a || !b) continue;
-    for (const [s, text] of (family === COMMS ? commsDiff(a, b) : diff(a, b))) out.push([s, `${b.name}: ${text}`]);
+    for (const [s, text] of diff(a, b)) out.push([s, `${b.name}: ${text}`]);
   }
   return out;
 }
@@ -84,8 +84,7 @@ function FamilyPanel({ db, data, t, family }) {
   const live = liveOf(db, data, family, t);
   const plans = planIdsOf(family);
   const stats = Object.fromEntries(plans.map((p) => [p, planStats(db, t, family, p)]));
-  const comms = family === COMMS;
-  const limits = comms ? COMMS_LIMITS : LIMIT_KEYS;
+  const limits = LIMIT_KEYS;
   const versions = versionsOf(db, data, family, t);
   const drafts = draftsOf(db, data, family).filter((d) => d.status !== 'approved');
   const cell = (fn) => plans.map((p) => <td key={p}>{fn(live.plans[p], p)}</td>);
@@ -99,7 +98,6 @@ function FamilyPanel({ db, data, t, family }) {
             <h2 id={'pkp-live-' + family}>Live · version {live.v}</h2>
             <span className="pkp-sub">since {dmy(live.liveFrom)} · approved by {live.approvedBy}</span>
           </div>
-          {comms ? <InfoTip text="The Connect edition (inbox, SMS, WhatsApp, AI, CRM and a counter till) sold on its own. No store is on it yet: it opens with the Connect edition site." /> : null}
         </div>
         <div className="ix-table-wrap ix-table-wrap--show">
           <table className="ix-table ix-table--static gc-table--keep gc-table--scroll pk-cmp">
@@ -131,14 +129,9 @@ function FamilyPanel({ db, data, t, family }) {
               {sec('Limits')}
               {limits.map(([k, label]) => <tr key={k}><th scope="row">{label}</th>{cell((x) => <span className="pk-data">{limitText(k, x.limits[k])}</span>)}</tr>)}
               {sec('Modules')}
-              {comms
-                ? COMMS_MODULES.map((c) => (
-                  <tr key={c}><th scope="row">{(moduleBy(c) || {}).name} <span className="pk-muted pk-data">{c}</span></th>
-                    {cell((x) => (x.modules.includes(c) ? <span className="pk-yes"><Icon name="check" width="14" height="14" aria-hidden="true" />Included</span> : <span className="pk-no">—</span>))}</tr>
-                ))
-                : setsFor(family).map((s) => (
-                  <tr key={s.id}><th scope="row">{s.label}</th>{cell((x) => <Rule rule={setRuleOf(x, s.id, family)} />)}</tr>
-                ))}
+              {setsFor(family).map((s) => (
+                <tr key={s.id}><th scope="row">{s.label}</th>{cell((x) => <Rule rule={setRuleOf(x, s.id, family)} />)}</tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -267,7 +260,7 @@ function CustomPanel({ db, data, t, onOpen }) {
 /** Create, edit, assign or end a custom package. */
 function CustomSheet({ open, id, db, data, t, onClose }) {
   const existing = id ? data.custom.find((c) => c.id === id) : null;
-  const blank = { name: '', shopId: '', ladder: 'online', plan: 'business', modules: [], price: '', cycle: 'Monthly', note: '' };
+  const blank = { name: '', shopId: '', ladder: 'online', plan: 'growth', modules: [], price: '', cycle: 'Monthly', note: '' };
   // the parent remounts this sheet (key) for each package, so the form starts from it
   const [f, setF] = useState(() => (existing ? { ...existing, shopId: existing.shopId || '', price: String(existing.price) } : blank));
   const [err, setErr] = useState({});
@@ -277,8 +270,8 @@ function CustomSheet({ open, id, db, data, t, onClose }) {
   const shops = db.shops.filter((s) => isLiveStore(subState(db, s.id, t))).slice().sort((a, b) => a.name.localeCompare(b.name));
   const live = liveOf(db, data, f.ladder, t);
   const base = live.plans[f.plan] || live.plans[planIdsOf(f.ladder)[0]];
-  const inPlan = (m) => (f.ladder === COMMS ? base.modules.includes(m.code) : setRuleOf(base, m.set, f.ladder) === 'Included');
-  const choices = (f.ladder === COMMS ? COMMS_MODULES.map(moduleBy) : MODULES_PICK).filter(Boolean);
+  const inPlan = (m) => setRuleOf(base, m.set, f.ladder) === 'Included';
+  const choices = MODULES_PICK.filter((m) => setRuleOf(base, m.set, f.ladder) !== 'Hidden' || m.set === 'service');
   const list = listPriceOf(db, data, { ...f, price: toNum(f.price) }, t);
   const price = toNum(f.price);
   const off = list && price ? Math.round(((list - price) / list) * 100) : 0;
@@ -326,7 +319,7 @@ function CustomSheet({ open, id, db, data, t, onClose }) {
         {existing.note ? <p className="pk-rule">{existing.note}</p> : null}
         {existing.status === 'assigned' ? (
           <Field id="pk-end-reason" label="Why it ends" error={err.reason}>
-            <input {...ctl('pk-end-reason', err.reason)} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Moved to Enterprise" />
+            <input {...ctl('pk-end-reason', err.reason)} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Moved to Business" />
           </Field>
         ) : null}
         {err.form ? <p className="pk-err" role="alert">{err.form}</p> : null}
@@ -397,8 +390,8 @@ function CustomSheet({ open, id, db, data, t, onClose }) {
     </Sheet>
   );
 }
-/** Modules a custom package can add on a ladder plan: everything outside the two cores. */
-const MODULES_PICK = MODULES.filter((m) => m.set !== 'platform' && m.set !== 'everyday');
+/** Modules a custom package can add on a plan: everything outside the platform core. */
+const MODULES_PICK = MODULES.filter((m) => m.set !== 'platform');
 
 // ---- trial packages ------------------------------------------------------------------------------------------
 function TrialsPanel({ db, data, t, onEdit, onModule }) {
@@ -565,7 +558,7 @@ export default function Packages() {
 
   const header = (
     <ShopHeader icon="package" title="Packages"
-      about="What GridCommerce sells: the Online, Retail and Wholesale plan ladders, the Connect (communication only) family, add-ons, custom packages for one merchant and the trial each package starts with. A plan change is a draft of the next version; a second person (Finance or an Admin, never the one who drafted it) approves it, and it goes live on its date. Stores keep the version they bought."
+      about="What GridCommerce sells: the product's editions (Online, Retail, Retail + Online and Connect), each with the Starter, Growth and Business plans, plus add-ons, custom packages for one merchant and the trial each edition starts with. A plan change is a draft of the next version; a second person (Finance or an Admin, never the one who drafted it) approves it, and it goes live on its date. Stores keep the version they bought."
       secondary={ready ? [{ label: 'Export', icon: 'download', onClick: exportCsv }] : []}
       primary={{ label: 'New custom package', icon: 'plus', onClick: () => { go('custom'); setCustom({ id: null }); } }} />
   );
@@ -580,9 +573,9 @@ export default function Packages() {
   }
 
   const facts = packageFacts(db, data, t);
-  const pending = pendingDrafts(db, data);
+  const pending = pendingDrafts(db);
   const storesOn = (fam) => Object.values(db.subs).filter((s) => s.ladder === fam && isLiveStore(subState(db, s.shopId, t))).length;
-  const counts = { online: storesOn('online'), retail: storesOn('retail'), wholesale: storesOn('wholesale'), comms: 0, addons: ADDONS.length, custom: data.custom.filter((c) => c.status !== 'ended').length, trials: null };
+  const counts = { ...Object.fromEntries(LADDER_IDS.map((k) => [k, storesOn(k)])), addons: ADDONS.length, custom: data.custom.filter((c) => c.status !== 'ended').length, trials: null };
   const tabs = TABS.map(([k, l]) => ({ key: k, id: 'pkp-tab-' + k, label: l, count: counts[k], on: tab === k, onClick: () => go(k) }));
 
   return (
@@ -619,7 +612,7 @@ export default function Packages() {
         </section>
 
         <div role="tabpanel" aria-labelledby={'pkp-tab-' + tab} className="ix-page">
-          {['online', 'retail', 'wholesale', COMMS].includes(tab) ? <FamilyPanel db={db} data={data} t={t} family={tab} /> : null}
+          {LADDER_IDS.includes(tab) ? <FamilyPanel db={db} data={data} t={t} family={tab} /> : null}
           {tab === 'addons' ? <AddonsPanel db={db} data={data} t={t} onPrice={setPrice} /> : null}
           {tab === 'custom' ? (
             <>

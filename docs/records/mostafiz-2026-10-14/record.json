@@ -1,0 +1,579 @@
+{
+  "batch": "Mostafiz · Stages 2–3 · from 14 Oct 2026",
+  "branch": "nayeem-update-2026-10-14",
+  "note": "Kept per feature as the work goes (Stage 4 builds the PDF and adds the screenshots).",
+  "entries": [
+    {
+      "id": "C1",
+      "kind": "feature",
+      "module": "C · SEO",
+      "title": "One SEO panel on every page type",
+      "need": "SEO settings were only on some pages, and categories and landing pages had none.",
+      "now": "Pages, posts, products, categories and landing pages share one panel with all nine SEO controls.",
+      "where": "Online Store › Pages / Blog posts / Products › a product / Categories / Landing pages › SEO",
+      "try": [
+        "Open a product.",
+        "Under Search engine listing press Edit.",
+        "Write a description, then open Social share and Structured data."
+      ],
+      "files": [
+        "src/components/seo/SeoPanel.jsx",
+        "src/lib/seo.js",
+        "src/lib/seoItems.js",
+        "src/screens/online-store/StorePageEdit.jsx",
+        "src/screens/integrations/BlogEditor.jsx",
+        "src/screens/products/AddProduct.jsx",
+        "src/screens/products/Categories.jsx",
+        "src/screens/landing-page-builder/LandingPageBuilder.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "C1-links",
+      "kind": "feature",
+      "module": "C · SEO",
+      "title": "Mark single links nofollow or sponsored",
+      "need": "Every link counted the same, so paid or customer links could not be marked.",
+      "now": "Each link in the text can be nofollow, sponsored or user content, and open in a new tab.",
+      "where": "Any editor › Search engine listing › Links",
+      "try": [
+        "Open a blog post with a link.",
+        "In Links press Nofollow and New tab.",
+        "Update, then view the post: the link carries them."
+      ],
+      "files": [
+        "src/lib/seo.js",
+        "src/screens/integrations/blogShared.jsx",
+        "src/screens/products/RichText.jsx",
+        "src/lib/blog.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "C1-bangla",
+      "kind": "fix",
+      "module": "C · SEO",
+      "title": "Bangla titles now make a web address",
+      "problem": "A Bangla title gave an empty web address.",
+      "now": "Bangla is written in Latin letters by default, or kept as Bangla if the shop prefers.",
+      "where": "Online Store › SEO › Settings",
+      "try": [
+        "Add a page titled মোবাইল কভার.",
+        "The address becomes /pages/mobail-kabhar."
+      ],
+      "files": [
+        "src/lib/handles.js",
+        "src/lib/blog.js",
+        "src/lib/landingPages.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "C1-schedule",
+      "kind": "feature",
+      "module": "C · SEO",
+      "title": "Schedule pages, products and landing pages",
+      "need": "Only blog posts could go live later; a product's \"Go live on a date\" had no date.",
+      "now": "Pick a date and time in Bangladesh time; it goes live by itself then, or cancel it.",
+      "where": "Editor › Search engine listing › Schedule",
+      "try": [
+        "Open a draft page.",
+        "In Schedule pick tomorrow 9:00 AM and save.",
+        "The page says when it goes live."
+      ],
+      "files": [
+        "src/lib/storePages.js",
+        "src/lib/landingPages.js",
+        "src/lib/products.js",
+        "src/screens/products/AddProduct.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "C2",
+      "kind": "feature",
+      "module": "C · SEO",
+      "title": "Schema made automatically, own schema replaces it",
+      "need": "Merchants had to write JSON to tell Google about prices, stock and ratings.",
+      "now": "Products, posts, pages, categories, FAQ and breadcrumbs get schema by themselves; the shop's own JSON-LD replaces the same type.",
+      "where": "Editor › Search engine listing › Structured data",
+      "try": [
+        "Open a product's Structured data.",
+        "Paste an FAQPage schema.",
+        "FAQPage is crossed out in Made automatically."
+      ],
+      "files": [
+        "src/lib/seo.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "C2-head",
+      "kind": "feature",
+      "module": "C · SEO",
+      "title": "Customer pages carry the SEO tags",
+      "need": "Only store pages had a customer page; none wrote their SEO into the page head.",
+      "now": "Pages, posts, products, categories and landing pages each have a customer page with one set of SEO tags.",
+      "where": "/page, /blog-post, /product, /category, /lp",
+      "try": [
+        "Open a product's View on the website.",
+        "Inspect the page head: one title, description, canonical and schema."
+      ],
+      "files": [
+        "src/screens/storefront/storeChrome.jsx",
+        "src/components/seo/SeoHead.jsx",
+        "src/screens/storefront/StorePage.jsx",
+        "src/screens/storefront/StoreBlogPost.jsx",
+        "src/screens/storefront/StoreProduct.jsx",
+        "src/screens/storefront/StoreCategory.jsx",
+        "src/screens/storefront/StoreLanding.jsx"
+      ],
+      "status": "partly done",
+      "left": "Search engines read the HTML the server sends; here the tags are added after the page loads. The server must write them."
+    },
+    {
+      "id": "C3-redirects",
+      "kind": "feature",
+      "module": "C · SEO",
+      "title": "Redirects made when an address changes",
+      "need": "Renaming a product or page broke every old link to it (review ON-F19).",
+      "now": "A live item's old address redirects to the new one by itself; loops and chains are flagged.",
+      "where": "Online Store › SEO › Redirects",
+      "try": [
+        "Rename a live product and save.",
+        "Open SEO › Redirects: old → new is listed.",
+        "Open the old address: it lands on the product."
+      ],
+      "files": [
+        "src/lib/redirects.js",
+        "src/lib/storePages.js",
+        "src/lib/blog.js",
+        "src/lib/products.js",
+        "src/lib/productCategories.js",
+        "src/lib/landingPages.js",
+        "src/screens/online-store/SeoTools.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "C3-tools",
+      "kind": "feature",
+      "module": "C · SEO",
+      "title": "SEO health, not found, sitemap and robots.txt",
+      "need": "There was no way to see SEO problems across the store or control the sitemap.",
+      "now": "One page scores every live item, lists issues with Fix, logs missing addresses, shows the sitemap and robots.txt.",
+      "where": "Online Store › SEO",
+      "try": [
+        "Open Online Store › SEO.",
+        "Press Fix on a row with no description.",
+        "Write one and save: the issue count drops."
+      ],
+      "files": [
+        "src/screens/online-store/SeoTools.jsx",
+        "src/lib/seoItems.js",
+        "src/lib/redirects.js"
+      ],
+      "status": "done",
+      "left": "The not-found log has demo rows; on the live website it comes from the server's visits."
+    },
+    {
+      "id": "C3-bulk",
+      "kind": "feature",
+      "module": "C · SEO",
+      "title": "Edit SEO of many items at once",
+      "need": "Titles and descriptions had to be written one product at a time.",
+      "now": "A grid edits addresses, titles, descriptions and image alt text for many items, then saves together.",
+      "where": "Online Store › SEO › Bulk editor (/seo-bulk)",
+      "try": [
+        "Open the bulk editor.",
+        "Tick Only missing.",
+        "Fill three descriptions and press Save changes."
+      ],
+      "files": [
+        "src/screens/online-store/SeoBulk.jsx",
+        "src/lib/seoItems.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "B1",
+      "kind": "feature",
+      "module": "B · Services",
+      "title": "Buy expert help inside GridCommerce",
+      "need": "Merchants had to find agencies outside for SEO, ads, design or product upload.",
+      "now": "A Services shop lists ten services with packages, a short brief and payment; monthly ones bill with the subscription.",
+      "where": "Team & settings › Services › Get expert help (/services)",
+      "try": [
+        "Open Services › Get expert help.",
+        "Open SEO and choose Standard.",
+        "Answer the brief and pay."
+      ],
+      "files": [
+        "src/lib/platform/services.js",
+        "src/screens/services/Services.jsx",
+        "src/screens/services/ServiceDetail.jsx",
+        "src/screens/services/ServiceOrder.jsx"
+      ],
+      "status": "done",
+      "left": "Payment is a demo; the gateway is the server's."
+    },
+    {
+      "id": "B1-orders",
+      "kind": "feature",
+      "module": "B · Services",
+      "title": "Follow, approve and rate each service order",
+      "need": "There was nowhere to talk to an expert or approve their work.",
+      "now": "Each order shows its steps, messages, files, monthly reports, store-access and extra-work requests, approve or change, and a rating.",
+      "where": "Services › My services (/my-services)",
+      "try": [
+        "Open My services.",
+        "Open an order and send a message.",
+        "Approve a delivery and rate it."
+      ],
+      "files": [
+        "src/screens/services/MyServices.jsx",
+        "src/screens/services/MyService.jsx",
+        "src/screens/services/svcShared.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "B1-access",
+      "kind": "feature",
+      "module": "B · Services",
+      "title": "Owner approves an expert's store access",
+      "need": "Experts needed the owner's password or a support PIN to work in a store.",
+      "now": "The owner approves a limited, timed access in the order; it opens a logged access session for the expert.",
+      "where": "My services › an order · Super admin › Services › an order",
+      "try": [
+        "In super admin, ask for store access on an order.",
+        "In the merchant panel, approve it.",
+        "Back in super admin, Start session."
+      ],
+      "files": [
+        "src/lib/platform/services.js",
+        "src/lib/admin/supportAccess.js",
+        "src/lib/admin/servicesSync.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "B2",
+      "kind": "feature",
+      "module": "B · Services",
+      "title": "Run service orders from super admin",
+      "need": "GridCommerce had no way to assign, track or check paid service work.",
+      "now": "An orders board with deadlines that pause while waiting, expert assignment, quality check, extra-work quotes and refunds.",
+      "where": "Super admin › Services › Orders (/admin/services)",
+      "try": [
+        "Open a New order and assign the suggested expert.",
+        "Hand the work in.",
+        "Pass the quality check."
+      ],
+      "files": [
+        "src/screens/admin/services/SvcOrders.jsx",
+        "src/screens/admin/services/SvcOrder.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "B2-catalogue",
+      "kind": "feature",
+      "module": "B · Services",
+      "title": "Catalogue, brief builder and experts",
+      "need": "Services, prices and the questions asked had no place to be managed.",
+      "now": "Edit services, packages, add-ons, brief questions, who may buy them, and experts with skills, load and commission.",
+      "where": "Super admin › Services › Catalogue / Experts",
+      "try": [
+        "Open Catalogue and a service.",
+        "Add a brief question and save.",
+        "See it on the merchant's order page."
+      ],
+      "files": [
+        "src/screens/admin/services/SvcCatalogue.jsx",
+        "src/screens/admin/services/SvcEdit.jsx",
+        "src/screens/admin/services/SvcExperts.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "B2-money",
+      "kind": "feature",
+      "module": "B · Services",
+      "title": "Service money reaches Finance by itself",
+      "need": "Service sales, partner payouts and refunds were not in the books.",
+      "now": "Paid charges show in Finance › Income, partner earnings as expenses owed, and sent refunds in Refunds; Reports show the totals.",
+      "where": "Super admin › Finance › Income / Expenses · Services › Reports",
+      "try": [
+        "Pay for a service in the merchant panel.",
+        "Open super admin › Finance › Income.",
+        "Find the service charge."
+      ],
+      "files": [
+        "src/lib/admin/servicesSync.js",
+        "src/lib/admin/finance.js",
+        "src/screens/admin/services/SvcReports.jsx",
+        "src/screens/admin/AdminShell.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "D1",
+      "kind": "feature",
+      "module": "D · Business email",
+      "title": "Email at the shop's own domain",
+      "need": "Shops had no way to get name@theirshop.com email from GridCommerce.",
+      "now": "A setup verifies the domain, shows four DNS records that turn green, then makes mailboxes, aliases, groups and forwarders.",
+      "where": "Settings › Business email (/email)",
+      "try": [
+        "Connect a domain in Settings › Domains.",
+        "Open Business email, pick a plan and continue.",
+        "Check the records, finish, and make a mailbox."
+      ],
+      "files": [
+        "src/lib/platform/mail.js",
+        "src/screens/settings-console/BusinessEmail.jsx",
+        "src/screens/settings-console/SetRail.jsx"
+      ],
+      "status": "done",
+      "left": "Mail itself (servers or a reseller) is the backend's; DNS checks are simulated."
+    },
+    {
+      "id": "D1-use",
+      "kind": "feature",
+      "module": "D · Business email",
+      "title": "Use mail on web and phone",
+      "need": "There was no way to read the mail or set up a phone.",
+      "now": "Webmail opens from Apps; a QR code and the IMAP / SMTP settings set up phones; old mail can be imported.",
+      "where": "Business email › Apps",
+      "try": [
+        "Open Business email › Apps.",
+        "Scan the QR code, or open webmail.",
+        "Start an import from an old host."
+      ],
+      "files": [
+        "src/screens/settings-console/BusinessEmail.jsx",
+        "src/screens/settings-console/Webmail.jsx"
+      ],
+      "status": "done",
+      "left": "Webmail is a stand-in for the provider's."
+    },
+    {
+      "id": "D1-team",
+      "kind": "feature",
+      "module": "D · Business email",
+      "title": "Mailboxes follow staff joining and leaving",
+      "need": "Mailboxes had to be made and closed by hand when staff changed.",
+      "now": "Inviting a user can make their mailbox; marking someone as left suspends it and forwards their mail.",
+      "where": "Settings › Users & roles · Staff & HR › a person › Leaving",
+      "try": [
+        "Invite a user with the mailbox box ticked.",
+        "Mark a staff member as left.",
+        "See their mailbox suspended and forwarded."
+      ],
+      "files": [
+        "src/screens/settings-console/SetUsers.jsx",
+        "src/lib/hr.js",
+        "src/screens/staff-hr/LeavingDialog.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "D1-plan",
+      "kind": "feature",
+      "module": "D · Business email",
+      "title": "Buy mailboxes and storage",
+      "need": "Mail could not be sized or billed.",
+      "now": "Plan & usage shows seats, storage and the monthly cost, and buys more mailboxes or storage; a plan includes some free.",
+      "where": "Business email › Plan & usage",
+      "try": [
+        "Open Plan & usage.",
+        "Buy 10 GB more.",
+        "See the new monthly cost."
+      ],
+      "files": [
+        "src/lib/platform/mail.js",
+        "src/screens/settings-console/BusinessEmail.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "D1-sender",
+      "kind": "feature",
+      "module": "D · Business email",
+      "title": "Order emails from the shop's domain",
+      "need": "Order emails always came from a GridCommerce address.",
+      "now": "Once SPF and DKIM are green, order and notification emails go out from orders@ the shop's domain.",
+      "where": "Business email › Domain & DNS · Order notifications",
+      "try": [
+        "Open Domain & DNS.",
+        "See the sending address.",
+        "Open Order notifications: it shows there too."
+      ],
+      "files": [
+        "src/lib/platform/mail.js",
+        "src/screens/settings-console/SetNotifications.jsx"
+      ],
+      "status": "partly done",
+      "left": "The send layer must use this address on the server."
+    },
+    {
+      "id": "D2",
+      "kind": "feature",
+      "module": "D · Business email",
+      "title": "Mail directory, prices and abuse in super admin",
+      "need": "GridCommerce could not see stores' mail, price it or stop abuse.",
+      "now": "A directory with DNS health, usage, revenue against provider cost and alerts; plans and provider; sending limits and suspension.",
+      "where": "Super admin › Business email",
+      "try": [
+        "Open Business email › Directory.",
+        "Open a domain with an alert.",
+        "Suspend a mailbox with a reason."
+      ],
+      "files": [
+        "src/screens/admin/email/MailDirectory.jsx",
+        "src/screens/admin/email/MailPlans.jsx",
+        "src/screens/admin/email/MailAbuse.jsx",
+        "src/screens/admin/adminNav.js",
+        "src/lib/admin/roles.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "LE-1",
+      "kind": "fix",
+      "module": "Loose ends",
+      "title": "Today's sales compared fairly with yesterday",
+      "problem": "Home compared today so far with the whole of yesterday, so mornings always looked like a big drop.",
+      "now": "Today is compared with yesterday up to the same time of day.",
+      "where": "Home (/merchant-overview)",
+      "try": [
+        "Open Home in the morning.",
+        "The Sales change compares with yesterday by this time."
+      ],
+      "files": [
+        "src/screens/merchant-overview/Home.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "LE-2",
+      "kind": "fix",
+      "module": "Loose ends",
+      "title": "A product keeps its own VAT rate",
+      "problem": "The VAT / tax box on Add product was not saved; every product used its category's rate.",
+      "now": "The product's VAT is saved; the register, Create order and order links use it before the category's.",
+      "where": "Products › a product › Pricing",
+      "try": [
+        "Set a product to 5% VAT and save.",
+        "Ring it up at the register: VAT is 5%."
+      ],
+      "files": [
+        "src/screens/products/AddProduct.jsx",
+        "src/lib/vat.js",
+        "src/lib/stock.js",
+        "src/screens/pos-register/Pos.jsx",
+        "src/screens/merchant-orders/NewOrder.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "LE-3",
+      "kind": "fix",
+      "module": "Loose ends",
+      "title": "Order links no longer add VAT on top",
+      "problem": "The order-link page added 5% VAT on top of prices that already include VAT.",
+      "now": "It follows the VAT setup: with prices that include VAT, it shows the VAT inside the total.",
+      "where": "An order link (/order-link?id=)",
+      "try": [
+        "Open an order link with VAT on.",
+        "The total equals the items plus delivery; VAT shows as included."
+      ],
+      "files": [
+        "src/screens/storefront/OrderLink.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "LE-4",
+      "kind": "fix",
+      "module": "Loose ends",
+      "title": "Customer badge shows the real loyalty tier",
+      "problem": "The demo customer always showed a Gold badge, whatever they spent.",
+      "now": "The badge is the loyalty tier from what the customer bought.",
+      "where": "Customers › a customer",
+      "try": [
+        "Open the demo customer.",
+        "The badge matches their spend (Member, Silver, Gold or Platinum)."
+      ],
+      "files": [
+        "src/screens/customers-crm/CustomerCRM.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "LE-5",
+      "kind": "fix",
+      "module": "Loose ends",
+      "title": "IMEI asked when packing a courier order",
+      "problem": "Phones going by courier (also from quotes) left without their IMEI numbers recorded.",
+      "now": "Packing asks each piece's IMEI or serial; the parcel can't be ready or sent without them.",
+      "where": "Orders › an approved order › Prepare parcel (web and phone)",
+      "try": [
+        "Approve an order with a phone.",
+        "Prepare parcel asks for the IMEI.",
+        "Type it; the order becomes ready."
+      ],
+      "files": [
+        "src/lib/orderFlow.js",
+        "src/screens/order-detail/OrderDetail.jsx",
+        "src/screens/app/MOrderDetail.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "LE-6",
+      "kind": "fix",
+      "module": "Loose ends",
+      "title": "Wholesale switch read at the right time",
+      "problem": "Three lists read the wholesale switch when the app loaded, before the edition preview was known.",
+      "now": "Return channels, import columns and quotes read it when the page shows them.",
+      "where": "Returns history · Import products · Quotes",
+      "try": [
+        "Preview an edition with ?edition=.",
+        "Open Returns history: its tabs follow it."
+      ],
+      "files": [
+        "src/lib/returns.js",
+        "src/lib/productImport.js",
+        "src/lib/quotes.js",
+        "src/screens/purchase-stock/ReturnHistory.jsx",
+        "src/screens/products/ImportProducts.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "LE-7",
+      "kind": "fix",
+      "module": "Loose ends",
+      "title": "GridAI button no longer covers Save",
+      "problem": "On computers the floating GridAI button sat on top of the Save button of save bars.",
+      "now": "When a page has a save bar, the GridAI button sits above it.",
+      "where": "Add product, Settings pages, bulk editors",
+      "try": [
+        "Change a product so the save bar shows.",
+        "The GridAI button sits above Save."
+      ],
+      "files": [
+        "src/styles/design-system.css"
+      ],
+      "status": "done"
+    }
+  ],
+  "skipped": [
+    {
+      "what": "Keyword-rank tracking, backlink tools, AI meta for every product by default",
+      "why": "Not to be built (work package)."
+    }
+  ]
+}

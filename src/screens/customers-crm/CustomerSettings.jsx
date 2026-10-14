@@ -23,6 +23,7 @@ import { pendingRemovals } from '@/lib/audiences';
 import { ROLES, currentUser } from '@/lib/team';
 import { FORM_CSS, Switch } from '@/screens/loyalty-promo/loyShared';
 import { getCreditRules, saveCreditRules, DEFAULT_CREDIT_RULES } from '@/lib/creditRules';
+import { getHoldRules, saveHoldRules, DEFAULT_HOLD, HOLD_ACTIONS, HOLD_SCOPES } from '@/lib/buyerTerms';
 import { SegmentBuilder, CRM_PARTS_CSS } from './crmParts';
 
 const CSS = `
@@ -57,6 +58,9 @@ export default function CustomerSettingsScreen() {
   const ret = ready ? getRetention() : { signalsDays: 90, recoveryDays: 180 };
   const credit = ready ? getCreditRules() : DEFAULT_CREDIT_RULES;
   const setCredit = (patch, msg) => { saveCreditRules(patch); bump(); toast(msg || 'Saved.'); };
+  // overdue hold (WH-F8): stop selling on due to a customer whose invoices are too far past their due date
+  const hold = ready ? getHoldRules() : DEFAULT_HOLD;
+  const setHold = (patch, msg) => { saveHoldRules(patch); bump(); toast(msg || 'Saved.'); };
   const me = (currentUser() || {}).name || 'Staff';
 
   const saveField = () => {
@@ -100,6 +104,14 @@ export default function CustomerSettingsScreen() {
                     <div className="ly-set"><div><b>Over the limit, a manager approves</b><small>{credit.managerAboveLimit ? 'With their PIN at the counter' : 'Off: a sale over the limit is refused'}</small></div><Switch label="Over the limit, a manager approves" on={credit.managerAboveLimit} onToggle={() => setCredit({ managerAboveLimit: !credit.managerAboveLimit })} /></div>
                     <p className="ly-help set-help--keep">A sale on due becomes an unpaid invoice. Staff accept it, then record the payment (Customers › a customer › Invoices).</p>
                   </>) : <p className="ly-help">Off: every retail sale is paid in full at the counter.</p>}
+                  <div className="ly-set"><div><b>Hold customers with overdue invoices</b><small>At the POS, quotes and Create order</small></div><Switch label="Hold customers with overdue invoices" on={hold.on} onToggle={() => setHold({ on: !hold.on }, hold.on ? 'Overdue hold is off.' : 'Overdue hold is on.')} /></div>
+                  {hold.on ? (
+                    <div className="ly-two">
+                      <div className="ly-field"><label className="gc-label" htmlFor="cs-hold-days">Days overdue</label><input id="cs-hold-days" className="gc-input" type="number" min="0" max="365" inputMode="numeric" defaultValue={hold.days} key={'h' + ver} onBlur={(e) => { if (Number(e.target.value) !== hold.days) setHold({ days: e.target.value }); }} /><small className="ly-help">An invoice more than this many days past its due date.</small></div>
+                      <div className="ly-field"><label className="gc-label" htmlFor="cs-hold-act">Then</label><select id="cs-hold-act" className="gc-input gc-select" value={hold.action} onChange={(e) => setHold({ action: e.target.value })}>{HOLD_ACTIONS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+                      <div className="ly-field"><label className="gc-label" htmlFor="cs-hold-scope">For</label><select id="cs-hold-scope" className="gc-input gc-select" value={hold.scope} onChange={(e) => setHold({ scope: e.target.value })}>{HOLD_SCOPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+                    </div>
+                  ) : null}
                 </div>
               </section>
 

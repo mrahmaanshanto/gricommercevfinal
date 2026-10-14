@@ -14,7 +14,7 @@ import { DAY, startOfDay } from '@/lib/platform/util';
 import { LADDERS, PLAN_NAME, ADDONS, CATEGORIES as P_CATS, DISTRICTS as P_DISTRICTS, SOURCES as P_SOURCES, ONBOARDERS, TRIAL_DAYS } from '@/lib/platform/catalogue';
 import { subdomainFree } from '@/lib/platform/shops';
 import {
-  STAGES, SALES_NAMES, MEETING_KINDS, INTEREST_MODULES, PLANS, PLAN_PRICE, stageOf, stageIndex, priceFor, quoteTotal, addonCodes, platformSource, segsOf,
+  STAGES, SALES_NAMES, MEETING_KINDS, INTEREST_MODULES, PLANS, PLAN_PRICE, stageOf, stageIndex, priceFor, quoteTotal, addonCodes, platformSource, segsOf, ladderOfType,
   setNext, addTask, addQuote, scheduleMeeting, completeMeeting, updateLead, moveStage, convertToMerchant,
 } from '@/lib/admin/crm';
 import { usePlatform } from '../AdminShell';
@@ -202,7 +202,6 @@ function StageSheet({ l, close, askLost }) {
 }
 
 // ---- convert to merchant ----------------------------------------------------------------------------------------------
-const SEGS = LADDERS.map((x) => x.label);
 const slug = (s) => String(s || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '').slice(0, 30);
 /** "01711-223344" → "1711-223344" (provisionStore adds "+880 "). */
 const localPhone = (s) => {
@@ -212,14 +211,14 @@ const localPhone = (s) => {
   return d.length > 4 ? d.slice(0, 4) + '-' + d.slice(4) : d;
 };
 const CAT_MAP = { Electronics: 'Electronics', 'Mobile & gadgets': 'Electronics', Grocery: 'Grocery', 'Food & sweets': 'Grocery', Beauty: 'Beauty', Pharmacy: 'Beauty', 'Jewellery and accessories': 'Jewellery and accessories' };
-const FIELD_ID = { name: 'lv-cv-name', owner: 'lv-cv-owner', phone: 'lv-cv-phone', sub: 'lv-cv-sub', segs: 'lv-cv-seg-0', email: 'lv-cv-email' };
+const FIELD_ID = { name: 'lv-cv-name', owner: 'lv-cv-owner', phone: 'lv-cv-phone', sub: 'lv-cv-sub', ladder: 'lv-cv-ed', plan: 'lv-cv-plan', email: 'lv-cv-email' };
 
 function ConvertSheet({ l, close }) {
   const { db, live } = usePlatform();
   const accepted = l.quotes.find((q) => q.status === 'accepted');
   const [f, setF] = useState(() => ({
     name: l.business, owner: l.name, phone: l.mobile, email: l.email || '', sub: slug(l.business),
-    segs: segsOf(l.type), plan: (accepted || l).plan, trial: true, sendLogin: true,
+    ladder: (accepted || l).ladder || ladderOfType(l.type), plan: (accepted || l).plan, trial: true, sendLogin: true,
     modules: addonCodes((accepted || l).modules).filter((c) => ADDONS.some((a) => a.code === c)),
     cat: CAT_MAP[l.category] || (P_CATS.includes(l.category) ? l.category : 'Fashion'),
     dist: P_DISTRICTS.includes(l.district) ? l.district : 'Dhaka', src: platformSource(l.source),
@@ -241,7 +240,7 @@ function ConvertSheet({ l, close }) {
     setBusy(true);
     const r = convertToMerchant(l.id, {
       name: f.name.trim(), legal: f.name.trim(), owner: f.owner.trim(), phone: localPhone(f.phone), email: f.email.trim(), lang: 'বাংলা',
-      sub, domain: '', segs: f.segs, plan: f.plan, trial: f.trial, modules: f.modules, cat: f.cat, dist: f.dist, address: '',
+      sub, domain: '', ladder: f.ladder, plan: f.plan, trial: f.trial, modules: f.modules, cat: f.cat, dist: f.dist, address: '',
       src: f.src, by: f.by, helper: 'Unassigned', campaign: '', refCode: '', sendLogin: f.sendLogin, migrate: f.modules.includes('S6') ? 'assisted' : 'empty',
     });
     setBusy(false);
@@ -271,14 +270,8 @@ function ConvertSheet({ l, close }) {
           <span className="lv-post"><input id="lv-cv-sub" {...ctl(e('sub'))} className={ctl(e('sub')).className + ' crm-data'} value={f.sub} onChange={set('sub')} /><span>.gridcommerce.com.bd</span></span>
           {!e('sub') && avail ? <span className={'lv-avail ' + (avail.ok ? 'is-ok' : 'is-bad')}><Icon name={avail.ok ? 'circle-check' : 'circle-alert'} width="14" height="14" aria-hidden="true" />{avail.ok ? 'Free' : avail.why}</span> : null}
         </Field>
-        <fieldset className="lv-fieldset">
-          <legend className="gc-label">Sells</legend>
-          <div className="ix-chips">
-            {SEGS.map((s, i) => <label key={s} className="crm-mod"><input id={'lv-cv-seg-' + i} type="checkbox" checked={f.segs.includes(s)} onChange={() => toggleIn('segs', s)} /><span>{s}</span></label>)}
-          </div>
-          {e('segs') ? <p className="gc-help gc-help--error" role="alert">{e('segs')}</p> : null}
-        </fieldset>
         <div className="crm-two">
+          <Field id="lv-cv-ed" label="Edition" error={e('ladder')}><select id="lv-cv-ed" className="gc-input gc-select" value={f.ladder} onChange={set('ladder')}>{LADDERS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}</select></Field>
           <Field id="lv-cv-plan" label="Plan"><select id="lv-cv-plan" className="gc-input gc-select" value={f.plan} onChange={set('plan')}>{PLANS.map((p) => <option key={p} value={p}>{PLAN_NAME[p]} · {formatBDT(PLAN_PRICE[p])}/mo</option>)}</select></Field>
           <Field id="lv-cv-by" label="Sold by"><select id="lv-cv-by" className="gc-input gc-select" value={f.by} onChange={set('by')}>{ONBOARDERS.map((n) => <option key={n}>{n}</option>)}</select></Field>
           <Field id="lv-cv-cat" label="Category"><select id="lv-cv-cat" className="gc-input gc-select" value={f.cat} onChange={set('cat')}>{P_CATS.map((x) => <option key={x}>{x}</option>)}</select></Field>

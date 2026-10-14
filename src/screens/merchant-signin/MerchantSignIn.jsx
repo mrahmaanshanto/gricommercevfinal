@@ -12,6 +12,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { getLocale, setLocale } from '@/runtime/ui';
+import { USERS, signInAs } from '@/lib/team';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -62,7 +63,14 @@ var GC_COPY = {
     mWelcome: 'Welcome back.', mWelcomeSub: 'Build. Sell. Grow Together.',
     errEmail: 'Enter a valid email address, like you@yourstore.com.', errPw: 'Enter your password.',
     errPhone: 'Enter a valid 10-digit mobile number, like 1712-345678.', errName: 'Enter your full name.', errStore: 'Enter your store name.',
-    errPwShort: 'Use at least 8 characters.', errTerms: 'Agree to the terms to create your account.'
+    errPwShort: 'Use at least 8 characters.', errTerms: 'Agree to the terms to create your account.',
+    fpTitle: 'Reset your password', fpSub: 'Enter the email or mobile number on your account. We’ll send a 6-digit reset code.',
+    fpId: 'Email or mobile number', fpIdPh: 'you@yourstore.com or 01XXXXXXXXX', fpSend: 'Send reset code', fpSending: 'Sending code',
+    fpCodeTitle: 'Enter the reset code', fpCodeText: 'The reset code goes to {to}.', fpDemo: 'Demo: no message is sent. Enter any 6 digits.',
+    fpCode: 'Reset code', fpNewPw: 'New password', fpSave: 'Set new password', fpSaving: 'Saving',
+    fpDone: 'Password updated', fpDoneText: 'Demo: passwords aren’t stored yet, so you can sign in with any password.',
+    backSignin: 'Back to sign in', errId: 'Enter an email like you@yourstore.com or a mobile number like 01712345678.', errCode6: 'Enter the 6-digit code.',
+    googleNote: 'Demo: signed in as {name}, the owner. Real Google sign-in comes with the backend.'
   },
   bn: {
     langLabel: 'ভাষা', welcome: 'আবার স্বাগতম', welcomeSub: 'আপনার স্টোর, অর্ডার ও পেমেন্ট ম্যানেজ করতে সাইন ইন করুন।',
@@ -94,12 +102,20 @@ var GC_COPY = {
     mWelcome: 'আবার স্বাগতম।', mWelcomeSub: 'তৈরি করুন। বিক্রি করুন। একসাথে বড় হোন।',
     errEmail: 'সঠিক ইমেইল দিন, যেমন you@yourstore.com।', errPw: 'আপনার পাসওয়ার্ড দিন।',
     errPhone: '১০ সংখ্যার সঠিক মোবাইল নম্বর দিন, যেমন 1712-345678।', errName: 'আপনার পূর্ণ নাম দিন।', errStore: 'স্টোরের নাম দিন।',
-    errPwShort: 'কমপক্ষে ৮ অক্ষর ব্যবহার করুন।', errTerms: 'অ্যাকাউন্ট খুলতে শর্তাবলিতে সম্মতি দিন।'
+    errPwShort: 'কমপক্ষে ৮ অক্ষর ব্যবহার করুন।', errTerms: 'অ্যাকাউন্ট খুলতে শর্তাবলিতে সম্মতি দিন।',
+    fpTitle: 'পাসওয়ার্ড রিসেট করুন', fpSub: 'আপনার অ্যাকাউন্টের ইমেইল বা মোবাইল নম্বর দিন। আমরা ৬ সংখ্যার একটি রিসেট কোড পাঠাব।',
+    fpId: 'ইমেইল বা মোবাইল নম্বর', fpIdPh: 'you@yourstore.com বা 01XXXXXXXXX', fpSend: 'রিসেট কোড পাঠান', fpSending: 'কোড পাঠানো হচ্ছে',
+    fpCodeTitle: 'রিসেট কোড দিন', fpCodeText: 'রিসেট কোডটি {to}-এ যায়।', fpDemo: 'ডেমো: কোনো মেসেজ পাঠানো হয় না। যেকোনো ৬টি সংখ্যা দিন।',
+    fpCode: 'রিসেট কোড', fpNewPw: 'নতুন পাসওয়ার্ড', fpSave: 'নতুন পাসওয়ার্ড সেট করুন', fpSaving: 'সেভ হচ্ছে',
+    fpDone: 'পাসওয়ার্ড বদলানো হয়েছে', fpDoneText: 'ডেমো: পাসওয়ার্ড এখনো সেভ হয় না, তাই যেকোনো পাসওয়ার্ড দিয়ে সাইন ইন করা যাবে।',
+    backSignin: 'সাইন ইনে ফিরে যান', errId: 'you@yourstore.com-এর মতো ইমেইল বা 01712345678-এর মতো মোবাইল নম্বর দিন।', errCode6: '৬ সংখ্যার কোডটি দিন।',
+    googleNote: 'ডেমো: মালিক {name} হিসেবে সাইন ইন হয়েছে। আসল Google সাইন ইন ব্যাকএন্ডের সাথে আসবে।'
   }
 };
 function __Err({ id, msg }) { return msg ? <p id={id} className="au-err" role="alert">{msg}</p> : null; }
 var GC_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 var GC_PHONE_RE = /^1[3-9]\d{8}$/;
+var GC_BD_MOBILE_RE = /^(?:\+?88)?01[3-9]\d{8}$/;   // the forgot-password box takes a full mobile number
 function gcBnDigits(v) { return String(v).replace(/\d/g, function (d) { return '০১২৩৪৫৬৭৮৯'.charAt(+d); }); }
 
 class Component extends DCLogic {
@@ -113,7 +129,7 @@ class Component extends DCLogic {
   componentWillUnmount() { clearTimeout(this.timer); clearInterval(this.tick); }
   go(mode) {
     clearTimeout(this.timer); clearInterval(this.tick);
-    this.setState({ mode: mode, status: 'idle', systemBusy: '', pw: '', showPw: false, phone: '', otpSent: false, code: '', codeError: false, resendIn: 0, errs: {} });
+    this.setState({ mode: mode, status: 'idle', systemBusy: '', pw: '', showPw: false, phone: '', otpSent: false, code: '', codeError: false, resendIn: 0, errs: {}, fpStep: 'ask', fpTo: '', google: false });
   }
   startCountdown() {
     var self = this;
@@ -140,6 +156,8 @@ class Component extends DCLogic {
     var otpSent = !!s.otpSent;
     var resendIn = s.resendIn || 0;
     var signup = mode === 'signup';
+    var forgot = mode === 'forgot';
+    var fpStep = s.fpStep || 'ask';
     var done = status === 'done';
     var phoneMode = !signup && method === 'phone';
 
@@ -177,7 +195,7 @@ class Component extends DCLogic {
     return {
       t: t,
       err: errs,
-      clr: { email: clear('email'), pw: clear('pw'), name: clear('name'), store: clear('store'), suEmail: clear('suEmail'), terms: clear('terms') },
+      clr: { email: clear('email'), pw: clear('pw'), name: clear('name'), store: clear('store'), suEmail: clear('suEmail'), terms: clear('terms'), fpId: clear('fpId'), fpCode: clear('fpCode'), fpPw: clear('fpPw') },
       brandLine: signup ? (t.heroSignupA + ' ' + t.heroSignupB) : t.mWelcomeSub,
       langCode: lang,
       isEn: !bn, isBn: bn,
@@ -193,11 +211,49 @@ class Component extends DCLogic {
       panelSignin: !signup, panelSignup: signup,
       panelSigninColor: signup ? '#475569' : '#003087',
       panelSignupColor: signup ? '#003087' : '#475569',
-      showSignin: !signup && !done,
+      showSignin: !signup && !forgot && !done,
       showSignup: signup && !done,
+      showForgot: forgot,
+      fpAsk: fpStep === 'ask', fpCode: fpStep === 'code', fpDone: fpStep === 'done',
+      fpCodeText: t.fpCodeText.replace('{to}', s.fpTo || ''),
+      fpBusy: status === 'loading',
       isDone: done,
-      doneTitle: signup ? t.doneSignup : t.doneSignin,
-      doneText: signup ? t.doneSignupText : t.doneSigninText,
+      doneTitle: s.google ? t.doneSignin : signup ? t.doneSignup : t.doneSignin,
+      doneText: s.google ? t.googleNote.replace('{name}', USERS[0].name) : signup ? t.doneSignupText : t.doneSigninText,
+      toForgot: function () { self.go('forgot'); },
+      // Forgot password (demo): email or mobile → a 6-digit code + new password → done. Nothing is sent or stored.
+      fpSubmit: function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        if (status !== 'idle') return;
+        var focus = function (id) { var n = el(id); if (n) n.focus(); };
+        if (fpStep === 'ask') {
+          var to = val('fp-id').trim();
+          var mob = to.replace(/[\s-]/g, '');
+          if (!GC_EMAIL_RE.test(to) && !GC_BD_MOBILE_RE.test(mob)) { self.setState({ errs: { fpId: t.errId } }); focus('fp-id'); return; }
+          self.setState({ status: 'loading', errs: {} });
+          self.timer = setTimeout(function () { self.setState({ status: 'idle', fpStep: 'code', fpTo: GC_EMAIL_RE.test(to) ? to : mob }); }, 700);
+          return;
+        }
+        if (fpStep === 'code') {
+          var found = {}, first = '';
+          if (!/^\d{6}$/.test(val('fp-code').trim())) { found.fpCode = t.errCode6; first = first || 'fp-code'; }
+          if (val('fp-pw').length < 8) { found.fpPw = t.errPwShort; first = first || 'fp-pw'; }
+          if (first) { self.setState({ errs: found }); focus(first); return; }
+          self.setState({ status: 'loading', errs: {} });
+          self.timer = setTimeout(function () { self.setState({ status: 'idle', fpStep: 'done' }); }, 700);
+        }
+      },
+      // Google (demo): no Google account is used; it signs in as the shop owner's demo account and says so.
+      google: function () {
+        if (status !== 'idle' || s.systemBusy) return;
+        clearTimeout(self.timer);
+        signInAs(USERS[0].id);
+        self.setState({ status: 'loading', google: true });
+        self.timer = setTimeout(function () {
+          self.setState({ status: 'done' });
+          self.timer = setTimeout(function () { enterSystem((self.state && self.state.system) || defaultSystem(), navigate); }, 2400);
+        }, 500);
+      },
 
       isEmail: method === 'email', isPhone: method === 'phone',
       tabX: method === 'phone' ? 'translateX(100%)' : 'translateX(0%)',
@@ -391,7 +447,7 @@ export default class MerchantSignInScreen extends Component {
                   </div>
                   {/* the full site previews a system; an edition site already knows its system and offers one demo button (S2-12) */}
                   {v.system ? <SystemPicker busy={v.systemBusy} onPick={v.pickSystem} /> : null}
-                  <button type="button" className="gc-btn gc-outline" style={{ marginTop: "28px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}><span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>G</span>{v.t?.google}</button>
+                  <button type="button" className="gc-btn gc-outline" onClick={v.google} style={{ marginTop: "28px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}><span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>G</span>{v.t?.google}</button>
                   <div style={{ marginTop: "20px", display: "flex", alignItems: "center", gap: "14px" }}>
                     <div style={{ flexGrow: "1", height: "1px", background: "#e2e8f0" }} />
                     <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)", letterSpacing: "var(--tracking-wide)" }}>{v.t?.or}</span>
@@ -447,7 +503,7 @@ export default class MerchantSignInScreen extends Component {
                       </div>
                       <div style={{ marginTop: "8px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "0 12px" }}>
                         <label style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569", cursor: "pointer" }}><input type="checkbox" style={{ width: "18px", height: "18px", margin: "0", accentColor: "#003087" }} />{v.t?.remember}</label>
-                        <button type="button" className="gc-link" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", minHeight: "44px" }}>{v.t?.forgot}</button>
+                        <button type="button" className="gc-link" onClick={v.toForgot} style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", minHeight: "44px" }}>{v.t?.forgot}</button>
                       </div>
                     </div>
                   </>) : null}
@@ -522,7 +578,7 @@ export default class MerchantSignInScreen extends Component {
                     <h1 style={__sx(`margin: 0; font-size: var(--text-3xl); line-height: 40px; font-weight: var(--weight-semibold); letter-spacing: ${v.track ?? ""}; color: #0f172a;`)}>{v.t?.createTitle}</h1>
                     <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "var(--text-muted)" }}>{v.t?.createSub}</p>
                   </div>
-                  <button type="button" className="gc-btn gc-outline" style={{ marginTop: "24px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}><span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>G</span>{v.t?.googleUp}</button>
+                  <button type="button" className="gc-btn gc-outline" onClick={v.google} style={{ marginTop: "24px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}><span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>G</span>{v.t?.googleUp}</button>
                   <div style={{ marginTop: "20px", display: "flex", alignItems: "center", gap: "14px" }}>
                     <div style={{ flexGrow: "1", height: "1px", background: "#e2e8f0" }} />
                     <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)", letterSpacing: "var(--tracking-wide)" }}>{v.t?.or}</span>
@@ -607,7 +663,7 @@ export default class MerchantSignInScreen extends Component {
                   </div>
                   <label style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569", cursor: "pointer" }}>
                     <input id="su-terms" type="checkbox" aria-required="true" aria-invalid={!!v.err?.terms} aria-describedby={v.err?.terms ? "su-terms-err" : undefined} onChange={v.clr?.terms} style={{ width: "18px", height: "18px", margin: "0", flexShrink: "0", accentColor: "#003087" }} />
-                    <span>{v.t?.termsPre}<a href="#">{v.t?.terms}</a>{v.t?.termsMid}<a href="#">{v.t?.privacy}</a>{v.t?.termsPost}</span>
+                    <span>{v.t?.termsPre}<b style={{ fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.terms}</b>{v.t?.termsMid}<b style={{ fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.privacy}</b>{v.t?.termsPost}</span>
                   </label>
                   <__Err id="su-terms-err" msg={v.err?.terms} />
                   <button type="submit" className="gc-btn gc-solid" style={{ marginTop: "12px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
@@ -626,6 +682,63 @@ export default class MerchantSignInScreen extends Component {
                     </>) : null}
                   </button>
                   <p style={{ margin: "24px 0 0", textAlign: "center", fontSize: "var(--text-sm)", lineHeight: "22px", color: "var(--text-muted)" }}>{v.t?.haveAccount} <button type="button" className="gc-link" onClick={v.toSignin}>{v.t?.signIn}</button></p>
+                </form>
+              </>) : null}
+              {v.showForgot ? (<>
+                <form noValidate onSubmit={v.fpSubmit} style={{ display: "flex", flexDirection: "column" }} data-panel="forgot">
+                  {v.fpDone ? (<>
+                    <svg width="72" height="72" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+                      <circle className="gc-check-circle" cx="28" cy="28" r="26" stroke="#10b981" strokeWidth="2" />
+                      <path className="gc-check-mark" d="M17 29l7 7 15-15" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <h1 style={__sx(`margin: 20px 0 0; font-size: var(--text-3xl); line-height: 40px; font-weight: var(--weight-semibold); letter-spacing: ${v.track ?? ""}; color: #0f172a;`)}>{v.t?.fpDone}</h1>
+                    <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "var(--text-muted)" }}>{v.t?.fpDoneText}</p>
+                    <button type="button" className="gc-btn gc-solid" onClick={v.toSignin} style={{ marginTop: "24px", width: "100%" }}>{v.t?.backSignin}</button>
+                  </>) : (<>
+                    <h1 style={__sx(`margin: 0; font-size: var(--text-3xl); line-height: 40px; font-weight: var(--weight-semibold); letter-spacing: ${v.track ?? ""}; color: #0f172a;`)}>{v.fpAsk ? v.t?.fpTitle : v.t?.fpCodeTitle}</h1>
+                    <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "var(--text-muted)" }}>{v.fpAsk ? v.t?.fpSub : v.fpCodeText}</p>
+                    {v.fpAsk ? (
+                      <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <label htmlFor="fp-id" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.fpId}</label>
+                        <div className="gc-field">
+                          <svg className="gc-ico" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                          </svg>
+                          <input id="fp-id" className="gc-input" type="text" inputMode="email" placeholder={v.t?.fpIdPh} autoComplete="username" autoFocus aria-required="true" aria-invalid={!!v.err?.fpId} aria-describedby={v.err?.fpId ? "fp-id-err" : undefined} onInput={v.clr?.fpId} />
+                          <__Err id="fp-id-err" msg={v.err?.fpId} />
+                        </div>
+                      </div>
+                    ) : (<>
+                      <p className="gc-fade" role="note" style={{ margin: "16px 0 0", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "#f1f5f9", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>{v.t?.fpDemo}</p>
+                      <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <label htmlFor="fp-code" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.fpCode}</label>
+                        <div className="gc-field">
+                          <svg className="gc-ico" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+                          </svg>
+                          <input id="fp-code" className="gc-input" type="text" inputMode="numeric" maxLength="6" placeholder="123456" autoComplete="one-time-code" autoFocus aria-required="true" aria-invalid={!!v.err?.fpCode} aria-describedby={v.err?.fpCode ? "fp-code-err" : undefined} onInput={v.clr?.fpCode} />
+                          <__Err id="fp-code-err" msg={v.err?.fpCode} />
+                        </div>
+                      </div>
+                      <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <label htmlFor="fp-pw" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.fpNewPw}</label>
+                        <div className="gc-field">
+                          <svg className="gc-ico" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                          </svg>
+                          <input id="fp-pw" className="gc-input" type="password" placeholder={v.t?.pwNewPh} autoComplete="new-password" aria-required="true" aria-invalid={!!v.err?.fpPw} aria-describedby={v.err?.fpPw ? "fp-pw-err" : undefined} onInput={v.clr?.fpPw} />
+                          <__Err id="fp-pw-err" msg={v.err?.fpPw} />
+                        </div>
+                      </div>
+                    </>)}
+                    <button type="submit" className="gc-btn gc-solid" style={{ marginTop: "20px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                      {v.fpBusy ? (<svg className="gc-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>) : null}
+                      <span>{v.fpAsk ? (v.fpBusy ? v.t?.fpSending : v.t?.fpSend) : (v.fpBusy ? v.t?.fpSaving : v.t?.fpSave)}</span>
+                    </button>
+                    <p style={{ margin: "24px 0 0", textAlign: "center", fontSize: "var(--text-sm)", lineHeight: "22px" }}><button type="button" className="gc-link" onClick={v.toSignin} style={{ minHeight: "36px" }}>{v.t?.backSignin}</button></p>
+                  </>)}
                 </form>
               </>) : null}
               {v.isDone ? (<>

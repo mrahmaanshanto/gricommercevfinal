@@ -18,9 +18,14 @@
 //                item's IMEI / serial (customerWarranty.serialsOfLine) and warranty (warranty.coverOf)
 //   notes        Order note and Internal note, saved when the field is left (orders.patchOrder + logOrder)
 //   activity     orders.logOf, Add a comment
-//   more         Resend receipt (receipts.sendReceipt), Print invoice (SaleInvoice), Return or exchange (the web flow
-//                /return-exchange?ref=), Open on the web, Cancel order
-// Payment proofs, Edit order, holds by hand, sub-status and tags stay on the web page (linked).
+//   edit         Edit order (orders/OrderEditSheets.jsx › EditOrderSheet: items, quantity, price, delivery, discount,
+//                address, note, with orderEdit.previewEdit's effects; Save changes or Send for review) and a waiting
+//                edit request (Apply changes / Decline)
+//   payments     a payment proof to review (ProofSheet: Accept / Reject with a reason, lib/paymentProof.js) and Add
+//                payment proof (AddProofSheet)
+//   more         Edit order, Add payment proof, Resend receipt (receipts.sendReceipt), Print invoice (SaleInvoice),
+//                Return or exchange (the web flow /return-exchange?ref=), Open on the web, Cancel order
+// Holds by hand, sub-status and tags stay on the web page (linked).
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -37,7 +42,7 @@ import {
 } from '@/lib/orders';
 import {
   verifyOf, startAutoCall, settleAutoCall, recordCall, CALL_RESULTS, callResultLabel, requestAdvance, receiveAdvance,
-  ADVANCE_METHODS, COURIERS, courierCharge, prepOf, prepDone, updatePrep, markReady, sendToCourier, trackingOf,
+  ADVANCE_METHODS, COURIERS, courierCharge, prepOf, prepDone, updatePrep, markReady, sendToCourier, trackingOf, serialLinesOf, setPackSerial,
   courierWebhook, syncCourier, HOOK_LABEL, setLinePhoto, isDigitalOrder, sendDigital,
 } from '@/lib/orderFlow';
 import { courierHistory } from '@/lib/orderLinks';
@@ -47,6 +52,8 @@ import { getStockPlaces } from '@/lib/locations';
 import { clockNow } from '@/lib/settlements';
 import { completionOf } from '@/lib/orderRules';
 import { proofToReview, methodLabel } from '@/lib/paymentProof';
+import { canEdit, editRequestOf } from '@/lib/orderEdit';
+import { EditOrderSheet, ProofSheet, AddProofSheet, EDIT_CSS } from './orders/OrderEditSheets';
 import { sendReceipt, receiptsSent } from '@/lib/receipts';
 import { SaleInvoice, invoiceFromOrder, printInvoice } from '@/components/SaleInvoice';
 import { QrCode } from '@/components/QrCode';
@@ -88,7 +95,9 @@ const CSS = `
 [data-screen="MOrderDetail"] .note-in{display:block;width:100%;min-height:64px;padding:10px 14px;border-radius:var(--radius-lg);border:1px solid #dbe2ec;background:var(--card);font:inherit;font-size:var(--text-sm);line-height:20px;color:var(--ink);resize:vertical;outline:0}
 [data-screen="MOrderDetail"] .note-in:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,48,135,.12)}
 [data-screen="MOrderDetail"] .slip{position:absolute;left:-10000px;top:0;width:100mm}
-`;
+[data-screen="MOrderDetail"] .note-act{display:flex;gap:8px;margin-top:10px}
+[data-screen="MOrderDetail"] .sec .ed{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 4px;border:0;background:none;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--brand);cursor:pointer}
+` + EDIT_CSS;
 
 /** The board's step dots, with "Step n of n" above them. */
 function Steps({ steps, reached, next, status, stopped }) {
@@ -145,7 +154,7 @@ export default function MOrderDetailScreen() {
   const id = query ? query.get('id') || '' : '';
   const from = query ? query.get('from') || '' : '';
   const back = /^\/m-[a-z-]+(\?|$)/.test(from) ? from : '/m-orders';
-  const [sheet, setSheet] = useState(null);   // more · call · approve · advance · cancel · resend · comment · photo
+  const [sheet, setSheet] = useState(null);   // more · call · approve · advance · cancel · resend · comment · photo · edit · request · proof · add-proof
   const [place, setPlace] = useState('');
   const [call, setCall] = useState({ result: 'confirmed', note: '' });
   const [adv, setAdv] = useState({ amount: '', method: 'bkash online' });
@@ -235,6 +244,9 @@ export default function MOrderDetailScreen() {
   const samePhone = digitsOf(o.phone).length >= 10 ? all.filter((x) => digitsOf(x.phone) === digitsOf(o.phone)) : [o];
   const completion = safe(() => completionOf(o), { done: false, text: '' });
   const toReview = counter ? null : safe(() => proofToReview(o), null);
+  const editable = safe(() => canEdit(o), false);
+  const editReq = editable ? safe(() => editRequestOf(o), null) : null;
+  const canAddProof = !counter && !offPath && (due == null ? o.payment !== 'Paid' : due > 0);
   const rto = o.statusKey === 'returned' && !counter ? safe(() => rtoState(o), null) : null;
   const sale = counter ? safe(() => saleOfOrder(o), null) : null;
   const soldBy = (sale && sale.cashier) || o.soldBy || '';
@@ -436,11 +448,13 @@ export default function MOrderDetailScreen() {
   };
 
   const more = [
+    editable && { key: 'edit', icon: 'edit', label: 'Edit order', sub: 'Items, delivery, discount, address, note', run: () => setSheet('edit') },
+    canAddProof && { key: 'add-proof', icon: 'wallet', label: 'Add payment proof', sub: 'bKash, Nagad, Rocket or bank', run: () => setSheet('add-proof') },
     { key: 'resend', icon: 'chat', label: 'Resend receipt', run: () => setSheet('resend') },
     { key: 'print', icon: 'receipt', label: 'Print invoice', run: doPrint },
     { key: 'return', icon: 'undo', label: 'Return or exchange', sub: 'Opens the web flow', href: '/return-exchange?ref=' + encodeURIComponent(o.invoiceId || o.id) },
-    { key: 'comment', icon: 'edit', label: 'Add a comment', run: () => setSheet('comment') },
-    { key: 'web', icon: 'globe', label: 'Open on the web', sub: 'Edit order, payment proofs, tags', href: '/order-detail?id=' + encodeURIComponent(o.id) },
+    { key: 'comment', icon: 'chat', label: 'Add a comment', run: () => setSheet('comment') },
+    { key: 'web', icon: 'globe', label: 'Open on the web', sub: 'Tags, holds and more', href: '/order-detail?id=' + encodeURIComponent(o.id) },
     canCancel && { key: 'cancel', icon: 'x', label: 'Cancel order', run: () => setSheet('cancel') },
   ].filter(Boolean);
 
@@ -457,7 +471,18 @@ export default function MOrderDetailScreen() {
 
         {toReview ? (
           <div style={{ margin: '12px 20px 0' }}>
-            <Note tone="warn" icon="receipt">Payment to review · {safe(() => methodLabel(toReview.method), '')} {money(toReview.amount)}. <Link href={'/order-detail?id=' + encodeURIComponent(o.id)} style={{ fontWeight: 'var(--weight-medium)', textDecoration: 'underline' }}>Review on the web</Link></Note>
+            <Note tone="warn" icon="receipt">
+              <div>Payment to review · {safe(() => methodLabel(toReview.method), '')} <span className="mono">{toReview.txn}</span> · <b className="num">{money(toReview.amount)}</b></div>
+              <div className="note-act"><Button kind="primary" style={{ flex: '1', height: '40px' }} onClick={() => setSheet('proof')}>Review payment</Button></div>
+            </Note>
+          </div>
+        ) : null}
+        {editReq ? (
+          <div style={{ margin: '12px 20px 0' }}>
+            <Note tone="info" icon="edit">
+              <div>Change asked by <b>{editReq.by}{editReq.from === 'Customer' ? ' (customer)' : ''}</b>{editReq.note ? ': ' + editReq.note : ''}</div>
+              <div className="note-act"><Button kind="soft" style={{ flex: '1', height: '40px' }} onClick={() => setSheet('request')}>Review change</Button></div>
+            </Note>
           </div>
         ) : null}
         {dups.map((d) => (
@@ -507,6 +532,12 @@ export default function MOrderDetailScreen() {
                 <CheckRow title="Slip printed" sub={prep.courier ? prep.courier + ' label' : 'Choose a courier first'} on={!!prep.slipPrinted}
                   onChange={(x) => (prep.courier ? setPrep({ slipPrinted: x }) : toast('Choose a courier first', { tone: 'error' }))}
                   end={<Button kind="soft" style={{ height: '36px', padding: '0 12px' }} onClick={printSlip}>Print</Button>} />
+                {serialLinesOf(o).map((x) => (
+                  <div key={'sn' + x.i} style={{ padding: '10px 16px', borderTop: '1px solid var(--line)' }}>
+                    <div className="lab" style={{ marginBottom: '6px' }}>{x.kind === 'imei' ? 'IMEI' : 'Serial'} · {x.name} · {x.serials.filter(Boolean).length} of {x.qty}</div>
+                    {Array.from({ length: x.qty }).map((_, n) => <input key={n + (x.serials[n] || '')} className="inp" style={{ width: '100%', marginBottom: '6px', fontFamily: 'var(--font-data)' }} inputMode={x.kind === 'imei' ? 'numeric' : undefined} aria-label={`${x.kind === 'imei' ? 'IMEI' : 'Serial'} ${n + 1} of ${x.name}`} placeholder={x.kind === 'imei' ? '15 digits' : 'Serial'} defaultValue={x.serials[n] || ''} onBlur={(e) => { const v = e.target.value.trim(); if (v === (x.serials[n] || '')) return; const res = setPackSerial(fresh(), x.i, n, v); if (!res.ok) { toast(res.error, { tone: 'error' }); return; } if (prepDone(prepOf(fresh())) && fresh().statusKey === 'approved') { markReady(fresh()); toast('Ready for courier'); } refresh(); }} />)}
+                  </div>
+                ))}
                 <CheckRow title="Packed" on={!!prep.packed} onChange={(x) => setPrep({ packed: x })} />
                 <CheckRow title="Slip attached" on={!!prep.slipAttached} onChange={(x) => (prep.slipPrinted ? setPrep({ slipAttached: x }) : toast('Print the slip first', { tone: 'error' }))} />
               </div>
@@ -518,7 +549,8 @@ export default function MOrderDetailScreen() {
 
         <div className="sec" style={{ marginTop: '16px' }}>
           <h2>{plural(o.units || o.lines.length, 'item')}</h2>
-          <span style={{ fontSize: 'var(--text-xs-plus)', color: 'var(--muted)' }}>{o.source || o.channel}</span>
+          {editable ? <button type="button" className="ed" onClick={() => setSheet('edit')}><Icon name="edit" size={16} />Edit</button>
+            : <span style={{ fontSize: 'var(--text-xs-plus)', color: 'var(--muted)' }}>{o.source || o.channel}</span>}
         </div>
         <div className="card" style={{ margin: '0 20px' }}>
           {o.lines.map((l, i) => (
@@ -711,6 +743,10 @@ export default function MOrderDetailScreen() {
         footer={<><Button kind="line" onClick={close}>Cancel</Button><Button kind="primary" style={{ flex: '2' }} disabled={!comment.trim()} onClick={saveComment}>Add comment</Button></>}>
         <Field label="Comment" help="Only staff can see it"><TextInput multiline value={comment} onChange={setComment} autoFocus /></Field>
       </Sheet>
+
+      <EditOrderSheet open={sheet === 'edit' || sheet === 'request'} order={o} request={sheet === 'request' ? editReq : null} by={by} onClose={() => { close(); refresh(); }} />
+      <ProofSheet open={sheet === 'proof'} order={o} proof={toReview} by={by} onClose={() => { close(); refresh(); }} />
+      <AddProofSheet open={sheet === 'add-proof'} order={o} by={by} onClose={() => { close(); refresh(); }} />
 
       <Sheet open={sheet === 'photo' && photoAt != null} onClose={close} title={photoAt != null && o.lines[photoAt] ? o.lines[photoAt].name : 'Photo'}
         footer={<><Button kind="danger" onClick={() => removePhoto(photoAt)}>Remove</Button><Button kind="primary" style={{ flex: '2' }} onClick={() => pickPhoto(photoAt)}>Replace</Button></>}>

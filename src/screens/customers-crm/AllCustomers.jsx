@@ -13,17 +13,23 @@
 import React from 'react';
 import { addCustomer, PRICE_TIERS, updateCustomer, mergeCustomers, phoneDigits, customerMatches, addCompany, resolveCustomer, DEMO_LIST, CUSTOMER_STATUSES } from '@/lib/customers';
 import { getCrmRows } from '@/lib/crm';
+import { TERMS } from '@/lib/buyerTerms';
 import { saveDemoEdit, addMerge, getNotDupes, addNotDupe, removeFromBook } from '@/lib/customerEdits';
-import { getSegments, SEGMENT_TEMPLATES, segmentMembers, getSegment } from '@/lib/segments';
+import { getSegments, SEGMENT_TEMPLATES, segmentMembers, getSegment, evaluate, segmentFields } from '@/lib/segments';
+import { MORE_FILTERS, NO_MORE, moreRules, moreChips, moreCount, moreFromQuery, moreToQuery } from '@/lib/customerFilters';
 import { CONSENT_CHANNELS, CONSENT_STATES, CONSENT_SOURCES, getConsent } from '@/lib/consent';
 import { RESTRICTION_TYPES } from '@/lib/restrictions';
 import { startJob, consentSummary } from '@/lib/bulkJobs';
 import { applyRetention } from '@/lib/crmPrivacy';
 import { currentUser } from '@/lib/team';
-import { wholesaleOn } from '@/lib/edition';
-// wholesale customers, price lists and the Wholesale view show only while wholesale is on (edition.js; off for now)
-var WS = wholesaleOn();
+import { wholesaleOn, EDITION_EVENT } from '@/lib/edition';
+// wholesale customers, price lists and the Wholesale view show only while wholesale is on (edition.js; off for now).
+// Read after mount (applyWholesale in componentDidMount), never at import time: the server renders the full product
+// while the browser may preview an edition, so an import-time value would break hydration.
+var WS = false;
 import CustomerEditDialog from './CustomerEditDialog';
+import AssignCouponDialog from './AssignCoupon';
+import { printNode } from '@/lib/printNode';
 import { SegmentBuilder, JobsCard, CRM_PARTS_CSS } from './crmParts';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon } from '@/runtime/dc';
@@ -33,18 +39,19 @@ import { ShopHeader, IndexTabs, SearchField, Pager, LearnMore, Menu } from '@/co
 import { toast as uiToast } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { ModuleSetup } from '@/components/ModuleSetup';
+import { tickJobs } from '@/lib/dataImport';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-var VIEWS = [
+var ALL_VIEWS = [
   { k: 'all', label: 'All customers', n: 2452 }, { k: 'wholesale', label: 'Wholesale customers', n: 0 }, { k: 'company', label: 'Companies', n: 0 }, { k: 'signToday', label: 'Signed up today', n: 14 }, { k: 'orderToday', label: 'Ordered today', n: 38 }, { k: 'week', label: 'New this week', n: 61 },
   { k: 'noOrder', label: 'Signed up, no order yet', n: 212 }, { k: 'repeat', label: 'Repeat buyers', n: 486 }, { k: 'big', label: 'Big spenders', n: 124 }, { k: 'cart', label: 'Left a cart', n: 31 },
   { k: 'pts', label: 'Points expiring', n: 64 }, { k: 'bday', label: 'Birthday this month', n: 97 }, { k: 'codBlock', label: 'COD blocked', n: 3 }, { k: 'restricted', label: 'Restrictions', n: 0 }, { k: 'suspended', label: 'Suspended', n: 6 },
   { k: 'cleanup', label: 'Needs cleanup', n: 0 }, { k: 'dupes', label: 'Possible duplicates', n: 0 }
 ];
-VIEWS = VIEWS.filter(function (v) { return v.k !== 'wholesale' || WS; });
+var VIEWS = ALL_VIEWS.filter(function (v) { return v.k !== 'wholesale' || WS; });
 // Columns of the list, in order. The main ones always show (Shopify's Customers list: customer, status, location,
 // orders, amount spent, and what they still owe); the extra ones are picked in Columns.
 var COLS = [
@@ -56,14 +63,23 @@ var COLS = [
 var STONE = { 'Active': 'success', 'Suspended': 'error', 'Closed': 'neutral' };
 var LTONE = { Member: 'neutral', Silver: 'neutral', Gold: 'warning', Platinum: 'primary' };
 // Views shown as tabs, in priority order; the rest are in "More views" (the one picked from there shows as a tab).
-var PRIMARY = ['all', 'wholesale', 'company', 'signToday', 'orderToday', 'week', 'repeat', 'big'].filter(function (k) { return k !== 'wholesale' || WS; });
+var ALL_PRIMARY = ['all', 'wholesale', 'company', 'signToday', 'orderToday', 'week', 'repeat', 'big'];
+var PRIMARY = ALL_PRIMARY.filter(function (k) { return k !== 'wholesale' || WS; });
 var CITIES = ['Dhaka', 'Chattogram', 'Sylhet', 'Khulna', 'Rajshahi', 'Outside Dhaka'];
 var NO_PILLS = { fCity: '', fStatus: '', fLevel: '', fSrc: '', fRestr: '', fKind: '', fConsent: '', fSeg: '' };
 var PILL_KEYS = Object.keys(NO_PILLS);
 var TODAY = '19 Sep 2026'; // "today" in the demo data
 var EMPTY_FORM = { kind: 'person', name: '', phone: '', area: '', types: ['Online'], tier: 'A', credit: '', email: '', bin: '', terms: 'Net 30' };
-var CUST_TYPES = ['Online', 'Retail', 'Wholesale'].filter(function (t) { return t !== 'Wholesale' || WS; });   // how the customer buys; one, two or all three
-var TAG_CHOICES = ['VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up', 'Eid buyer'].filter(function (t) { return t !== 'Wholesale' || WS; });
+var CUST_TYPES = ['Online', 'Retail'];   // how the customer buys; one, two or all three (Wholesale added by applyWholesale)
+var TAG_CHOICES = ['VIP', 'Influencer', 'Staff', 'Follow up', 'Eid buyer'];
+/** Read the wholesale switch for the edition in use (after mount, and when the edition preview changes). */
+function applyWholesale() {
+  WS = wholesaleOn();
+  VIEWS = ALL_VIEWS.filter(function (v) { return v.k !== 'wholesale' || WS; });
+  PRIMARY = ALL_PRIMARY.filter(function (k) { return k !== 'wholesale' || WS; });
+  CUST_TYPES = ['Online', 'Retail', 'Wholesale'].filter(function (t) { return t !== 'Wholesale' || WS; });
+  TAG_CHOICES = ['VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up', 'Eid buyer'].filter(function (t) { return t !== 'Wholesale' || WS; });
+}
 function compact(x) { return String(x || '').replace(/[\s\-().]/g, '').toLowerCase(); }
 /** Bangladeshi mobile as 11 digits (01XXXXXXXXX), or '' when it is not one. Accepts +88 / 88 prefixes. */
 function bdMobile(x) { var d = compact(x); if (d.indexOf('+88') === 0) d = d.slice(3); else if (d.indexOf('88') === 0 && d.length === 13) d = d.slice(2); return /^01[3-9]\d{8}$/.test(d) ? d : ''; }
@@ -109,16 +125,24 @@ function statusCell(c) {
 
 class Component extends DCLogic {
   componentDidMount() {
+    applyWholesale();
+    this.onEdition = () => { applyWholesale(); this.forceUpdate(); };
+    window.addEventListener(EDITION_EVENT, this.onEdition);
+    this.offEdition = () => window.removeEventListener(EDITION_EVENT, this.onEdition);
+    // a customer import that finished while nobody was looking is saved now (Settings › Import data)
+    try { if (tickJobs().length) this.forceUpdate(); } catch (e) { /* ignore */ }
     try {
       var qs = new URLSearchParams(window.location.search), k = qs.get('view'), seg = qs.get('segment');
       if (k && VIEWS.some(function (x) { return x.k === k; })) this.setState({ view: k });
       if (seg && getSegment(seg)) this.setState({ pills: assign(assign({}, NO_PILLS), { fSeg: seg }), find: true });
+      var mf = moreFromQuery(qs); if (moreCount(mf)) this.setState({ more: mf, find: true });
     } catch (e) { /* no URL access */ }
     applyRetention();
     this.load();
   }
   /** Rows from lib/crm.js: the customer book (orders, spend and due from their invoices), the demo list and the
    *  companies, with the edits and merges made in this browser. */
+  componentWillUnmount() { if (this.offEdition) this.offEdition(); }
   load = (justAdded) => {
     var rows = getCrmRows({ justAdded: justAdded }), notDupes = getNotDupes();
     var here = {}; rows.forEach(function (r) { here[r.key] = true; });
@@ -171,12 +195,17 @@ class Component extends DCLogic {
 
   // ---- search ----
   typeQ = (e) => { this.setState({ q: e.target.value, sel: {} }); };
-  showAll = () => { this.setState({ q: '', pills: NO_PILLS, fApplied: false, find: false }); this.setView('all'); };
+  showAll = () => { this.setState({ q: '', pills: NO_PILLS, find: false }); this.setMore(NO_MORE); this.setView('all'); };
 
   // ---- views (stored in the URL as ?view=<key>) ----
   setView = (k) => {
     this.setState({ view: k, sel: {} });
     try { var u = new URL(window.location.href); if (k === 'all') u.searchParams.delete('view'); else u.searchParams.set('view', k); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); } catch (e) { /* no URL access */ }
+  };
+  // More filters (stored in the URL like the view: ?signed=7d&spent=50k …; lib/customerFilters.js)
+  setMore = (mf) => {
+    this.setState({ more: mf, sel: {} });
+    try { var u = moreToQuery(new URL(window.location.href), mf); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); } catch (e) { /* no URL access */ }
   };
   pickSegment = (id) => {
     var s = this.state || {};
@@ -251,7 +280,8 @@ class Component extends DCLogic {
     var view = s.view || 'all', pick = s.pick || {}, sel = s.sel || {};
     var q = s.q || '', qShown = q.trim(), form = s.form || EMPTY_FORM, errs = s.errs || {};
     var pills = assign(assign({}, NO_PILLS), s.pills || {});
-    var pillCount = PILL_KEYS.filter(function (k) { return !!pills[k]; }).length;
+    var more = assign(assign({}, NO_MORE), s.more || {}), mRules = moreRules(more), mFields = mRules.length ? segmentFields() : null;
+    var pillCount = PILL_KEYS.filter(function (k) { return !!pills[k]; }).length + moreCount(more);
     var ALL = s.rows || [];
     var pairs = s.pairs || [];
     var isDupes = view === 'dupes';
@@ -266,7 +296,8 @@ class Component extends DCLogic {
         && (!pills.fRestr || (pills.fRestr === 'any' ? c.restrictions.length > 0 : pills.fRestr === 'none' ? !c.restrictions.length : c.restrictions.some(function (r) { return r.type === pills.fRestr; })))
         && (!pills.fKind || c.kind === pills.fKind)
         && (!cons || getConsent(c)[cons[0]].state === cons[1])
-        && (!segIds || !!segIds[c.id]);
+        && (!segIds || !!segIds[c.id])
+        && (!mRules.length || evaluate({ join: 'and', rules: mRules }, c, mFields));
     };
     var list = inView.filter(function (c) { return customerMatches(c, q, ALL) && pillOk(c); });
     var pairList = pairs.filter(function (p) { return customerMatches(p.a, q, ALL) || customerMatches(p.b, q, ALL); });
@@ -287,7 +318,6 @@ class Component extends DCLogic {
     var selN = selRows.length;
     var selIds = selRows.map(function (c) { return c.id; });
     var filtered = !!qShown || pillCount > 0;
-    var outN = filtered ? (isDupes ? pairList.length : list.length) : total;
     var cell = function (c, k) {
       var v = c[k];
       if (k === 'spent') return { v: v ? bdt(v) : '—', cls: 'ix-num' };
@@ -308,7 +338,7 @@ class Component extends DCLogic {
     var tabs = tabKeys.map(function (k) { var v = VIEWS.filter(function (x) { return x.k === k; })[0]; return { key: k, id: 'ac-tab-' + k, label: v.label, count: countOf(v).toLocaleString('en-IN'), on: k === view, onClick: function () { self.setView(k); } }; });
     var moreViews = VIEWS.filter(function (v) { return tabKeys.indexOf(v.k) < 0; }).map(function (v) { return { label: v.label + ' · ' + countOf(v).toLocaleString('en-IN'), onClick: function () { self.setView(v.k); } }; });
     var setPill = function (k) { return function (e) { var o = assign({}, pills); o[k] = e.target.value; self.setState({ pills: o, sel: {} }); }; };
-    var clearAll = function () { self.setState({ q: '', pills: NO_PILLS, fApplied: false, sel: {} }); };
+    var clearAll = function () { self.setState({ q: '', pills: NO_PILLS, sel: {} }); self.setMore(NO_MORE); };
     var segs = s.segs || [];
     var segChoices = segs.map(function (x) { return [x.id, x.name]; }).concat(SEGMENT_TEMPLATES.map(function (t) { return [t.id, t.name + ' · ready-made']; }));
     var segMenu = segs.map(function (x) { return { label: x.name, onClick: function () { self.pickSegment(x.id); } }; })
@@ -323,13 +353,13 @@ class Component extends DCLogic {
       tabs: tabs, moreViews: moreViews, segMenu: segMenu,
       q: q, typeQ: self.typeQ, hasQ: !!qShown,
       find: !!(s.find || qShown || pillCount), openFind: function () { self.setState({ find: true }); },
-      closeFind: function () { self.setState({ find: false, q: '', pills: NO_PILLS, fApplied: false, sel: {} }); },
+      closeFind: function () { self.setState({ find: false, q: '', pills: NO_PILLS, sel: {} }); self.setMore(NO_MORE); },
       pills: pills, setCity: setPill('fCity'), setStatus: setPill('fStatus'), setLevel: setPill('fLevel'), setSrc: setPill('fSrc'), setRestr: setPill('fRestr'), setKind: setPill('fKind'), setConsent: setPill('fConsent'), setSeg: setPill('fSeg'), cities: CITIES,
       segChoices: segChoices, curSeg: curSeg && !curSeg.owner ? curSeg : null, editSeg: function () { self.setState({ segOpen: true, segEdit: curSeg }); },
       segOpen: !!s.segOpen, segEdit: s.segEdit || null, closeSeg: function () { self.setState({ segOpen: false }); },
-      savedSeg: function (seg) { self.setState({ segOpen: false, segs: getSegments() }); self.pickSegment(seg.id); uiToast('Segment “' + seg.name + '” saved.'); },
+      savedSeg: function (seg) { var fromF = !!(s.segEdit && s.segEdit.owner === 'filters'); self.setState(fromF ? { segOpen: false, segs: getSegments(), pills: NO_PILLS } : { segOpen: false, segs: getSegments() }); if (fromF) self.setMore(NO_MORE); self.pickSegment(seg.id); uiToast('Segment “' + seg.name + '” saved.'); },
       allRows: ALL, me: me,
-      hasFilters: filtered || !!s.fApplied, clearAll: clearAll,
+      hasFilters: filtered, clearAll: clearAll,
       emptyTitle: qShown ? 'No customers match “' + qShown + '”' : isDupes ? 'No possible duplicates' : 'No customers in this view',
       emptyAction: filtered ? 'Clear search' : 'Show all customers', emptyDo: filtered ? clearAll : self.showAll,
       addOpen: !!s.addOpen, openAdd: function () { self.openAdd('person'); }, openAddCompany: function () { self.openAdd('company'); }, closeAdd: self.closeAdd, submitAdd: self.submitAdd, typeField: self.typeField, form: form, toggleType: self.toggleType, errTypes: (s.errs || {}).types,
@@ -343,10 +373,49 @@ class Component extends DCLogic {
       showAllCols: function () { var p = {}; COLS.forEach(function (c) { if (c.extra) p[c.k] = true; }); self.setState({ pick: p }); },
       hideExtraCols: function () { self.setState({ pick: {} }); },
       // More filters (dialog)
-      fOpen: !!s.fOpen, openF: function () { self.setState({ fOpen: true }); }, closeF: function () { self.setState({ fOpen: false }); }, hasF: !!s.fApplied,
-      clearF: function () { self.setState({ fApplied: false, fOpen: false }); }, applyF: function () { self.setState({ fApplied: true, fOpen: false }); uiToast('Filters applied.'); },
-      saveView: function () { self.setState({ fOpen: false, segOpen: true, segEdit: null }); },
-      print: function () { uiToast('Opening a print-ready list of ' + outN.toLocaleString('en-IN') + ' customers with the columns you see.'); },
+      // the dialog edits a draft; Show customers applies it (list, chips and the address); Save as a segment opens the
+      // segment builder with these filters (and the filters above) as its rules
+      fOpen: !!s.fOpen, openF: function () { self.setState({ fOpen: true, fDraft: more }); }, closeF: function () { self.setState({ fOpen: false }); }, hasF: moreCount(more) > 0,
+      fDraft: assign(assign({}, NO_MORE), s.fDraft || more), setDraft: function (k) { return function (e) { var d = assign(assign({}, NO_MORE), s.fDraft || more); d[k] = e.target.value; self.setState({ fDraft: d }); }; },
+      fDraftN: moreCount(s.fDraft || more), moreFilters: MORE_FILTERS.map(function (x) { return x.key === 'tag' ? assign(assign({}, x), { options: TAG_CHOICES.map(function (t) { return [t, t]; }) }) : x; }),
+      clearF: function () { self.setState({ fOpen: false, fDraft: NO_MORE }); self.setMore(NO_MORE); }, applyF: function () { self.setState({ fOpen: false }); self.setMore(assign(assign({}, NO_MORE), s.fDraft || more)); },
+      moreChips: moreChips(more).map(function (c) { return assign(c, { remove: function () { var m = assign({}, more); m[c.key] = ''; self.setMore(m); } }); }),
+      saveView: function () {
+        var rules = moreRules(assign(assign({}, NO_MORE), s.fDraft || more));
+        if (pills.fCity) rules.push({ field: 'city', op: 'has', value: pills.fCity });
+        if (pills.fStatus) rules.push({ field: 'status', op: 'is', value: pills.fStatus });
+        if (pills.fLevel) rules.push({ field: 'level', op: 'is', value: pills.fLevel });
+        if (pills.fKind) rules.push({ field: 'kind', op: 'is', value: pills.fKind });
+        if (pills.fSrc) rules.push({ field: 'src', op: 'has', value: pills.fSrc });
+        if (pills.fConsent) { var cp = pills.fConsent.split(':'); rules.push({ field: 'consent.' + cp[0], op: 'is', value: cp[1] }); }
+        if (pills.fRestr && pills.fRestr !== 'any' && pills.fRestr !== 'none') rules.push({ field: 'restriction', op: 'has', value: pills.fRestr });
+        if (!rules.length) { uiToast('Choose at least one filter first.', { tone: 'info' }); return; }
+        self.setState({ fOpen: false, segOpen: true, segEdit: { name: '', owner: 'filters', def: { join: 'and', rules: rules } } });
+      },
+      // a paper copy of the selected customers (or every customer listed) with the columns you see (lib/printNode.js)
+      print: function () {
+        var out = selN ? selRows : list;
+        if (!out.length) { uiToast('No customers to print.', { tone: 'info' }); return; }
+        var el = function (tag, text, cls) { var n = document.createElement(tag); if (text != null) n.textContent = String(text); if (cls) n.className = cls; return n; };
+        var wrap = el('div', null, 'ac-print');
+        wrap.appendChild(el('h1', V ? V.label : 'Customers'));
+        wrap.appendChild(el('p', out.length + (out.length === 1 ? ' customer' : ' customers') + (selN ? ' (selected)' : qShown || pillCount ? ' (filtered)' : '') + ' · printed ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })));
+        var t = el('table'), hr = el('tr');
+        hr.appendChild(el('th', 'Customer'));
+        cols.forEach(function (c) { hr.appendChild(el('th', c.l, c.al === 'right' ? 'n' : '')); });
+        t.appendChild(el('thead')).appendChild(hr);
+        var tb = t.appendChild(el('tbody'));
+        out.forEach(function (c) {
+          var tr = el('tr'), who = el('td');
+          who.appendChild(el('b', c.name)); who.appendChild(el('span', c.phone || '', 's'));
+          tr.appendChild(who);
+          cols.forEach(function (k) { var x = cell(c, k.k); tr.appendChild(el('td', x.v == null || x.v === '' ? '—' : x.v, k.al === 'right' ? 'n' : '')); });
+          tb.appendChild(tr);
+        });
+        wrap.appendChild(t);
+        printNode(wrap, { title: 'Customers', css: '@page{size:A4 landscape;margin:12mm}.ac-print{padding:0;font-family:var(--font-sans);font-size:var(--text-xs);color:var(--text-heading)}.ac-print h1{margin:0 0 4px;font-size:var(--text-lg)}.ac-print p{margin:0 0 10px;color:var(--text-muted)}.ac-print table{width:100%;border-collapse:collapse}.ac-print th,.ac-print td{padding:5px 6px;border-bottom:1px solid var(--border-subtle);text-align:left;vertical-align:top}.ac-print th{font-weight:var(--weight-semibold)}.ac-print .n{text-align:right}.ac-print .s{display:block;color:var(--text-muted)}' });
+        uiToast('Opening the print window for ' + out.length + (out.length === 1 ? ' customer.' : ' customers.'));
+      },
       csv: function () { var ids = (selN ? selRows : list).map(function (c) { return c.id; }); if (!ids.length) { uiToast('No customers to export.', { tone: 'info' }); return; } self.bulk('export', ids, {}); },
       heads: cols.map(function (c) { return { k: c.k, l: c.l, al: c.al || 'left' }; }),
       rows: list.map(function (c) { var on = !!sel[c.key], href = hrefOf(c), st = statusCell(c); return { key: c.key, href: href, wholesale: WS && !!c.wholesale && c.kind !== 'company', company: c.kind === 'company', name: c.name, city: c.city, orders: c.orders, spent: c.spent ? bdt(c.spent) : '—', due: c.due ? bdt(c.due) : '', status: st.v, statusTone: st.tone, sel: on, isNew: !!c.isNew, merged: c.mergedFrom ? 'Merged with ' + c.mergedFrom.join(', ') : '',
@@ -366,7 +435,9 @@ class Component extends DCLogic {
       mergeKeepName: s.mergePair ? (s.mergePair.a.key === s.keepKey ? s.mergePair.a : s.mergePair.b).name : '', mergeDropName: s.mergePair ? (s.mergePair.a.key === s.keepKey ? s.mergePair.b : s.mergePair.a).name : '',
       hasSel: selN > 0, selCount: selN,
       bulkSms: function () { self.setState({ dlg: 'msg', msgCh: 'sms' }); },
-      bulkCoupon: function () { uiToast('A one-time coupon was assigned to ' + selN + ' customers.'); },
+      bulkCoupon: function () { self.setState({ dlg: 'coupon' }); },
+      couponFor: dlg === 'coupon' ? selRows.map(function (c) { return { id: c.id, name: c.name, phone: c.phone, phones: (c.phones || []).map(function (p) { return p.value; }) }; }) : [],
+      couponDone: function () { self.setState({ dlg: null, sel: {} }); },
       bulkTag: function () { self.setState({ dlg: 'tag', tagMode: 'tag', tagVal: '' }); },
       bulkUntag: function () { self.setState({ dlg: 'tag', tagMode: 'untag', tagVal: '' }); },
       bulkSeg: function () { self.setState({ dlg: 'seg', segPick: (segs[0] || {}).id || '' }); },
@@ -436,6 +507,11 @@ const CSS = `
 .ac-mg__facts dd{margin:0;text-align:right;color:var(--text-heading);overflow-wrap:anywhere}
 .ac-colchips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
 .ac-fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.ac-mchips{display:flex;flex-wrap:wrap;gap:6px;padding:0 var(--space-4) var(--space-3)}
+.ac-mchip{display:inline-flex;align-items:center;gap:2px;height:28px;padding:0 2px 0 10px;border-radius:var(--radius-full);background:var(--fill-primary-soft);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--primary)}
+.ac-mchip button{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:0;border-radius:var(--radius-full);background:transparent;color:inherit;cursor:pointer}
+.ac-mchip button:hover{background:var(--fill-primary-soft-hover)}
+@media (max-width:640px){.ac-mchip{height:36px}.ac-mchip button{width:32px;height:32px}}
 /* phones: More views is an icon and Columns is hidden (the phone list has no columns) */
 @media (max-width:640px){.ac-views .ix-btn{width:32px;padding:0}.ac-views .ix-btn>span,.ac-views .ix-btn>svg:last-child{display:none}.ac-colbtn{display:none}}
 @media (max-width:760px){.ac-pair{grid-template-columns:minmax(0,1fr)}.ac-pair__sides,.ac-mg,.ac-fgrid{grid-template-columns:minmax(0,1fr)}.ac-pair__acts{justify-content:flex-start}}
@@ -443,16 +519,6 @@ const CSS = `
 
 // ---- markup ----
 
-const FILTERS_MORE = [
-  ['Signed up', ['Any time', 'Today', 'Yesterday', 'Last 7 days', 'Last 30 days', 'This year', 'Pick dates']],
-  ['Last order', ['Any time', 'Today', 'Last 7 days', 'Last 30 days', 'More than 60 days ago', 'Never ordered']],
-  ['Total spent', ['Any amount', 'Under ৳1,000', '৳1,000 – ৳10,000', '৳10,000 – ৳50,000', 'Above ৳50,000']],
-  ['Number of orders', ['Any', '0 orders', '1 order', '2–4 orders', '5+ orders']],
-  ['Paid with', ['Any', 'Cash on delivery', 'bKash', 'Nagad', 'Card', 'Wallet']],
-  ['Has', ['Anything', 'Abandoned cart', 'Unused coupon', 'Points expiring', 'Open support ticket', 'Items in wishlist']],
-  ['Tag', ['Any', 'VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up'].filter(function (t) { return t !== 'Wholesale' || WS; })],
-  ['Birthday', ['Any', 'This week', 'This month']],
-];
 const ERR = (id, text) => (<p id={id} className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{text}</span></p>);
 
 export default class AllCustomersScreen extends Component {
@@ -469,7 +535,7 @@ export default class AllCustomersScreen extends Component {
               <div className="ix-page">
                 <ShopHeader icon="users" title="Customers"
                   about="Every person and company who signed up or bought from you. Pick a ready view or a segment, or filter on anything. Search finds any phone, email, customer ID or outside ID."
-                  secondary={[{ label: 'Export', onClick: v.csv }]}
+                  secondary={[{ label: 'Import', href: '/import-data?type=customers' }, { label: 'Export', onClick: v.csv }]}
                   more={[{ label: 'Add company', onClick: v.openAddCompany }, { label: 'New segment', onClick: () => this.setState({ segOpen: true, segEdit: null }) }, { label: 'Print', onClick: v.print }, { label: 'Customer settings', href: '/customer-settings' }, { label: 'Members', href: '/members' }, { label: 'Abandoned carts', href: '/abandoned-carts' }]}
                   primary={{ label: 'Add customer', onClick: v.openAdd }} />
                 <ModuleSetup area="area-customers" />
@@ -482,12 +548,12 @@ export default class AllCustomersScreen extends Component {
                       <input type="checkbox" checked={v.allSel} onChange={v.toggleAll} aria-label="Select all" style={{ width: 16, height: 16, margin: '0 6px', accentColor: 'var(--primary)' }} />
                       <span className="ix-bulk__n">{v.selCount} selected</span>
                       <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkSms} aria-haspopup="dialog"><__Icon name="message-circle" width="16" height="16" aria-hidden="true" />Send SMS</button>
-                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkCoupon}><__Icon name="ticket-percent" width="16" height="16" aria-hidden="true" />Assign coupon</button>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkCoupon} aria-haspopup="dialog"><__Icon name="ticket-percent" width="16" height="16" aria-hidden="true" />Assign coupon</button>
                       <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkTag} aria-haspopup="dialog"><__Icon name="tag" width="16" height="16" aria-hidden="true" />Add tag</button>
                       <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[
                         { label: 'Add to segment', onClick: v.bulkSeg }, { label: 'Change consent', onClick: v.bulkConsent }, { label: 'Remove tag', onClick: v.bulkUntag },
                         v.canMerge2 ? { label: 'Merge these 2', onClick: v.mergeSel } : null,
-                        { label: 'Edit customer', onClick: v.editSel }, { label: 'Export', onClick: v.csv }, { label: 'Clear selection', onClick: v.clearSel }].filter(Boolean)} />
+                        { label: 'Edit customer', onClick: v.editSel }, { label: 'Export', onClick: v.csv }, { label: 'Print', onClick: v.print }, { label: 'Clear selection', onClick: v.clearSel }].filter(Boolean)} />
                     </div>
                   ) : (
                     <div className="ix-bar">
@@ -533,9 +599,14 @@ export default class AllCustomersScreen extends Component {
                       <select aria-label="Came from" className={'ix-filter' + (v.pills.fSrc ? ' is-set' : '')} value={v.pills.fSrc} onChange={v.setSrc}>
                         <option value="">Came from</option><option>Facebook ad</option><option>Instagram</option><option>Google</option><option>TikTok</option><option>Invite a friend</option><option>Shop counter (POS)</option><option>Sales team</option>
                       </select>
-                      <button type="button" className={'ix-filter' + (v.hasF ? ' is-set' : '')} onClick={v.openF} aria-haspopup="dialog" style={{ backgroundImage: 'none', paddingRight: 10 }}>More filters</button>
+                      <button type="button" className={'ix-filter' + (v.hasF ? ' is-set' : '')} onClick={v.openF} aria-haspopup="dialog" style={{ backgroundImage: 'none', paddingRight: 10 }}>{v.hasF ? 'More filters (' + v.moreChips.length + ')' : 'More filters'}</button>
                       {v.curSeg ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.editSeg} aria-haspopup="dialog">Edit segment</button> : null}
                       {v.hasFilters ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.clearAll}>Clear all</button> : null}
+                    </div>
+                  ) : null}
+                  {v.moreChips.length && !v.hasSel ? (
+                    <div className="ac-mchips" role="group" aria-label="More filters in use">
+                      {v.moreChips.map((c) => <span key={c.key} className="ac-mchip">{c.label}<button type="button" aria-label={'Remove ' + c.label} onClick={c.remove}><__Icon name="x" width="14" height="14" aria-hidden="true" /></button></span>)}
                     </div>
                   ) : null}
 
@@ -645,7 +716,7 @@ export default class AllCustomersScreen extends Component {
               {v.isCompanyForm ? (
                 <div className="ly-two">
                   <div className="ac-field"><label className="gc-label" htmlFor="ac-add-bin">BIN / trade licence</label><input id="ac-add-bin" name="bin" className="gc-input" value={v.form?.bin} onChange={v.typeField} maxLength={30} /></div>
-                  <div className="ac-field"><label className="gc-label" htmlFor="ac-add-terms">Payment terms</label><select id="ac-add-terms" name="terms" className="gc-input gc-select" value={v.form?.terms} onChange={v.typeField}><option>Pay on order</option><option>Net 15</option><option>Net 30</option><option>Net 45</option></select></div>
+                  <div className="ac-field"><label className="gc-label" htmlFor="ac-add-terms">Payment terms</label><select id="ac-add-terms" name="terms" className="gc-input gc-select" value={v.form?.terms} onChange={v.typeField}>{TERMS.map(function (x) { return <option key={x.k} value={x.k}>{x.label}</option>; })}</select></div>
                 </div>
               ) : null}
               <fieldset className="ac-field ac-mgset" aria-describedby={v.errTypes ? "ac-add-type-err" : "ac-add-type-help"}>
@@ -722,10 +793,12 @@ export default class AllCustomersScreen extends Component {
                 <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.applyF}>Show customers</button>
               </>}>
                 <div className="ac-fgrid">
-                  {FILTERS_MORE.map(([label, opts]) => (
-                    <div key={label}>
-                      <label className="gc-label" htmlFor={'ac-f-' + label}>{label}</label>
-                      <select id={'ac-f-' + label} className="gc-input gc-select" aria-label={label}>{opts.map((o) => <option key={o}>{o}</option>)}</select>
+                  {v.moreFilters.map((x) => (
+                    <div key={x.key}>
+                      <label className="gc-label" htmlFor={'ac-f-' + x.key}>{x.label}</label>
+                      <select id={'ac-f-' + x.key} className="gc-input gc-select" value={v.fDraft[x.key]} onChange={v.setDraft(x.key)}>
+                        <option value="">Any</option>{x.options.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                      </select>
                     </div>
                   ))}
                 </div>
@@ -740,6 +813,7 @@ export default class AllCustomersScreen extends Component {
                   <p className="crm-preview" role="status"><b className="ly-fig">{v.msgOk}</b><span>of {v.msgTotal} can get {v.msgChLabel}</span><small>Only customers who said yes to {v.msgChLabel} get it. The rest are left out.</small></p>
                 </div>
               </__Dialog>
+              <AssignCouponDialog open={v.dlg === 'coupon'} customers={v.couponFor} onClose={v.closeDlg} onDone={v.couponDone} />
               <__Dialog open={v.dlg === 'tag'} title={v.tagMode === 'untag' ? 'Remove a tag' : 'Add a tag'} onClose={v.closeDlg} width={440} footer={<>
                 <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeDlg}>Cancel</button>
                 <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.runTag}>{v.tagMode === 'untag' ? 'Remove from ' : 'Add to '}{v.selCount}</button>

@@ -36,7 +36,7 @@ import {
 } from '@/lib/orders';
 import {
   verifyOf, startAutoCall, settleAutoCall, recordCall, CALL_RESULTS, callResultLabel, requestAdvance, receiveAdvance, ADVANCE_METHODS,
-  COURIERS, courierCharge, prepOf, prepDone, updatePrep, markReady, sendToCourier, trackingOf, courierWebhook, syncCourier, HOOK_LABEL, setLinePhoto,
+  COURIERS, courierCharge, prepOf, prepDone, updatePrep, markReady, sendToCourier, trackingOf, courierWebhook, syncCourier, HOOK_LABEL, setLinePhoto, serialLinesOf, setPackSerial,
   isDigitalOrder, sendDigital,
 } from '@/lib/orderFlow';
 import { notificationLog, retryNotification, NOTIFY_EVENT } from '@/lib/notifications';
@@ -55,6 +55,9 @@ import { sendReceipt, receiptsSent } from '@/lib/receipts';
 import { SaleInvoice, invoiceFromOrder, printInvoice } from '@/components/SaleInvoice';
 import { coverOf } from '@/lib/warranty';
 import { productOfLine as productOf, saleOfOrder, serialsOfLine, coverStart, claimsFor } from '@/lib/customerWarranty';
+import { activeRestrictions, addRestriction, liftRestriction, RESTRICTIONS_EVENT } from '@/lib/restrictions';
+import { resolveCustomer, saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
+import { ManagerPin } from '@/components/ManagerPin';
 
 const DEFAULT_ID = '#136779';   // what opens when a link carries no order number
 const CANCEL_REASONS = ['Customer cancelled', 'No answer', 'Fake order', 'Out of stock', 'Duplicate order', 'Other'];
@@ -63,7 +66,7 @@ const PROOF_STATE = { review: ['To review', 'warning'], accepted: ['Accepted', '
 // the order's steps, with Completed (worked out by the shop's rule) after Delivered
 const STEPS = [...ORDER_STEPS, 'completed'];
 const HOLD_STATUS = { held: ['On hold', 'warning'], released: ['Released', 'success'], delivered: ['Delivered', 'slate'], damaged: ['Damaged', 'error'] };
-const SEND_STATUS = { Delivered: 'success', Failed: 'error', Skipped: 'slate', Off: 'slate', Sent: 'info' };
+const SEND_STATUS = { Delivered: 'success', Read: 'success', Failed: 'error', Skipped: 'slate', Off: 'slate', Sent: 'info', Queued: 'info', Cancelled: 'slate' };
 const digitsOf = (t) => String(t || '').replace(/\D/g, '');
 const units = (list) => list.reduce((a, h) => a + h.qty, 0);
 const minutesApart = (a, b) => {
@@ -130,6 +133,7 @@ const CSS = `
 .od-line b{font-weight:var(--weight-medium);color:var(--text-heading)}
 .od-acts{display:flex;flex-wrap:wrap;gap:var(--space-2)}
 .od-hr{height:1px;margin:0;border:0;background:var(--border-subtle)}
+.od-sn{flex-wrap:wrap}.od-sn__in{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 100%}.od-sn__in .gc-input{width:170px;font-family:var(--font-data)}
 .od-checks{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
 .od-checks li{display:flex;align-items:center;gap:var(--space-3);min-height:44px;padding:6px 0;border-top:1px solid var(--border-subtle)}
 .od-checks li:first-child{border-top:0}
@@ -239,7 +243,7 @@ export default function OrderDetail() {
   const [cancel, setCancel] = useState({ reason: CANCEL_REASONS[0], tell: true });
   const [call, setCall] = useState({ result: 'confirmed', note: '' });
   const [lastHook, setLastHook] = useState(null);      // the last courier update, to send it again (it is ignored)
-  const [blocked, setBlocked] = useState(false);
+  const [blockPin, setBlockPin] = useState(null);     // the customer waiting for a manager's PIN to be blocked
   const [tracking, setTracking] = useState(false);
   const [comment, setComment] = useState(null);        // text of the comment being written, null when closed
   const [resend, setResend] = useState(null);     // { via, to } — sending the receipt again
@@ -264,7 +268,8 @@ export default function OrderDetail() {
     setReady(true);
     const again = () => setTick((t) => t + 1);
     window.addEventListener(NOTIFY_EVENT, again);
-    return () => window.removeEventListener(NOTIFY_EVENT, again);
+    window.addEventListener(RESTRICTIONS_EVENT, again);   // a block added or lifted here or on the customer page
+    return () => { window.removeEventListener(NOTIFY_EVENT, again); window.removeEventListener(RESTRICTIONS_EVENT, again); };
   }, []);
 
   const all = useMemo(() => (ready ? getOrders() : []), [ready, tick]);
@@ -272,6 +277,10 @@ export default function OrderDetail() {
   const holds = useMemo(() => (o ? holdsOfOrder(o.id) : []), [o, tick]);
   const refresh = () => setTick((t) => t + 1);
   const v = o ? verifyOf(o) : null;
+  // "Blocked from ordering" is a customer restriction (lib/restrictions.js), read after mount: Create order, the POS
+  // and the customer page all see the same record.
+  const blockRec = ready && o && o.phone ? activeRestrictions(o.phone).find((r) => r.type === 'blocked') || null : null;
+  const blocked = !!blockRec;
 
   useEffect(() => {
     if (!o) return;
@@ -329,6 +338,18 @@ export default function OrderDetail() {
   // (lib/customerWarranty.js) and any warranty service logged for it on the customer's profile
   const sale = counter ? saleOfOrder(o) : null;
   const soldBy = (sale && sale.cashier) || o.soldBy || '';
+  // money to the poisha only when there are poisha (a counter sale's VAT or a member discount)
+  const bdt = (v) => formatBDT(v, { decimals: Number.isInteger(Math.round(v * 100) / 100) ? 0 : 2 });
+  // a counter sale's bill as rung up: each discount on its own line, then the VAT (inside the price or added)
+  const st = sale && sale.totals && !(sale.shipOrders || []).length ? sale.totals : null;
+  const saleSum = st ? [
+    st.lineDisc ? ['Item discounts', st.lineDisc] : null,
+    st.cartDisc ? ['Discount', st.cartDisc] : null,
+    ...(st.offers ? st.offers.filter((x) => x.discount).map((x) => [x.code ? 'Coupon ' + x.code : x.name, x.discount]) : st.couponDisc ? [['Coupon' + (sale.coupon ? ' ' + sale.coupon : ''), st.couponDisc]] : []),
+    st.memberDisc ? ['Membership' + (sale.member && sale.member.tier ? ' · ' + sale.member.tier : ''), st.memberDisc] : null,
+    st.pointsDisc ? [`Points · ${st.pointsUsed} used`, st.pointsDisc] : null,
+    st.tax ? [st.vatIncluded ? 'VAT included' : 'VAT', st.tax, true] : null,
+  ].filter(Boolean) : null;
   const unitsOf = (l) => serialsOfLine(o, l, sale);
   const productList = allProducts();
   const productOfLine = (l) => productOf(l, productList);
@@ -479,11 +500,26 @@ export default function OrderDetail() {
   };
   const retry = (rid) => { const r = retryNotification(rid); refresh(); toast(r && r.status === 'Delivered' ? 'Sent' : 'Still failing', { tone: r && r.status === 'Delivered' ? 'success' : 'error' }); };
   const toggleBlock = async () => {
-    if (blocked) { setBlocked(false); toast(o.customer + ' unblocked', { tone: 'info' }); return; }
-    const ok = await confirmDialog({ title: 'Block this customer?', body: `${o.customer} can't place new orders.`, confirmLabel: 'Block customer', tone: 'danger' });
+    if (blockRec) {
+      const ok = await confirmDialog({ title: 'Unblock this customer?', body: `${o.customer} can order again. The block stays in the customer's history.`, confirmLabel: 'Unblock' });
+      if (!ok) return;
+      liftRestriction(blockRec.id, { by: 'Staff', reason: 'Unblocked on order ' + o.id });
+      logOrder(o.id, 'circle-check', 'Customer unblocked', 'Staff');
+      refresh(); toast(o.customer + ' unblocked');
+      return;
+    }
+    const ok = await confirmDialog({ title: 'Block this customer?', body: `${o.customer} can't place new orders until unblocked. A manager approves it with their PIN.`, confirmLabel: 'Block customer', tone: 'danger' });
     if (!ok) return;
-    setBlocked(true);
-    toast(o.customer + ' blocked', { undo: () => setBlocked(false) });
+    // a customer met only on this order is kept in the customer book first, so the block has a record to sit on
+    let c = resolveCustomer(o.phone);
+    if (!c) { saveCustomerOnce({ name: o.customer, phone: digitsOf(o.phone), address: o.address || '', types: ['Online'], addedFrom: ADDED_FROM.order }); c = resolveCustomer(o.phone); }
+    if (!c) { toast(`Can't block: ${o.phone || 'this order'} is not a valid mobile number.`, { tone: 'error' }); return; }
+    setBlockPin(c);
+  };
+  const approveBlock = (who) => {
+    const r = addRestriction(blockPin, { type: 'blocked', reason: 'Set on order ' + o.id, by: 'Staff', approvedBy: who });
+    setBlockPin(null); refresh();
+    if (r.ok) { logOrder(o.id, 'ban', 'Customer blocked', `Approved by ${who}`); toast(`${o.customer} blocked, approved by ${who}`); } else toast(r.error, { tone: 'error' });
   };
   const saveComment = (e) => {
     e.preventDefault();
@@ -574,6 +610,12 @@ export default function OrderDetail() {
         <li><label><input type="checkbox" checked={!!prep.addressOk} onChange={(e) => setPrep({ addressOk: e.target.checked })} /><span><b>Shipping info checked</b><small>{o.customer} · {o.phone} · {o.address || 'No address'}</small></span></label></li>
         <li><label><input type="checkbox" checked={!!prep.amountsOk} onChange={(e) => setPrep({ amountsOk: e.target.checked })} /><span><b>Amounts confirmed</b><small>COD {formatBDT(cod)}</small></span></label></li>
         <li><label><input type="checkbox" checked={!!prep.slipPrinted} onChange={(e) => setPrep({ slipPrinted: e.target.checked })} disabled={!prep.courier} /><span><b>Slip printed</b><small>{prep.courier ? prep.courier + ' label' : 'Choose a courier first'}</small></span></label><button type="button" className="ix-btn ix-btn--sm" onClick={printSlip}><Icon name="printer" width="16" height="16" aria-hidden="true" />Print slip</button></li>
+        {serialLinesOf(o).map((x) => (
+          <li key={'sn' + x.i} className="od-sn">
+            <span><b>{x.kind === 'imei' ? 'IMEI' : 'Serial number'} · {x.name}</b><small>{x.serials.filter(Boolean).length} of {x.qty} · scan or type each piece’s number</small></span>
+            <span className="od-sn__in">{Array.from({ length: x.qty }).map((_, n) => <input key={n + (x.serials[n] || '')} className="gc-input" inputMode={x.kind === 'imei' ? 'numeric' : undefined} aria-label={`${x.kind === 'imei' ? 'IMEI' : 'Serial'} ${n + 1} of ${x.name}`} placeholder={x.kind === 'imei' ? '15 digits' : 'Serial'} defaultValue={x.serials[n] || ''} onBlur={(e) => { const v = e.target.value.trim(); if (v === (x.serials[n] || '')) return; const res = setPackSerial(findOrder(o.id) || o, x.i, n, v); if (!res.ok) { toast(res.error, { tone: 'error' }); return; } if (res.warn) toast(res.warn, { tone: 'info' }); const fresh = findOrder(o.id) || o; if (prepDone(prepOf(fresh)) && fresh.statusKey === 'approved') { markReady(fresh); toast('Ready for courier'); } refresh(); }} />)}</span>
+          </li>
+        ))}
         <li><label><input type="checkbox" checked={!!prep.packed} onChange={(e) => setPrep({ packed: e.target.checked })} /><span><b>Packed</b></span></label></li>
         <li><label><input type="checkbox" checked={!!prep.slipAttached} onChange={(e) => setPrep({ slipAttached: e.target.checked })} disabled={!prep.slipPrinted} /><span><b>Slip attached</b></span></label></li>
       </ul>
@@ -594,7 +636,7 @@ export default function OrderDetail() {
       <div className="od-demo">
         <p>Courier updates (demo)</p>
         <div className="od-hooks">
-          {['out', 'delivered', 'failed', 'return'].map((k) => <button key={k} type="button" className="ix-btn ix-btn--sm" onClick={() => hook(k)}>{HOOK_LABEL[k]}</button>)}
+          {['out', 'delivered', 'failed', 'held', 'return'].map((k) =><button key={k} type="button" className="ix-btn ix-btn--sm" onClick={() => hook(k)}>{HOOK_LABEL[k]}</button>)}
           {lastHook ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => hook(lastHook.code, true)}>Send again</button> : null}
         </div>
       </div>
@@ -722,9 +764,11 @@ export default function OrderDetail() {
                   <dl className="od-sum">
                     <dt>Products ({o.units} {o.units === 1 ? 'item' : 'items'})</dt><dd>{formatBDT(o.subtotal)}</dd>
                     {o.shipping ? <><dt>Delivery · {o.zone}</dt><dd>{formatBDT(o.shipping)}</dd></> : null}
-                    {adj > 0 ? <><dt>VAT and charges</dt><dd>{formatBDT(adj)}</dd></> : adj < 0 ? <><dt>Discount</dt><dd>−{formatBDT(-adj)}</dd></> : null}
-                    <dt className="is-total">Total</dt><dd className="is-total">{formatBDT(o.amount)}</dd>
-                    <dt>Paid by customer</dt><dd>{o.paid == null ? 'Partly paid' : formatBDT(o.paid)}</dd>
+                    {saleSum ? saleSum.map(([k, v, plain]) => <React.Fragment key={k}><dt>{k}</dt><dd>{plain ? bdt(v) : '−' + bdt(v)}</dd></React.Fragment>)
+                      : o.vatIncluded && o.vat ? <>{adj < 0 ? <><dt>Discount</dt><dd>−{formatBDT(-adj)}</dd></> : null}<dt>VAT included</dt><dd>{bdt(o.vat)}</dd></>
+                        : adj > 0 ? <><dt>VAT and charges</dt><dd>{formatBDT(adj)}</dd></> : adj < 0 ? <><dt>Discount</dt><dd>−{formatBDT(-adj)}</dd></> : null}
+                    <dt className="is-total">Total</dt><dd className="is-total">{bdt(o.amount)}</dd>
+                    <dt>Paid by customer</dt><dd>{o.paid == null ? 'Partly paid' : bdt(o.paid)}</dd>
                     {due ? <><dt className="is-due">Due</dt><dd className="is-due">{formatBDT(due)}</dd></> : null}
                     {!counter && cod > 0 && !['delivered', 'cancelled', 'returned'].includes(o.statusKey) ? <><dt>COD to collect</dt><dd>{formatBDT(cod)}</dd></> : null}
                     {o.refundDue > 0 ? <><dt className="is-due">Refund owed</dt><dd className="is-due">{formatBDT(o.refundDue)}</dd></> : null}
@@ -796,7 +840,7 @@ export default function OrderDetail() {
                       <div className="od-msgs">
                         {msgs.map((m) => (
                           <div key={m.id} className="od-msg">
-                            <span className="od-msg__ic" aria-hidden="true"><Icon name={m.channel === 'Email' ? 'mail' : 'message-square'} width="14" height="14" /></span>
+                            <span className="od-msg__ic" aria-hidden="true"><Icon name={m.channel === 'Email' ? 'mail' : m.channel === 'WhatsApp' ? 'message-circle' : 'message-square'} width="14" height="14" /></span>
                             <span className="od-msg__main"><b>{m.label}</b><span>{m.channel} · {m.recipient}{m.to ? ' · ' + m.to : ''} · {formatTime(m.at)}, {formatDate(m.at)}</span>{m.error ? <span>{m.error}</span> : null}</span>
                             <span className="od-msg__end">
                               <span className={'gc-badge gc-badge--' + (SEND_STATUS[m.status] || 'slate')}>{m.status}{m.retries ? ` · retried ${m.retries}` : ''}</span>
@@ -1028,6 +1072,8 @@ export default function OrderDetail() {
           </form>
         ) : null}
       </Dialog>
+
+      <ManagerPin open={!!blockPin} reason={blockPin ? `Block ${o.customer} from ordering (order ${o.id})` : ''} action="Customer restriction" by="Staff" refId={blockPin ? blockPin.id : ''} onApprove={approveBlock} onClose={() => setBlockPin(null)} />
 
       <Dialog open={comment != null} title="Add a comment" onClose={() => setComment(null)} width={440}>
         <form onSubmit={saveComment} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

@@ -26,6 +26,8 @@ import {
   SAVED_REPLIES, INCIDENTS, ESCALATE_REASONS, CHANNEL_ICON, reply, addNote, assign, setStatus, setField, escalate, handBack, solve, reopen, merge,
 } from '@/lib/admin/support';
 import { AdminShell, usePlatform } from '../AdminShell';
+import { AccessSheet } from '../access/StoreAccess';
+import { accessRight } from '@/lib/admin/supportAccess';
 import { SUPPORT_CSS, Conversation, StatusTag, PriorityTag, Who, Field, ctl, when, plural } from './supportShared';
 
 const CSS = `
@@ -123,6 +125,7 @@ export default function TicketView() {
   const [files, setFiles] = useState([]);
   const [err, setErr] = useState('');
   const [sheet, setSheet] = useState(null);   // { kind: 'solve'|'escalate'|'back'|'merge', … }
+  const [access, setAccess] = useState(false);   // Store access sheet (ask the owner, start a session)
   const box = useRef(null);
   const threadEnd = useRef(0);
 
@@ -245,6 +248,7 @@ export default function TicketView() {
     tk.status === 'Solved' ? { label: 'Close ticket', onClick: () => done(setStatus([tk.id], 'Closed'), tk.id + ' closed') } : null,
     { label: 'Copy ticket link', onClick: copyLink },
     shop ? { label: 'Open merchant', href: '/admin/merchant?id=' + tk.shopId + '&tab=support' } : null,
+    shop && accessRight(currentStaff()).ok ? { label: 'Request store access', onClick: () => setAccess(true) } : null,
   ].filter(Boolean);
 
   const insertSaved = (r) => {
@@ -340,6 +344,7 @@ export default function TicketView() {
                     ['Account manager', row.am || 'None'],
                     ['Other tickets', others.length ? <Link key="t" href={'/admin/tickets?merchant=' + tk.shopId + '&view=' + (otherOpen.length ? 'open' : 'solved')}>{otherOpen.length ? `${otherOpen.length} open · ` : ''}{others.length} in all</Link> : 'None'],
                   ]} />
+                  {accessRight(currentStaff()).ok ? <button type="button" className="ix-btn ix-btn--sm" style={{ marginTop: 'var(--space-3)' }} onClick={() => setAccess(true)}><Icon name="key-round" width="16" height="16" aria-hidden="true" />Request store access</button> : null}
                 </>
               ) : <p className="tv-line">Store #{tk.shopId} is not in the platform any more.</p>}
             </Card>
@@ -468,6 +473,7 @@ export default function TicketView() {
           </div>
         ) : null}
       </Sheet>
+      {access && tk && tk.shopId ? <AccessSheet shopId={tk.shopId} ticketId={tk.id} subject={tk.subject} onClose={() => setAccess(false)} /> : null}
     </AdminShell>
   );
 }

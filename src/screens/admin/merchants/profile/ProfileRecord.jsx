@@ -1,5 +1,5 @@
 'use client';
-// Merchant 360° profile › Support (the store's tickets, open first), › Activity (everything that happened to the
+// Merchant 360° profile › Support (the store's tickets, open first, and its store access log), › Activity (everything that happened to the
 // store, filtered by who did it) and › Licence (key, status, validity, seats, domains; renew or revoke).
 
 import React, { useState } from 'react';
@@ -13,6 +13,7 @@ import { licenceOf } from '@/lib/admin/merchants';
 import { useAdminStore } from '@/lib/admin/store';
 import { supportStore, ticketsOf, isActive, slaOf, STATUS_TONE } from '@/lib/admin/support';
 import { Card, Row, Empty, when, dueText } from './profileShared';
+import { AccessLog } from '../../access/StoreAccess';
 
 export function SupportTab({ ctx }) {
   const { view, shop, t } = ctx;
@@ -37,6 +38,7 @@ export function SupportTab({ ctx }) {
           }) : <Empty text={live ? 'No tickets from this store.' : 'Loading tickets…'} action={live ? { label: 'New ticket', href: newHref } : undefined} />}
           {tickets.length > 12 ? <Link className="mp-row" href={`/admin/tickets?merchant=${shop.id}`}><span className="mp-row__main"><b>All {tickets.length} tickets</b></span></Link> : null}
         </Card>
+        <AccessLog shopId={shop.id} onRequest={ctx.requestAccess} />
       </div>
       <div className="ix-side">
         <Card title="Support">

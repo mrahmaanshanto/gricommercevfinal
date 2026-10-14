@@ -1,82 +1,36 @@
 'use client';
-// Generated from design/templates/products/CustomerCatalogue.dc.html by scripts/convert-design.mjs.
-// Customer catalogue — Products — Customer catalogue, a Shopify-style tool page (docs/shopify-style.md): the
-// catalogue's settings on the left; sharing and the live phone preview on the right; Save in the header.
-// Edit freely: this file is now the source for the screen.
+// Customer catalogue — Products › Customer catalogue (Wholesale review WH-U5): the shop's item list to send on WhatsApp
+// or Facebook. Built from the real catalogue (stock.js › getCatalog via lib/catalogueShare.js) with real prices and stock;
+// with wholesale on, "Prices for" picks a business buyer and the list shows their prices (wholesalePrice.js › priceFor:
+// price list, quantity prices, wholesale price or group discount). Laid out as a Shopify-style tool page
+// (docs/shopify-style.md): the catalogue's settings on the left; sharing and the live phone preview on the right; Save in
+// the header. Share: Copy link (clipboard), Send on WhatsApp (wa.me with the link, logged in the delivery log) and PDF
+// (the shop's letterhead, printed on A4) — lib/shareDoc.js.
+// Front end only: settings are kept in this browser (catalogueShare.js); the public catalogue page at the link needs a
+// server, so the link is the address it will have.
 
-import { wholesaleOn } from '@/lib/edition';
-import React from 'react';
-import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
-import { StatusBadge as __StatusBadge, InfoTip as __InfoTip } from '@/components/ui';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Icon } from '@/runtime/dc';
+import { Sidebar, Topbar } from '@/shell/Shell';
+import { StatusBadge, InfoTip } from '@/components/ui';
 import { ShopHeader, MetricStrip } from '@/components/ui/IndexKit';
 import { QrCode } from '@/components/QrCode';
-import { toast as __toast } from '@/runtime/ui';
+import { toast } from '@/runtime/ui';
+import { formatBDT } from '@/lib/format';
+import { MERCHANT } from '@/lib/merchant';
+import { useWholesale } from '@/lib/useWholesale';
+import { catalogueItems, catalogueCats, getCatalogueSettings, saveCatalogueSettings } from '@/lib/catalogueShare';
+import { businessBuyers } from '@/lib/salesOrder';
+import { pricingLabel } from '@/lib/wholesalePrice';
+import { docIdentity, DocHead, OffScreen, S } from '@/components/docs/DocPaper';
+import { sendDocOnWhatsApp } from '@/components/docs/ShareActions';
+import { printDoc, waNumber } from '@/lib/shareDoc';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
-
-var BND = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
-function dg(s, bn) { s = String(s); return bn ? s.replace(/[0-9]/g, function (d) { return BND[+d]; }) : s; }
-function money(n, bn) { var s = String(Math.round(Math.abs(n))); var last = s.slice(-3), rest = s.slice(0, -3); if (rest) s = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + last; else s = last; return dg((n < 0 ? '−' : '') + '৳' + s, bn); }
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m) { __toast(m); }
-function sw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-var T = {"shop": ["রহমান স্টোর", "Dazzle Shop"], "shopInitial": ["র", "R"], "h": ["কাস্টমার ক্যাটালগ", "Customer catalogue"], "hsub": ["মালের তালিকা WhatsApp বা Facebook-এ পাঠান — কাস্টমার ফোনে দেখে অর্ডার দেবে।", "Send your item list on WhatsApp or Facebook — customers browse on their phone and order."], "onPhone": ["ফোনে কেমন দেখায়", "See it on a phone"], "save": ["সেভ করুন", "Save"], "setTitle": ["ক্যাটালগ সাজান", "Set up the catalogue"], "cName": ["ক্যাটালগের নাম", "Catalogue name"], "whichCats": ["কোন কোন ক্যাটাগরি দেখাবে", "Which categories to show"], "priceQ": ["দাম দেখাবে?", "Show prices?"], "stockSw": ["স্টক আছে কিনা দেখাবে", "Show whether in stock"], "stockHint": ["“স্টকে আছে / অল্প আছে / শেষ” লেখা থাকবে", "Shows “In stock / Few left / Out”"], "wa": ["অর্ডারের WhatsApp নম্বর", "WhatsApp number for orders"], "waHint": ["প্রতিটা মালের নিচে “WhatsApp-এ অর্ডার” বাটন থাকবে", "Every item gets a “Order on WhatsApp” button"], "shareTitle": ["শেয়ার করুন", "Share"], "copy": ["লিংক কপি", "Copy link"], "sendWa": ["WhatsApp-এ পাঠান", "Send on WhatsApp"], "pdf": ["PDF নামান", "Download PDF"], "qrHint": ["দোকানে QR প্রিন্ট করে লাগিয়ে রাখুন", "Print the QR and put it up in the shop"], "views": ["এই মাসে দেখেছে", "Views this month"], "orders": ["WhatsApp-এ অর্ডার", "WhatsApp orders"], "prevTitle": ["কাস্টমার যা দেখবে", "What customers will see"], "prevHint": ["আপনি যা বদলান, এখানে সাথে সাথে দেখাবে", "Your changes show here right away"], "openNow": ["খোলা আছে", "Open now"], "addr": ["মিরপুর ১০, ঢাকা", "Mirpur 10, Dhaka"], "order": ["অর্ডার", "Order"], "all": ["সব", "All"], "noCats": ["অন্তত একটা ক্যাটাগরি বাছুন", "Pick at least one category"], "waBtn": ["WhatsApp", "WhatsApp"]};
-var CATS = [['rice', 'চার্জার ও ক্যাবল', 'Cables & chargers', 42], ['oil', 'কেস ও কভার', 'Cases & covers', 36], ['soap', 'স্ক্রিন কেয়ার', 'Screen care', 48], ['snack', 'অডিও', 'Audio', 54], ['cloth', 'পরিধানযোগ্য', 'Wearables', 22], ['elec', 'ফোন', 'Phones', 18], ['home', 'অন্যান্য', 'Other', 22]];
-// cat, bn, en, price, stock state (ok/low/out)
-var PR = [
-  ['rice', 'পাওয়ার ব্যাংক ২০,০০০ mAh', 'Power bank 20,000 mAh', 1950, 'ok'], ['rice', 'লাইটনিং ক্যাবল ১ মি.', 'Lightning cable 1 m', 135, 'ok'], ['rice', 'মাইক্রো-USB ক্যাবল ১ মি.', 'Micro-USB cable 1 m', 145, 'ok'],
-  ['oil', '২০W USB-C চার্জার', '20W USB-C fast charger', 890, 'low'], ['oil', 'পপ-আপ ফোন গ্রিপ', 'Pop-up phone grip', 95, 'ok'],
-  ['soap', 'স্ক্রিন ক্লিনিং ওয়াইপস', 'Screen cleaning wipes', 65, 'ok'], ['soap', 'ক্লিনিং স্প্রে ১০০ মি.লি.', 'Cleaning spray 100 ml', 240, 'low'], ['soap', 'শকপ্রুফ কেস A15', 'Shockproof case A15', 180, 'ok'],
-  ['snack', 'টেম্পারড গ্লাস ২-প্যাক', 'Tempered glass 2-pack', 60, 'ok'], ['snack', 'AA ব্যাটারি ৪-প্যাক', 'AA battery 4-pack', 420, 'out'], ['snack', 'ক্যাবল প্রটেক্টর প্যাক', 'Cable protector pack', 35, 'ok'],
-  ['cloth', 'সিলিকন কেস', 'Silicone case', 550, 'ok'], ['cloth', 'নেকব্যান্ড ইয়ারফোন', 'Neckband earphones', 1250, 'ok'],
-  ['elec', 'ব্লুটুথ স্পিকার মিনি', 'Bluetooth speaker Mini', 3200, 'ok'], ['elec', 'স্মার্ট ব্যান্ড', 'Smart band', 2850, 'low'],
-  ['home', 'ওয়্যারলেস চার্জিং প্যাড', 'Wireless charging pad', 180, 'ok']
-];
+const money = (n) => formatBDT(n, { decimals: Number.isInteger(Math.round(n * 100) / 100) ? 0 : 2 });
 // stock words on the preview cards, with one badge tone each
-var ST = { ok: ['success', 'স্টকে আছে', 'In stock'], low: ['warning', 'অল্প আছে', 'Few left'], out: ['neutral', 'শেষ', 'Out'] };
-
-class Component extends DCLogic {
-  renderVals() {
-    var self = this, s = this.state || {};
-    var bn = false, i = bn ? 0 : 1;
-    var t = {}; Object.keys(T).forEach(function (k) { t[k] = T[k][i]; });
-    var L = function (a, b) { return bn ? a : b; };
-    var on = s.on || { rice: 1, oil: 1, soap: 1, snack: 1, elec: 1 };
-    var pm = s.pm || 'show';
-    var cName = s.cName == null ? L('মাসিক বাজার', 'New arrivals') : s.cName;
-    var waNum = s.waNum == null ? dg('01819-456789', bn) : s.waNum;
-    var stockSw = sw(self, 'stockSw', true);
-    var pcat = s.pcat || 'all';
-    if (pcat !== 'all' && !on[pcat]) pcat = 'all';
-    var chosen = CATS.filter(function (c2) { return on[c2[0]]; });
-    // round-robin across chosen categories
-    var pools = chosen.filter(function (c2) { return pcat === 'all' || c2[0] === pcat; }).map(function (c2) { return PR.filter(function (p) { return p[0] === c2[0]; }); });
-    var picked = [];
-    for (var r = 0; r < 4 && picked.length < 8; r++) pools.forEach(function (pl) { if (pl[r] && picked.length < 8) picked.push(pl[r]); });
-    return {
-      t: t,
-      saveAll: function () { toast(self, L('ক্যাটালগ সেভ হলো। লিংক একই থাকবে, কাস্টমার নতুনটা দেখবে।', 'Catalogue saved. Same link — customers see the new version.')); },
-      cName: cName, typeName: function (e) { self.setState({ cName: e.target.value }); },
-      catChecks: CATS.map(function (c2) { var o = !!on[c2[0]]; return { k: c2[0], l: c2[1 + i], n: dg(c2[3], bn), on: o, toggle: function () { var n2 = assign({}, on); if (o) delete n2[c2[0]]; else n2[c2[0]] = 1; self.setState({ on: n2 }); } }; }),
-      priceModes: [['show', 'দাম দেখাও', 'Show prices', 'সবাই দাম দেখবে', 'Everyone sees prices'], ['hide', 'দাম লুকাও', 'Hide prices', '“দাম জানতে কল করুন” লেখা থাকবে', 'Shows “Call for price”'], ['whole', 'শুধু পাইকারি কাস্টমারকে দেখাও', 'Only wholesale customers', 'পাইকারি কাস্টমার নম্বর দিয়ে ঢুকলে দাম দেখবে', 'Wholesale customers see prices after entering their number']].filter(function (o) { return o[0] !== 'whole' || wholesaleOn(); }).map(function (o) { return { k: o[0], l: o[1 + i], h: o[3 + i], on: o[0] === pm, pick: function () { self.setState({ pm: o[0] }); } }; }),
-      stockSw: stockSw, showStock: stockSw.on,
-      waNum: waNum, typeWa: function (e) { self.setState({ waNum: e.target.value }); },
-      link: 'dazzleshop.com.bd/catalog',
-      copyLink: function () { toast(self, L('লিংক কপি হলো — WhatsApp বা Facebook-এ পেস্ট করুন।', 'Link copied — paste it on WhatsApp or Facebook.')); },
-      sendWa: function () { toast(self, L('WhatsApp খুলছে — কাকে পাঠাবেন বাছুন।', 'Opening WhatsApp — choose who to send it to.')); },
-      getPdf: function () { toast(self, L('PDF বানানো হচ্ছে — ' + dg(chosen.reduce(function (n, c2) { return n + c2[3]; }, 0), true) + 'টা প্রোডাক্ট।', 'Making the PDF — ' + chosen.reduce(function (n, c2) { return n + c2[3]; }, 0) + ' products.')); },
-      views: dg('1,240', bn), orders: dg('86', bn) + L('টা', ''),
-      pChips: [['all', t.all]].concat(chosen.map(function (c2) { return [c2[0], c2[1 + i]]; })).map(function (o) { return { k: o[0], l: o[1], on: o[0] === pcat, pick: function () { self.setState({ pcat: o[0] }); } }; }),
-      noCats: chosen.length === 0,
-      priceShow: pm === 'show', priceHide: pm === 'hide', priceWhole: pm === 'whole',
-      callTxt: L('দাম জানতে কল করুন', 'Call for price'), wholeTxt: L('পাইকারি দাম — নম্বর দিন', 'Wholesale price — enter no.'),
-      cards: picked.map(function (p, j) { var st = ST[p[4]]; return { name: p[1 + i], ini: p[1 + i].slice(0, 1), tint: j % 4, price: money(p[3], bn), tone: st[0], sTxt: st[1 + i] }; })
-    };
-  }
-}
-
-// ---- styles ----
+const ST = { ok: ['success', 'In stock'], low: ['warning', 'Few left'], out: ['neutral', 'Out of stock'], preorder: ['info', 'Pre-order'] };
+const slug = (s) => String(s || 'catalogue').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'catalogue';
+const host = () => String(MERCHANT.web || 'dazzleshop.com.bd').replace(/^https?:\/\//, '').replace(/^www\./, '');
 
 const CSS = `
 .cc-body{display:flex;flex-direction:column;gap:var(--space-4)}
@@ -107,14 +61,14 @@ const CSS = `
 .cc-row>.ix-btn{flex:1 1 auto}
 .cc-copy{flex-wrap:nowrap}
 .cc-copy>.ix-btn{flex:none}
+.cc-to{flex:1 1 160px;min-width:0}
 /* the phone preview */
 .cc-phone{max-width:360px;margin:0 auto;border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-subtle);overflow:hidden}
 .cc-bar{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3);background:var(--brand-navy-deep);color:#fff}
 .cc-bar>i{display:grid;flex:none;place-items:center;width:32px;height:32px;border-radius:var(--radius-lg);background:#fff;color:var(--primary);font-size:var(--text-sm);font-style:normal;font-weight:var(--weight-semibold)}
 .cc-bar>div{display:flex;flex:1;flex-direction:column;min-width:0}
 .cc-bar b{overflow:hidden;font-size:var(--text-sm);font-weight:var(--weight-semibold);text-overflow:ellipsis;white-space:nowrap}
-.cc-bar small{display:flex;align-items:center;gap:4px;font-size:var(--text-xs);opacity:.85}
-.cc-bar small>em{width:6px;height:6px;border-radius:var(--radius-full);background:var(--success)}
+.cc-bar small{display:flex;align-items:center;gap:4px;font-size:var(--text-xs);opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cc-bar>span{display:inline-flex;flex:none;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:var(--radius-full);background:var(--success);font-size:var(--text-xs);font-weight:var(--weight-medium)}
 .cc-shop{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3)}
 .cc-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
@@ -123,138 +77,221 @@ const CSS = `
 .cc-t0{background:var(--fill-primary-soft);color:var(--primary)}.cc-t1{background:var(--fill-success-soft);color:var(--text-success)}.cc-t2{background:var(--fill-warning-soft);color:var(--text-warning)}.cc-t3{background:var(--fill-secondary-soft);color:var(--secondary)}
 .cc-card>b{display:-webkit-box;overflow:hidden;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);line-height:16px;color:var(--text-heading);-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .cc-price{font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--primary)}
+.cc-was{font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-muted);text-decoration:line-through}
 .cc-ask{display:flex;align-items:center;gap:4px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
 .cc-order{display:flex;align-items:center;justify-content:center;gap:4px;height:24px;border-radius:var(--radius-md);background:var(--fill-success-soft);color:var(--text-success);font-size:var(--text-xs);font-weight:var(--weight-medium)}
 .cc-warn{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--fill-warning-soft);font-size:var(--text-sm);color:var(--text-heading)}
 .cc-warn>svg{color:var(--text-warning)}
+.cc-more{margin:0;text-align:center;font-size:var(--text-xs);color:var(--text-muted)}
 @media (max-width:1023px){.cc-tool{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){.cc-cats{grid-template-columns:minmax(0,1fr)}.cc-share{flex-direction:column-reverse;align-items:stretch}.cc-qr{flex-direction:row;max-width:none;text-align:left}}
 `;
 
-// ---- markup ----
+export default function CustomerCatalogueScreen() {
+  const ws = useWholesale();
+  const [ready, setReady] = useState(false);
+  const [s, setS] = useState(() => ({ name: 'New arrivals', cats: null, priceMode: 'show', showStock: true, wa: '', buyer: '' }));
+  const [retail, setRetail] = useState([]);       // every product at retail prices (decides the categories)
+  const [buyers, setBuyers] = useState([]);
+  const [me, setMe] = useState({ name: MERCHANT.name, address: MERCHANT.address, phone: MERCHANT.phone });   // Settings › General after mount
+  const [sendTo, setSendTo] = useState('');
+  const [pcat, setPcat] = useState('all');
+  const paper = useRef(null);
 
-export default class CustomerCatalogueScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    const t = v.t || {};
-    return (
-      <div className="dc-screen ds" data-screen="CustomerCatalogue">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell">
-          <__Sidebar sticky="" active="products-catalogue" />
-          <main className="gc-shell__main">
-            <__Topbar crumb="Products" page="Customer catalogue" placeholder="Search products, customers or memo no." />
-            <div className="gc-shell__content">
-              <div className="ix-page">
-                <ShopHeader icon="book-open" title={t.h} about={t.hsub}
-                  secondary={[{ label: t.onPhone, href: '/customer-catalogue' }]}
-                  primary={{ label: t.save, onClick: v.saveAll }} />
+  useEffect(() => {
+    const saved = getCatalogueSettings();
+    setS({ ...saved, wa: saved.wa || (docIdentity().phone || '') });
+    setRetail(catalogueItems());
+    setMe(docIdentity());
+    setReady(true);
+  }, []);
+  useEffect(() => { setBuyers(ws ? businessBuyers().filter((b) => b.kind !== 'lead' && b.phone) : []); }, [ws]);
 
-                <MetricStrip label={t.h} items={[
-                  { label: t.views, value: v.views },
-                  { label: t.orders, value: v.orders },
-                ]} />
+  const set = (patch) => setS((x) => ({ ...x, ...patch }));
+  const buyer = ws && s.buyer ? buyers.find((b) => b.phone === s.buyer) || null : null;
+  const priceMode = !ws && s.priceMode === 'whole' ? 'show' : s.priceMode;
+  // the products for the chosen buyer (their prices) or at retail
+  const pool = useMemo(() => (!ready ? [] : buyer ? catalogueItems({ customer: buyer }) : retail), [ready, buyer, retail]);
+  const cats = useMemo(() => catalogueCats(pool), [pool]);
+  const on = s.cats ? s.cats : cats.map((c) => c.k);
+  const chosen = pool.filter((x) => on.includes(x.cat));
+  const preview = chosen.filter((x) => pcat === 'all' || x.cat === pcat);
+  const inStock = chosen.filter((x) => x.state === 'ok' || x.state === 'low').length;
+  const link = `${host()}/catalog/${slug(s.name)}${buyer ? '?for=' + String(buyer.phone).slice(-4) : ''}`;
+  const forWho = buyer ? `${buyer.name} · ${pricingLabel(buyer) || 'Wholesale prices'}` : 'Retail prices';
 
-                <div className="cc-tool">
-                  {/* the catalogue: name, categories, prices, stock, the WhatsApp number for orders */}
-                  <section className="ix-card" aria-labelledby="cc-h-set">
-                    <div className="ix-card__head"><h2 id="cc-h-set">{t.setTitle}</h2></div>
-                    <div className="ix-card__body cc-body">
-                      <label className="cc-field">
-                        <span className="gc-label">{t.cName}</span>
-                        <input className="gc-input" value={v.cName} onInput={v.typeName} onChange={v.typeName} aria-label={t.cName} />
-                      </label>
-                      <fieldset className="cc-field" style={{ margin: 0, padding: 0, border: 0 }}>
-                        <legend className="gc-label" style={{ marginBottom: "6px" }}>{t.whichCats}</legend>
-                        <div className="cc-cats">
-                          {__list(v.catChecks).map((o) => (
-                            <label key={o.k} className="cc-cat"><input type="checkbox" className="gc-check" checked={!!o.on} onChange={o.toggle} /><span>{o.l}</span><small>{o.n}</small></label>
-                          ))}
-                        </div>
-                      </fieldset>
-                      <fieldset className="cc-field" style={{ margin: 0, padding: 0, border: 0 }}>
-                        <legend className="gc-label" style={{ marginBottom: "6px" }}>{t.priceQ}</legend>
-                        <div className="cc-radios">
-                          {__list(v.priceModes).map((o) => (
-                            <label key={o.k} className="cc-radio"><input type="radio" name="cc-price" className="gc-check gc-check--radio" checked={!!o.on} onChange={o.pick} /><span><b>{o.l}</b><small>{o.h}</small></span></label>
-                          ))}
-                        </div>
-                      </fieldset>
-                      <div className="cc-switch">
-                        <span>{t.stockSw}<__InfoTip text={t.stockHint} /></span>
-                        <button type="button" role="switch" aria-checked={!!v.stockSw?.on} aria-label={t.stockSw} className="gc-switch" onClick={v.stockSw?.toggle}><span className="gc-switch__knob" /></button>
-                      </div>
+  const toggleCat = (k) => { const cur = new Set(on); if (cur.has(k)) cur.delete(k); else cur.add(k); set({ cats: cats.map((c) => c.k).filter((x) => cur.has(x)) }); };
+  const save = () => { if (saveCatalogueSettings(s)) toast('Catalogue saved'); else toast('This browser blocked saving. Allow site data and try again.', { tone: 'error' }); };
+  const copy = async () => {
+    try { await navigator.clipboard.writeText('https://' + link); toast('Link copied'); }
+    catch { toast('Could not copy here. Select the link and copy it.', { tone: 'error' }); }
+  };
+  const sendWa = () => {
+    if (sendTo.trim() && !waNumber(sendTo)) { toast('Type an 11-digit mobile number, or leave it empty to choose the chat in WhatsApp', { tone: 'error' }); return; }
+    const to = buyer && !sendTo.trim() ? { name: buyer.name, phone: buyer.phone } : { name: '', phone: sendTo.trim() };
+    sendDocOnWhatsApp({ kind: 'catalogue', id: s.name, to, link: 'https://' + link,
+      lines: [`${chosen.length} products${priceMode === 'show' ? '' : priceMode === 'hide' ? ' · call for price' : ' · wholesale prices for registered buyers'}`, s.wa ? `Order on WhatsApp: ${s.wa}` : ''] });
+  };
+  const pdf = () => printDoc(paper.current, `${s.name} · ${me.name}`);
+
+  const priceCell = (x) => (priceMode === 'hide' || (priceMode === 'whole' && !buyer) ? null : x.price);
+  const priceModes = [['show', 'Show prices', 'Everyone sees prices'], ['hide', 'Hide prices', 'Shows “Call for price”'], ['whole', 'Only wholesale customers', 'Wholesale customers see prices after entering their number']].filter((o) => o[0] !== 'whole' || ws);
+
+  return (
+    <div className="dc-screen ds" data-screen="CustomerCatalogue">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <div className="gc-shell">
+        <Sidebar sticky="" active="products-catalogue" />
+        <main className="gc-shell__main">
+          <Topbar crumb="Products" page="Customer catalogue" placeholder="Search products, customers or memo no." />
+          <div className="gc-shell__content">
+            <div className="ix-page">
+              <ShopHeader icon="book-open" title="Customer catalogue" about="Send your item list on WhatsApp or Facebook — customers browse on their phone and order. Prices and stock come from your products."
+                primary={{ label: 'Save', onClick: save }} />
+
+              <MetricStrip label="Customer catalogue" items={[
+                { label: 'Products', value: String(chosen.length) },
+                { label: 'In stock', value: String(inStock) },
+                { label: 'Prices', value: buyer ? buyer.name : 'Retail' },
+              ]} />
+
+              <div className="cc-tool">
+                {/* the catalogue: name, categories, prices, stock, the WhatsApp number for orders */}
+                <section className="ix-card" aria-labelledby="cc-h-set">
+                  <div className="ix-card__head"><h2 id="cc-h-set">Set up the catalogue</h2></div>
+                  <div className="ix-card__body cc-body">
+                    <label className="cc-field">
+                      <span className="gc-label">Catalogue name</span>
+                      <input className="gc-input" value={s.name} onChange={(e) => set({ name: e.target.value })} />
+                    </label>
+                    {ws ? (
                       <div className="cc-field">
-                        <div className="cc-lbl"><label className="gc-label" htmlFor="cc-wa">{t.wa}</label><__InfoTip text={t.waHint} /></div>
-                        <input id="cc-wa" className="gc-input" value={v.waNum} onInput={v.typeWa} onChange={v.typeWa} inputMode="tel" aria-label={t.wa} style={{ fontVariantNumeric: "tabular-nums" }} />
+                        <div className="cc-lbl"><label className="gc-label" htmlFor="cc-for">Prices for</label><InfoTip text="Pick a wholesale buyer to share the catalogue at their price list." /></div>
+                        <select id="cc-for" className="gc-input gc-select" value={s.buyer} onChange={(e) => set({ buyer: e.target.value })}>
+                          <option value="">Everyone · retail prices</option>
+                          {buyers.map((b) => <option key={b.key} value={b.phone}>{b.label || b.name}</option>)}
+                        </select>
+                      </div>
+                    ) : null}
+                    <fieldset className="cc-field" style={{ margin: 0, padding: 0, border: 0 }}>
+                      <legend className="gc-label" style={{ marginBottom: '6px' }}>Which categories to show</legend>
+                      <div className="cc-cats">
+                        {cats.map((c) => (
+                          <label key={c.k} className="cc-cat"><input type="checkbox" className="gc-check" checked={on.includes(c.k)} onChange={() => toggleCat(c.k)} /><span>{c.label}</span><small>{c.n}</small></label>
+                        ))}
+                      </div>
+                    </fieldset>
+                    <fieldset className="cc-field" style={{ margin: 0, padding: 0, border: 0 }}>
+                      <legend className="gc-label" style={{ marginBottom: '6px' }}>Show prices?</legend>
+                      <div className="cc-radios">
+                        {priceModes.map((o) => (
+                          <label key={o[0]} className="cc-radio"><input type="radio" name="cc-price" className="gc-check gc-check--radio" checked={priceMode === o[0]} onChange={() => set({ priceMode: o[0] })} /><span><b>{o[1]}</b><small>{o[2]}</small></span></label>
+                        ))}
+                      </div>
+                    </fieldset>
+                    <div className="cc-switch">
+                      <span>Show whether in stock<InfoTip text="Shows “In stock / Few left / Out of stock”" /></span>
+                      <button type="button" role="switch" aria-checked={!!s.showStock} aria-label="Show whether in stock" className="gc-switch" onClick={() => set({ showStock: !s.showStock })}><span className="gc-switch__knob" /></button>
+                    </div>
+                    <div className="cc-field">
+                      <div className="cc-lbl"><label className="gc-label" htmlFor="cc-wa">WhatsApp number for orders</label><InfoTip text="Every item gets an “Order on WhatsApp” button" /></div>
+                      <input id="cc-wa" className="gc-input" value={s.wa} onChange={(e) => set({ wa: e.target.value })} inputMode="tel" style={{ fontVariantNumeric: 'tabular-nums' }} />
+                    </div>
+                  </div>
+                </section>
+
+                <div className="cc-col">
+                  {/* sharing: the link, WhatsApp, a PDF and the QR for the shop */}
+                  <section className="ix-card" aria-labelledby="cc-h-share">
+                    <div className="ix-card__head"><h2 id="cc-h-share">Share</h2></div>
+                    <div className="ix-card__body cc-share">
+                      <div>
+                        <div className="cc-row cc-copy">
+                          <span className="cc-link" style={{ flex: 1 }}>{link}</span>
+                          <button type="button" className="ix-btn" onClick={copy}><Icon name="copy" width="16" height="16" aria-hidden="true" />Copy link</button>
+                        </div>
+                        <div className="cc-row">
+                          <input className="gc-input cc-to" value={sendTo} onChange={(e) => setSendTo(e.target.value)} inputMode="tel" placeholder={buyer ? buyer.phone : 'Send to (mobile, optional)'} aria-label="Send to (mobile number)" />
+                          <button type="button" className="ix-btn" onClick={sendWa} disabled={!chosen.length}><Icon name="send" width="16" height="16" aria-hidden="true" />Send on WhatsApp</button>
+                          <button type="button" className="ix-btn" onClick={pdf} disabled={!chosen.length}><Icon name="download" width="16" height="16" aria-hidden="true" />PDF</button>
+                        </div>
+                      </div>
+                      <div className="cc-qr">
+                        <QrCode text={'https://' + link} size={88} label="QR" />
+                        <span>Print the QR and put it up in the shop</span>
                       </div>
                     </div>
                   </section>
 
-                  <div className="cc-col">
-                    {/* sharing: the link, WhatsApp, a PDF and the QR for the shop */}
-                    <section className="ix-card" aria-labelledby="cc-h-share">
-                      <div className="ix-card__head"><h2 id="cc-h-share">{t.shareTitle}</h2></div>
-                      <div className="ix-card__body cc-share">
-                        <div>
-                          <div className="cc-row cc-copy">
-                            <span className="cc-link" style={{ flex: 1 }}>{v.link}</span>
-                            <button type="button" className="ix-btn" onClick={v.copyLink}><__Icon name="copy" width="16" height="16" aria-hidden="true" />{t.copy}</button>
+                  {/* what customers see on their phone, live */}
+                  <section className="ix-card" aria-labelledby="cc-h-prev">
+                    <div className="ix-card__head"><h2 id="cc-h-prev">What customers will see <InfoTip text="Your changes show here right away" /></h2></div>
+                    <div className="ix-card__body">
+                      <div className="cc-phone">
+                        <div className="cc-bar gc-on-dark">
+                          <i>{String(me.name || 'S').slice(0, 1)}</i>
+                          <div>
+                            <b>{me.name} · {s.name}</b>
+                            <small>{me.address}</small>
                           </div>
-                          <div className="cc-row">
-                            <button type="button" className="ix-btn" onClick={v.sendWa}><__Icon name="send" width="16" height="16" aria-hidden="true" />{t.sendWa}</button>
-                            <button type="button" className="ix-btn" onClick={v.getPdf}><__Icon name="download" width="16" height="16" aria-hidden="true" />{t.pdf}</button>
-                          </div>
+                          <span><Icon name="phone" width="12" height="12" aria-hidden="true" />WhatsApp</span>
                         </div>
-                        <div className="cc-qr">
-                          <QrCode text={'https://' + v.link} size={88} label="QR" />
-                          <span>{t.qrHint}</span>
-                        </div>
-                      </div>
-                    </section>
-
-                    {/* what customers see on their phone, live */}
-                    <section className="ix-card" aria-labelledby="cc-h-prev">
-                      <div className="ix-card__head"><h2 id="cc-h-prev">{t.prevTitle} <__InfoTip text={t.prevHint} /></h2></div>
-                      <div className="ix-card__body">
-                        <div className="cc-phone">
-                          <div className="cc-bar gc-on-dark">
-                            <i>{t.shopInitial}</i>
-                            <div>
-                              <b>{t.shop} · {v.cName}</b>
-                              <small>{t.addr} · <em />{t.openNow}</small>
-                            </div>
-                            <span><__Icon name="phone" width="12" height="12" aria-hidden="true" />{t.waBtn}</span>
+                        <div className="cc-shop">
+                          <div className="ix-chips" style={{ gap: '6px' }}>
+                            {[['all', 'All'], ...cats.filter((c) => on.includes(c.k)).map((c) => [c.k, c.label])].map(([k, l]) => <button key={k} type="button" className="ix-chip" aria-pressed={pcat === k} onClick={() => setPcat(k)}>{l}</button>)}
                           </div>
-                          <div className="cc-shop">
-                            <div className="ix-chips" style={{ gap: "6px" }}>
-                              {__list(v.pChips).map((o) => <button key={o.k} type="button" className="ix-chip" aria-pressed={!!o.on} onClick={o.pick}>{o.l}</button>)}
-                            </div>
-                            {v.noCats ? <div className="cc-warn"><__Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span>{t.noCats}</span></div> : null}
-                            <div className="cc-cards">
-                              {__list(v.cards).map((pc, i) => (
-                                <div key={i} className="cc-card">
-                                  <i className={'cc-t' + pc.tint} aria-hidden="true">{pc.ini}</i>
-                                  <b>{pc.name}</b>
-                                  {v.priceShow ? <span className="cc-price">{pc.price}</span> : null}
-                                  {v.priceHide ? <span className="cc-ask"><__Icon name="phone" width="12" height="12" aria-hidden="true" />{v.callTxt}</span> : null}
-                                  {v.priceWhole ? <span className="cc-ask"><__Icon name="lock" width="12" height="12" aria-hidden="true" />{v.wholeTxt}</span> : null}
-                                  {v.showStock ? <span><__StatusBadge tone={pc.tone}>{pc.sTxt}</__StatusBadge></span> : null}
-                                  <span className="cc-order"><__Icon name="send" width="12" height="12" aria-hidden="true" />{t.order}</span>
+                          {ready && !chosen.length ? <div className="cc-warn"><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span>Pick at least one category</span></div> : null}
+                          <div className="cc-cards">
+                            {preview.slice(0, 8).map((x, j) => {
+                              const st = ST[x.state];
+                              const price = priceCell(x);
+                              return (
+                                <div key={x.sku} className="cc-card">
+                                  <i className={'cc-t' + (j % 4)} aria-hidden="true">{x.name.slice(0, 1)}</i>
+                                  <b>{x.name}</b>
+                                  {price != null ? <span><span className="cc-price">{money(price)}</span>{buyer && x.listPrice > price ? <> <span className="cc-was">{money(x.listPrice)}</span></> : null}</span> : null}
+                                  {priceMode === 'hide' ? <span className="cc-ask"><Icon name="phone" width="12" height="12" aria-hidden="true" />Call for price</span> : null}
+                                  {priceMode === 'whole' && !buyer ? <span className="cc-ask"><Icon name="lock" width="12" height="12" aria-hidden="true" />Wholesale price — enter no.</span> : null}
+                                  {s.showStock ? <span><StatusBadge tone={st[0]}>{st[1]}</StatusBadge></span> : null}
+                                  <span className="cc-order"><Icon name="send" width="12" height="12" aria-hidden="true" />Order</span>
                                 </div>
-                              ))}
-                            </div>
+                              );
+                            })}
                           </div>
+                          {preview.length > 8 ? <p className="cc-more">+ {preview.length - 8} more</p> : null}
                         </div>
                       </div>
-                    </section>
-                  </div>
+                    </div>
+                  </section>
                 </div>
               </div>
             </div>
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
-    );
-  }
+
+      {/* the catalogue as a PDF, with the letterhead */}
+      <OffScreen innerRef={paper}>
+        <DocHead title={s.name || 'Catalogue'} sub={forWho} />
+        {cats.filter((c) => on.includes(c.k)).map((c) => (
+          <div key={c.k}>
+            <div style={{ ...S.cap, margin: '2mm 0 1mm' }}>{c.label}</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tbody>{chosen.filter((x) => x.cat === c.k).map((x) => {
+                const price = priceCell(x);
+                return (
+                  <tr key={x.sku}>
+                    <td style={S.td}>{x.name}{x.variant ? <div style={S.muted}>{x.variant}</div> : null}{x.moq ? <div style={S.muted}>Min. order {x.moq} pcs</div> : null}</td>
+                    {s.showStock ? <td style={{ ...S.td, ...S.muted, width: '30mm' }}>{ST[x.state][1]}</td> : null}
+                    <td style={{ ...S.td, ...S.num, width: '35mm', fontWeight: 'var(--weight-semibold)' }}>{price != null ? money(price) : priceMode === 'hide' ? 'Call for price' : 'Ask for price'}</td>
+                  </tr>
+                );
+              })}</tbody>
+            </table>
+          </div>
+        ))}
+        <div style={{ ...S.muted, borderTop: '1px solid var(--border-subtle)', paddingTop: '2mm' }}>{s.wa ? `Order on WhatsApp: ${s.wa} · ` : ''}See it online: {link}. Prices can change; the invoice price is final.</div>
+      </OffScreen>
+    </div>
+  );
 }

@@ -18,7 +18,8 @@
 //
 // ---- frame ----
 // AppScreen  { name, css?, title?, statusTone? ('dark' | 'light'), tabs? (default true: draws <TabBar/>), children }  name = data-screen (scope a screen's
-//            own css as [data-screen="<name>"] …); css = extra CSS string; title = aria-label of the device
+//            own css as [data-screen="<name>"] …); css = extra CSS string; title = aria-label of the device; it also
+//            draws the live alert banner (./AppAlerts.jsx: new orders, chats, payments while the app is open)
 // Content    { top=47, bottom=0, pad? (bool: 20px sides), gap? (px, makes it a flex column), style?, children }
 // LargeHeader { title, eyebrow?, actions? (IconButtons), children? (under the title row) }  the boards' big-title
 //            row (MOrders, MInbox, MMore); put it first inside <Content top={47}>
@@ -80,6 +81,7 @@ import { tabsFor, tabCounts, tabOf, appContext } from './appNav';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { orderStatus } from '@/lib/orderStatus';
 import { toast, confirmDialog, getLocale, setLocale } from '@/runtime/ui';
+import { AppAlerts, ALERT_CSS } from './AppAlerts';
 
 export { toast, confirmDialog, getLocale, setLocale, APP_CSS };
 
@@ -245,11 +247,13 @@ export function AppScreen({ name, css = '', title, statusTone = 'dark', tabs = t
   // progress, the camera scanner, a chat with its composer — pass tabs={false}
   return (
     <div className="dc-screen" data-screen={name}>
-      <style dangerouslySetInnerHTML={{ __html: APP_CSS + css }} />
+      <style dangerouslySetInnerHTML={{ __html: APP_CSS + ALERT_CSS + css }} />
       <div className="ph" aria-label={title}>
         <StatusBar tone={statusTone} />
         {children}
         {tabs ? <TabBar /> : null}
+        {/* new orders, chats, payments … while the app is open (AppAlerts.jsx) */}
+        <AppAlerts Icon={Icon} />
         <div className="hi" aria-hidden="true" />
       </div>
     </div>

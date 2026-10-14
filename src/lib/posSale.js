@@ -18,9 +18,10 @@
 // Front end only: the operation list, queue and held sales are kept in this browser. A real backend would
 // enforce the opId on the server; the demo behaves as if it answered.
 
-import { POS_KEYS as KEYS, load, save, postSaleTenders, nextSeq } from './posStore';
+import { POS_KEYS as KEYS, load, save, postSaleTenders, nextSeq, getCounters } from './posStore';
 import { addOrder } from './orderLinks';
-import { productBy, addMove, stockAt, allowNegative } from './stock';
+import { productBy, addMove, stockAt, allowNegative, isUntracked } from './stock';
+import { LIVE_COUNTER_CODES, liveDayCount } from './liveCounterSales';
 import { addHolds, endHoldsFor, holdsFor } from './stockHolds';
 import { recordDelivery } from './invoices';
 import { getCustomers, findCustomer, saveCustomerOnce, ADDED_FROM } from './customers';
@@ -45,6 +46,33 @@ export function saleForOp(opId) {
 }
 const markOp = (opId, saleId) => { if (opId) save(KEYS.ops, { ...ops(), [opId]: saleId }); };
 
+// ---- the sale number ------------------------------------------------------------------------------
+// One number per sale, used everywhere: the receipt, the order (Orders), the invoice and the Sales book.
+// ORD-<yyyymmdd>-<counter>-<nnn>: the day it was rung up, the counter's code (D1 = Dhanmondi counter 1) and a
+// running number per counter and day, the same scheme as the counters' generated sales (liveCounterSales.js),
+// counted on after them so two sales never share a number.
+const pad = (n, w) => String(n).padStart(w, '0');
+const ymd = (t) => { const d = new Date(t); return d.getFullYear() + pad(d.getMonth() + 1, 2) + pad(d.getDate(), 2); };
+/** A counter's short code: D1, D2 (Dhanmondi), M1 (Mirpur) … — the place's first letter and its counter number there. */
+export function counterCode(counter, list = getCounters()) {
+  if (!counter) return 'C1';
+  if (LIVE_COUNTER_CODES[counter.id]) return LIVE_COUNTER_CODES[counter.id];
+  const place = counter.location || counter.stock || counter.name || '';
+  const letters = String(place).replace(/[^A-Za-z]/g, '').toUpperCase() || 'C';
+  // a place that starts like another one takes two letters (Mirpur M, Motijheel MO)
+  const others = [...new Set(list.map((c) => c.location || c.stock || c.name).filter((x) => x && x !== place))];
+  const head = others.some((x) => String(x).toUpperCase().startsWith(letters[0]) && list.findIndex((c) => (c.location || c.stock || c.name) === x) < list.findIndex((c) => c.id === counter.id)) ? letters.slice(0, 2) : letters[0];
+  const same = list.filter((c) => (c.location || c.stock || c.name) === place).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  return head + (Math.max(0, same.findIndex((c) => c.id === counter.id)) + 1);
+}
+/** The number the next sale at this counter takes. `taken` = sales and queued sales already numbered. */
+export function nextSaleNo(counter, at = Date.now(), taken = [...load(KEYS.sales, []), ...getQueue()]) {
+  const code = counterCode(counter);
+  const prefix = `ORD-${ymd(at)}-${code}-`;
+  const mine = taken.filter((x) => String(x.id || '').startsWith(prefix)).map((x) => Number(String(x.id).slice(prefix.length)) || 0);
+  return prefix + pad(Math.max(liveDayCount(at, code), ...mine, 0) + 1, 3);
+}
+
 // ---- one sale -------------------------------------------------------------------------------------
 const lineNet = (l) => l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0);
 const skuOf = (l) => l.sku || (productBy(l.name) || {}).sku;
@@ -66,13 +94,17 @@ export function commitSale(sale) {
   const allNet = sale.lines.reduce((a, l) => a + lineNet(l), 0) || 1;
   const shareOf = (ls) => r2(sale.totals.total * ls.reduce((a, l) => a + lineNet(l), 0) / allNet);
   const channel = (sale.wholesale && !sale.atRetail ? 'Wholesale · ' : 'POS · ') + sale.counter;
-  // the sale shows under Orders; an unpaid one stays Pending until it is paid
-  const order = here.length ? addOrder({ lines: here, customer: who.name || 'Walk-in customer', phone: who.phone || '—', zone: 'Counter sale', total: away.length ? shareOf(here) : sale.totals.total, status, payment, channel }) : null;
+  // the sale shows under Orders with the sale's own number; an unpaid one stays Pending until it is paid.
+  // The order keeps the bill's discounts and VAT (its page shows each one from the sale itself).
+  const t = sale.totals || {};
+  const disc = r2((t.cartDisc || 0) + (t.couponDisc || 0) + (t.memberDisc || 0) + (t.pointsDisc || 0));
+  const hereTotal = away.length ? shareOf(here) : t.total;
+  const order = here.length ? addOrder({ id: sale.id, lines: here, customer: who.name || 'Walk-in customer', phone: who.phone || '—', zone: 'Counter sale', total: hereTotal, status, payment, channel, discount: away.length ? 0 : disc, vat: away.length ? 0 : t.tax || 0, vatIncluded: !!t.vatIncluded }) : null;
   // items sold here but sent from another place: one order per place, held there until it ships
   const shipOrders = [];
-  [...new Set(away.map((l) => l.from))].forEach((from) => {
+  [...new Set(away.map((l) => l.from))].forEach((from, n) => {
     const ls = away.filter((l) => l.from === from);
-    const o = addOrder({ lines: ls, customer: who.name || 'Walk-in customer', phone: who.phone || '—', zone: 'To ship', address: (sale.ship && sale.ship.address) || '', total: shareOf(ls), status: 'Approved', payment, channel, note: `Sold at ${sale.counter}. Ship from ${from}.`, tags: ['Ship from ' + from] });
+    const o = addOrder({ id: `${sale.id}-S${n + 1}`, lines: ls, customer: who.name || 'Walk-in customer', phone: who.phone || '—', zone: 'To ship', address: (sale.ship && sale.ship.address) || '', total: shareOf(ls), status: 'Approved', payment, channel, note: `Sold at ${sale.counter}. Ship from ${from}.`, tags: ['Ship from ' + from] });
     addHolds({ type: 'retail', ref: o.id, who: who.name || 'Walk-in customer', place: from, note: `Sold at ${sale.counter} · to ship`, by: sale.cashier }, ls.map((l) => ({ name: l.name, qty: l.qty })));
     shipOrders.push({ id: o.id, from });
   });
@@ -82,7 +114,8 @@ export function commitSale(sale) {
   // stock: a retail sale (or a wholesale customer taking the goods now) leaves this place; otherwise it is
   // held here for the invoice, whose deliveries take it out later
   // (op: the stock lib ignores the same move twice)
-  if (sale.stockOut) here.forEach((l) => { const sku = skuOf(l); if (sku) addMove({ sku, place: sale.place, qty: -l.qty, kind: 'sale', reason: 'POS sale', by: sale.cashier, ref: sale.id, op: `${sale.opId || sale.id}:${l.id}` }); });
+  // (services and downloads have no stock to move)
+  if (sale.stockOut) here.forEach((l) => { const sku = skuOf(l); if (sku && !isUntracked(productBy(sku))) addMove({ sku, place: sale.place, qty: -l.qty, kind: 'sale', reason: 'POS sale', by: sale.cashier, ref: sale.id, op: `${sale.opId || sale.id}:${l.id}` }); });
   else if (here.length) addHolds({ type: 'retail', ref: sale.id, who: who.name || 'Wholesale customer', place: sale.place, note: 'Sold at the counter · waiting for delivery', by: sale.cashier }, here.map((l) => ({ name: l.name, qty: l.qty })));
   let done = saved;
   if (sale.wholesale && sale.stockOut && here.length) {

@@ -16,8 +16,9 @@ import { productBy, getCatalog } from './stock';
 import { allProducts } from './products';   // read at run time only
 
 const KEY = 'gc.pos.weighed';
-/** sku → PLU on the scale (products with unit kg and a PLU or scale code are added on their own). */
-const SEED = { 'AC-LYD-01': '00102', 'SV-RPR-PORT': '00205' };
+/** sku → PLU on the scale (products with unit kg and a PLU or scale code are added on their own). The demo phone
+ *  shop sells nothing by weight: a service (repairs) sells by quantity and is never weighed. */
+const SEED = {};
 const isKg = (c) => ['kg', 'g'].includes(String((c && c.unit) || '').toLowerCase());
 
 const read = () => { try { return { ...SEED, ...(JSON.parse(window.localStorage.getItem(KEY)) || {}) }; } catch { return { ...SEED }; } };
@@ -44,6 +45,7 @@ export function setWeighed(sku, plu) {
 export function isWeighed(key) {
   const c = productBy(key);
   if (!c) return false;
+  if (c.format === 'service' || c.format === 'digital' || c.format === 'licence') return false;
   if (isKg(c)) return true;
   const plu = getWeighed()[c.sku];
   if (plu) return true;

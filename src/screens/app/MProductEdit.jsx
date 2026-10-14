@@ -22,6 +22,7 @@ import { addAdjustment, needsApproval } from '@/lib/stockAdjustments';
 import { resolveScan } from '@/lib/identifiers';
 import { Thumb, ScanSheet, PinSheet } from './stock/Scanner';
 import { placeList, costOf, me, photoFromFile, allowed, safe, onePlace } from './stock/stockData';
+import { seesCost } from './kit/appScope';
 
 function inStoreCode() {
   let b = '2';
@@ -94,7 +95,8 @@ export default function MProductEditScreen() {
   }, [data, places, adding]);
   const mineNow = counts[key] || {};
   const total = Object.values(mineNow).reduce((a, n) => a + (Number(n) || 0), 0);
-  const cost = row ? costOf(row) : 0;
+  // the buying price only for people who may see costs (kit/appScope.js › seesCost)
+  const cost = row && ctx && seesCost(ctx.user) ? costOf(row) : 0;
   const price = num(form && form.price);
   const canEditStock = ctx && (ctx.ids.has('stock-adjust') || ctx.ids.has('stock-count') || ctx.ids.has('products-add') || ctx.ids.has('stock-list'));
   const webHref = data && data.product && !String(data.product.id).startsWith('cat-') ? '/add-product?id=' + encodeURIComponent(data.product.id) : row ? '/add-product?sku=' + encodeURIComponent(row.sku) : '/add-product';

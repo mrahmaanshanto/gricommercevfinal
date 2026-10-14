@@ -10,6 +10,7 @@ import { accountForMethod, postEntry, getEntries } from './ledger';
 import { freezeLine } from './productCost';
 import { wholesaleOn } from './edition';
 import { formatBDT } from './format';
+import { dueByTerms } from './buyerTerms';
 
 const KEY = 'gc.invoices';
 const at = (day, h, m) => new Date(2026, 8, day, h, m).getTime();
@@ -90,8 +91,11 @@ export function acceptInvoice(inv, by) {
   saveInvoice(next);
   return next;
 }
-/** When the money is due: the date set on the invoice, or 30 days after the sale. */
-export const dueDateOf = (inv) => inv.dueAt || inv.at + 30 * 864e5;
+/**
+ * When the money is due: the date set on the invoice; else, for a wholesale invoice, the sale date plus the buyer's
+ * payment terms (buyerTerms.js: Net 7, Net 30 …); else 30 days after the sale.
+ */
+export const dueDateOf = (inv) => inv.dueAt || (inv.wholesale && inv.customer ? dueByTerms(inv.customer.phone, inv.at) : null) || inv.at + 30 * 864e5;
 /** True when money is still owed after the due date. */
 export const isOverdue = (inv, now = Date.now()) => inv.due > 0 && dueDateOf(inv) < now;
 

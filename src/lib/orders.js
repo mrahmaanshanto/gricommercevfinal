@@ -1,5 +1,5 @@
 // orders — the one list of orders that the order screens read: demo online orders, the online orders that
-// keep coming in after September (liveOrders.js), orders made in this browser (Create order, order links,
+// keep coming in after September (liveOrders.js), the counter sales after September (liveCounterSales.js), orders made in this browser (Create order, order links,
 // POS sales) and the demo wholesale invoices.
 // Also what happens to an order: approve (hold stock), cancel (release it), deliver, courier return
 // (RTO) and merging a duplicate.
@@ -26,6 +26,7 @@ import { addReturn } from './returns';
 import { collectCod, removeItem, clockNow } from './settlements';
 import { editionChannels, holdsStock } from './edition';
 import { liveOrders } from './liveOrders';
+import { liveCounterOrders } from './liveCounterSales';
 import { notify } from './notifications';
 
 const STATUS_KEY = 'gc.orders.status';
@@ -201,7 +202,9 @@ function allOrders() {
   // a live order the courier brought back is booked in the next day (the last day's are still to receive)
   LIVE_RTO = {};
   live.forEach((o) => { if (o.status === 'Returned' && o.times.returned + 20 * HOUR <= clockNow()) LIVE_RTO[o.id] = [{ at: o.times.returned + 20 * HOUR, by: 'Sadia Akter', lines: o.lines.map((l) => ({ name: l.name, good: l.qty, damaged: 0 })) }]; });
-  return [...made, ...invoices, ...live, ...DEMO].map((o) => finish(o, sales, statuses, edits, stamped));
+  // the counters keep selling after September too (liveCounterSales.js): one paid, completed order per sale
+  const counter = liveCounterOrders(clockNow());
+  return [...made, ...invoices, ...live, ...counter, ...DEMO].map((o) => finish(o, sales, statuses, edits, stamped));
 }
 let LIVE_RTO = {};
 export const findOrder = (id, all = getOrders()) => all.find((o) => o.id === id) || null;

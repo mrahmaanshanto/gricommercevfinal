@@ -7,15 +7,21 @@
 // price, so a price typed in here is recorded on the order (orderLinks.js › addOrder) and in its activity.
 // Layout (IndexKit): RecordHeader with the back arrow (it asks before an unsaved order is thrown away), then the
 // order on the left (products, payment with Create order) and the customer, status, notes and tags on the right.
+// Save as draft keeps the form in lib/orderDrafts.js (Orders › Drafts); ?draft=<id> opens it again, and creating the
+// order removes the draft.
+// Sales-order mode (WH-F2): when the customer picked is a wholesale buyer (wholesale on), the Customer card offers
+// "Take as a sales order", which carries the buyer and the products over to /sales-order (screens/sales/SalesOrder.jsx:
+// their price list, MOQ, credit check, hold stock or deliver now, an unpaid invoice on their payment terms).
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { wholesaleOn } from '@/lib/edition';
+import { useWholesale } from '@/lib/useWholesale';
 import { Icon } from '@/runtime/dc';
 import { navigate } from '@/runtime/routes';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { Dialog, PhoneActionBar } from '@/components/ui';
+import { Dialog, PhoneActionBar, StatusBadge } from '@/components/ui';
 import { RecordHeader } from '@/components/ui/IndexKit';
 import { formatBDT } from '@/lib/format';
 import { orderStatus, initialStatusKey } from '@/lib/orderStatus';
@@ -32,11 +38,14 @@ import { PARTNERS, getAllPartners, accountForPartner } from '@/lib/settlements';
 import { usePlaceList } from '@/lib/usePlaces';
 import { onlinePlace } from '@/lib/locations';
 import { productBy, stockAt } from '@/lib/stock';
+import { loadVat, billVat } from '@/lib/vat';
 import { getCustomers, findCustomer, saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
 import { checkOrder } from '@/lib/restrictions';
+import { saveDraft as storeDraft, getDraft, deleteDraft } from '@/lib/orderDrafts';
 
 
-const CUST_TYPES = ['Online', 'Retail', 'Wholesale'].filter((t) => t !== 'Wholesale' || wholesaleOn());   // how a customer buys; one, two or all three
+// how a customer buys; one, two or all three ('Wholesale' only while it is on: read after mount, useWholesale)
+const ALL_CUST_TYPES = ['Online', 'Retail', 'Wholesale'];
 
 const CUSTOMERS = [
   { id: 'c1', name: 'Nusrat Jahan', phone: '01553-336655', orders: 4, address: 'House 14, Road 7, Sector 4, Uttara, Dhaka 1230', zone: 'dhaka' },
@@ -45,7 +54,6 @@ const CUSTOMERS = [
   { id: 'c4', name: 'Sadia Afrin', phone: '01966-330012', orders: 1, address: 'Zindabazar, Sylhet 3100', zone: 'outside' },
 ];
 
-const VAT_RATE = 0.05;
 const TERMS = [
   { id: 'cod', label: 'Cash on delivery', note: 'Customer pays the rider' },
   { id: 'partial', label: 'Partial', note: 'Advance now, rest on delivery' },
@@ -96,6 +104,8 @@ const CSS = `
 .no-check{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-body);cursor:pointer}
 .no-cust{display:flex;flex-direction:column;gap:var(--space-3);font-size:var(--text-sm);color:var(--text-body)}
 .no-cust h3{margin:0 0 2px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
+.no-ws{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--text-body)}
+.no-ws b{display:block;font-weight:var(--weight-medium);color:var(--text-heading)}
 .no-err{margin:var(--space-2) 0 0;font-size:var(--text-xs);color:var(--text-danger)}
 .no-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--space-2)}
 .no-tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 4px 0 8px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-body)}
@@ -105,6 +115,8 @@ const CSS = `
 .no-radio input{margin-top:3px;accent-color:var(--primary)}
 .no-bar{position:sticky;bottom:0;z-index:30;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:var(--space-2);margin:var(--space-4) calc(var(--margin-x) * -1) -32px;padding:var(--space-3) var(--margin-x);border-top:1px solid var(--border-subtle);background:var(--surface-header);backdrop-filter:blur(8px)}
 .no-bar__note{margin-right:auto;font-size:var(--text-sm);color:var(--text-muted)}
+/* the floating GridAI button sits in the bottom-right corner: keep Save as draft clear of it */
+@media (min-width:641px){.no-bar{padding-right:calc(var(--margin-x) + 128px)}}
 @media (max-width:767px){.no-bar{margin:var(--space-4) -16px -16px;padding:var(--space-3) 16px}.no-pay{grid-template-columns:110px minmax(0,1fr) auto}}
 /* one column (tablets and phones): the customer comes first and Payment, with the create buttons, comes last */
 @media (max-width:1023px){
@@ -127,6 +139,8 @@ const CSS = `
 const initials = (name) => name.split(/[\s·—]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
 export default function NewOrder() {
+  const ws = useWholesale();
+  const CUST_TYPES = ALL_CUST_TYPES.filter((t) => t !== 'Wholesale' || ws);
   const [lines, setLines] = useState([]);              // [{ id, name, variant, sku, price, qty, custom }]
   const [query, setQuery] = useState('');
   const [browse, setBrowse] = useState(false);
@@ -144,6 +158,8 @@ export default function NewOrder() {
   const [delOpen, setDelOpen] = useState(false);
   const [delDraft, setDelDraft] = useState({ id: 'dhaka', custom: '' });
   const [vat, setVat] = useState(true);
+  const [vatSetup, setVatSetup] = useState(null);   // Accounts › VAT (rates by category, prices include VAT): read after mount
+  useEffect(() => { setVatSetup(loadVat()); }, []);
   const [terms, setTerms] = useState('cod');            // cod | partial | full
   const [advance, setAdvance] = useState('');
   const [link, setLink] = useState(null);               // the order link made from the current products
@@ -156,6 +172,8 @@ export default function NewOrder() {
   const [tags, setTags] = useState([]);
   const [tagText, setTagText] = useState('');
   const [errors, setErrors] = useState({});
+  const [draftId, setDraftId] = useState('');          // the draft this form was opened from (?draft=), if any
+  const draftSnap = useRef('');                        // the form as the draft was saved, so leaving unchanged doesn't ask
   const [book, setBook] = useState([]);                // the customer book (Customers page), read in the browser
   const productRef = useRef(null);
   const customerRef = useRef(null);
@@ -163,6 +181,18 @@ export default function NewOrder() {
   const [catalog, setCatalog] = useState([]);         // the catalogue (read in the browser): orderableItems
   useEffect(() => { setCatalog(orderableItems({ place: holdPlace })); }, [holdPlace]);
   useEffect(() => { setBook(getCustomers()); }, []);
+  // ?draft=<id>: open a saved draft (read in the browser only)
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('draft');
+    if (!id) return;
+    const d = getDraft(id);
+    if (!d) { toast(`Draft ${id} was not found. It may have been placed or deleted.`, { tone: 'info' }); return; }
+    setDraftId(d.id);
+    setCustomer(d.customer || null); setLines(d.lines || []); setDiscount(d.discount || null); setDelivery(d.delivery || null);
+    setVat(d.vat !== false); setTerms(d.terms || 'cod'); setAdvance(d.advance || ''); if (d.method) setMethod(d.method);
+    setStatus(d.status || 'approved'); setNote(d.note || ''); setTags(d.tags || []);
+    draftSnap.current = JSON.stringify([d.customer || null, d.lines || [], d.note || '', d.tags || [], d.discount || null, d.delivery || null, d.vat !== false, d.terms || 'cod', d.advance || '', d.status || 'approved']);
+  }, []);
   // online payment routes: the gateways set up in Settings › Payment Gateway (built-in ones first render)
   const onlineOf = (list) => list.filter((p) => p.kind === 'Gateway' && p.id !== 'card').map((p) => ['gw:' + p.id, p.short + ' online', p.mode === 'direct']);
   const [online, setOnline] = useState(() => onlineOf(PARTNERS));
@@ -184,9 +214,13 @@ export default function NewOrder() {
   const items = lines.reduce((sum, l) => sum + l.qty, 0);
   const discountValue = !discount ? 0 : Math.min(subtotal, discount.type === 'percent' ? Math.round(subtotal * discount.value / 100) : discount.value);
   const deliveryFee = delivery ? delivery.fee : 0;
-  const tax = vat ? Math.round((subtotal - discountValue) * VAT_RATE) : 0;
-  const total = subtotal - discountValue + deliveryFee + tax;
-  const dirty = lines.length > 0 || !!customer || !!note || tags.length > 0;
+  // VAT by each product's category (Accounts › VAT): inside the price when prices include VAT (the default), else on top
+  const vatBill = billVat(lines.map((l) => { const pb = productBy(l.name) || {}; return { ...l, cat: l.cat || pb.cat, vatRate: l.vatRate != null ? l.vatRate : pb.vatRate }; }), subtotal ? (subtotal - discountValue) / subtotal : 0, vatSetup);
+  const tax = vat ? vatBill.tax : 0;
+  const vatIn = vatBill.included;
+  const total = Math.round((subtotal - discountValue + deliveryFee + (vatIn ? 0 : tax)) * 100) / 100;
+  const changed = JSON.stringify([customer, lines, note, tags, discount, delivery, vat, terms, advance, status]) !== draftSnap.current;
+  const dirty = (lines.length > 0 || !!customer || !!note || tags.length > 0) && changed;
   // free stock at the hold place for the products that are in the stock list
   const known = lines.filter((l) => productBy(l.name));
   const shortHere = known.filter((l) => stockAt(l.name, holdPlace).available < l.qty);
@@ -288,8 +322,9 @@ export default function NewOrder() {
   };
   const saveDraft = () => {
     if (!validate(false)) return;
-    toast('Draft order D-1042 saved');
-    navigate('/merchant-orders');
+    const d = storeDraft({ customer, lines, discount, delivery, vat, terms, advance, method, status, note: note.trim(), tags, total }, draftId);
+    toast(`Draft ${d.id} saved`);
+    navigate('/merchant-orders?status=drafts');
   };
   const createOrder = () => {
     if (creating.current) return;
@@ -303,8 +338,9 @@ export default function NewOrder() {
     creating.current = true;
     const label = status === 'approved' ? 'Approved' : 'New';
     const row = addOrder({ lines, customer: customer.name, phone: customer.phone, zone: delivery ? delivery.label : 'Not set', total, status: label, payment: PAYMENT_LABEL[terms], address: customer.address || '', shipping: deliveryFee, paid: terms === 'full' ? total : terms === 'partial' ? adv : 0,
-      discount: discountValue, discountReason: discount ? discount.reason : '', vat: tax, vatRate: vat ? VAT_RATE * 100 : 0, note: note.trim(), tags });
+      discount: discountValue, discountReason: discount ? discount.reason : '', vat: tax, vatRate: tax ? Math.round((tax / Math.max(1, subtotal - discountValue - (vatIn ? tax : 0))) * 1000) / 10 : 0, vatIncluded: vatIn, note: note.trim(), tags });
     // the same order pressed twice (or sent twice) is one order: nothing is posted or held again
+    if (draftId) deleteDraft(draftId);   // the draft became this order
     if (row.duplicate) { toast(`Order ${row.id} created`); navigate('/merchant-orders'); return; }
     // prices typed in by hand and the order discount are written to the order's activity
     lines.forEach((l) => { if (l.listPrice != null && Number(l.price) !== Number(l.listPrice)) logOrder(row.id, 'tag', 'Price changed', `${l.name}: ${formatBDT(l.listPrice)} → ${formatBDT(l.price)} · Staff`); });
@@ -334,10 +370,16 @@ export default function NewOrder() {
     try { await navigator.clipboard.writeText(link.url); toast('Link copied. Send it to the customer.'); }
     catch { toast('Could not copy. Select the link and copy it by hand.', { tone: 'error' }); }
   };
+  const removeDraft = async () => {
+    if (!(await confirmDialog({ title: `Delete draft ${draftId}?`, body: 'The products, customer and notes saved in it are lost.', confirmLabel: 'Delete draft', tone: 'danger' }))) return;
+    deleteDraft(draftId);
+    toast(`Draft ${draftId} deleted`);
+    navigate('/merchant-orders?status=drafts');
+  };
   const leave = async (e) => {
     if (!dirty) return;
     e.preventDefault();
-    if (await confirmDialog({ title: 'Discard this order?', body: 'The products, customer and notes you added will be lost.', confirmLabel: 'Discard', tone: 'danger' })) navigate('/merchant-orders');
+    if (await confirmDialog({ title: draftId ? 'Discard your changes?' : 'Discard this order?', body: draftId ? `Draft ${draftId} stays as it was last saved.` : 'The products, customer and notes you added will be lost.', confirmLabel: 'Discard', tone: 'danger' })) navigate(draftId ? '/merchant-orders?status=drafts' : '/merchant-orders');
   };
 
   return (
@@ -350,8 +392,10 @@ export default function NewOrder() {
           <div className="gc-shell__content">
             <div className="ix-page ix-page--narrow">
               {/* the back arrow asks before an unsaved order is thrown away */}
-              <div onClickCapture={(e) => { if (e.target.closest('a[href="/merchant-orders"]')) leave(e); }}>
-                <RecordHeader back="/merchant-orders" backLabel="Back to all orders" title="Create order"
+              <div onClickCapture={(e) => { if (e.target.closest('a[href^="/merchant-orders"]')) leave(e); }}>
+                <RecordHeader back={draftId ? '/merchant-orders?status=drafts' : '/merchant-orders'} backLabel={draftId ? 'Back to drafts' : 'Back to all orders'} title="Create order"
+                  badges={draftId ? <StatusBadge tone="neutral" icon="file-pen-line">Draft {draftId}</StatusBadge> : null}
+                  more={draftId ? [{ label: 'Delete draft', tone: 'danger', onClick: removeDraft }] : []}
                   about="Add products, choose the customer, then discount, delivery and payment. Or make an order link for the customer to fill in." />
               </div>
 
@@ -369,6 +413,12 @@ export default function NewOrder() {
                           <div><span className="no-name">{customer.name}</span><span className="no-meta">{customer.orders ? `${customer.orders} order${customer.orders > 1 ? 's' : ''}` : 'New customer'}</span></div>
                           <div><h3>Contact</h3>{customer.phone}<CourierHistory phone={customer.phone} /></div>
                           <div><h3>Delivery address</h3>{customer.address || 'No address yet'}</div>
+                          {ws && (customer.types || []).includes('Wholesale') ? (
+                            <div className="no-ws" role="note">
+                              <span><b>Wholesale buyer</b>Take it as a sales order: their prices, MOQ and credit are checked.</span>
+                              <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => navigate('/sales-order?buyer=' + encodeURIComponent(cleanPhone(customer.phone)) + (lines.filter((l) => l.sku && l.sku !== '—').length ? '&items=' + lines.filter((l) => l.sku && l.sku !== '—').map((l) => l.sku + ':' + l.qty).join(',') : ''))}>Take as a sales order</button>
+                            </div>
+                          ) : null}
                         </div>
                       ) : (
                         <>
@@ -470,7 +520,7 @@ export default function NewOrder() {
                         <span className="v">{formatBDT(deliveryFee)}</span>
 
                         <label className="no-check"><input type="checkbox" className="gc-check" checked={vat} onChange={(e) => setVat(e.target.checked)} />VAT</label>
-                        <span className="hint">{vat ? '5% on products' : 'Not charged'}</span>
+                        <span className="hint">{!vat ? 'Not charged' : vatIn ? 'Included in prices' : 'Added on top'}</span>
                         <span className="v">{formatBDT(tax)}</span>
 
                         <div className="no-total"><span>Total</span><span>{formatBDT(total)}</span></div>
@@ -551,8 +601,8 @@ export default function NewOrder() {
             </div>
 
             <div className="no-bar">
-              <span className="no-bar__note">{dirty ? 'Unsaved draft order' : 'Nothing added yet'}</span>
-              <Link href="/merchant-orders" className="gc-btn gc-btn--neutral" onClick={leave}>Discard</Link>
+              <span className="no-bar__note">{dirty ? (draftId ? 'Unsaved changes' : 'Unsaved draft order') : draftId ? `Draft ${draftId}` : 'Nothing added yet'}</span>
+              <Link href={draftId ? '/merchant-orders?status=drafts' : '/merchant-orders'} className="gc-btn gc-btn--neutral" onClick={leave}>Discard</Link>
               <button type="button" className="gc-btn gc-btn--neutral" onClick={saveDraft}>Save as draft</button>
             </div>
             {/* phones only: the main actions stay in reach at the bottom of the screen */}
@@ -625,7 +675,7 @@ export default function NewOrder() {
               <a className="gc-btn gc-btn--sm gc-btn--neutral" href={`https://wa.me/?text=${encodeURIComponent('Complete your Dazzle Shop order here: ' + link.url)}`} target="_blank" rel="noreferrer"><Icon name="message-circle" width="16" height="16" aria-hidden="true" />Share on WhatsApp</a>
               <a className="gc-btn gc-btn--sm gc-btn--neutral" href={`sms:?&body=${encodeURIComponent('Complete your Dazzle Shop order here: ' + link.url)}`}><Icon name="message-square-text" width="16" height="16" aria-hidden="true" />Send by SMS</a>
             </div>
-            <p className="no-meta">{items} item{items > 1 ? 's' : ''} · {formatBDT(subtotal - discountValue)} before delivery{vat ? ' and VAT' : ''}. Unpaid until the customer submits.</p>
+            <p className="no-meta">{items} item{items > 1 ? 's' : ''} · {formatBDT(subtotal - discountValue)} before delivery{vat && !vatIn ? ' and VAT' : ''}. Unpaid until the customer submits.</p>
           </>
         ) : null}
       </Dialog>

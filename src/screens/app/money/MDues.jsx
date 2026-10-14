@@ -20,7 +20,7 @@ import {
 import { MERCHANT } from '@/lib/merchant';
 import { allocatePayment, splitOldestFirst } from '@/lib/allocations';
 import { refMessage } from '@/lib/paymentRefs';
-import { acceptInvoice, stageOf } from '@/lib/invoices';
+import { acceptInvoice, stageOf, dueDateOf } from '@/lib/invoices';
 import { paySupplier } from '@/lib/supplierBills';
 import { payLiability } from '@/lib/liabilities';
 import { accountsForMethod, balanceOf } from '@/lib/ledger';
@@ -187,7 +187,7 @@ function CustomerSheet({ g, me, now, onClose }) {
             <div className="card" style={{ margin: 0, boxShadow: 'none', border: '1px solid var(--line)' }}>
               {g.invoices.map((inv) => {
                 const st = stageOf(inv);
-                const late = inv.dueAt ? inv.dueAt < now : inv.at + 30 * 864e5 < now;
+                const late = dueDateOf(inv) < now;   // the buyer's payment terms set the due date
                 return (
                   <ListRow key={inv.id} compact chevron={false}
                     title={<span className="mono">{inv.id}</span>}

@@ -1,6 +1,7 @@
 'use client';
 // WholesaleOrders — the wholesale orders and their delivery: taken or not, how many pieces sent,
-// partial or full. The orders themselves are made in New sale; this page only follows them up.
+// partial or full. Orders are taken at the desk with New sales order (/sales-order: the buyer's prices, MOQ and credit
+// checked, WH-F2), at the POS register, or by converting a quote (Orders › Quotes).
 // Laid out like Shopify's lists (components/ui/IndexKit.jsx): the list shows the order, date, customer, total,
 // payment, delivery and pieces sent; open an order (the invoice page) to deliver it, print a challan or take payment.
 // Front end only: rows are the wholesale invoices from src/lib/invoices.js.
@@ -60,8 +61,8 @@ export default function WholesaleOrders() {
             <div className="ix-page">
               <ShopHeader icon="truck" title="Wholesale orders"
                 about="Follow each wholesale order: whether the customer has taken delivery, how many pieces went out, and what is still to pay."
-                more={[{ label: 'All orders', href: '/merchant-orders' }, { label: 'Invoices', href: '/sales-invoices' }]}
-                primary={{ label: 'New sale', href: '/pos' }} />
+                more={[{ label: 'All orders', href: '/merchant-orders' }, { label: 'Quotes', href: '/quotes' }, { label: 'Sell at the POS', href: '/pos' }, { label: 'Invoices', href: '/sales-invoices' }]}
+                primary={{ label: 'New sales order', href: '/sales-order' }} />
 
               <MetricStrip label="Wholesale orders" items={[
                 { label: 'Pieces to send', value: toSend + ' pcs' },
@@ -90,7 +91,7 @@ export default function WholesaleOrders() {
                 ) : null}
 
                 {shown.length === 0 ? (
-                  <div className="ix-empty"><EmptyState icon="truck" title={q || pay ? 'No order matches that search' : rows.length ? 'No order in this group' : 'No wholesale orders yet'} actionLabel={q || pay || rows.length ? undefined : 'New sale'} onAction={() => navigate('/pos')} /></div>
+                  <div className="ix-empty"><EmptyState icon="truck" title={q || pay ? 'No order matches that search' : rows.length ? 'No order in this group' : 'No wholesale orders yet'} actionLabel={q || pay || rows.length ? undefined : 'New sales order'} onAction={() => navigate('/sales-order')} /></div>
                 ) : (<>
                   <ul className="ix-plist" aria-label="Wholesale orders">
                     {shown.map((r) => {

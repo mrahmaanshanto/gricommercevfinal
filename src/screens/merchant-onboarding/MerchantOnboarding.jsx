@@ -6,7 +6,9 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { LOCKED, currentEditionId } from '@/lib/edition';
+import { LOCKED, currentEditionId, EDITIONS } from '@/lib/edition';
+import { saveOnboarding, setStart } from '@/lib/onboarding';
+import { SUBDOMAIN_BASE } from '@/lib/domains';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -61,7 +63,11 @@ class Component extends DCLogic {
     var slug = s.slug != null ? s.slug : ((biz || first + ' shop').toLowerCase().replace(/[^a-z0-9]+/g, '') || 'myshop');
     var clear = function (k) { if (errs[k]) { var n = Object.assign({}, errs); delete n[k]; return n; } return errs; };
     var focusId = function (id) { if (typeof document === 'undefined') return; var n = document.getElementById(id); if (n) n.focus(); };
-    var advance = function () { set({ step: step + 1, dir: 'fwd', errs: {} }); };
+    var advance = function () {
+      // "Create my shop": keep the answers (shop name, phone, address, link, how you sell → the menu) — lib/onboarding.js
+      if (step === 5) { var res = saveOnboarding({ name: name, phone: phone, biz: biz, cat: cat, address: s.addr || '', where: where, size: size, pay: pay, slug: slug, retail: RETAIL }); set({ step: 6, dir: 'fwd', errs: {}, saved: res, start: 'demo' }); return; }
+      set({ step: step + 1, dir: 'fwd', errs: {} });
+    };
     var catObj = CATS.filter(function (c) { return c.k === cat; })[0];
     var todo = [{ title: 'Add your first product', sub: 'Snap a photo, set a price and stock. Scan the barcode if it has one.', time: '2 min' }];
     if (RETAIL) {
@@ -112,6 +118,9 @@ class Component extends DCLogic {
       cf: function () { set({ cfoc: true }); }, cb: function () { set({ cfoc: false }); },
       fillCode: function () { set({ code: '482913', errs: clear('code') }); },
       first: first, biz: biz, setBiz: function (e) { set({ biz: e.target.value, errs: clear('biz') }); },
+      addr: s.addr || '', setAddr: function (e) { set({ addr: e.target.value }); },
+      saved: s.saved || null, edName: s.saved && EDITIONS[s.saved.edition] ? EDITIONS[s.saved.edition].short : '',
+      start: s.start || 'demo', pickStart: function (k) { return function () { set({ start: k }); setStart(k); }; },
       bizOr: biz || (first + '’s shop'),
       cats: CATS.map(function (c, i) { var on = c.k === cat; return { id: 'ob-cat-' + i, label: c.label, is_fashion: c.k === 'fashion', is_beauty: c.k === 'beauty', is_elec: c.k === 'elec', is_food: c.k === 'food', is_home: c.k === 'home', is_other: c.k === 'other', on: on, cls: on ? 'opt on' : 'opt', tint: on ? '#003087' : '#e0f3fb', fg: on ? '#ffffff' : '#0089c3',
         pick: function () { set({ cat: c.k, errs: clear('cat') }); self.go(RETAIL ? RETAIL_SLIDE[c.k] : c.slide); } }; }),
@@ -450,6 +459,10 @@ export default class MerchantOnboardingScreen extends Component {
                     <input id="su-biz" className="inp" type="text" autoComplete="organization" placeholder="e.g. Nusrat’s Closet" value={v.biz} onChange={v.setBiz} aria-required="true" aria-invalid={!!v.err?.biz} aria-describedby={v.err?.biz ? "su-biz-err" : undefined} />
                     <__Err id="su-biz-err" msg={v.err?.biz} />
                   </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <label className="lbl" htmlFor="su-addr">Shop address <span style={{ fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>(optional)</span></label>
+                    <input id="su-addr" className="inp" type="text" autoComplete="street-address" placeholder="e.g. House 9, Road 4, Dhanmondi, Dhaka" value={v.addr} onChange={v.setAddr} />
+                  </div>
                   <div className="ob-cats" role="group" aria-label="What you sell (required)" aria-describedby={v.err?.cat ? "ob-cat-err" : undefined}>
                     {__list(v.cats).map((c, $index) => (<React.Fragment key={$index}>
                         <button type="button" id={c?.id} className={c?.cls} aria-pressed={c?.on} onClick={c?.pick}>
@@ -540,7 +553,7 @@ export default class MerchantOnboardingScreen extends Component {
                     <label className="lbl" htmlFor="su-slug">{RETAIL ? 'Shop address' : 'Shop link'} <span className="req" aria-hidden="true">*</span></label>
                     <div className="ob-slug" data-invalid={v.err?.slug ? "true" : undefined}>
                       <input id="su-slug" type="text" autoCapitalize="none" spellCheck={false} value={v.slug} onChange={v.setSlug} aria-required="true" aria-invalid={!!v.err?.slug} aria-describedby={v.err?.slug ? "su-slug-err" : undefined} />
-                      <span>.[your-platform-domain]</span>
+                      <span>.{SUBDOMAIN_BASE}</span>
                     </div>
                     <__Err id="su-slug-err" msg={v.err?.slug} />
                   </div>
@@ -550,7 +563,7 @@ export default class MerchantOnboardingScreen extends Component {
                       <circle cx="12" cy="12" r="10" />
                       <path d="m9 12 2 2 4-4" />
                     </svg>
-                    <span>{v.slug}.[your-platform-domain] is available</span>
+                    <span>Your link: {v.slug}.{SUBDOMAIN_BASE}</span>
                   </div>
                   ) : null}
                   <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", overflow: "hidden", boxShadow: "0 12px 30px -18px rgba(1,33,105,.35)" }}>
@@ -559,7 +572,7 @@ export default class MerchantOnboardingScreen extends Component {
                       <span style={{ width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#cbd5e1" }} />
                       <span style={{ width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#cbd5e1" }} />
                       <span style={{ marginLeft: "8px", flexGrow: "1", minWidth: "0", height: "24px", borderRadius: "var(--radius-full)", background: "#fff", display: "flex", alignItems: "center", padding: "0 10px", fontSize: "var(--text-xs)", color: "#475569" }}>
-                        <span style={{ marginLeft: "6px", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.slug}.[your-platform-domain]</span>
+                        <span style={{ marginLeft: "6px", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.slug}.{SUBDOMAIN_BASE}</span>
                       </span>
                     </div>
                     <div style={{ padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -602,6 +615,24 @@ export default class MerchantOnboardingScreen extends Component {
                         </div>
                       </React.Fragment>))}
                   </div>
+                  {v.saved ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <span className="lbl" id="ob-start" style={{ color: "#0f172a" }}>How do you want to start?</span>
+                    <div role="radiogroup" aria-labelledby="ob-start" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
+                      <button type="button" role="radio" aria-checked={v.start === 'demo'} className={v.start === 'demo' ? 'opt on' : 'opt'} onClick={v.pickStart('demo')} style={{ gap: "4px" }}>
+                        <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Try it with sample data</span>
+                        <span style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Learn with a sample phone shop’s orders, stock and customers.</span>
+                      </button>
+                      <button type="button" role="radio" aria-checked={v.start === 'own'} className={v.start === 'own' ? 'opt on' : 'opt'} onClick={v.pickStart('own')} style={{ gap: "4px" }}>
+                        <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Start with my own data</span>
+                        <span style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Add or import your products and customers first.</span>
+                      </button>
+                    </div>
+                    {v.start === 'own' ? <p role="status" style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "18px", color: "#475569" }}>In this preview the sample shop’s data stays next to yours. A live shop starts empty.</p> : null}
+                    <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "18px", color: "#475569" }}>Saved: {v.bizOr}{v.addr ? ', ' + v.addr : ''} · {v.slug}.{SUBDOMAIN_BASE}{v.edName ? ' · menu set for ' + v.edName : ''}.</p>
+                    {(v.saved.problems || []).map((t, i) => <p key={i} role="alert" style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-danger)" }}>{t}</p>)}
+                  </div>
+                  ) : null}
                   <__Link href="/merchant-overview" className="btn solid" style={{ width: "100%" }}>Go to my dashboard<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M5 12h14" />
   <path d="m12 5 7 7-7 7" />

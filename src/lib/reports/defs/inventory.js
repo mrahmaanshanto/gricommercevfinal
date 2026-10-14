@@ -11,7 +11,7 @@
 // the stock moves of kind 'sale'.
 
 import * as salesBook from '../../salesBook';
-import { getCatalog, productBy, stockAt, placeStock, getMoves, unitValue, LOW_AT } from '../../stock';
+import { getCatalog, productBy, stockAt, placeStock, getMoves, unitValue } from '../../stock';
 import { getPlaces, placeName, DAMAGED_PLACE } from '../../locations';
 import { getHolds } from '../../stockHolds';
 import { getTransfers, missingOf } from '../../transfers';
@@ -256,7 +256,7 @@ const lowStock = {
     const top = rows.slice().sort((a, b) => b.suggest - a.suggest).filter((x) => x.suggest > 0).slice(0, 10);
     return {
       kpis: [
-        { key: 'low', label: 'Low at a place', value: rows.length, format: 'int', good: 'down', sub: `${LOW_AT} or fewer free to sell` },
+        { key: 'low', label: 'Low at a place', value: rows.length, format: 'int', good: 'down', sub: 'below its alert level' },
         { key: 'out', label: 'Out of stock', value: rows.filter((x) => x.available <= 0).length, format: 'int', good: 'down' },
         { key: 'suggest', label: 'Pieces to order', value: sum(rows, (x) => x.suggest), format: 'int', good: 'none', sub: 'for 30 days of sales' },
         { key: 'cost', label: 'Cost of the order', value: sum(rows, (x) => x.cost), format: 'money0', good: 'none' },
@@ -281,7 +281,7 @@ const lowStock = {
         sort: { key: 'suggest', dir: 'desc' },
       },
       notes: [
-        `A product is low at a place when ${LOW_AT} or fewer are free to sell there. Sold a day is the average of the last 30 days at that place.`,
+        'A product is low at a place when what is free to sell there is below its alert level (the product’s, or the one set for that place in Stock). Sold a day is the average of the last 30 days at that place.',
         'Order = 30 days of sales − on hand − pieces on the way from another place − pieces still to come on open purchase orders.',
       ],
     };

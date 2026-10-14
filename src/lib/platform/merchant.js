@@ -4,12 +4,12 @@
 // Dhaka Gadget Hub (0031) keeps the numbers drawn on the design board.
 
 import { DAY, rng, daysBetween, startOfMonth, addMonths, monthOf, monthLong, dm, dmy, dmhm, hm, ago, taka, num, spark, initials, periodOf, dayOfMonth, yearOf } from './util';
-import { MODULES, SETS, PLAN_NAME, ladderLabel, staffIni, staffColor, ADDONS, TRIALABLE, METHODS, VIA, COLLECTORS, SOURCES, REASON_LABEL } from './catalogue';
-import { shopOf, subOf, subState, isPaying, mrrOf, planOf, balance, invoiceState, openInvoices, paidOn, lastPayment, paidVia, billItems, priceOf, itemName, outcomeLabel, dayName } from './billing';
+import { MODULES, SETS, PLAN_NAME, ladderLabel, inEdition, staffIni, staffColor, ADDONS, TRIALABLE, METHODS, VIA, COLLECTORS, SOURCES, REASON_LABEL } from './catalogue';
+import { shopOf, subOf, subState, isPaying, mrrOf, planOf, balance, invoiceState, openInvoices, paidOn, lastPayment, paidVia, billItems, priceOf, monthlyOf, isYearly, itemName, outcomeLabel, dayName } from './billing';
 import { profile, health, lastActiveDays, ordersMTD } from './views';
 
 const TEAM_NAMES = ['Sumon Roy', 'Kamal Ahmed', 'Rina Begum', 'Tanjila Akter', 'Rubel Mia', 'Shapla Khatun', 'Masud Rana', 'Nipa Das', 'Joy Barua', 'Rasel Ahmed', 'Mitu Akter', 'Hasan Ali'];
-const ROLES = { Retail: ['Manager', 'Cashier · POS', 'Cashier · POS', 'Stock'], Online: ['Manager', 'Orders', 'Content', 'Packing'], Wholesale: ['Manager', 'Accounts', 'Warehouse', 'Sales'] };
+const ROLES = { Retail: ['Manager', 'Cashier · POS', 'Cashier · POS', 'Stock'], Online: ['Manager', 'Orders', 'Content', 'Packing'], Wholesale: ['Manager', 'Accounts', 'Warehouse', 'Sales'], Connect: ['Manager', 'Inbox', 'Inbox', 'Cashier · POS'] };
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 const C64 = 2 * Math.PI * 28;
 
@@ -37,15 +37,13 @@ export function moduleState(db, shop, sub, plan, code, name, set, t) {
     return { cls: 'mod mod-trial', title: `Trial · ${left} days left`, label: `${name} · ${left} d`, lock: false, left };
   }
   if (items.some((it) => it.code === code)) return { cls: 'mod mod-add', title: 'Billed separately', label: name, lock: false };
-  const ladderSet = { online: 'online', retail: 'retail', wholesale: 'wholesale' };
-  if (set === 'platform' || set === 'everyday') return { cls: 'mod mod-in', title: 'In plan', label: name, lock: false };
-  if (set === 'online' || set === 'retail' || set === 'wholesale') {
-    const inSeg = shop.segs.map((s) => s.toLowerCase()).includes(set) || ladderSet[sub.ladder] === set;
-    if (inSeg) return { cls: 'mod mod-in', title: 'In plan', label: name, lock: false };
-    if (usesByName) return { cls: 'mod mod-add', title: 'Billed separately', label: name, lock: false };
-    return { cls: 'mod mod-off', title: 'Not in this segment', label: name, lock: false };
-  }
+  if (set === 'platform') return { cls: 'mod mod-in', title: 'In plan', label: name, lock: false };
   if (set === 'service') return { cls: 'mod mod-off', title: 'Not bought', label: name, lock: false };
+  // a product module the store's edition does not use (e.g. POS on Online): off, unless it is billed on its own
+  if (SETS.some((x) => x.id === set && x.product) && !inEdition(sub.ladder, set)) {
+    if (usesByName) return { cls: 'mod mod-add', title: 'Billed separately', label: name, lock: false };
+    return { cls: 'mod mod-off', title: 'Not in this edition', label: name, lock: false };
+  }
   const rule = plan.sets[set] || 'Add-on';
   if (rule === 'Included') return { cls: 'mod mod-in', title: 'In plan', label: name, lock: false };
   if (usesByName) return { cls: 'mod mod-add', title: 'Billed separately', label: name, lock: false };
@@ -70,7 +68,9 @@ export function merchantView(db, t, id, me) {
   const overdueInv = open.filter((i) => i.dueAt < t && daysBetween(i.dueAt, t) > 0);
   const items = billItems(sub, t);
   const monthly = mrrOf(db, sub, t);
-  const planPrice = priceOf(db, sub, { kind: 'plan', code: sub.plan });
+  // the plan counted per month (a yearly plan ÷ 12), and what one plan bill asks (the full year for a yearly plan)
+  const planPrice = monthlyOf(db, sub, { kind: 'plan', code: sub.plan });
+  const planBill = priceOf(db, sub, { kind: 'plan', code: sub.plan });
   const pays = db.payments.filter((x) => x.shopId === sid && x.status === 'ok').sort((a, b) => b.at - a.at);
   const paidTotal = pays.reduce((s, x) => s + x.amount, 0);
   const paidMonths = new Set(pays.map((x) => db.invoices.find((i) => i.id === x.invoiceId)?.period).filter(Boolean)).size;
@@ -97,7 +97,7 @@ export function merchantView(db, t, id, me) {
     { k: 'activation', label: 'Last activation', value: lastDays === 0 ? (dgh ? 'Today 10:02' : 'Today') : lastDays === 1 ? 'Yesterday' : lastDays + ' days ago', sub: 'owner signed in' },
     { k: 'updated', label: 'Last updated', value: lastEv && lastEv.kind === 'team' ? ago(lastEv.at, t) : lastDays === 0 ? 'Today' : ago(lastSign, t), sub: lastEv && lastEv.kind === 'team' ? lastEv.text.split(' ').slice(2).join(' ').replace('updated ', '').slice(0, 30) : 'products and orders' },
     { k: 'reset', label: 'Reset link sent', value: shop.resetAt ? (daysBetween(shop.resetAt, t) === 0 ? 'Today ' + hm(shop.resetAt) : dmy(shop.resetAt)) : 'Never', sub: shop.resetAt ? `by ${shop.resetBy === (me && me.name) ? 'you' : shop.resetBy.split(' ')[0]}, by SMS` : 'owner has not asked' },
-    { k: 'package', label: 'Package', value: `${PLAN_NAME[sub.plan]} ${taka(planPrice)}`, sub: monthly - planPrice > 0 ? `+ ${taka(monthly - planPrice)} modules and credits` : sub.cycle === 'yearly' ? 'paid yearly' : 'plan only' },
+    { k: 'package', label: 'Package', value: `${PLAN_NAME[sub.plan]} ${taka(planBill)}${sub.cycle === 'yearly' ? ' a year' : ''}`, sub: monthly - planPrice > 0 ? `+ ${taka(monthly - planPrice)} a month modules and credits` : sub.cycle === 'yearly' ? 'paid yearly' : 'plan only' },
     { k: 'by', label: 'Onboarded by', value: shop.by, sub: shop.helper && shop.helper !== shop.by ? 'helper ' + shop.helper : 'no helper' },
     { k: 'src', label: 'Came from', value: shop.src, sub: shop.campaign || (shop.ref ? 'referred by ' + (shopOf(db, shop.ref) || {}).name : '—') },
   ];
@@ -189,8 +189,8 @@ export function merchantView(db, t, id, me) {
   const TYPE = { plan: ['Plan', 'pill p-navy'], module: ['Module', 'pill p-sky'], credits: ['Credits', 'pill p-grey'], oneoff: ['One-off', 'pill p-grey'], proration: ['One-off', 'pill p-grey'] };
   const billRows = [
     ...items.filter((it) => it.period !== 'Once' || !it.billedIn).map((it) => ({
-      id: it.id, name: itemName(sub, it), type: TYPE[it.kind][0], typeCls: TYPE[it.kind][1], price: taka(priceOf(db, sub, it)), period: it.period,
-      since: it.fromTrial ? `From ${dm(it.since)}, after trial` : it.since > t ? `From ${dm(it.since)}` : dmy(it.since), next: it.period === 'Once' && it.billedIn ? '—' : nextLabel,
+      id: it.id, name: itemName(sub, it), type: TYPE[it.kind][0], typeCls: TYPE[it.kind][1], price: taka(priceOf(db, sub, it)), period: isYearly(sub, it) ? 'Yearly' : it.period,
+      since: it.fromTrial ? `From ${dm(it.since)}, after trial` : it.since > t ? `From ${dm(it.since)}` : dmy(it.since), next: it.period === 'Once' && it.billedIn ? '—' : isYearly(sub, it) && it.nextBill && it.nextBill > t ? dm(it.nextBill) : nextLabel,
       plan: it.kind === 'plan', raw: it,
     })),
     ...sub.moduleTrials.filter((m) => !m.result && m.autoAdd && m.start <= t).map((m) => ({ id: m.id, name: m.name, type: 'Module', typeCls: 'pill p-sky', price: taka(m.price), period: 'Monthly', since: `From ${dm(m.start + m.days * DAY)}, after trial`, next: nextLabel, trial: true })),

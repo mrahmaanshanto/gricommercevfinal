@@ -6,6 +6,7 @@
 // Front end only: kept in this browser; the demo rows are September 2026.
 
 import { postEntry } from './ledger';
+import { perDay, shiftTime } from './demoClock';
 
 const KEY = 'gc.liabilities';
 const at = (m, d, h = 12) => new Date(2026, m - 1, d, h).getTime();
@@ -33,7 +34,7 @@ const L = (id, type, title, party, period, due, lines, extra = {}) => ({
   id, type, title, party, period, due, at: extra.at || due, lines, amount: r2(lines.reduce((a, l) => a + l.amount, 0)), payments: [], channel: extra.channel || '', note: extra.note || '', ...extra,
 });
 export const LIAB_SEED = [
-  L('LB-0001', 'salary', 'September salaries', '13 staff', '2026-09', at(10, 1), PAYROLL.map(([n, d, a, acc]) => line(n, d, a, acc)), { at: at(9, 30, 18), note: 'From Staff & HR › Payroll. Pay day 1 Oct.' }),
+  L('LB-0001', 'salary', 'September salaries', '13 staff', '2026-09', at(10, 1), PAYROLL.map(([n, d, a, acc]) => line(n, d, a, acc)), { at: at(9, 30, 18), note: 'From Staff & HR › Payroll.' }),
   L('LB-0002', 'commission', 'Sales commission · September', 'Sales staff', '2026-09', at(10, 5), [
     line('Rafi Ahmed', '1% of ৳3,12,400 counter sales', 3124, 'bkash', { channel: 'Retail' }),
     line('Arif Rahman', '1% of ৳2,78,900 counter sales', 2789, 'cash-shop', { channel: 'Retail' }),
@@ -55,7 +56,9 @@ LIAB_SEED[4].payments = [{ at: at(9, 18, 14), amount: 5000, account: 'bkash', by
 
 const read = () => { try { return JSON.parse(window.localStorage.getItem(KEY)); } catch { return null; } };
 const write = (list) => { try { window.localStorage.setItem(KEY, JSON.stringify(list)); window.dispatchEvent(new CustomEvent('gc:ledger')); } catch { /* ignore */ } };
-export const getLiabilities = () => (typeof window === 'undefined' ? LIAB_SEED : read() || LIAB_SEED);
+// due dates of the seed are written as of 1 Oct; in the browser they move with the clock (demoClock.js)
+const rebased = perDay((days) => LIAB_SEED.map((l) => ({ ...l, due: shiftTime(l.due, days) })));
+export const getLiabilities = () => (typeof window === 'undefined' ? LIAB_SEED : read() || rebased());
 
 export const paidOf = (l) => r2(l.lines.reduce((a, x) => a + (x.paid || 0), 0));
 export const leftOf = (l) => r2(l.amount - paidOf(l));

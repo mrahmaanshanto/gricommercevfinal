@@ -109,7 +109,7 @@ export default function MSettingsScreen() {
   };
   const switchTo = (id) => { signInAs(id); close(); toast('Switched to ' + (USERS.find((u) => u.id === id) || {}).name); };
   const switchSystem = (id) => { previewEdition(id); close(); router.push('/m-home'); };
-  const out = () => { signOut(); router.push('/merchant-sign-in'); };
+  const out = () => { signOut(); router.replace('/onb-sign-in'); };
   const installNow = async () => { if (!install) return; install.prompt(); try { await install.userChoice; } catch { /* ignore */ } setInstall(null); };
 
   const printer = data && data.devices.printer;

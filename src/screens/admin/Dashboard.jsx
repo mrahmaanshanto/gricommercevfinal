@@ -74,7 +74,7 @@ a.dash-row:hover{color:var(--primary)}
 @media (prefers-reduced-motion:reduce){.dash-skel{animation:none}}
 `;
 
-const LADDER_COLORS = ['var(--viz-1)', 'var(--viz-3)', 'var(--viz-4)'];
+const LADDER_COLORS = ['var(--viz-1)', 'var(--viz-3)', 'var(--viz-4)', 'var(--viz-5)'];   // Online · Retail · Retail + Online · Connect
 const money = (n) => formatBDT(Math.round(Number(n) || 0));
 const short = (n) => {
   const v = Math.abs(Number(n) || 0);
@@ -199,7 +199,7 @@ export default function Dashboard() {
             <p className="dash-big">{money(f.mrr)}<small>a month · {short(x.mrr.arr)} a year</small></p>
             <ColumnChart label="Monthly recurring revenue by package, last 12 months" data={x.mrr.months}
               series={x.mrr.ladders.map((n, k) => ({ name: n, color: LADDER_COLORS[k] }))} fmt={money} tickFmt={tick} height={200} now={11} />
-            <div style={{ marginTop: 'var(--space-3)' }}><Legend items={x.mrr.ladders.map((n, k) => ({ name: n, color: LADDER_COLORS[k], value: short(x.mrr[n.toLowerCase()]) }))} /></div>
+            <div style={{ marginTop: 'var(--space-3)' }}><Legend items={x.mrr.ladders.map((n, k) => ({ name: n, color: LADDER_COLORS[k], value: short(x.mrr.split[k].value) }))} /></div>
             <div className="dash-foot">
               <span>Average per store<b>{money(x.unit.arpa)}</b></span>
               <span>Lifetime value<b>{short(x.unit.ltv)}</b></span>

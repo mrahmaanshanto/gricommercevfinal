@@ -31,7 +31,9 @@ const COL_NOTE = { 'In progress': 'WIP limit 5 per agent', 'Waiting on customer'
 const AGENTS = ['Rina', 'Tasnim', 'Mehedi'];
 const ME = 'Rina';
 const SOON = 'This action is not available in the demo yet.';
-const TABS = [['all', 'All'], ...STATUSES.map((s) => [s, s])];
+// Urgent = open tickets marked Urgent (any status but Solved), right after All
+const TABS = [['all', 'All'], ['urgent', 'Urgent'], ...STATUSES.map((s) => [s, s])];
+const isUrgent = (t) => t.priority === 'Urgent' && t.status !== 'Solved';
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
 class Component extends DCLogic {
@@ -69,8 +71,8 @@ class Component extends DCLogic {
       && (!st.who || (st.who === 'none' ? !t.assignee : t.assignee === st.who))
       && (!st.hot || (t.hot && t.status !== 'Solved'));
     const found = all.filter(match);
-    const rows = found.filter((t) => st.tab === 'all' || t.status === st.tab);
-    const counts = { all: all.length };
+    const rows = found.filter((t) => st.tab === 'all' || (st.tab === 'urgent' ? isUrgent(t) : t.status === st.tab));
+    const counts = { all: all.length, urgent: all.filter(isUrgent).length };
     STATUSES.forEach((s) => { counts[s] = all.filter((t) => t.status === s).length; });
     const findOn = !!(needle || st.ch || st.pri || st.who);
     const hasFilters = findOn || st.hot;
@@ -82,7 +84,7 @@ class Component extends DCLogic {
       isBoard: st.view === 'board',
       toggleView: () => this.setState((s) => ({ view: s.view === 'board' ? 'list' : 'board' })),
       tabs: TABS.map(([k, l]) => ({ key: k, label: l, count: counts[k], id: 'tk-tab-' + k.replace(/\s/g, '-'), on: st.tab === k, onClick: () => this.setState({ tab: k }) })),
-      tabLabel: st.tab === 'all' ? 'All tickets' : st.tab + ' tickets',
+      tabLabel: st.tab === 'all' ? 'All tickets' : st.tab === 'urgent' ? 'Urgent tickets' : st.tab + ' tickets',
       figures: [
         // tap to show only the tickets breaching their SLA (tap again to show all)
         { label: 'Breaching SLA', value: String(all.filter((t) => t.hot && t.status !== 'Solved').length), on: st.hot, onClick: () => this.setState((s) => ({ hot: !s.hot })) },

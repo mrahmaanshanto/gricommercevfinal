@@ -19,7 +19,7 @@ export const BRANDS = {
   carrybee: { name: 'Carrybee', src: B + 'carrybee.png' },
   citybank: { name: 'City Bank', src: B + 'citybank.png' },
   bracbank: { name: 'BRAC Bank', src: B + 'bracbank.webp' },
-  redx: { name: 'RedX', text: 'RX', bg: '#e11d2a', fg: '#fff' },
+  redx: { name: 'RedX', src: B + 'redx.png' },
   dbbl: { name: 'Dutch-Bangla Bank', text: 'DBBL', bg: '#0b7a3e', fg: '#fff' },
   card: { name: 'Card', icon: 'credit-card', bg: 'var(--fill-primary-soft)', fg: 'var(--primary)' },
   cash: { name: 'Cash', icon: 'banknote', bg: 'var(--fill-success-soft)', fg: 'var(--text-success)' },
@@ -52,8 +52,8 @@ export const BRANDS = {
   backup: { name: 'Backup', icon: 'database-backup', bg: 'var(--surface-subtle)', fg: 'var(--text-body)' },
   attendance: { name: 'Attendance machine', icon: 'fingerprint', bg: 'var(--fill-success-soft)', fg: 'var(--text-success)' },
   printer: { name: 'Printer', icon: 'printer', bg: 'var(--surface-subtle)', fg: 'var(--text-body)' },
-  zoom: { name: 'Zoom', icon: 'video', bg: '#0b5cff', fg: '#fff' },
-  'google-meet': { name: 'Google Meet', icon: 'video', bg: '#00897b', fg: '#fff' },
+  zoom: { name: 'Zoom', src: B + 'zoom.png', pad: 2 },
+  'google-meet': { name: 'Google Meet', src: B + 'google-meet.svg' },
 };
 
 export function BrandLogo({ brand, size = 36, variant = 'tile', decorative = false, style }) {

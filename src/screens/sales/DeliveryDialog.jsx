@@ -6,8 +6,12 @@
 // Stock: the pieces sent leave the chosen place (a 'delivery' stock move) and the invoice's holds
 // there end (a hold bigger than what went out is ended and the rest held again). When the goods
 // already left the shelf at the sale (stockOutAtSale), the delivery only records the hand-over.
+// IMEI / serial numbers (WH-F9): a product tracked by IMEI or serial (serials.js) needs one number per piece going out:
+// tap a number in stock at the place or scan / type it (checked as at the POS). The numbers are saved on the delivery
+// and on the invoice lines (printed on the challan and the invoice) and leave stock in the serial register (sold on
+// this invoice), so warranty and serial tracing work for wholesale and quote orders too.
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Dialog } from '@/components/ui';
@@ -19,7 +23,11 @@ import { usePlaceList } from '@/lib/usePlaces';
 import { stockAt, productBy, addMove } from '@/lib/stock';
 import { getHolds, closeHold, addHolds } from '@/lib/stockHolds';
 import { getCustomers, findCustomer } from '@/lib/customers';
-import { sentOf, recordDelivery, challanNo, stockOutAtSale } from '@/lib/invoices';
+import { sentOf, recordDelivery, challanNo, stockOutAtSale, saveInvoice } from '@/lib/invoices';
+import { trackingOf, serialsAt, checkSerial, sellSerials } from '@/lib/serials';
+import { unitsFor, packText } from '@/lib/wholesalePrice';
+import { docIdentity } from '@/components/docs/DocPaper';
+import { ShareActions } from '@/components/docs/ShareActions';
 
 export const DELIVERY = { none: ['Not delivered', 'warning'], partial: ['Partly delivered', 'info'], full: ['Delivered', 'success'] };
 const HOW = ['Customer collected from the shop', 'Our own delivery', 'Courier'];
@@ -39,6 +47,16 @@ export const DELIVERY_CSS = `
 .dl-total{display:flex;align-items:baseline;justify-content:space-between;padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--fill-primary-soft);font-size:var(--text-sm);color:var(--primary)}
 .dl-total b{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
 .dl-quick{display:flex;gap:var(--space-2)}
+.dl-ser{grid-column:1/-1;display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.dl-ser__head{display:flex;justify-content:space-between;gap:var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-heading)}
+.dl-ser__head .is-short{color:var(--text-danger)}
+.dl-ser__chips{display:flex;flex-wrap:wrap;gap:6px}
+.dl-chip{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px;border:1px solid var(--border-strong);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-body);cursor:pointer}
+.dl-chip.is-on{border-color:var(--primary);background:var(--fill-primary-soft);color:var(--primary)}
+.dl-ser__add{display:flex;gap:var(--space-2)}
+.dl-ser__add input{flex:1;min-width:0;font-family:var(--font-data)}
+.dl-ser__err{margin:0;font-size:var(--text-xs);color:var(--text-danger)}
+@media (max-width:640px){.dl-chip{height:36px}}
 .dl-sheet .iv-paper__title b{font-size:var(--text-xl)}
 .dl-sheet .iv-paper__items td.iv-num{white-space:nowrap}
 .dl-signs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-5);padding-top:var(--space-4)}
@@ -58,6 +76,8 @@ export function DeliveryDialog({ inv, onClose, onDone }) {
   const [meta, setMeta] = useState({ from: STOCK_PLACES[0], how: HOW[0], by: EMPLOYEES[0].name, taker: '', note: '' });
   const [holds, setHolds] = useState([]);
   const [done, setDone] = useState(null);   // the saved order, while its challan is shown
+  const [ser, setSer] = useState({});       // line id → IMEI / serial numbers going out now
+  const [typed, setTyped] = useState({});   // line id → number being typed, and its error
   const places = usePlaceList('stock');
   const sent = inv ? sentOf(inv) : {};
   const left = (l) => l.qty - (sent[l.id] || 0);
@@ -66,7 +86,7 @@ export function DeliveryDialog({ inv, onClose, onDone }) {
     if (!inv) return;
     const all = getHolds();
     const heldAt = (all.find((h) => h.ref === inv.id && h.status === 'held') || {}).place;
-    setHolds(all); setDone(null);
+    setHolds(all); setDone(null); setSer({}); setTyped({});
     setNow(Object.fromEntries(inv.lines.map((l) => [l.id, left(l)])));
     setMeta((m) => ({ ...m, from: getStockPlaces().includes(heldAt) ? heldAt : getStockPlaces().includes(m.from) ? m.from : getStockPlaces()[0] || m.from, taker: '', note: '' }));
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
@@ -83,13 +103,42 @@ export function DeliveryDialog({ inv, onClose, onDone }) {
   const short = inv.lines.filter((l) => free(l) !== null && (now[l.id] || 0) > free(l));
   const going = inv.lines.reduce((a, l) => a + (now[l.id] || 0), 0);
   const remaining = inv.lines.reduce((a, l) => a + left(l), 0);
-  const set = (l, n) => setNow({ ...now, [l.id]: Math.max(0, Math.min(left(l), Math.round(Number(n) || 0))) });
+  const set = (l, n) => {
+    const v = Math.max(0, Math.min(left(l), Math.round(Number(n) || 0)));
+    setNow({ ...now, [l.id]: v });
+    if ((ser[l.id] || []).length > v) setSer({ ...ser, [l.id]: ser[l.id].slice(0, v) });   // fewer pieces: fewer numbers
+  };
+  // IMEI / serial numbers: one per piece of a tracked product going out now
+  const skuOf = (l) => l.sku || (productBy(l.name) || {}).sku || '';
+  const kindOf = (l) => trackingOf(skuOf(l) || l.name);
+  const taken = Object.values(ser).flat();
+  const missing = inv.lines.filter((l) => (now[l.id] || 0) > 0 && kindOf(l) && (ser[l.id] || []).length < (now[l.id] || 0));
+  const pick = (l, serial) => {
+    const cur = ser[l.id] || [];
+    if (cur.includes(serial)) { setSer({ ...ser, [l.id]: cur.filter((x) => x !== serial) }); return; }
+    if (cur.length >= (now[l.id] || 0)) { setTyped({ ...typed, [l.id]: { text: '', err: `Only ${now[l.id] || 0} going out. Raise the pieces first.` } }); return; }
+    setSer({ ...ser, [l.id]: [...cur, serial] });
+  };
+  const addTyped = (l) => {
+    const r = checkSerial((typed[l.id] || {}).text, { sku: skuOf(l), kind: kindOf(l), place: meta.from, taken });
+    if (!r.ok) { setTyped({ ...typed, [l.id]: { text: (typed[l.id] || {}).text || '', err: r.error } }); return; }
+    pick(l, r.serial);
+    setTyped({ ...typed, [l.id]: { text: '', err: r.warn || '' } });
+  };
   const save = (e) => {
     e.preventDefault();
     if (!going) { toast('Set how many pieces are going out', { tone: 'error' }); return; }
     if (short.length) { toast(`Not enough ${short[0].name} at ${meta.from}. Lower the pieces or choose another place.`, { tone: 'error' }); return; }
+    if (missing.length) { const l = missing[0]; toast(`Add the ${kindOf(l) === 'imei' ? 'IMEI' : 'serial number'} of every ${l.name} going out: ${(now[l.id] || 0) - (ser[l.id] || []).length} more`, { tone: 'error' }); return; }
     const lines = Object.fromEntries(Object.entries(now).filter(([, n]) => n > 0));
-    const next = recordDelivery(inv, lines, { from: meta.from, how: meta.how, by: meta.by, taker: meta.taker.trim(), note: meta.note.trim() });
+    const serials = Object.fromEntries(Object.entries(ser).filter(([id, list]) => lines[id] && list.length));
+    let next = recordDelivery(inv, lines, { from: meta.from, how: meta.how, by: meta.by, taker: meta.taker.trim(), note: meta.note.trim(), ...(Object.keys(serials).length ? { serials } : {}) });
+    if (Object.keys(serials).length) {
+      // the numbers go on the invoice lines (printed on the invoice) and out of stock in the serial register
+      next = { ...next, lines: next.lines.map((l) => (serials[l.id] ? { ...l, serials: [...(l.serials || []), ...serials[l.id]] } : l)) };
+      saveInvoice(next);
+      sellSerials({ id: inv.id, at: Date.now(), customer: inv.customer, place: meta.from, cashier: meta.by, lines: inv.lines.filter((l) => serials[l.id]).map((l) => ({ sku: skuOf(l), name: l.name, serials: serials[l.id] })) });
+    }
     const no = challanNo(next, next.deliveries.length - 1);
     // the pieces sent leave the place, and the holds for this order there end as delivered: a hold
     // for more than went out ends and the rest is held again
@@ -134,6 +183,24 @@ export function DeliveryDialog({ inv, onClose, onDone }) {
                   <input type="number" min="0" max={left(l)} inputMode="numeric" aria-label={`Pieces of ${l.name} going out now`} value={now[l.id] || 0} disabled={!left(l)} onChange={(e) => set(l, e.target.value)} />
                   <button type="button" aria-label={`More ${l.name}`} disabled={(now[l.id] || 0) >= left(l)} onClick={() => set(l, (now[l.id] || 0) + 1)}><Icon name="plus" width="16" height="16" /></button>
                 </span>
+                {kindOf(l) && (now[l.id] || 0) > 0 ? (() => {
+                  const word = kindOf(l) === 'imei' ? 'IMEI' : 'Serial number';
+                  const mine = ser[l.id] || [];
+                  const shelf = serialsAt(skuOf(l), meta.from).map((u) => u.serial).filter((x) => !taken.includes(x) || mine.includes(x));
+                  const chips = [...mine, ...shelf.filter((x) => !mine.includes(x))].slice(0, 24);
+                  const tp = typed[l.id] || {};
+                  return (
+                    <div className="dl-ser" role="group" aria-label={`${word}s of ${l.name}`}>
+                      <div className="dl-ser__head"><span>{word}s going out</span><span className={mine.length < (now[l.id] || 0) ? 'is-short' : ''}>{mine.length} of {now[l.id]}</span></div>
+                      {chips.length ? <div className="dl-ser__chips">{chips.map((x) => <button key={x} type="button" className={'dl-chip' + (mine.includes(x) ? ' is-on' : '')} aria-pressed={mine.includes(x)} onClick={() => pick(l, x)}>{x}{mine.includes(x) ? <Icon name="x" width="12" height="12" aria-hidden="true" /> : null}</button>)}</div> : null}
+                      <div className="dl-ser__add">
+                        <input className="gc-input" inputMode={kindOf(l) === 'imei' ? 'numeric' : 'text'} placeholder={`Scan or type the ${kindOf(l) === 'imei' ? 'IMEI' : 'serial number'}`} aria-label={`${word} of ${l.name}`} value={tp.text || ''} onChange={(e) => setTyped({ ...typed, [l.id]: { text: e.target.value, err: '' } })} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTyped(l); } }} />
+                        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => addTyped(l)}>Add</button>
+                      </div>
+                      {tp.err ? <p className="dl-ser__err" role="alert">{tp.err}</p> : null}
+                    </div>
+                  );
+                })() : null}
               </div>
             );
           })}
@@ -148,7 +215,7 @@ export function DeliveryDialog({ inv, onClose, onDone }) {
           <div><label className="gc-label" htmlFor="dl-note">Vehicle or note</label><input id="dl-note" className="gc-input" placeholder="Vehicle no., optional" value={meta.note} onChange={(e) => setMeta({ ...meta, note: e.target.value })} /></div>
         </div>
         <p className="gc-help" style={{ margin: 0 }}>Saving makes challan {challanNo({ id: inv.id }, (inv.deliveries || []).length)}, ready to print as the gate pass.</p>
-        <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid" disabled={!going || short.length > 0}>{going >= remaining ? 'Deliver in full' : 'Save partial delivery'}</button></div>
+        <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid" disabled={!going || short.length > 0 || missing.length > 0}>{going >= remaining ? 'Deliver in full' : 'Save partial delivery'}</button></div>
       </form>
     </Dialog>
   );
@@ -156,15 +223,25 @@ export function DeliveryDialog({ inv, onClose, onDone }) {
 
 /** The delivery challan / gate pass of the `index`-th delivery of `inv`, in a dialog with Print. */
 export function ChallanDialog({ inv, index, onClose, saved }) {
+  const paper = useRef(null);   // Send on WhatsApp and PDF (WH-F5)
   const d = inv && (inv.deliveries || [])[index];
   if (!d) return null;
   const no = challanNo(inv, index);
   return (
     <Dialog open title={saved ? `Delivery saved · challan ${no}` : `Challan ${no}`} onClose={onClose} width={820}
-      footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>{saved ? 'Done' : 'Close'}</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => window.print()}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print challan / gate pass</button></>}>
-      <ChallanPaper inv={inv} index={index} />
+      footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>{saved ? 'Done' : 'Close'}</button><ShareActions kind="challan" id={no} to={{ name: inv.customer.name, phone: inv.customer.phone }} lines={[`Invoice ${inv.id} · ${pcs(d.lines)} pcs from ${d.from || 'the shop'}`]} paper={paper} title={`Challan ${no}`} btn="gc-btn gc-btn--neutral" /><button type="button" className="gc-btn gc-btn--solid" onClick={() => window.print()}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print challan / gate pass</button></>}>
+      <div ref={paper}><ChallanPaper inv={inv} index={index} /></div>
     </Dialog>
   );
+}
+
+/** "3 cartons + 4 pcs" under a challan line's pieces when the product is packed in cartons (WH-F3). */
+function packOf(l, qty) {
+  const sku = l.sku || (productBy(l.name) || {}).sku;
+  if (!sku) return null;
+  const units = unitsFor(sku);
+  if (units.length < 2 || qty < Math.min(...units.slice(1).map((u) => u.per))) return null;
+  return <span className="iv-sub">{packText(sku, qty)}</span>;
 }
 
 /** The printable sheet. It uses the invoice sheet's classes, so PAPER_CSS prints only this sheet. */
@@ -175,12 +252,13 @@ export function ChallanPaper({ inv, index }) {
   const before = sentOf({ deliveries: inv.deliveries.slice(0, index) });
   const rows = inv.lines.filter((l) => d.lines[l.id]);
   const no = challanNo(inv, index);
+  const me = docIdentity();   // Settings › General letterhead (WH-F5)
   return (
     <article className="iv-paper dl-sheet" aria-label={`Delivery challan ${no}`}>
       <header className="iv-paper__head">
         <div className="iv-paper__brand">
-          <svg width="52" height="52" viewBox="0 0 52 52" role="img" aria-label={`${MERCHANT.name} logo`}><rect width="52" height="52" rx="12" fill="#003087" /><path d="M35 19a10 10 0 1 0 1 13v-6h-9" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <div><b>{MERCHANT.name}</b><span>{MERCHANT.address}</span><span style={{ display: 'block' }}>{MERCHANT.phone} · BIN {MERCHANT.bin}</span></div>
+          <svg width="52" height="52" viewBox="0 0 52 52" role="img" aria-label={`${me.name} logo`}><rect width="52" height="52" rx="12" fill="#003087" /><path d="M35 19a10 10 0 1 0 1 13v-6h-9" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <div><b>{me.name}</b><span>{me.address}</span><span style={{ display: 'block' }}>{me.phone} · BIN {me.bin}</span></div>
         </div>
         <div className="iv-paper__title"><b>DELIVERY CHALLAN · GATE PASS</b><span>{no}</span><span>{formatDate(d.at)}, {formatTime(d.at)}</span></div>
       </header>
@@ -192,7 +270,7 @@ export function ChallanPaper({ inv, index }) {
       <table className="iv-paper__items">
         <thead><tr><th scope="col">#</th><th scope="col">Item</th><th scope="col" className="iv-num">Ordered</th><th scope="col" className="iv-num">Sent before</th><th scope="col" className="iv-num">Pieces now</th></tr></thead>
         <tbody>
-          {rows.map((l, i) => <tr key={l.id}><td>{i + 1}</td><td>{l.name}{l.meta ? <span className="iv-sub">{l.meta}</span> : null}</td><td className="iv-num">{l.qty}</td><td className="iv-num">{before[l.id] || 0}</td><td className="iv-num"><b>{d.lines[l.id]}</b></td></tr>)}
+          {rows.map((l, i) => <tr key={l.id}><td>{i + 1}</td><td>{l.name}{l.meta ? <span className="iv-sub">{l.meta}</span> : null}{d.serials && d.serials[l.id] ? <span className="iv-sub">{/^\d{15}$/.test(d.serials[l.id][0]) ? 'IMEI' : 'Serial'}: {d.serials[l.id].join(', ')}</span> : null}</td><td className="iv-num">{l.qty}</td><td className="iv-num">{before[l.id] || 0}</td><td className="iv-num"><b>{d.lines[l.id]}</b>{packOf(l, d.lines[l.id])}</td></tr>)}
           <tr><td /><td><b>Total pieces</b></td><td /><td /><td className="iv-num"><b>{pcs(d.lines)}</b></td></tr>
         </tbody>
       </table>

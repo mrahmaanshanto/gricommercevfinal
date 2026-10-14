@@ -164,7 +164,7 @@ export default function Meetings() {
         <span className="mt-when"><b>{hm(x.at)}</b><span>{x.mins} min</span></span>
         <span style={{ minWidth: 0 }}>
           <span className="mt-title">{x.title}</span>
-          <span className="mt-sub">{who.kind === 'merchant' ? `#${who.id} · ` : who.kind === 'lead' ? 'Lead · ' : ''}{x.host}{(x.staff || []).length ? ` +${x.staff.length}` : ''} · {providerOf(x.provider).label}</span>
+          <span className="mt-sub">{who.kind === 'merchant' ? `#${who.id} · ` : who.kind === 'lead' ? 'Lead · ' : ''}{x.host}{(x.staff || []).length ? ` +${x.staff.length}` : ''}</span>
         </span>
         <span className="mt-tags"><MeetBadges m={x} t={t} /></span>
       </button>

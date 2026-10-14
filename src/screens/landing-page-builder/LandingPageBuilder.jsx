@@ -6,25 +6,108 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { toast as __toast } from '@/runtime/ui';
+import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
+import { navigate } from '@/runtime/routes';
+import { allProducts } from '@/lib/products';
+import { summaryOf } from '@/lib/productReviews';
+import { formatBDT, formatTime, toBnDigits } from '@/lib/format';
+import { getLandingPage, getLandingPages, newLandingPage, saveLandingPage, publishLandingPage, handleProblem, uniqueHandle, slugify, LP_BASE } from '@/lib/landingPages';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { Sheet as __Sheet } from '@/components/ui';
+import SeoPanel, { SEO_PANEL_CSS } from '@/components/seo/SeoPanel';
+import { readSeo, dhakaText } from '@/lib/seo';
+import { contextOf } from '@/lib/seoItems';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+// ---- logic ----
+// The builder works on one landing page of the list (lib/landingPages.js): /landing-page-builder starts a new one
+// (step 1 picks any active product of the catalogue, step 2 a template); /landing-page-builder?id= opens a saved page.
+// The page fills itself from the product (name, price and old price, variants, stock, reviews). Save keeps it as a
+// draft (or saves a published page's changes); Publish checks the link and puts it on the website.
+// Still a design mock-up (Oct 2026): the part library, drag and drop, the part settings and the AI writer are not
+// working yet; their buttons say so.
 
+const tk = (n) => formatBDT(Math.round(n || 0));
+const initials = (s) => String(s || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+const DELIVERY = { in: 70, out: 150 };
+function productFacts(p, reviews) {
+  if (!p) return null;
+  const was = p.mrp && p.mrp > p.price ? p.mrp : null;
+  const pct = was ? Math.round(((was - p.price) / was) * 100) : 0;
+  const variants = (p.variants || []).map((x) => x.name).filter(Boolean);
+  const stock = (p.variants || []).length ? p.variants.reduce((a, x) => a + (Number(x.stock) || 0), 0) : Number(p.inv) || 0;
+  const r = reviews || { count: 0, avg: 0 };
+  return {
+    id: p.id, sku: p.sku, name: p.name, price: p.price, was, pct, save: was ? was - p.price : 0, variants, stock,
+    photos: (p.media || p.images || []).length, reviews: r,
+    reviewText: r.count ? `${r.count} review${r.count === 1 ? '' : 's'} · ${r.avg.toFixed(1)} ★` : 'no reviews yet',
+  };
+}
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { screen: props.screen === 'product' ? 'pick' : (props.screen === 'publish' ? 'publish' : 'build'), device: props.device === 'desktop' ? 'desktop' : 'mobile', ai: props.aiPanel === true };
+    this.state = { screen: 'pick', device: props.device === 'desktop' ? 'desktop' : 'mobile', ai: props.aiPanel === true, products: [], ready: false, q: '', filter: 'all', selId: '', template: 'cod', page: null, handle: '', savedAt: null, dirty: false };
   }
-  componentDidMount() { this.paint(); }
+  componentDidMount() {
+    this.paint();
+    const products = allProducts().filter((p) => p.st === 'active' && p.price > 0 && (!p.format || p.format === 'physical') && !p.giftOnly);
+    const qs = new URLSearchParams(window.location.search);
+    const page = qs.get('id') ? getLandingPage(qs.get('id')) : null;
+    const want = page ? page.productId || '' : qs.get('product') || '';
+    const pick = products.find((p) => p.id === want || (page && p.sku === page.sku)) || products[0] || null;
+    const reviews = {};
+    products.forEach((p) => { reviews[p.id] = summaryOf(p); });
+    const pages = {};
+    getLandingPages().forEach((x) => { pages[x.sku] = (pages[x.sku] || 0) + 1; });
+    this.setState({ products, reviews, pages, ready: true, selId: pick ? pick.id : '', page, template: page ? page.template : 'cod', handle: page ? page.handle : '', savedAt: page ? page.updatedAt : null, screen: page ? 'build' : 'pick', missing: !!qs.get('id') && !page });
+  }
   componentDidUpdate() { this.paint(); }
   paint() {
     const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { width: 20, height: 20, 'stroke-width': 1.75 } }); };
     go(); setTimeout(go, 400); setTimeout(go, 1200);
   }
+  current() {
+    const s = this.state;
+    return s.products.find((p) => p.id === s.selId) || null;
+  }
+  /** The page as it would be saved now (a new one is made from the product and the template). */
+  draft() {
+    const s = this.state;
+    const p = this.current();
+    const base = s.page || newLandingPage({ product: p || { name: 'Landing page' }, template: s.template });
+    return { ...base, productId: p ? p.id : base.productId, sku: p ? p.sku : base.sku, productName: p ? p.name : base.productName, title: s.page ? base.title : (p ? p.name : base.title), template: s.template, handle: s.handle || base.handle,
+      // SEO (the shared panel, opened from the header's SEO button): kept with the page
+      seo: s.seo || base.seo || undefined, goLiveAt: s.goLiveAt !== undefined ? s.goLiveAt || null : base.goLiveAt || null };
+  }
+  save(quiet) {
+    const rec = saveLandingPage(this.draft());
+    this.setState({ page: rec, handle: rec.handle, savedAt: rec.updatedAt, dirty: false });
+    try { window.history.replaceState(null, '', '/landing-page-builder?id=' + rec.id); } catch (e) { /* ignore */ }
+    if (!quiet) __toast(rec.status === 'published' ? 'Changes saved. The live page shows them now.' : 'Saved as a draft. It is in Landing pages.');
+    return rec;
+  }
   renderVals() {
     const s = this.state;
+    const self = this;
+    const p = this.current();
+    const f = productFacts(p, p ? (s.reviews || {})[p.id] : null) || { name: '—', price: 0, was: null, pct: 0, save: 0, variants: [], stock: 0, photos: 0, reviews: { count: 0 }, reviewText: '' };
+    const q = s.q.trim().toLowerCase();
+    const rows = s.products.filter((x) => (!q || [x.name, x.sku, x.brand, x.cat].some((t) => String(t || '').toLowerCase().includes(q)))
+      && (s.filter !== 'stock' || (x.inv || 0) > 0) && (s.filter !== 'nopage' || !(s.pages || {})[x.sku]));
+    const draft = s.ready ? this.draft() : null;
+    const status = s.page ? s.page.status : 'draft';
+    const handle = s.handle || (draft ? draft.handle : '');
+    const problem = s.ready ? handleProblem(handle, draft ? draft.id : '') : '';
+    const checks = [];
+    if (p && f.stock <= 0) checks.push({ text: `${f.name} is out of stock. Buyers can still order; you'll need stock to send them.`, act: { label: 'Edit product', href: '/add-product?id=' + encodeURIComponent(p.id) } });
+    else if (p && f.stock < 10) checks.push({ text: `Only ${f.stock} in stock. The page shows it as running out.`, act: null });
+    if (p && !f.reviews.count) checks.push({ text: 'No published reviews yet: the reviews part stays hidden.', act: { label: 'Reviews', href: '/product-reviews' } });
+    if (p && !f.was) checks.push({ text: 'No old price: the page shows no saving.', act: { label: 'Edit product', href: '/add-product?id=' + encodeURIComponent(p.id) } });
+    const savedLine = s.savedAt ? 'Saved ' + formatTime(s.savedAt) : 'Not saved yet';
+    const offerEn = f.was ? `${f.pct}% off — save ${tk(f.save)} today` : 'Cash on delivery all over Bangladesh';
+    const offerBn = f.was ? toBnDigits(`${f.pct}% ছাড় — আজকের অর্ডারে ৳${f.save.toLocaleString('en-IN')} সেভ`) : 'সারা বাংলাদেশে ক্যাশ অন ডেলিভারি';
+    const comingSoon = (what) => () => __toast(what + ' is not working yet in this demo.', { tone: 'info' });
     return {
+      ready: s.ready, missing: !!s.missing,
       isPick: s.screen === 'pick',
       isBuild: s.screen === 'build' || s.screen === 'publish',
       isPublish: s.screen === 'publish',
@@ -32,17 +115,77 @@ class Component extends DCLogic {
       isDesktop: s.device === 'desktop',
       aiOpen: s.ai === true,
       aiClosed: s.ai !== true,
-      startBuild: () => this.setState({ screen: 'build' }),
+      // step 1: the catalogue
+      q: s.q, setQ: (e) => this.setState({ q: e.target.value }),
+      filter: s.filter, setFilter: (k) => () => this.setState({ filter: k }),
+      catalogCount: s.products.length + (s.products.length === 1 ? ' active product' : ' active products'),
+      productRows: rows.slice(0, 40).map((x) => {
+        const xf = productFacts(x, (s.reviews || {})[x.id]);
+        const n = (s.pages || {})[x.sku] || 0;
+        return {
+          id: x.id, on: x.id === s.selId, name: x.name, initials: initials(x.name), bg: x.tbg || '#eef2f6',
+          meta: [tk(x.price) + (xf.was ? ' · was ' + tk(xf.was) : ''), x.vars, xf.stock + ' in stock', xf.reviewText].filter(Boolean).join(' · '),
+          badge: xf.stock <= 0 ? 'Out of stock' : xf.stock < 10 ? 'Low stock' : n ? n + (n === 1 ? ' page' : ' pages') : '',
+          tone: xf.stock <= 0 ? 'bad' : xf.stock < 10 ? 'warn' : 'plain',
+          pick: () => this.setState({ selId: x.id, dirty: !!s.page }),
+        };
+      }),
+      moreRows: rows.length > 40 ? `${rows.length - 40} more — search to narrow the list` : '',
+      noRows: s.ready && !rows.length,
+      // the chosen product, as the page uses it
+      f, pName: f.name, pPrice: tk(f.price), pWas: f.was ? tk(f.was) : '', hasWas: !!f.was, pPct: f.pct + '% off',
+      pPriceLine: tk(f.price) + (f.was ? ', was ' + tk(f.was) : ''), pOfferLine: f.was ? f.pct + '% off' : 'No discount',
+      pVariantsLine: f.variants.length ? f.variants.length + (f.variants.length === 1 ? ' option' : ' options') : 'One option',
+      pStockLine: f.stock + ' in stock', pPhotosLine: f.photos ? f.photos + (f.photos === 1 ? ' photo' : ' photos') : 'Photos',
+      pChips: (f.variants.length ? f.variants : ['Standard']).slice(0, 3),
+      pStockBn: toBnDigits(`স্টক শেষ হয়ে যাচ্ছে — ${f.stock}টি বাকি`), showStockBn: f.stock > 0 && f.stock < 50,
+      pTotal: tk(f.price + DELIVERY.in), pDeliveryIn: tk(DELIVERY.in), pDeliveryOut: tk(DELIVERY.out),
+      pOfferBn: offerBn, pOfferEn: offerEn, pTaglineBn: 'অরিজিনাল পণ্য, অফিসিয়াল ওয়ারেন্টি সহ',
+      pUsing: `Using your product: ${f.name} · ${tk(f.price)}${f.was ? ' · ' + f.pct + '% off' : ''} · ${f.variants.length || 1} option${f.variants.length > 1 ? 's' : ''} · ${f.stock} in stock · ${f.reviewText}`,
+      pSuggest: [offerBn, toBnDigits(`${f.name} — মাত্র ${tk(f.price)}`), offerEn],
+      editProductHref: p ? '/add-product?id=' + encodeURIComponent(p.id) : '/all-products',
+      // header
+      pageTitle: (s.page ? s.page.title : f.name) + ' — landing page', pageLink: LP_BASE + handle, host: LP_BASE.replace(/\/lp\/$/, ''),
+      statusLabel: status === 'published' ? 'Published' : draft && draft.goLiveAt ? 'Goes live ' + dhakaText(draft.goLiveAt) : 'Draft', isLive: status === 'published', savedLine, dirty: s.dirty,
+      seoOpen: !!s.seoOpen, openSeo: () => this.setState({ seoOpen: true }), closeSeo: () => this.setState({ seoOpen: false }),
+      seo: draft ? readSeo('landing', draft) : null, seoCtx: draft ? contextOf('landing', draft) : {},
+      setSeo: (patch) => this.setState({ seo: { ...readSeo('landing', this.draft()), ...patch }, dirty: true }),
+      seoSchedule: status === 'published' ? null : { at: draft ? draft.goLiveAt || '' : '', label: 'Publish on', onChange: (at) => this.setState({ goLiveAt: at || null, dirty: true }) },
+      saveSeo: () => { this.save(true); this.setState({ seoOpen: false }); __toast('Search engine listing saved.'); },
+      startBuild: () => { if (!p) { __toast('Pick a product first.', { tone: 'error' }); return; } this.setState({ screen: 'build', handle: s.handle || uniqueHandle(p.name, s.page ? s.page.id : '') }); },
+      pickTemplate: (id) => () => { if (!p) { __toast('Pick a product first.', { tone: 'error' }); return; } this.setState({ template: id, screen: 'build', dirty: true, handle: s.handle || uniqueHandle(p.name, s.page ? s.page.id : '') }); },
+      template: s.template,
       backToPick: () => this.setState({ screen: 'pick' }),
+      backToList: async () => {
+        if (s.dirty || (!s.page && s.screen !== 'pick')) {
+          const ok = await __confirm({ title: 'Leave without saving?', body: 'Your changes to this page are not saved.', confirmLabel: 'Leave', tone: 'danger' });
+          if (!ok) return;
+        }
+        navigate('/landing-pages');
+      },
+      save: () => this.save(false),
       openPublish: () => this.setState({ screen: 'publish' }),
       closePublish: () => this.setState({ screen: 'build' }),
+      handle, setHandle: (e) => this.setState({ handle: slugify(e.target.value) || e.target.value.toLowerCase(), dirty: true }),
+      linkProblem: problem, canPublish: !!p && !problem, checks, hasChecks: checks.length > 0,
+      publishTitle: status === 'published' ? 'Update the live page' : 'Publish this page',
+      publishSub: problem ? 'One thing must be fixed first' : status === 'published' ? 'It is live at ' + LP_BASE + handle : 'Ready to go live',
+      publish: () => {
+        if (problem) { __toast(problem, { tone: 'error' }); return; }
+        const rec = self.save(true);
+        const res = publishLandingPage(rec.id);
+        if (res && res.error) { __toast(res.error, { tone: 'error' }); return; }
+        this.setState({ page: res, screen: 'build', dirty: false, savedAt: res.updatedAt });
+        __toast(rec.status === 'published' ? 'Live page updated' : 'Page published at ' + LP_BASE + res.handle);
+      },
+      checkPhone: () => { this.setState({ screen: 'build', device: 'mobile' }); __toast('This is the phone view of the page. Opening it on your own phone needs the live website.', { tone: 'info' }); },
+      openOnPhone: () => { this.setState({ device: 'mobile' }); __toast('Opening on your phone needs the live website. The phone view is shown here.', { tone: 'info' }); },
+      soon: comingSoon,
       openAiField: () => this.setState({ ai: true }),
       openAiPage: () => this.setState({ screen: 'build', ai: true }),
       closeAi: () => this.setState({ ai: false }),
       setMobile: () => this.setState({ device: 'mobile' }),
       setDesktop: () => this.setState({ device: 'desktop' }),
-      // Only the Winter blanket has a sample page, so the other products explain that instead of silently doing nothing.
-      pickOther: (name) => () => __toast(name + ' has no sample page in this demo. Winter blanket stays selected.', { tone: 'info' }),
       selHeroFn: () => this.setState({ ai: false }),
       selPriceFn: () => this.setState({ ai: false }),
       selDeliveryFn: () => this.setState({ ai: false }),
@@ -164,12 +307,12 @@ export default class LandingPageBuilderScreen extends Component {
       <div className="dc-screen ds" data-screen="LandingPageBuilder">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className="gc-shell" style={{ display: "flex", gap: "12px", padding: "12px", background: "#eef2f7" }}>
-          <__Sidebar collapsed="" sticky="" active="storefront-pages" />
+          <__Sidebar collapsed="" sticky="" active="storefront" />
           <div className="gc-shell__main" style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", position: "relative", overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#f8fafc" }}>
             {v.isPick ? (<>
-              <__Topbar crumb="Marketing" page="Landing pages" />
+              <__Topbar crumb="Online Store" page="Landing pages" />
               <header className="mg-head" style={{ display: "flex", height: "72px", flex: "none", alignItems: "center", gap: "12px", padding: "0 32px", background: "#fff", borderBottom: "1px solid #e2e8f0" }}>
-                <button className="dc-h15" style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Back to landing pages">
+                <button className="dc-h15" onClick={v.backToList} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Back to landing pages">
                   <__Icon name="arrow-left" width="20" height="20" strokeWidth="1.75" />
                 </button>
                 <div>
@@ -182,62 +325,46 @@ export default class LandingPageBuilderScreen extends Component {
                   <section style={{ background: "#fff", borderRadius: "var(--radius-lg)", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "26px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Your products</h2>
-                      <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>240 in catalogue</span>
+                      <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.catalogCount}</span>
                       <span style={{ position: "relative", display: "inline-block", width: "250px", marginLeft: "auto" }}>
-                        <input aria-label="Search products or SKU" type="search" placeholder="Search products or SKU…" style={{ width: "100%", boxSizing: "border-box", height: "32px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 16px 0 36px", fontSize: "var(--text-xs-plus)", color: "#1e293b" }} />
+                        <input aria-label="Search products or SKU" type="search" placeholder="Search products or SKU…" value={v.q} onChange={v.setQ} style={{ width: "100%", boxSizing: "border-box", height: "32px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 16px 0 36px", fontSize: "var(--text-xs-plus)", color: "#1e293b" }} />
                         <span style={{ position: "absolute", left: "0", top: "0", display: "flex", width: "36px", height: "100%", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", pointerEvents: "none" }}>
                           <__Icon name="search" strokeWidth="1.75" width="16" height="16" />
                         </span>
                       </span>
                     </div>
                     <div style={{ display: "flex", gap: "6px", marginTop: "14px", flexWrap: "wrap" }}>
-                      <button style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}>Recently added</button>
-                      <button className="dc-h16" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}>Best selling</button>
-                      <button className="dc-h17" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}>In stock</button>
-                      <button className="dc-h18" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}>No page yet</button>
+                      {[['all', 'All'], ['stock', 'In stock'], ['nopage', 'No page yet']].map(([k, label]) => (
+                        <button key={k} type="button" aria-pressed={v.filter === k} onClick={v.setFilter(k)} className={v.filter === k ? undefined : 'dc-h16'} style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: v.filter === k ? "rgba(0,48,135,.1)" : "#e9eef5", color: v.filter === k ? "#003087" : "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}>{label}</button>
+                      ))}
                     </div>
                     <div style={{ marginTop: "16px", display: "grid", gap: "8px" }}>
-                      <button type="button" className="mg-row" aria-pressed="true" style={{ display: "flex", gap: "12px", alignItems: "center", border: "2px solid #003087", borderRadius: "var(--radius-lg)", padding: "10px 12px", background: "rgba(0,48,135,.04)", cursor: "pointer" }}>
-                        <span style={{ flex: "none", width: "44px", height: "44px", borderRadius: "var(--radius-xl)", background: "rgba(0,48,135,.08)", color: "#003087", display: "grid", placeItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>WB</span>
-                        <span style={{ flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Winter blanket — 4kg</span>
-                          <span style={{ display: "block", margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>৳1,290 · was ৳1,590 · 3 variants · 42 in stock · 18 reviews</span>
-                        </span>
-                        <span style={{ flex: "none", display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff" }}>
-                          <__Icon name="check" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                      </button>
-                      <button type="button" className="mg-row dc-h19" aria-pressed="false" onClick={v.pickOther("Hair oil 200ml")} style={{ display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: "10px 12px", cursor: "pointer" }}>
-                        <span style={{ flex: "none", width: "44px", height: "44px", borderRadius: "var(--radius-xl)", background: "rgba(0,156,222,.1)", color: "var(--accent-text)", display: "grid", placeItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>HO</span>
-                        <span style={{ flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Hair oil 200ml</span>
-                          <span style={{ display: "block", margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>৳540 · 1 variant · <span style={{ color: "#c23a12", fontWeight: "var(--weight-medium)" }}>0 in stock</span></span>
-                        </span>
-                        <span style={{ flex: "none", display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "rgba(255,87,36,.12)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#c23a12" }}>Out of stock</span>
-                      </button>
-                      <button type="button" className="mg-row dc-h20" aria-pressed="false" onClick={v.pickOther("Kids hoodie")} style={{ display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: "10px 12px", cursor: "pointer" }}>
-                        <span style={{ flex: "none", width: "44px", height: "44px", borderRadius: "var(--radius-xl)", background: "rgba(16,185,129,.1)", color: "#0f7a5a", display: "grid", placeItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>KH</span>
-                        <span style={{ flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Kids hoodie</span>
-                          <span style={{ display: "block", margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>৳890 · 4 variants · 128 in stock</span>
-                        </span>
-                        <span style={{ flex: "none", display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "#e9eef5", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#475569" }}>1 page</span>
-                      </button>
-                      <button type="button" className="mg-row dc-h21" aria-pressed="false" onClick={v.pickOther("Redmi Note 13")} style={{ display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: "10px 12px", cursor: "pointer" }}>
-                        <span style={{ flex: "none", width: "44px", height: "44px", borderRadius: "var(--radius-xl)", background: "rgba(255,152,0,.12)", color: "#a15f00", display: "grid", placeItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>JS</span>
-                        <span style={{ flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Redmi Note 13</span>
-                          <span style={{ display: "block", margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>৳4,750 · 6 variants · 11 in stock</span>
-                        </span>
-                        <span style={{ flex: "none", display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "rgba(255,152,0,.12)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#a15f00" }}>Low stock</span>
-                      </button>
+                      {!v.ready ? <div style={{ minHeight: "200px" }} aria-busy="true" /> : null}
+                      {v.noRows ? <p style={{ margin: "8px 0", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>No active product matches. Try another search.</p> : null}
+                      {__list(v.productRows).map((r) => (
+                        <button key={r.id} type="button" className={r.on ? 'mg-row' : 'mg-row dc-h19'} aria-pressed={r.on} onClick={r.pick} style={{ display: "flex", gap: "12px", alignItems: "center", border: r.on ? "2px solid #003087" : "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: r.on ? "10px 12px" : "11px 13px", background: r.on ? "rgba(0,48,135,.04)" : "#fff", cursor: "pointer" }}>
+                          <span style={{ flex: "none", width: "44px", height: "44px", borderRadius: "var(--radius-xl)", background: r.bg, color: "#003087", display: "grid", placeItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>{r.initials}</span>
+                          <span style={{ flex: "1", minWidth: "0" }}>
+                            <span style={{ display: "block", margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{r.name}</span>
+                            <span style={{ display: "block", margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>{r.meta}</span>
+                          </span>
+                          {r.on ? (
+                            <span style={{ flex: "none", display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff" }}>
+                              <__Icon name="check" strokeWidth="1.75" width="14" height="14" />
+                            </span>
+                          ) : r.badge ? (
+                            <span style={{ flex: "none", display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: r.tone === 'bad' ? "rgba(255,87,36,.12)" : r.tone === 'warn' ? "rgba(255,152,0,.12)" : "#e9eef5", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: r.tone === 'bad' ? "#c23a12" : r.tone === 'warn' ? "#a15f00" : "#475569" }}>{r.badge}</span>
+                          ) : null}
+                        </button>
+                      ))}
+                      {v.moreRows ? <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.moreRows}</p> : null}
                     </div>
                     <p style={{ margin: "16px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}><a href="/add-product">Add a new product</a></p>
                   </section>
                   <aside style={{ display: "grid", gap: "16px", alignContent: "start" }}>
                     <div style={{ background: "#fff", borderRadius: "var(--radius-lg)", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "26px" }}>
                       <h2 style={{ margin: "0 0 2px", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Fills the page automatically</h2>
-                      <p style={{ margin: "0 0 14px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Winter blanket — 4kg</p>
+                      <p style={{ margin: "0 0 14px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.pName}</p>
                       <div style={{ display: "grid", gap: "9px" }}>
                         <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
                           <span style={{ flex: "none", color: "var(--accent-text)", marginTop: "1px" }}>
@@ -249,40 +376,40 @@ export default class LandingPageBuilderScreen extends Component {
                           <span style={{ flex: "none", color: "var(--accent-text)", marginTop: "1px" }}>
                             <__Icon name="image" strokeWidth="1.75" width="16" height="16" />
                           </span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>4 photos</b> — hero, gallery and variant images</span>
+                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>{v.pPhotosLine}</b> — hero, gallery and variant images</span>
                         </div>
                         <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
                           <span style={{ flex: "none", color: "var(--accent-text)", marginTop: "1px" }}>
                             <__Icon name="tag" strokeWidth="1.75" width="16" height="16" />
                           </span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>৳1,290, was ৳1,590</b> — price part and order total</span>
+                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>{v.pPriceLine}</b> — price part and order total</span>
                         </div>
                         <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
                           <span style={{ flex: "none", color: "var(--accent-text)", marginTop: "1px" }}>
                             <__Icon name="percent" strokeWidth="1.75" width="16" height="16" />
                           </span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>20% off</b> — offer part and savings line</span>
+                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>{v.pOfferLine}</b> — offer part and savings line</span>
                         </div>
                         <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
                           <span style={{ flex: "none", color: "var(--accent-text)", marginTop: "1px" }}>
                             <__Icon name="layers" strokeWidth="1.75" width="16" height="16" />
                           </span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>3 sizes</b> — variant chips and order form</span>
+                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>{v.pVariantsLine}</b> — variant chips and order form</span>
                         </div>
                         <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
                           <span style={{ flex: "none", color: "var(--accent-text)", marginTop: "1px" }}>
                             <__Icon name="boxes" strokeWidth="1.75" width="16" height="16" />
                           </span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>42 in stock</b> — urgency part and maximum quantity</span>
+                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>{v.pStockLine}</b> — urgency part and maximum quantity</span>
                         </div>
                       </div>
-                      <p style={{ margin: "14px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Change these in the product, not on the page. <a href="#">Edit product</a></p>
+                      <p style={{ margin: "14px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Change these in the product, not on the page. <__Link href={v.editProductHref}>Edit product</__Link></p>
                     </div>
                     <div style={{ background: "#fff", borderRadius: "var(--radius-lg)", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "26px" }}>
                       <h2 style={{ margin: "0 0 2px", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Starting point</h2>
                       <p style={{ margin: "0 0 14px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Step 2 of 2 — every template arrives already filled in</p>
                       <div style={{ display: "grid", gap: "8px" }}>
-                        <button onClick={v.startBuild} style={{ display: "flex", gap: "10px", alignItems: "center", textAlign: "left", border: "2px solid #003087", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.04)", padding: "10px 12px", cursor: "pointer" }}>
+                        <button onClick={v.pickTemplate('cod')} style={{ display: "flex", gap: "10px", alignItems: "center", textAlign: "left", border: "2px solid #003087", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.04)", padding: "10px 12px", cursor: "pointer" }}>
                           <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", display: "grid", placeItems: "center" }}>
                             <__Icon name="banknote" strokeWidth="1.75" width="18" height="18" />
                           </span>
@@ -291,7 +418,7 @@ export default class LandingPageBuilderScreen extends Component {
                             <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "#475569" }}>11 parts · order form near the top</span>
                           </span>
                         </button>
-                        <button className="dc-h22" onClick={v.startBuild} style={{ display: "flex", gap: "10px", alignItems: "center", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px", cursor: "pointer" }}>
+                        <button className="dc-h22" onClick={v.pickTemplate('long')} style={{ display: "flex", gap: "10px", alignItems: "center", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px", cursor: "pointer" }}>
                           <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", display: "grid", placeItems: "center" }}>
                             <__Icon name="scroll-text" strokeWidth="1.75" width="18" height="18" />
                           </span>
@@ -300,7 +427,7 @@ export default class LandingPageBuilderScreen extends Component {
                             <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "#475569" }}>17 parts · benefits, reviews, FAQ, countdown</span>
                           </span>
                         </button>
-                        <button className="dc-h23" onClick={v.startBuild} style={{ display: "flex", gap: "10px", alignItems: "center", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px", cursor: "pointer" }}>
+                        <button className="dc-h23" onClick={v.pickTemplate('video')} style={{ display: "flex", gap: "10px", alignItems: "center", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px", cursor: "pointer" }}>
                           <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", display: "grid", placeItems: "center" }}>
                             <__Icon name="play-circle" strokeWidth="1.75" width="18" height="18" />
                           </span>
@@ -309,7 +436,7 @@ export default class LandingPageBuilderScreen extends Component {
                             <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "#475569" }}>9 parts · video, then order form</span>
                           </span>
                         </button>
-                        <button className="dc-h24" onClick={v.startBuild} style={{ display: "flex", gap: "10px", alignItems: "center", textAlign: "left", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px", cursor: "pointer" }}>
+                        <button className="dc-h24" onClick={v.pickTemplate('blank')} style={{ display: "flex", gap: "10px", alignItems: "center", textAlign: "left", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px", cursor: "pointer" }}>
                           <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", display: "grid", placeItems: "center" }}>
                             <__Icon name="plus" strokeWidth="1.75" width="18" height="18" />
                           </span>
@@ -334,17 +461,17 @@ export default class LandingPageBuilderScreen extends Component {
             </>) : null}
             {v.isBuild ? (<>
               <header className="lpb-head" style={{ display: "flex", height: "72px", flex: "none", alignItems: "center", gap: "10px", padding: "0 16px", background: "#fff", borderBottom: "1px solid #e2e8f0", minWidth: "0" }}>
-                <button className="dc-h26 lpb-ib" onClick={v.backToPick} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Back to landing pages">
+                <button className="dc-h26 lpb-ib" onClick={v.backToList} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Back to landing pages">
                   <__Icon name="arrow-left" width="20" height="20" strokeWidth="1.75" />
                 </button>
                 <div style={{ flex: "none" }}>
-                  <h1 style={{ margin: "0", fontSize: "var(--text-xl)", lineHeight: "var(--text-xl-lh)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b", whiteSpace: "nowrap" }}>Winter blanket — landing page</h1>
-                  <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>gridcommerce.shop/rina/winter-blanket</p>
+                  <h1 style={{ margin: "0", fontSize: "var(--text-xl)", lineHeight: "var(--text-xl-lh)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b", whiteSpace: "nowrap" }}>{v.pageTitle}</h1>
+                  <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{v.pageLink}</p>
                 </div>
-                <span style={{ flex: "none", whiteSpace: "nowrap", display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "#e9eef5", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#475569", letterSpacing: "var(--tracking-wide)" }}>Draft</span>
-                <span style={{ flex: "none", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "6px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.1)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#0f7a5a" }}><__Icon name="check" strokeWidth="1.75" width="13" height="13" />Saved · <span className="bn" style={{ fontSize: "var(--text-xs-plus)" }}>সেভ হয়েছে</span></span>
+                <span style={{ flex: "none", whiteSpace: "nowrap", display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "#e9eef5", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#475569", letterSpacing: "var(--tracking-wide)" }}>{v.statusLabel}</span>
+                <span style={{ flex: "none", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "6px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.1)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#0f7a5a" }}><__Icon name={v.dirty || !v.savedLine.startsWith('Saved') ? "circle-dot" : "check"} strokeWidth="1.75" width="13" height="13" />{v.dirty ? 'Unsaved changes' : v.savedLine}</span>
                 <div style={{ display: "flex", gap: "2px", marginLeft: "6px" }}>
-                  <button className="dc-h27 lpb-ib" style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "#475569", cursor: "pointer" }} aria-label="Undo">
+                  <button className="dc-h27 lpb-ib" onClick={v.soon('Undo')} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "#475569", cursor: "pointer" }} aria-label="Undo">
                     <__Icon name="undo-2" strokeWidth="1.75" width="18" height="18" />
                   </button>
                   <button className="lpb-ib" style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "#cbd5e1", cursor: "not-allowed" }} aria-label="Redo" disabled>
@@ -365,8 +492,10 @@ export default class LandingPageBuilderScreen extends Component {
                       <button onClick={v.setDesktop} style={{ flex: "none", whiteSpace: "nowrap", height: "28px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-full)", padding: "0 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "#fff", color: "#003087", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}><__Icon name="monitor" strokeWidth="1.75" width="14" height="14" />Desktop</button>
                     </>) : null}
                   </span>
-                  <button className="dc-h29" style={{ flex: "none", whiteSpace: "nowrap", height: "32px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="qr-code" strokeWidth="1.75" width="15" height="15" />Open on my phone</button>
-                  <button className="dc-h30" onClick={v.openPublish} style={{ flex: "none", whiteSpace: "nowrap", height: "36px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", padding: "0 16px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="rocket" strokeWidth="1.75" width="16" height="16" />Publish</button>
+                  <button className="dc-h29" onClick={v.openSeo} style={{ flex: "none", whiteSpace: "nowrap", height: "32px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="search" strokeWidth="1.75" width="15" height="15" />SEO</button>
+                  <button className="dc-h29" onClick={v.save} style={{ flex: "none", whiteSpace: "nowrap", height: "32px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="save" strokeWidth="1.75" width="15" height="15" />Save</button>
+                  <button className="dc-h29" onClick={v.openOnPhone} style={{ flex: "none", whiteSpace: "nowrap", height: "32px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="qr-code" strokeWidth="1.75" width="15" height="15" />Open on my phone</button>
+                  <button className="dc-h30" onClick={v.openPublish} style={{ flex: "none", whiteSpace: "nowrap", height: "36px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", padding: "0 16px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="rocket" strokeWidth="1.75" width="16" height="16" />{v.isLive ? 'Update' : 'Publish'}</button>
                 </div>
               </header>
               <div className="lpb-work" style={{ flex: "1", minHeight: "0", display: "flex", minWidth: "1240px" }}>
@@ -565,12 +694,12 @@ export default class LandingPageBuilderScreen extends Component {
                     <div className="lpb-phone" style={{ width: "390px", flex: "none", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: "26px", padding: "0 12px", background: "#f8fafc", fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>
                         <span>9:41</span>
-                        <span>rina.gridcommerce.shop</span>
+                        <span>{v.host}</span>
                       </div>
                       <button type="button" className="mg-row dc-h59" aria-label="Edit part: Photos and headline" onClick={v.selHeroFn} style={{ display: "block", width: "calc(100% - 16px)", border: "1px dashed #e2e8f0", margin: "8px", borderRadius: "var(--radius-xl)", padding: "10px 12px", cursor: "pointer" }}>
                         <span style={{ display: "block", height: "150px", borderRadius: "var(--radius-lg)", background: "repeating-linear-gradient(115deg,#f8fafc,#f8fafc 10px,#eef2f7 10px,#eef2f7 20px)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>product photo 1 of 4</span>
-                        <span className="bn" style={{ display: "block", margin: "12px 0 0", fontSize: "var(--text-xl)", lineHeight: "1.3", fontWeight: "var(--weight-semibold)", color: "#1e293b", letterSpacing: "0" }}>শীতের জন্য নরম, আরামদায়ক কম্বল</span>
-                        <span style={{ display: "block", margin: "5px 0 0", fontSize: "var(--text-sm)", color: "#475569" }}>Winter blanket — 4kg, king size</span>
+                        <span className="bn" style={{ display: "block", margin: "12px 0 0", fontSize: "var(--text-xl)", lineHeight: "1.3", fontWeight: "var(--weight-semibold)", color: "#1e293b", letterSpacing: "0" }}>{v.pTaglineBn}</span>
+                        <span style={{ display: "block", margin: "5px 0 0", fontSize: "var(--text-sm)", color: "#475569" }}>{v.pName}</span>
                       </button>
                       <div style={{ position: "relative", border: "2px solid #003087", margin: "8px", borderRadius: "var(--radius-xl)", padding: "12px", background: "rgba(0,48,135,.03)" }}>
                         <span style={{ position: "absolute", top: "-11px", left: "10px", display: "inline-flex", alignItems: "center", gap: "6px", height: "22px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", padding: "0 4px 0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>{"Price & offer\n"}<span style={{ display: "inline-flex", gap: "1px", marginLeft: "3px" }}>
@@ -588,33 +717,33 @@ export default class LandingPageBuilderScreen extends Component {
   </span>
 </span></span>
                         <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                          <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#1e293b", letterSpacing: "var(--tracking-tight)" }}>৳1,290</span>
-                          <span style={{ fontSize: "var(--text-sm-plus)", color: "var(--text-muted)", textDecoration: "line-through" }}>৳1,590</span>
-                          <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "rgba(240,0,185,.1)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#c1008f" }}>20% off</span>
+                          <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#1e293b", letterSpacing: "var(--tracking-tight)" }}>{v.pPrice}</span>
+                          {v.hasWas ? <span style={{ fontSize: "var(--text-sm-plus)", color: "var(--text-muted)", textDecoration: "line-through" }}>{v.pWas}</span> : null}
+                          {v.hasWas ? <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "rgba(240,0,185,.1)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#c1008f" }}>{v.pPct}</span> : null}
                         </div>
-                        <p className="bn" style={{ margin: "6px 0 0", fontSize: "var(--text-sm-plus)", color: "#475569" }}>২০% ছাড় — আজকের অর্ডারে ৳৩০০ সেভ</p>
+                        <p className="bn" style={{ margin: "6px 0 0", fontSize: "var(--text-sm-plus)", color: "#475569" }}>{v.pOfferBn}</p>
                       </div>
                       <button type="button" className="mg-row dc-h60" aria-label="Edit part: Size and quantity" onClick={v.selPriceFn} style={{ display: "block", width: "calc(100% - 16px)", border: "1px dashed #e2e8f0", margin: "8px", borderRadius: "var(--radius-xl)", padding: "10px 12px", cursor: "pointer" }}>
-                        <span className="bn" style={{ display: "block", margin: "0 0 8px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>সাইজ বাছুন</span>
+                        <span className="bn" style={{ display: "block", margin: "0 0 8px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>বাছুন</span>
                         <span style={{ display: "block", display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                          <span style={{ display: "inline-flex", height: "32px", alignItems: "center", border: "1px solid #003087", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.06)", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>Double</span>
-                          <span style={{ display: "inline-flex", height: "32px", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", padding: "0 12px", fontSize: "var(--text-xs-plus)", color: "#475569" }}>Semi-double</span>
-                          <span style={{ display: "inline-flex", height: "32px", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: "0 12px", fontSize: "var(--text-xs-plus)", color: "#cbd5e1", textDecoration: "line-through" }}>Single</span>
+                          {__list(v.pChips).map((c, i) => (
+                            <span key={c} style={{ display: "inline-flex", height: "32px", alignItems: "center", border: i === 0 ? "1px solid #003087" : "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: i === 0 ? "rgba(0,48,135,.06)" : "transparent", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: i === 0 ? "var(--weight-medium)" : "var(--weight-regular)", color: i === 0 ? "#003087" : "#475569" }}>{c}</span>
+                          ))}
                         </span>
                         <span style={{ display: "block", display: "flex", alignItems: "center", gap: "10px", marginTop: "12px" }}>
                           <span className="bn" style={{ display: "block", margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>পরিমাণ</span>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "12px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", padding: "4px 10px", fontSize: "var(--text-sm)", color: "#1e293b" }}><span style={{ display: "inline-flex", color: "var(--text-muted)" }}><__Icon name="minus" strokeWidth="2" width="14" height="14" aria-hidden="true" /></span>1<span style={{ display: "inline-flex", color: "#003087" }}><__Icon name="plus" strokeWidth="2" width="14" height="14" aria-hidden="true" /></span></span>
-                          <span className="bn" style={{ fontSize: "var(--text-xs-plus)", color: "#a15f00" }}>স্টক শেষ হয়ে যাচ্ছে — ৪২টি বাকি</span>
+                          {v.showStockBn ? <span className="bn" style={{ fontSize: "var(--text-xs-plus)", color: "#a15f00" }}>{v.pStockBn}</span> : null}
                         </span>
                       </button>
                       <button type="button" className="mg-row dc-h61" aria-label="Edit part: Delivery and payment" onClick={v.selDeliveryFn} style={{ display: "block", width: "calc(100% - 16px)", border: "1px dashed #e2e8f0", margin: "8px", borderRadius: "var(--radius-xl)", padding: "10px 12px", cursor: "pointer" }}>
                         <span style={{ display: "block", display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", color: "#475569" }}>
                           <span className="bn">ডেলিভারি চার্জ — ঢাকার ভিতরে</span>
-                          <span style={{ fontWeight: "var(--weight-medium)", color: "#1e293b" }}>৳70</span>
+                          <span style={{ fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.pDeliveryIn}</span>
                         </span>
                         <span style={{ display: "block", display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", color: "var(--text-muted)", marginTop: "4px" }}>
                           <span className="bn">ঢাকার বাইরে</span>
-                          <span>৳130</span>
+                          <span>{v.pDeliveryOut}</span>
                         </span>
                         <span style={{ display: "block", display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", borderRadius: "var(--radius-lg)", background: "rgba(16,185,129,.1)", padding: "8px 10px" }}>
                           <span style={{ color: "#0f7a5a" }}>
@@ -638,14 +767,14 @@ export default class LandingPageBuilderScreen extends Component {
                         </span>
                         <span style={{ display: "block", display: "flex", justifyContent: "space-between", marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #e2e8f0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#1e293b" }}>
                           <span className="bn">সর্বমোট</span>
-                          <span>৳1,360</span>
+                          <span>{v.pTotal}</span>
                         </span>
                         <span style={{ display: "block", marginTop: "10px", height: "46px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", display: "grid", placeItems: "center", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }} className="bn">অর্ডার কনফার্ম করুন</span>
                         <span style={{ display: "block", margin: "8px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)", textAlign: "center" }}>4 fields · no account · no OTP</span>
                       </button>
                       <div style={{ border: "1px dashed #cbd5e1", margin: "8px", borderRadius: "var(--radius-xl)", padding: "14px", textAlign: "center", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>FAQ · Footer / contact · WhatsApp button</div>
                       <div style={{ position: "sticky", bottom: "0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "10px 12px", background: "#fff", borderTop: "1px solid #e2e8f0" }}>
-                        <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>৳1,360</span>
+                        <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.pTotal}</span>
                         <span className="bn" style={{ flex: "1", height: "40px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", display: "grid", placeItems: "center", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>অর্ডার করুন</span>
                       </div>
                     </div>
@@ -658,7 +787,7 @@ export default class LandingPageBuilderScreen extends Component {
                         <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{"Price & offer"}</h2>
                         <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", borderRadius: "var(--radius-sm)", background: "rgba(0,156,222,.12)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--accent-text)" }}><__Icon name="link" strokeWidth="1.75" width="12" height="12" />auto from product</span>
                       </div>
-                      <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>৳1,290 · was ৳1,590 · 20% off — change these in the product</p>
+                      <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.pPriceLine + ' · ' + v.pOfferLine} — change these in the product</p>
                       <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                         <button className="dc-h63" onClick={v.openAiField} style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,156,222,.12)", color: "var(--accent-text)", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="sparkles" strokeWidth="1.75" width="14" height="14" />Fill this part with AI</button>
                         <button className="dc-h64" style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="rotate-ccw" strokeWidth="1.75" width="14" height="14" />Reset</button>
@@ -667,7 +796,7 @@ export default class LandingPageBuilderScreen extends Component {
                     <div style={{ flex: "1", minHeight: "0", overflowY: "auto", padding: "14px 16px 24px" }}>
                       <label style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155" }} htmlFor="lpb-offer-line">Offer line</label>
                       <div style={{ position: "relative", marginTop: "6px" }}>
-                        <textarea id="lpb-offer-line" aria-describedby="lpb-offer-help" rows="2" style={{ width: "100%", boxSizing: "border-box", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", padding: "8px 42px 8px 10px", fontSize: "var(--text-sm)", lineHeight: "1.45", color: "#1e293b", resize: "vertical" }} className="bn" defaultValue={"২০% ছাড় — আজকের অর্ডারে ৳৩০০ সেভ"} />
+                        <textarea id="lpb-offer-line" aria-describedby="lpb-offer-help" rows="2" style={{ width: "100%", boxSizing: "border-box", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", padding: "8px 42px 8px 10px", fontSize: "var(--text-sm)", lineHeight: "1.45", color: "#1e293b", resize: "vertical" }} className="bn" key={v.pOfferBn} defaultValue={v.pOfferBn} />
                         <button className="dc-h65" onClick={v.openAiField} style={{ position: "absolute", top: "6px", right: "6px", height: "28px", display: "inline-flex", alignItems: "center", gap: "4px", border: "1px solid #009cde", borderRadius: "var(--radius-sm)", background: "#fff", color: "var(--accent-text)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="sparkles" strokeWidth="1.75" width="11" height="11" />AI</button>
                       </div>
                       <p style={{ margin: "5px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }} id="lpb-offer-help">Shown under the price. Keep it under 8 words on mobile.</p>
@@ -681,7 +810,7 @@ export default class LandingPageBuilderScreen extends Component {
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
                         <span>
                           <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155" }}>Show the old price</span>
-                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>৳1,590 struck through</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.hasWas ? v.pWas + ' struck through' : 'No old price on this product'}</span>
                         </span>
                         <span style={{ flex: "none", width: "40px", height: "22px", borderRadius: "var(--radius-full)", background: "#003087", display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "0 3px" }}>
                           <span style={{ width: "16px", height: "16px", borderRadius: "var(--radius-full)", background: "#fff" }} />
@@ -690,8 +819,8 @@ export default class LandingPageBuilderScreen extends Component {
                       <div style={{ height: "1px", background: "#e2e8f0", margin: "16px 0" }} />
                       <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155", marginBottom: "7px" }}>Savings shown as</span>
                       <div style={{ display: "flex", gap: "6px" }}>
-                        <button style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>৳300 saved</button>
-                        <button className="dc-h67" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>20% off</button>
+                        <button style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>{v.hasWas ? v.f.save.toLocaleString("en-IN") + " taka saved" : "Taka saved"}</button>
+                        <button className="dc-h67" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>{v.hasWas ? v.pPct : "% off"}</button>
                         <button className="dc-h68" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Both</button>
                       </div>
                       <div style={{ height: "1px", background: "#e2e8f0", margin: "16px 0" }} />
@@ -721,7 +850,7 @@ export default class LandingPageBuilderScreen extends Component {
                     <div style={{ flex: "1", minHeight: "0", overflowY: "auto", padding: "14px 16px 24px" }}>
                       <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: "10px" }}>
                         <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Your text now</p>
-                        <p className="bn" style={{ margin: "0", fontSize: "var(--text-sm)", color: "#475569" }}>২০% ছাড় — আজকের অর্ডারে ৳৩০০ সেভ</p>
+                        <p className="bn" style={{ margin: "0", fontSize: "var(--text-sm)", color: "#475569" }}>{v.pOfferBn}</p>
                       </div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginTop: "12px" }}>
                         <button style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", padding: "0 11px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Rewrite</button>
@@ -731,18 +860,18 @@ export default class LandingPageBuilderScreen extends Component {
                         <button className="dc-h75" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 11px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>English</button>
                         <button className={`bn dc-h76`} style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 11px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>বাংলা + English</button>
                       </div>
-                      <p style={{ margin: "12px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Using your product: Winter blanket · ৳1,290 · 20% off · 3 sizes · 42 in stock · 18 reviews</p>
+                      <p style={{ margin: "12px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.pUsing}</p>
                       <div style={{ display: "grid", gap: "8px", marginTop: "12px" }}>
                         <button style={{ textAlign: "left", border: "2px solid #003087", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.04)", padding: "10px", cursor: "pointer" }}>
-                          <span className="bn" style={{ display: "block", fontSize: "var(--text-sm)", color: "#1e293b" }}>আজকের অর্ডারে ৳৩০০ সেভ — ২০% ছাড়</span>
+                          <span className="bn" style={{ display: "block", fontSize: "var(--text-sm)", color: "#1e293b" }}>{v.pSuggest[0]}</span>
                           <span style={{ display: "block", marginTop: "5px", fontSize: "var(--text-xs)", color: "#003087", fontWeight: "var(--weight-medium)" }}>Shown on the page now · 6 words</span>
                         </button>
                         <button className="dc-h77" style={{ textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px", cursor: "pointer" }}>
-                          <span className="bn" style={{ display: "block", fontSize: "var(--text-sm)", color: "#1e293b" }}>২০% ছাড়ে ৳১,২৯০ — শীত শেষ হওয়ার আগেই</span>
+                          <span className="bn" style={{ display: "block", fontSize: "var(--text-sm)", color: "#1e293b" }}>{v.pSuggest[1]}</span>
                           <span style={{ display: "block", marginTop: "5px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>8 words</span>
                         </button>
                         <button className="dc-h78" style={{ textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px", cursor: "pointer" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm)", color: "#1e293b" }}>Save ৳300 today — 20% off the 4kg blanket</span>
+                          <span style={{ display: "block", fontSize: "var(--text-sm)", color: "#1e293b" }}>{v.pSuggest[2]}</span>
                           <span style={{ display: "block", marginTop: "5px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>English · 8 words</span>
                         </button>
                       </div>
@@ -756,8 +885,8 @@ export default class LandingPageBuilderScreen extends Component {
                       </div>
                       <p style={{ margin: "14px 0 6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Earlier in this session</p>
                       <div style={{ display: "grid", gap: "6px" }}>
-                        <span className="bn" style={{ fontSize: "var(--text-xs-plus)", color: "#475569", borderLeft: "2px solid #e2e8f0", paddingLeft: "8px" }}>শীতের সেরা অফার — ২০% ছাড়</span>
-                        <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569", borderLeft: "2px solid #e2e8f0", paddingLeft: "8px" }}>20% off — limited winter stock</span>
+                        <span className="bn" style={{ fontSize: "var(--text-xs-plus)", color: "#475569", borderLeft: "2px solid #e2e8f0", paddingLeft: "8px" }}>{v.pOfferBn}</span>
+                        <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569", borderLeft: "2px solid #e2e8f0", paddingLeft: "8px" }}>{v.pOfferEn}</span>
                       </div>
                     </div>
                   </>) : null}
@@ -772,57 +901,42 @@ export default class LandingPageBuilderScreen extends Component {
                       <__Icon name="rocket" strokeWidth="1.75" width="18" height="18" />
                     </span>
                     <div>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }} id="lpb-publish-title">Publish this page</h2>
-                      <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Two things must be fixed first</p>
+                      <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }} id="lpb-publish-title">{v.publishTitle}</h2>
+                      <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.publishSub}</p>
                     </div>
                     <button className="dc-h82" autoFocus onClick={v.closePublish} style={{ marginLeft: "auto", width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Close">
                       <__Icon name="x" strokeWidth="1.75" width="18" height="18" />
                     </button>
                   </div>
                   <div style={{ padding: "18px 20px 20px" }}>
+                    {v.linkProblem ? (<>
                     <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "#c23a12" }}>Must fix</p>
-                    <div style={{ display: "grid", gap: "8px" }}>
-                      <div style={{ display: "flex", gap: "10px", alignItems: "center", borderRadius: "var(--radius-lg)", background: "rgba(255,87,36,.08)", padding: "10px 12px" }}>
-                        <span style={{ flex: "none", color: "#c23a12" }}>
-                          <__Icon name="alert-circle" strokeWidth="1.75" width="18" height="18" />
-                        </span>
-                        <span style={{ flex: "1", fontSize: "var(--text-sm)", color: "#334155" }}>Delivery charge for <b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>outside Dhaka</b> is empty</span>
-                        <button className="dc-h83" style={{ flex: "none", height: "28px", border: "none", borderRadius: "var(--radius-lg)", background: "#fff", color: "#c23a12", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Set ৳130</button>
-                      </div>
-                      <div style={{ display: "flex", gap: "10px", alignItems: "center", borderRadius: "var(--radius-lg)", background: "rgba(255,87,36,.08)", padding: "10px 12px" }}>
-                        <span style={{ flex: "none", color: "#c23a12" }}>
-                          <__Icon name="link-2" strokeWidth="1.75" width="18" height="18" />
-                        </span>
-                        <span style={{ flex: "1", fontSize: "var(--text-sm)", color: "#334155" }}>The link <b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>/blanket</b> is already used</span>
-                        <button className="dc-h84" style={{ flex: "none", height: "28px", border: "none", borderRadius: "var(--radius-lg)", background: "#fff", color: "#c23a12", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Use /winter-blanket</button>
-                      </div>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "center", borderRadius: "var(--radius-lg)", background: "rgba(255,87,36,.08)", padding: "10px 12px", marginBottom: "18px" }}>
+                      <span style={{ flex: "none", color: "#c23a12" }}><__Icon name="link-2" strokeWidth="1.75" width="18" height="18" /></span>
+                      <span style={{ flex: "1", fontSize: "var(--text-sm)", color: "#334155" }}>{v.linkProblem} Change the page link below.</span>
                     </div>
-                    <p style={{ margin: "18px 0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "#a15f00" }}>Worth checking — will not stop you</p>
+                  </>) : null}
+                    {v.hasChecks ? (<>
+                    <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "#a15f00" }}>Worth checking — will not stop you</p>
                     <div style={{ display: "grid", gap: "8px" }}>
-                      <div style={{ display: "flex", gap: "10px", alignItems: "center", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "10px 12px" }}>
-                        <span style={{ flex: "none", color: "#a15f00" }}>
-                          <__Icon name="sparkles" strokeWidth="1.75" width="18" height="18" />
-                        </span>
-                        <span style={{ flex: "1", fontSize: "var(--text-sm)", color: "#334155" }}>2 benefit rows are still empty</span>
-                        <button className="dc-h85" style={{ flex: "none", height: "28px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,156,222,.12)", color: "var(--accent-text)", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Fill with AI</button>
-                      </div>
-                      <div style={{ display: "flex", gap: "10px", alignItems: "center", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "10px 12px" }}>
-                        <span style={{ flex: "none", color: "#a15f00" }}>
-                          <__Icon name="arrow-up" strokeWidth="1.75" width="18" height="18" />
-                        </span>
-                        <span style={{ flex: "1", fontSize: "var(--text-sm)", color: "#334155" }}>Order form is 5 parts down on mobile</span>
-                        <button className="dc-h86" style={{ flex: "none", height: "28px", border: "none", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Move it up</button>
-                      </div>
+                      {__list(v.checks).map((c, i) => (
+                        <div key={i} style={{ display: "flex", gap: "10px", alignItems: "center", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "10px 12px" }}>
+                          <span style={{ flex: "none", color: "#a15f00" }}><__Icon name="info" strokeWidth="1.75" width="18" height="18" /></span>
+                          <span style={{ flex: "1", fontSize: "var(--text-sm)", color: "#334155" }}>{c.text}</span>
+                          {c.act ? <__Link href={c.act.href} style={{ flex: "none", height: "28px", display: "inline-flex", alignItems: "center", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>{c.act.label}</__Link> : null}
+                        </div>
+                      ))}
                     </div>
+                    </>) : null}
                     <div style={{ height: "1px", background: "#e2e8f0", margin: "18px 0" }} />
                     <label style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155" }} htmlFor="lpb-page-link">Page link</label>
                     <div style={{ display: "flex", alignItems: "center", gap: "0", marginTop: "6px" }}>
-                      <span style={{ height: "38px", display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRight: "none", borderRadius: "var(--radius-lg) 0 0 var(--radius-lg)", background: "#f8fafc", padding: "0 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }} id="lpb-page-link-prefix">gridcommerce.shop/rina/</span>
-                      <input id="lpb-page-link" aria-describedby="lpb-page-link-prefix" defaultValue="winter-blanket" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", height: "38px", border: "1px solid #cbd5e1", borderRadius: "0 var(--radius-lg) var(--radius-lg) 0", padding: "0 10px", fontSize: "var(--text-sm)", color: "#1e293b" }} />
+                      <span style={{ height: "38px", display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRight: "none", borderRadius: "var(--radius-lg) 0 0 var(--radius-lg)", background: "#f8fafc", padding: "0 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }} id="lpb-page-link-prefix">{v.host + "/lp/"}</span>
+                      <input id="lpb-page-link" aria-describedby="lpb-page-link-prefix" value={v.handle} onChange={v.setHandle} aria-invalid={!!v.linkProblem} style={{ flex: "1", minWidth: "0", boxSizing: "border-box", height: "38px", border: "1px solid #cbd5e1", borderRadius: "0 var(--radius-lg) var(--radius-lg) 0", padding: "0 10px", fontSize: "var(--text-sm)", color: "#1e293b" }} />
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "18px" }}>
-                      <button className="dc-h87" onClick={v.closePublish} style={{ height: "36px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", padding: "0 16px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="rocket" strokeWidth="1.75" width="16" height="16" />Publish page</button>
-                      <button className="dc-h88" onClick={v.closePublish} style={{ height: "36px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 14px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="smartphone" strokeWidth="1.75" width="16" height="16" />Check on my phone first</button>
+                      <button className="dc-h87" onClick={v.publish} disabled={!v.canPublish} style={{ height: "36px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", padding: "0 16px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: v.canPublish ? "pointer" : "not-allowed", opacity: v.canPublish ? 1 : .5 }}><__Icon name="rocket" strokeWidth="1.75" width="16" height="16" />{v.isLive ? 'Update live page' : 'Publish page'}</button>
+                      <button className="dc-h88" onClick={v.checkPhone} style={{ height: "36px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 14px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="smartphone" strokeWidth="1.75" width="16" height="16" />Check on my phone first</button>
                       <span style={{ marginLeft: "auto", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Orders go to your orders list</span>
                     </div>
                   </div>
@@ -831,6 +945,13 @@ export default class LandingPageBuilderScreen extends Component {
             </>) : null}
           </div>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: SEO_PANEL_CSS }} />
+        <__Sheet open={v.seoOpen && !!v.seo} title="Search engine listing" onClose={v.closeSeo} footer={<>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeSeo}>Close</button>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.saveSeo}>Save</button>
+        </>}>
+          {v.seo ? <SeoPanel kind="landing" idPrefix="lpb-seo" defaultOpen seo={v.seo} onChange={v.setSeo} ctx={v.seoCtx} schedule={v.seoSchedule} /> : null}
+        </__Sheet>
       </div>
     );
   }

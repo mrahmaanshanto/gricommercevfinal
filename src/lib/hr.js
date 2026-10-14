@@ -13,13 +13,17 @@
 // Each staff row also carries the profile (Bangla name, NID, address, emergency contact), how they are paid
 // (bank account or bKash), login and limits, check-in method, documents and any final settlement.
 // Money moves through src/lib/ledger.js (loans given and repaid) and src/lib/liabilities.js (salaries).
-// Front end only: kept in this browser; the demo history is September 2026, today is Thu 1 Oct 2026.
+// Front end only: kept in this browser; the demo history is September 2026, written as if today were Thu 1 Oct 2026.
+// In the browser the days from 1 October up to now get their punches (liveAttendance, a fixed seed per day and
+// person), and waiting leave requests and the machines' last sync move with the clock (demoClock.js).
 
 import { LOCATIONS } from './locations';
 import { formatBDT } from './format';
 import { holidaysOf, clockNow, dayKey, fromKey, DEFAULT_CONFIG } from './settlements';
 import { postEntry } from './ledger';
+import { offboard as offboardMailbox } from './platform/mail';
 import { addLiability, payLiability, getLiabilities, updateLiability, LIAB_SEED, leftOf, paidOf } from './liabilities';
+import { shiftDays, shiftTime as moveTime, shiftPast, shiftKey } from './demoClock';
 
 export const HR_EVENT = 'gc:hr';
 const K = {
@@ -294,6 +298,65 @@ function seedAttendance(S) {
   put('2026-09-30', 'EMP-0163', { s: 'P', in: '21:01', out: '07:02', late: 0, ot: 0, src: 'Face' });
   return att;
 }
+// ---- attendance after 1 October: the days up to now, made the same way every time ------------------
+function seededRand(n) {
+  let a = n >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const LIVE_FROM_KEY = '2026-10-01';
+/**
+ * The register with every working day from 1 October up to `now` filled in, where nothing is recorded yet: each
+ * person on a shift punches in around its start (now and then late, rarely absent on a past day) and out after
+ * its end; today only what has happened by now (a night shift runs into the next morning). The seed's 1 October
+ * punches (in only, as of that morning) get their out time once the day is over. Kept records always win.
+ */
+function liveAttendance(S, att, now) {
+  const today = dayKey(now);
+  if (today < LIVE_FROM_KEY) return att;
+  const out = { ...att };
+  for (let key = addDays(today, -40) > LIVE_FROM_KEY ? addDays(today, -40) : LIVE_FROM_KEY; key <= today; key = addDays(key, 1)) {
+    const day = fromKey(key);
+    const kept = att[key] || {};
+    let row = null;
+    S.staff.forEach((st) => {
+      const plan = dayPlan(S, st, key);
+      if (plan.kind !== 'work') return;
+      const sh = shiftBy(S, plan.shifts[0]);
+      if (!sh) return;
+      const start = toMin(sh.start), end0 = toMin(sh.end), end = end0 <= start ? end0 + 1440 : end0;
+      const rec0 = kept[st.code];
+      if (rec0) {
+        // a seed punch from the morning of 1 October: out after the shift once that day is over
+        if (key === LIVE_FROM_KEY && rec0.in && !rec0.out && day + end * 60000 + 30 * 60000 <= now) (row = row || { ...kept })[st.code] = { ...rec0, out: fromMin(end + ((Number(st.code.slice(4)) * 7) % 9)) };
+        return;
+      }
+      const rand = seededRand(Number(key.replace(/-/g, '')) * 1000 + (Number(st.code.replace(/\D/g, '')) || 0));
+      const dayOver = day + end * 60000 + 30 * 60000 <= now;
+      if (rand() < 0.03) { if (dayOver) (row = row || { ...kept })[st.code] = { s: 'A', src: 'No punch' }; return; }
+      const lateBy = rand() < 0.1 ? (sh.graceMin ?? 10) + 1 + Math.floor(rand() * 15) : 0;
+      const inT = lateBy ? start + lateBy : start - Math.floor(rand() * 13);
+      const ot = rand() < 0.06 ? 60 : 0;
+      const outT = end + ot + Math.floor(rand() * 9);
+      if (day + inT * 60000 > now) return;   // not in yet
+      const src = SRC[st.code] || (st.branch === 'Head office' ? 'Staff app' : punchSrc(st));
+      (row = row || { ...kept })[st.code] = { s: 'P', in: fromMin(inT), out: day + outT * 60000 <= now ? fromMin(outT) : '', late: lateFor(sh, fromMin(inT)), ot, src };
+    });
+    if (row) out[key] = row;
+  }
+  return out;
+}
+/** Waiting leave requests of the seed move with the clock (they were for the days after 1 October). */
+const liveLeave = (leave, days) => (days ? { ...leave, requests: leave.requests.map((r) => (r.status === 'wait' ? { ...r, from: shiftKey(r.from, days), to: shiftKey(r.to, days), at: shiftPast(r.at, days) } : r)) } : leave);
+/** The seed's machines: the online ones synced a few minutes ago with today's punches; the offline one stopped yesterday. */
+function liveDevices(S, devices, now) {
+  const days = shiftDays(now);
+  if (!days) return devices;
+  const punches = punchesOn(S, dayKey(now));
+  return devices.map((d, i) => (d.status === 'offline'
+    ? { ...d, lastSync: moveTime(d.lastSync, days) }
+    : { ...d, lastSync: Math.min(now, Math.max(fromKey(dayKey(now)) + 8 * 3600000, now - (2 + i * 3) * 60000)), punchesToday: punches.filter((p) => p.device && p.device.id === d.id).length }));
+}
+
 /** How a punch came in at a person's place: the machine there (fingerprint or face). */
 const punchSrc = (st) => (st.checkIn === 'Face' || st.checkIn === 'Fingerprint' ? st.checkIn : st.branch === 'Central Warehouse' ? 'Face' : 'Fingerprint');
 /** Minutes late for an in-time on a shift (0 inside the grace time). */
@@ -330,6 +393,10 @@ export function loadSnapshot() {
     fixes: read(K.fixes) || seed.fixes, att: read(K.att) || seed.att, runs: read(K.runs) || seed.runs,
     changes: read(K.changes) || seed.changes, devices: read(K.devices) || seed.devices,
   };
+  // the days after the demo's 1 October follow the clock: punches up to now, waiting leave, the machines' last sync
+  if (!read(K.leave)) S.leave = liveLeave(S.leave, shiftDays(S.now));
+  S.att = liveAttendance(S, S.att, S.now);
+  if (!read(K.devices)) S.devices = liveDevices(S, S.devices, S.now);
   return syncRuns(applyDueChanges(S));
 }
 const live = () => (ssr() ? seedSnapshot() : loadSnapshot());
@@ -1205,7 +1272,10 @@ export function settleLeaving(code, { lastDay, reason = '', account, by = 'Owner
     write(K.loans, loans);
   }
   write(K.staff, live().staff.map((x) => (x.code === code ? { ...x, status: 'left', leftOn: addDays(lastDay, 1), lastDay, leftReason: reason, settlement: { at: Date.now(), net: fs.net, gratuity: fs.gratuity.amount, liabilityId: liability ? liability.id : '' } } : x)));
-  return { liability, fs };
+  // Business email: their mailbox is suspended and its mail forwarded to a manager (lib/platform/mail.js)
+  let mailbox = null;
+  try { mailbox = offboardMailbox({ name: st.name, email: st.email }); } catch { mailbox = null; }
+  return { liability, fs, mailbox: mailbox && mailbox.ok ? true : false };
 }
 
 // ---- attendance machines -----------------------------------------------------------------------------

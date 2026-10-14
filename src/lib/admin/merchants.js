@@ -90,7 +90,9 @@ export function merchantRow(db, shop, t) {
   const st = subState(db, shop.id, t);
   const plan = planOf(db, sub);
   const owner = ownerOf(shop);
-  const mods = modulesOf(db, shop, t).filter((m) => m.active && m.set !== 'platform' && m.set !== 'everyday');
+  // the product modules the store has on (Products, POS, Online …; lib/edition.js), not each feature code under them
+  const on = modulesOf(db, shop, t).filter((m) => m.active && m.set !== 'platform');
+  const mods = [...new Map(on.map((m) => [m.set, { name: m.setLabel }])).values()];
   const owed = openInvoices(db, shop.id).reduce((s, i) => s + balance(db, i), 0);
   const hl = health(db, shop, t);
   return {

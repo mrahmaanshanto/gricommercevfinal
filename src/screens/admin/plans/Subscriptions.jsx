@@ -19,8 +19,9 @@ import { ShopHeader, MetricStrip, IndexTabs, Pager, KV } from '@/components/ui/I
 import { downloadCsv } from '@/lib/reports/period';
 import { DAY, dmy, dm } from '@/lib/platform/util';
 import { LADDERS, PLAN_IDS, PLAN_NAME, ladderLabel } from '@/lib/platform/catalogue';
-import { shopOf, subOf, subState, planOf, priceOf, billItems, itemName, extendTrial, setAutoCharge, openInvoices, balance, isPaying } from '@/lib/platform/billing';
-import { extendGrace, activityOf, nextRenewal } from '@/lib/admin/merchants';
+import { shopOf, subOf, subState, planOf, priceOf, monthlyOf, isYearly, billItems, itemName, extendTrial, setAutoCharge, openInvoices, balance, isPaying } from '@/lib/platform/billing';
+import { activityOf, nextRenewal } from '@/lib/admin/merchants';
+import { ask, rightOf, figureOf } from '@/lib/admin/actionRights';
 import { AdminShell, usePlatform } from '../AdminShell';
 import { PROFILE_CSS } from '../merchants/profile/profileShared';
 import { PlanSimulator } from '../merchants/profile/ProfileActions';
@@ -59,7 +60,7 @@ export function SubPanel({ id, db, t, onClose }) {
   const overdue = owed.filter((i) => i.dueAt < t);
   const closed = CLOSED.includes(st.key);
   const late = ['grace', 'pastdue', 'suspended'].includes(st.key) && overdue.length > 0;
-  const monthly = billItems(sub, t).filter((it) => it.period !== 'Once').reduce((s, it) => s + (it.period === 'Yearly' ? Math.round(it.price / 12) : priceOf(db, sub, it)), 0);
+  const monthly = billItems(sub, t).filter((it) => it.period !== 'Once').reduce((s, it) => s + monthlyOf(db, sub, it), 0);
   const trialEnd = sub.trialStart + sub.trialDays * DAY;
   const paying = isPaying(st);
   const renewal = nextRenewal(db, shop, t);
@@ -78,9 +79,10 @@ export function SubPanel({ id, db, t, onClose }) {
   const doGrace = () => {
     const n = Number(days);
     if (!n || n < 1 || n > 30) { setErr({ field: 'days', text: 'Give 1 to 30 days.' }); return; }
-    const r = extendGrace(id, n, reason);
-    if (!r.ok) { setErr({ field: /why/i.test(r.error) ? 'reason' : 'form', text: r.error }); return; }
-    toast(`Grace extended by ${r.days} days for ${shop.name}`);
+    if (!String(reason || '').trim()) { setErr({ field: 'reason', text: 'Say why the grace is extended.' }); return; }
+    const r = ask({ action: 'grace', shopIds: [id], value: figureOf(db, id, 'owed', t), params: { days: n }, reason, db });
+    if (!r.ok) { setErr({ field: /why|reason/i.test(r.error) ? 'reason' : 'form', text: r.error }); return; }
+    toast(r.pending ? `Sent to ${r.request.approver} for a second approval` : `Grace extended by ${n} days for ${shop.name}`);
     setTool(null); setReason('');
   };
   const doAuto = async () => {
@@ -121,7 +123,7 @@ export function SubPanel({ id, db, t, onClose }) {
             <div className="subs-acts">
               <button type="button" className={'ix-btn ix-btn--sm' + (tool === 'plan' ? ' is-on' : '')} aria-expanded={tool === 'plan'} onClick={() => toggle('plan')}><Icon name="arrow-up-down" width="16" height="16" aria-hidden="true" />Change package</button>
               {st.key === 'trial' ? <button type="button" className={'ix-btn ix-btn--sm' + (tool === 'trial' ? ' is-on' : '')} aria-expanded={tool === 'trial'} onClick={() => toggle('trial')}><Icon name="calendar-plus" width="16" height="16" aria-hidden="true" />Extend trial</button> : null}
-              {late ? <button type="button" className={'ix-btn ix-btn--sm' + (tool === 'grace' ? ' is-on' : '')} aria-expanded={tool === 'grace'} onClick={() => toggle('grace')}><Icon name="clock" width="16" height="16" aria-hidden="true" />Extend grace</button> : null}
+              {late && rightOf('grace').ok ? <button type="button" className={'ix-btn ix-btn--sm' + (tool === 'grace' ? ' is-on' : '')} aria-expanded={tool === 'grace'} onClick={() => toggle('grace')}><Icon name="clock" width="16" height="16" aria-hidden="true" />Extend grace</button> : null}
             </div>
 
             {tool === 'plan' ? (
@@ -176,7 +178,7 @@ export function SubPanel({ id, db, t, onClose }) {
             <ul className="subs-list">
               {items.map((it) => (
                 <li key={it.id}>
-                  <span><b>{itemName(sub, it)}</b><small>{it.period === 'Once' ? 'Once' : it.period} · {it.since > t ? (st.key === 'trial' ? 'from ' + dm(it.since) + ', after the trial' : 'from ' + dmy(it.since)) : 'since ' + dmy(it.since)}</small></span>
+                  <span><b>{itemName(sub, it)}</b><small>{it.period === 'Once' ? 'Once' : isYearly(sub, it) ? 'Yearly' : it.period} · {it.since > t ? (st.key === 'trial' ? 'from ' + dm(it.since) + ', after the trial' : 'from ' + dmy(it.since)) : 'since ' + dmy(it.since)}</small></span>
                   <em><span className="subs-fig">{money(priceOf(db, sub, it))}</span></em>
                 </li>
               ))}

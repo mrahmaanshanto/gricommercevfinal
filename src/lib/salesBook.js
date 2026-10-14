@@ -1,8 +1,8 @@
 // salesBook — every sale by channel (Online, Retail, Wholesale), counted on the day it was made,
 // with its cost of goods, so Accounts can show sales and profit per channel, and every sale line
 // (getSaleLines) for the reports.
-//   Retail     the counters' daily Z-reports (demo September, same figures as the ledger) and the
-//              POS sales made in this browser
+//   Retail     the counters' daily Z-reports (demo September, same figures as the ledger), the counter
+//              sales that keep coming after September (liveCounterSales.js) and the POS sales made in this browser
 //   Online     demo September order days, the orders that keep coming in after September (liveOrders.js)
 //              and the orders made in this browser (not cancelled)
 //   Wholesale  demo September invoices, and every invoice (the demo ones and those made at the POS)
@@ -31,6 +31,8 @@ import { CHANNELS } from './categories';
 import { editionChannels } from './edition';
 import { onlinePlace } from './locations';
 import { ONLINE_PEOPLE, FIRST, LAST, AREAS } from './demoPeople';
+import { liveCounterSales } from './liveCounterSales';
+import { clockNow } from './settlements';
 
 export { CHANNELS, productCostOf };
 /** Usual cost of goods as a share of sales, for demo days without item lines. */
@@ -472,10 +474,13 @@ function saleLines(s, rec, vat) {
     return { sku: l.sku || (p ? p.sku : ''), name: l.name, cat: l.cat || (p ? p.cat : '') || 'Other', qty, price, lineDisc, base: qty * price - lineDisc, cost: r2(unit * qty) };
   });
   const sumBase = raw.reduce((a, l) => a + l.base, 0);
-  const other = r2(sumBase - rec.revenue);   // the sale's own discounts (and rounding)
+  // prices that include VAT (vat.js): the lines share what was paid, VAT included; the VAT is taken out after
+  const inc = !!t.vatIncluded && (t.tax || 0) > 0;
+  const paidFor = r2(rec.revenue + (inc ? t.tax : 0));
+  const other = r2(sumBase - paidFor);   // the sale's own discounts (and rounding)
   let done = 0;
   const lines = raw.map((l, i) => {
-    const revenue = i === raw.length - 1 ? r2(rec.revenue - done) : r2(l.base - (sumBase ? other * l.base / sumBase : 0));
+    const revenue = i === raw.length - 1 ? r2(paidFor - done) : r2(l.base - (sumBase ? other * l.base / sumBase : 0));
     done = r2(done + revenue);
     return {
       id: rec.id + ':' + i, saleId: rec.id, at: rec.at, channel: rec.channel, place: rec.place, counter: rec.counter, cashier: rec.cashier, salesperson: rec.salesperson,
@@ -483,7 +488,8 @@ function saleLines(s, rec, vat) {
       method: rec.method, source: '', zone: '', est: false,
     };
   });
-  return withVat(lines, r2(t.tax || 0), vat);
+  const taxed = withVat(lines, r2(t.tax || 0), vat);
+  return inc ? taxed.map((l) => ({ ...l, revenue: r2(l.revenue - l.vat) })) : taxed;
 }
 /** The lines of an online order made in this browser (no discounts, no VAT). */
 function orderLines(o, rec) {
@@ -514,6 +520,7 @@ export function getSales() {
   const chans = editionChannels();
   return allSales().filter((r) => chans.includes(r.channel));
 }
+let LIVE_RECS = { sig: '', map: new Map() };
 function allSales() {
   const vat = loadVat();
   const built = seedBuilt();
@@ -546,6 +553,15 @@ function allSales() {
   load(POS_KEYS.sales, []).filter((s) => !invoiceIds.has(s.id)).forEach((s) => {
     const rec = sold(s);
     out.push({ ...rec, paid: (s.totals || {}).total || 0, due: 0 });
+  });
+  // the counters' sales after September (liveCounterSales.js): never saved, so never counted twice with the above
+  // (their records are kept per VAT setting: hundreds of sales, read on every page)
+  const vatSig = JSON.stringify(vat);
+  if (LIVE_RECS.sig !== vatSig) LIVE_RECS = { sig: vatSig, map: new Map() };
+  liveCounterSales(clockNow()).forEach((s) => {
+    let rec = LIVE_RECS.map.get(s.id);
+    if (!rec) { rec = { ...sold(s), paid: s.totals.total, due: 0 }; LIVE_RECS.map.set(s.id, rec); }
+    out.push({ ...rec });
   });
   // online orders made in this browser and the ones that keep coming in after September (liveOrders.js)
   getOrders().filter((o) => (o.made || o.live) && !isCounterSale(o) && o.status !== 'Cancelled').forEach((o) => {

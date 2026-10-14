@@ -1,13 +1,12 @@
 // admin/packages — the package catalogue the super admin sells from (front end only; createStore key `packages`).
-// The three plan ladders (Online, Retail, Wholesale) and their versions live in lib/platform (db().plans, plans.js:
-// draftFor · saveDraft · submitDraft · decideDraft · diff). This file adds what the platform data does not have:
+// What is sold is the product itself: the four editions (Online, Retail, Retail + Online, Connect — lib/edition.js)
+// each with the product's three plans (Starter, Growth, Business — lib/plans.js). Their prices, limits and versions
+// live in lib/platform (db().plans, plans.js: draftFor · saveDraft · submitDraft · decideDraft · diff). This file adds
+// what the platform data does not have:
 //
-//   Communication only   the Connect edition's own package family (Inbox, SMS, WhatsApp, AI, CRM, POS) with versions
-//                        and the same rule: a change is a draft, a second person approves it, it goes live on its date
-//                        commsLive · commsDraftFor · commsDiff · saveCommsDraft · submitCommsDraft · decideCommsDraft
 //   Add-on prices        price changes of ADDONS with history and a start date (priceOf · setPrice)
 //   Module trials        per module: offered, length, auto-add after the trial, price (trialRule · setTrialRule)
-//   Trial packages       per ladder: length, the plan used during the trial, credits, extras, what happens after
+//   Trial packages       per edition: length, the plan used during the trial, credits, extras, what happens after
 //                        (setTrialPackage)
 //   Custom packages      a named set of modules for one merchant at a negotiated price; assigning one puts it on the
 //                        store's bill through billing.addItem (an event in the store's history) · saveCustom ·
@@ -18,76 +17,30 @@
 import { createStore } from './store';
 import { staff } from '@/lib/platform/store';
 import { DAY, startOfMonth, addMonths, startOfDay, taka, num, dmy } from '@/lib/platform/util';
-import { MODULES, SETS, ADDONS, TRIALABLE, LADDERS, PLAN_IDS, PLAN_NAME, UNLIMITED, APPROVERS, can, moduleBy, addonBy, ladderLabel } from '@/lib/platform/catalogue';
-import { shopOf, subOf, subState, isPaying, isLiveStore, priceOf, billItems, planOf, addItem, endItem } from '@/lib/platform/billing';
+import { MODULES, SETS, ADDONS, TRIALABLE, LADDERS, PLAN_IDS, PLAN_NAME, can, moduleBy, addonBy, ladderLabel, inEdition, setLabelOf } from '@/lib/platform/catalogue';
+import { shopOf, subOf, subState, isPaying, isLiveStore, monthlyOf, billItems, planOf, addItem, endItem } from '@/lib/platform/billing';
 import { moduleState } from '@/lib/platform/merchant';
 import { modulesOf } from './merchants';
 
-// ---- the Connect (communication only) family ---------------------------------------------------------------------
-export const COMMS = 'comms';
-export const COMMS_PLANS = ['starter', 'growth', 'pro'];
-export const COMMS_NAME = { starter: 'Connect Starter', growth: 'Connect Growth', pro: 'Connect Pro' };
-export const COMMS_LIMITS = [
-  ['seats', 'Staff seats', 'seats'], ['channels', 'Inbox channels', 'channels'], ['contacts', 'Contacts', 'contacts'],
-  ['sms', 'SMS included', 'a month'], ['whatsapp', 'WhatsApp chats included', 'a month'], ['ai', 'AI replies included', 'a month'],
-  ['calls', 'Call minutes', 'a month'],
-];
-/** The modules a Connect plan may include (platform core always runs). */
-export const COMMS_MODULES = ['M01', 'S2', 'S1', 'M22', 'M24', 'S7', 'G3', 'G6', 'G5', 'M04', 'M03', 'M17', 'G4', 'G2'];
-
-/** What every family is called on the page. */
-export const FAMILIES = [...LADDERS.map((l) => ({ id: l.id, label: l.label })), { id: COMMS, label: 'Communication only' }];
-export const familyLabel = (id) => (id === COMMS ? 'Communication only' : ladderLabel(id));
-export const planIdsOf = (family) => (family === COMMS ? COMMS_PLANS : PLAN_IDS);
-export const planNameOf = (family, plan) => (family === COMMS ? COMMS_NAME[plan] : PLAN_NAME[plan]) || plan;
+/** The families on the page: one per edition. */
+export const FAMILIES = LADDERS.map((l) => ({ id: l.id, label: l.label }));
+export const familyLabel = (id) => ladderLabel(id);
+export const planIdsOf = () => PLAN_IDS;
+export const planNameOf = (family, plan) => PLAN_NAME[plan] || plan;
 
 /** What happens when a trial ends. */
 export const AFTER = [
   ['pause', 'Pause the store until the owner picks a plan'],
-  ['growth', 'Move to the first plan and send the first bill'],
+  ['starter', 'Move to the first plan and send the first bill'],
   ['same', 'Keep the trial plan and send the first bill'],
 ];
 export const afterLabel = (k) => (AFTER.find((a) => a[0] === k) || [k, k])[1];
 
-function commsPlans() {
-  return {
-    starter: {
-      name: COMMS_NAME.starter, price: 800, yearly: 8000, setup: 0, trialDays: 7, visibility: 'Public',
-      tagline: 'One inbox for Facebook, Instagram and WhatsApp with the customer list.',
-      modules: ['M01', 'S2', 'S1', 'M22', 'M24', 'G3'],
-      limits: { seats: 2, channels: 3, contacts: 2000, sms: 300, whatsapp: 200, ai: 100, calls: 0 },
-    },
-    growth: {
-      name: COMMS_NAME.growth, price: 1800, yearly: 18000, setup: 0, trialDays: 7, visibility: 'Public',
-      tagline: 'Adds SMS blasts, support tickets and a counter till.',
-      modules: ['M01', 'S2', 'S1', 'M22', 'M24', 'G3', 'G6', 'S7', 'M04', 'M03', 'M17'],
-      limits: { seats: 5, channels: 8, contacts: 10000, sms: 1000, whatsapp: 1000, ai: 500, calls: 300 },
-    },
-    pro: {
-      name: COMMS_NAME.pro, price: 3500, yearly: 35000, setup: 0, trialDays: 7, visibility: 'Public',
-      tagline: 'Adds AI replies and products, cart recovery and analytics.',
-      modules: ['M01', 'S2', 'S1', 'M22', 'M24', 'G3', 'G6', 'S7', 'M04', 'M03', 'M17', 'G5', 'G4', 'G2'],
-      limits: { seats: 15, channels: UNLIMITED, contacts: UNLIMITED, sms: 3000, whatsapp: 3000, ai: 2000, calls: 1000 },
-    },
-  };
-}
-
 function seed(now) {
   const m0 = startOfMonth(now);
-  const v1 = { v: 1, liveFrom: addMonths(m0, -2, 1), plans: commsPlans(), by: 'Mahin Khan', approvedBy: 'Nusrat Islam', note: 'First prices for the Connect edition' };
-  const growth = v1.plans.growth;
   const trialRules = {};
   for (const x of TRIALABLE) trialRules[x.code] = { offered: true, days: 14, autoAdd: x.code === 'G3', price: x.price };
   return {
-    comms: { live: 1, versions: [v1] },
-    commsDrafts: [{
-      id: 'CV-001', ladder: COMMS, plan: 'growth', baseV: 1, v: 2, status: 'pending',
-      name: growth.name, tagline: growth.tagline, visibility: 'Public', price: growth.price, yearly: growth.yearly, setup: 0, trialDays: 7,
-      modules: [...growth.modules], limits: { ...growth.limits, sms: 1500, whatsapp: 1500 },
-      existing: 'keep', liveFrom: addMonths(m0, 1, 1), approver: 'Nusrat Islam',
-      why: 'Connect Growth trials keep running out of SMS in week two; match the Online Business allowance.',
-      by: 'Rakib Hasan', at: now - 2 * DAY - 3 * 3600e3, sentAt: now - 2 * DAY - 3 * 3600e3,
-    }],
     priceLog: [
       { id: 'MP-001', code: 'M05', from: 800, to: 1000, at: addMonths(m0, -9, 4), effective: addMonths(m0, -8, 1), by: 'Mahin Khan', note: 'Second warehouse now included' },
       { id: 'MP-002', code: 'G3', from: 1000, to: 1200, at: addMonths(m0, -5, 12), effective: addMonths(m0, -4, 1), by: 'Mahin Khan', note: 'WhatsApp Business API cost went up' },
@@ -96,58 +49,50 @@ function seed(now) {
     trialRules,
     trialLog: [],
     trialPackages: {
-      online: { days: 15, plan: 'business', credits: 100, card: false, after: 'pause', extras: ['G3'] },
-      retail: { days: 15, plan: 'business', credits: 100, card: false, after: 'pause', extras: ['M05'] },
-      wholesale: { days: 30, plan: 'enterprise', credits: 200, card: false, after: 'growth', extras: ['M19'] },
-      comms: { days: 7, plan: 'growth', credits: 50, card: false, after: 'pause', extras: ['G5'] },
+      online: { days: 15, plan: 'growth', credits: 100, card: false, after: 'pause', extras: ['G3'] },
+      retail: { days: 15, plan: 'growth', credits: 100, card: false, after: 'pause', extras: ['M05'] },
+      'retail-online': { days: 15, plan: 'growth', credits: 100, card: false, after: 'pause', extras: ['M05'] },
+      connect: { days: 7, plan: 'growth', credits: 50, card: false, after: 'pause', extras: ['G5'] },
     },
     custom: [
-      { id: 'CP-001', name: 'Mohona trade bundle', shopId: '0012', ladder: 'wholesale', plan: 'enterprise', modules: ['M05', 'M19', 'G3', 'G5'], price: 6500, cycle: 'Monthly', note: 'Two-year deal signed at the Dhaka trade fair.', status: 'assigned', by: 'Mahin Khan', at: addMonths(m0, -4, 6), assignedAt: addMonths(m0, -4, 8), itemId: null },
-      { id: 'CP-002', name: 'Dhaka Gadget Hub · shop and web', shopId: '0031', ladder: 'retail', plan: 'business', modules: ['M05', 'G3', 'G5'], price: 4500, cycle: 'Monthly', note: 'Owner wants the warehouse and inbox together; offer before the warehouse trial ends.', status: 'draft', by: 'Farhana Akter', at: now - 3 * DAY, assignedAt: null, itemId: null },
-      { id: 'CP-003', name: 'Chain pilot · 5 branches', shopId: null, ladder: 'retail', plan: 'enterprise', modules: ['M05', 'M19', 'G3'], price: 66000, cycle: 'Yearly', note: 'Template for chains with five or more branches.', status: 'draft', by: 'Tania Sultana', at: now - 12 * DAY, assignedAt: null, itemId: null },
+      { id: 'CP-001', name: 'Mohona trade bundle', shopId: '0012', ladder: 'retail-online', plan: 'business', modules: ['M05', 'M19', 'G3', 'G5'], price: 6500, cycle: 'Monthly', note: 'Two-year deal signed at the Dhaka trade fair.', status: 'assigned', by: 'Mahin Khan', at: addMonths(m0, -4, 6), assignedAt: addMonths(m0, -4, 8), itemId: null },
+      { id: 'CP-002', name: 'Dhaka Gadget Hub · shop and web', shopId: '0031', ladder: 'retail', plan: 'growth', modules: ['M05', 'M19', 'G5'], price: 4500, cycle: 'Monthly', note: 'Owner wants the warehouse and payroll together; offer before the warehouse trial ends.', status: 'draft', by: 'Farhana Akter', at: now - 3 * DAY, assignedAt: null, itemId: null },
+      { id: 'CP-003', name: 'Chain pilot · 5 branches', shopId: null, ladder: 'retail', plan: 'business', modules: ['M05', 'M19', 'G5'], price: 66000, cycle: 'Yearly', note: 'Template for chains with five or more branches.', status: 'draft', by: 'Tania Sultana', at: now - 12 * DAY, assignedAt: null, itemId: null },
     ],
-    seq: { cp: 4, mp: 4, cv: 2 },
+    seq: { cp: 4, mp: 4 },
   };
 }
 
-export const pk = createStore({ key: 'packages', version: 1, seed });
+// version 2: the Connect family is an edition like the others; plans are Starter, Growth and Business
+export const pk = createStore({ key: 'packages', version: 2, seed });
 
 const me = () => staff();
 const pad3 = (n) => String(n).padStart(3, '0');
 const canEditCatalogue = (s) => can(s, 'packaging', 'edit');
 
 // ---- plan ladders (platform) ----------------------------------------------------------------------------------------
-/** The live version of a ladder (platform) or of the Connect family (this store) at time t. */
-export function liveOf(db, data, family, t) {
-  if (family === COMMS) return commsLive(data, t);
+/** The live version of an edition's plans at time t. */
+export function liveOf(db, data, family) {
   const l = db.plans[family];
   return l.versions.find((v) => v.v === l.live) || l.versions[l.versions.length - 1];
-}
-export function commsLive(data, t) {
-  const c = data.comms;
-  const due = c.versions.filter((v) => v.liveFrom <= t).sort((a, b) => b.v - a.v)[0];
-  return due || c.versions.find((v) => v.v === c.live) || c.versions[0];
 }
 /** Every version of a family, newest first, with its state (Live · Scheduled · Earlier). */
 export function versionsOf(db, data, family, t) {
   const live = liveOf(db, data, family, t);
-  const list = family === COMMS ? data.comms.versions : db.plans[family].versions;
-  return list.slice().sort((a, b) => b.v - a.v).map((v) => ({ ...v, state: v.v === live.v ? 'Live' : v.liveFrom > t ? 'Scheduled' : 'Earlier' }));
+  return db.plans[family].versions.slice().sort((a, b) => b.v - a.v).map((v) => ({ ...v, state: v.v === live.v ? 'Live' : v.liveFrom > t ? 'Scheduled' : 'Earlier' }));
 }
 /** Drafts of a family (not approved yet, or decided), newest first. */
 export function draftsOf(db, data, family) {
-  const list = family === COMMS ? data.commsDrafts : db.planDrafts.filter((d) => d.ladder === family);
-  return list.slice().sort((a, b) => (b.sentAt || b.at || 0) - (a.sentAt || a.at || 0));
+  return db.planDrafts.filter((d) => d.ladder === family).sort((a, b) => (b.sentAt || b.at || 0) - (a.sentAt || a.at || 0));
 }
 /** Every draft waiting for a second person, all families. */
-export function pendingDrafts(db, data) {
-  return [...db.planDrafts, ...data.commsDrafts].filter((d) => d.status === 'pending').sort((a, b) => (a.sentAt || 0) - (b.sentAt || 0));
+export function pendingDrafts(db) {
+  return db.planDrafts.filter((d) => d.status === 'pending').sort((a, b) => (a.sentAt || 0) - (b.sentAt || 0));
 }
 
 /** Stores on one plan: live stores, paying, on trial, still on an older version, and the plan's monthly revenue. */
 export function planStats(db, t, family, plan) {
   const out = { stores: 0, paying: 0, trial: 0, older: 0, mrr: 0 };
-  if (family === COMMS) return out;   // no store is on a Connect plan yet
   const live = db.plans[family].live;
   for (const shop of db.shops) {
     const sub = subOf(db, shop.id);
@@ -157,16 +102,18 @@ export function planStats(db, t, family, plan) {
     out.stores++;
     if (st.key === 'trial') out.trial++;
     if (sub.version !== live) out.older++;
-    if (isPaying(st)) { out.paying++; out.mrr += priceOf(db, sub, { kind: 'plan', code: sub.plan }); }
+    if (isPaying(st)) { out.paying++; out.mrr += monthlyOf(db, sub, { kind: 'plan', code: sub.plan }); }
   }
   return out;
 }
 
-/** What a set does in a plan: 'Included' · 'Locked · upgrade' · 'Add-on' · 'Hidden'. */
+/** What a set does in a plan: 'Included' · 'Locked · upgrade' · 'Add-on' · 'Hidden'. A module the edition does not
+ *  use is always Hidden. */
 export function setRuleOf(planDef, setId, ladder) {
-  if (setId === 'platform' || setId === 'everyday') return 'Included';
-  if (setId === 'online' || setId === 'retail' || setId === 'wholesale') return setId === ladder ? 'Included' : (planDef.sets[setId] || 'Hidden');
-  return planDef.sets[setId] || (setId === 'service' ? 'Add-on' : 'Hidden');
+  if (setId === 'platform') return 'Included';
+  const set = SETS.find((s) => s.id === setId);
+  if (set && set.product && ladder && !inEdition(ladder, setId)) return 'Hidden';
+  return planDef.sets[setId] || (setId === 'service' || setId === 'credits' ? 'Add-on' : 'Hidden');
 }
 export const RULE_TONE = { Included: 'success', 'Locked · upgrade': 'warning', 'Add-on': 'primary', Hidden: 'neutral' };
 
@@ -246,99 +193,10 @@ export function setTrialPackage(family, f, reason) {
   });
 }
 
-// ---- Connect plan versions ------------------------------------------------------------------------------------------
-export function commsDraftFor(data, plan, t) {
-  const live = commsLive(data, t);
-  const p = live.plans[plan];
-  const next = Math.max(...data.comms.versions.map((v) => v.v), ...data.commsDrafts.map((d) => d.v)) + 1;
-  return {
-    id: null, ladder: COMMS, plan, baseV: live.v, v: next, status: 'new',
-    name: p.name, tagline: p.tagline, visibility: p.visibility || 'Public', price: p.price, yearly: p.yearly, setup: p.setup, trialDays: p.trialDays,
-    modules: [...p.modules], limits: { ...p.limits }, existing: 'keep', liveFrom: null, approver: APPROVERS[0], why: '',
-  };
-}
-const limitText = (k, x) => (x >= UNLIMITED ? 'unlimited' : num(x));
-/** What changed between two Connect plans: + added, ~ changed, − removed. */
-export function commsDiff(a, b) {
-  const out = [];
-  for (const c of b.modules) if (!a.modules.includes(c)) out.push(['+', `${(moduleBy(c) || {}).name || c} included`]);
-  for (const c of a.modules) if (!b.modules.includes(c)) out.push(['−', `${(moduleBy(c) || {}).name || c} removed`]);
-  for (const [k, label] of COMMS_LIMITS) if (a.limits[k] !== b.limits[k]) out.push(['~', `${label} ${limitText(k, a.limits[k])} → ${limitText(k, b.limits[k])}`]);
-  if (a.price !== b.price) out.push(['~', `Monthly ${taka(a.price)} → ${taka(b.price)}`]);
-  if (a.yearly !== b.yearly) out.push(['~', `Yearly ${taka(a.yearly)} → ${taka(b.yearly)}`]);
-  if (a.setup !== b.setup) out.push(['~', `Setup fee ${taka(a.setup)} → ${taka(b.setup)}`]);
-  if (a.trialDays !== b.trialDays) out.push(['~', `Trial ${a.trialDays} → ${b.trialDays} days`]);
-  if (a.name !== b.name) out.push(['~', `Name ${a.name} → ${b.name}`]);
-  return out;
-}
-const FIELDS = ['name', 'tagline', 'visibility', 'price', 'yearly', 'setup', 'trialDays', 'modules', 'limits', 'existing', 'liveFrom', 'approver', 'why'];
-export function saveCommsDraft(fields) {
-  return pk.commit((data, t) => {
-    let d = fields.id ? data.commsDrafts.find((x) => x.id === fields.id) : null;
-    if (d && d.status !== 'draft' && d.status !== 'rejected') return { ok: false, error: 'This draft is already sent for approval.' };
-    const pick = {};
-    for (const k of FIELDS) if (fields[k] !== undefined) pick[k] = Array.isArray(fields[k]) ? [...fields[k]] : (fields[k] && typeof fields[k] === 'object' ? { ...fields[k] } : fields[k]);
-    if (!d) {
-      d = { id: 'CV-' + pad3(data.seq.cv++), ladder: COMMS, plan: fields.plan, baseV: fields.baseV, v: fields.v, ...pick, by: me().name, at: t, status: 'draft' };
-      data.commsDrafts.push(d);
-    } else Object.assign(d, pick, { status: 'draft' });
-    return { ok: true, draft: d };
-  });
-}
-/** The checks plans.js › draftErrors makes, for a Connect plan (plus at least one module). */
-export function commsDraftErrors(d) {
-  const e = {};
-  if (!String(d.name || '').trim()) e.name = 'Name the plan.';
-  if (!(d.price > 0)) e.price = 'Enter the monthly price.';
-  if (d.yearly && d.yearly >= d.price * 12) e.yearly = `Yearly must be lower than 12 × monthly (${taka(d.price * 12)}). Try ${taka(Math.round((d.price * 10) / 1000) * 1000)}.`;
-  if (!(d.modules || []).length) e.modules = 'Include at least one module.';
-  if (!String(d.why || '').trim()) e.why = 'Say why this change is made.';
-  if (d.existing === 'now' && d.basePrice != null && d.price > d.basePrice) e.existing = 'Moving stores now is only for price cuts.';
-  return e;
-}
-export function submitCommsDraft(fields) {
-  const r = saveCommsDraft(fields);
-  if (!r.ok) return r;
-  return pk.commit((data, t) => {
-    const d = data.commsDrafts.find((x) => x.id === r.draft.id);
-    const base = data.comms.versions.find((v) => v.v === d.baseV).plans[d.plan];
-    const errs = commsDraftErrors({ ...d, basePrice: base.price });
-    if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0], errors: errs, draft: d };
-    if (d.approver === d.by) return { ok: false, error: 'Pick someone else as the second approver.' };
-    d.status = 'pending';
-    d.sentAt = t;
-    return { ok: true, draft: d };
-  });
-}
-/** Approve (a new version, live on its date) or reject a Connect draft. Never by the person who drafted it. */
-export function decideCommsDraft(id, decision, note = '') {
-  const s = me();
-  return pk.commit((data, t) => {
-    const d = data.commsDrafts.find((x) => x.id === id);
-    if (!d || d.status !== 'pending') return { ok: false, error: 'This draft is not waiting for approval.' };
-    if (d.by === s.name) return { ok: false, error: 'You drafted this, so you cannot approve it.' };
-    if (!can(s, 'billing', 'approve') && s.role !== 'admin') return { ok: false, error: 'Only Finance or an Admin can approve a plan version.' };
-    if (decision === 'reject') {
-      if (!String(note).trim()) return { ok: false, error: 'Say why it is rejected.' };
-      Object.assign(d, { status: 'rejected', decidedBy: s.name, decidedAt: t, decisionNote: note });
-      return { ok: true, draft: d };
-    }
-    const base = commsLive(data, t);
-    const plans = JSON.parse(JSON.stringify(base.plans));
-    plans[d.plan] = { ...plans[d.plan], name: d.name, tagline: d.tagline, visibility: d.visibility, price: d.price, yearly: d.yearly, setup: d.setup, trialDays: d.trialDays, modules: [...d.modules], limits: { ...d.limits } };
-    const v = Math.max(...data.comms.versions.map((x) => x.v)) + 1;
-    const liveFrom = d.liveFrom && d.liveFrom > t ? d.liveFrom : t;
-    data.comms.versions.push({ v, liveFrom, plans, by: d.by, approvedBy: s.name, note: d.why });
-    if (liveFrom <= t) data.comms.live = v;
-    Object.assign(d, { status: 'approved', decidedBy: s.name, decidedAt: t, v, liveFrom });
-    return { ok: true, draft: d, version: v };
-  });
-}
-
 // ---- modules ------------------------------------------------------------------------------------------------------
-const setLabel = (id) => (SETS.find((s) => s.id === id) || {}).label || id;
+const setLabel = setLabelOf;
 
-/** Per plan: what a module gets (each ladder × plan, then the Connect plans). */
+/** Per plan: what a module gets (each edition × plan). */
 export function moduleAccess(db, data, code, t) {
   const m = moduleBy(code);
   if (!m) return [];
@@ -347,26 +205,22 @@ export function moduleAccess(db, data, code, t) {
     const live = liveOf(db, data, l.id, t);
     for (const p of PLAN_IDS) rows.push({ family: l.id, familyLabel: l.label, plan: p, planName: PLAN_NAME[p], rule: setRuleOf(live.plans[p], m.set, l.id) });
   }
-  const cl = commsLive(data, t);
-  for (const p of COMMS_PLANS) rows.push({ family: COMMS, familyLabel: 'Connect', plan: p, planName: COMMS_NAME[p], rule: m.set === 'platform' ? 'Included' : cl.plans[p].modules.includes(code) ? 'Included' : 'Hidden' });
   return rows;
 }
-/** "Every plan" · "Online · every plan" · "Business, Enterprise" · "Connect Growth, Pro" · "No plan". */
+/** "Every plan" · "Online · every plan" · "Growth, Business" · "Retail Growth, Connect Business" · "No plan". */
 export function plansText(access) {
   const inc = access.filter((a) => a.rule === 'Included');
-  const ladders = inc.filter((a) => a.family !== COMMS);
-  const comms = inc.filter((a) => a.family === COMMS);
   const parts = [];
-  if (ladders.length === LADDERS.length * PLAN_IDS.length) parts.push('Every plan');
-  else if (ladders.length) {
-    const fams = [...new Set(ladders.map((a) => a.family))];
-    const plans = [...new Set(ladders.map((a) => a.plan))];
-    const same = fams.every((f) => plans.every((p) => ladders.some((a) => a.family === f && a.plan === p)));
+  if (inc.length === LADDERS.length * PLAN_IDS.length) parts.push('Every plan');
+  else if (inc.length) {
+    const fams = [...new Set(inc.map((a) => a.family))];
+    const plans = [...new Set(inc.map((a) => a.plan))];
+    const same = fams.every((f) => plans.every((p) => inc.some((a) => a.family === f && a.plan === p)));
     if (same && plans.length === PLAN_IDS.length) parts.push(fams.map(ladderLabel).join(', ') + ' · every plan');
     else if (same && fams.length === LADDERS.length) parts.push(plans.map((p) => PLAN_NAME[p]).join(', '));
-    else parts.push(ladders.map((a) => `${a.familyLabel} ${a.planName}`).join(', '));
+    else if (same) parts.push(fams.map(ladderLabel).join(', ') + ' · ' + plans.map((p) => PLAN_NAME[p]).join(', '));
+    else parts.push(inc.map((a) => `${a.familyLabel} ${a.planName}`).join(', '));
   }
-  if (comms.length && ladders.length !== LADDERS.length * PLAN_IDS.length) parts.push(comms.length === COMMS_PLANS.length ? 'Connect' : 'Connect ' + comms.map((a) => a.planName.replace('Connect ', '')).join(', '));
   return parts.join(' · ') || 'No plan';
 }
 
@@ -423,9 +277,6 @@ export function simulate(db, data, t, shopId, code) {
     why.push(it ? `Billed as an add-on: ${it.name} at ${taka(it.price)} ${it.period === 'Once' ? 'once' : it.period.toLowerCase()}, since ${dmy(it.since)}.` : 'Billed separately on the store’s bill (bought before the add-on list).');
   } else if (row.state === 'in') {
     if (m.set === 'platform') why.push('Platform core: runs in every store.');
-    else if (m.set === 'everyday') why.push('Everyday core: in every plan of every package.');
-    else if (m.set === sub.ladder) why.push(`The ${setLabel(m.set)} comes with every ${ladderLabel(sub.ladder)} plan.`);
-    else if (['online', 'retail', 'wholesale'].includes(m.set)) why.push(`The store also sells ${ladderLabel(m.set)}, so the ${setLabel(m.set)} is on.`);
     else why.push(`Included in ${pkg}: ${setLabel(m.set)} is “Included”.`);
   } else if (row.state === 'locked') {
     const up = PLAN_IDS.find((p) => setRuleOf(db.plans[sub.ladder].versions.find((v) => v.v === db.plans[sub.ladder].live).plans[p], m.set, sub.ladder) === 'Included');
@@ -433,7 +284,7 @@ export function simulate(db, data, t, shopId, code) {
     why.push(`Locked on ${pkg}: ${setLabel(m.set)} is “${rule}”.`);
     why.push([up ? `Upgrade to ${PLAN_NAME[up]}` : null, price ? `buy it as an add-on for ${taka(price.price)} a month` : null, trialRule(data, code).offered ? 'or start a trial' : null].filter(Boolean).join(', ') + '.');
   } else {
-    if (['online', 'retail', 'wholesale'].includes(m.set)) why.push(`Not in this store’s segment (${ladderLabel(sub.ladder)}).${m.set === 'online' && trialRule(data, 'ONLINE').offered ? ' The Online set trial can switch it on.' : ''}`);
+    if (SETS.some((x) => x.id === m.set && x.product) && !inEdition(sub.ladder, m.set)) why.push(`Not in the ${ladderLabel(sub.ladder)} edition.${m.set === 'online' && trialRule(data, 'ONLINE').offered ? ' The Online selling trial can switch it on.' : ''}`);
     else why.push(`Not bought${addonPrice(data, code, t) ? ` · one-off service at ${taka(addonPrice(data, code, t).price)}` : ''}.`);
   }
   const cp = data.custom.find((c) => c.shopId === shopId && c.status === 'assigned' && c.modules.includes(code));
@@ -452,8 +303,7 @@ export function listPriceOf(db, data, cp, t) {
   for (const code of cp.modules) {
     const m = moduleBy(code);
     if (!m) continue;
-    if (cp.ladder !== COMMS && setRuleOf(p, m.set, cp.ladder) === 'Included') continue;
-    if (cp.ladder === COMMS && p.modules.includes(code)) continue;
+    if (setRuleOf(p, m.set, cp.ladder) === 'Included') continue;
     const a = addonPrice(data, code, t);
     if (a && a.period !== 'Once') total += a.price;
   }
@@ -527,9 +377,9 @@ export function packageFacts(db, data, t) {
     if (!sub) continue;
     const st = subState(db, shop.id, t);
     if (st.key === 'trial') trial++;
-    if (isPaying(st)) { paying++; mrr += priceOf(db, sub, { kind: 'plan', code: sub.plan }); }
+    if (isPaying(st)) { paying++; mrr += monthlyOf(db, sub, { kind: 'plan', code: sub.plan }); }
   }
-  return { paying, trial, mrr, pending: pendingDrafts(db, data).length, custom: data.custom.filter((c) => c.status === 'assigned').length };
+  return { paying, trial, mrr, pending: pendingDrafts(db).length, custom: data.custom.filter((c) => c.status === 'assigned').length };
 }
 /** Stores billed for an add-on now, and what it brings in a month. */
 export function addonStats(db, t, code) {

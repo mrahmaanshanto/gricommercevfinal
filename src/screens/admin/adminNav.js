@@ -55,6 +55,12 @@ export const AREAS = [
     P('mai-plans', 'AI plans & limits', '/admin/merchant-ai/plans', 6, 'adapt', '/ai-models', { built: true }),
     P('mai-models', 'Models & cost', '/admin/merchant-ai/models', 6, 'adapt', '/ai-models', { built: true }),
   ] },
+  // Business email stores buy (Module D, lib/platform/mail.js): every domain and mailbox, prices and provider, abuse
+  { id: 'area-email', layer: 'platform', label: 'Business email', icon: 'mail', pages: [
+    P('mail-directory', 'Directory', '/admin/email', 7, 'new', '', { built: true }),
+    P('mail-plans', 'Plans & provider', '/admin/email/plans', 7, 'new', '', { built: true }),
+    P('mail-abuse', 'Abuse & limits', '/admin/email/abuse', 7, 'new', '', { built: true }),
+  ] },
   { id: 'area-ops', layer: 'platform', label: 'Platform ops', icon: 'server', pages: [
     P('servers', 'Servers', '/admin/servers', 13, 'new', '', { built: true }),
     P('apis', 'APIs', '/admin/apis', 13, 'new', '', { built: true }),
@@ -84,6 +90,13 @@ export const AREAS = [
   { id: 'area-support', layer: 'company', label: 'Support', icon: 'life-buoy', pages: [
     P('tickets', 'Tickets', '/admin/tickets', 6, 'adapt', '/support-tickets', { built: true }),
     P('support-performance', 'Performance', '/admin/support-performance', 6, 'new', '', { built: true }),
+  ] },
+  // Services merchants buy (Module B): orders with deadlines and quality checks, the catalogue, experts and reports
+  { id: 'area-services', layer: 'company', label: 'Services', icon: 'briefcase-business', pages: [
+    P('svc-orders', 'Orders', '/admin/services', 7, 'new', '', { built: true }),
+    P('svc-catalogue', 'Catalogue', '/admin/services/catalogue', 7, 'new', '', { built: true }),
+    P('svc-experts', 'Experts', '/admin/services/experts', 7, 'new', '', { built: true }),
+    P('svc-reports', 'Reports', '/admin/services/reports', 7, 'new', '', { built: true }),
   ] },
   { id: 'area-gridai', layer: 'company', label: 'GridAI', icon: 'sparkles', pages: [
     P('ai-training', 'Training', '/admin/gridai', 6, 'reuse', '/ai-knowledge', { built: true }),
@@ -153,6 +166,8 @@ export const areaOf = (pageId) => AREAS.find((a) => a.pages.some((p) => p.id ===
 export const RECORDS = [
   { id: 'merchant', label: 'Merchant profile', href: '/admin/merchant', phase: 2, how: 'new', from: '', area: 'area-merchants', under: 'merchants', built: true },
   { id: 'merchant-new', label: 'New merchant', href: '/admin/merchants/new', phase: 2, how: 'new', from: '', area: 'area-merchants', under: 'merchants', built: true },
+  { id: 'svc-order', label: 'Service order', href: '/admin/service-order', phase: 7, how: 'new', from: '', area: 'area-services', under: 'svc-orders', built: true },
+  { id: 'svc-edit', label: 'Edit service', href: '/admin/service-edit', phase: 7, how: 'new', from: '', area: 'area-services', under: 'svc-catalogue', built: true },
 ];
 export const ALIAS = Object.fromEntries(RECORDS.map((r) => [r.id, r.under]));
 

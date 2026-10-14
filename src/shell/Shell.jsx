@@ -83,9 +83,7 @@ const POS_SCREENS = [
 const SETTINGS_SCREENS = [
   ['01', 'General', 'SetGeneral.dc.html'], ['04', 'Media', 'SetMedia.dc.html'],
   ['05', 'Preference', 'SetPreference.dc.html'], ['06', 'Payments', 'SetPayments.dc.html'],
-  ['07', 'Delivery', 'SetDelivery.dc.html'], ['08', 'AI reply', 'SetAi.dc.html'],
-  ['09', 'AI usage', 'SetUsage.dc.html'], ['10', 'Rules', 'SetRules.dc.html'],
-  ['11', 'SEO', 'SetSeo.dc.html'], ['12', 'Storage', 'SetStorage.dc.html'],
+  ['07', 'Delivery', 'SetDelivery.dc.html'], ['11', 'SEO', 'SetSeo.dc.html'],
   ['13', 'Keys / backups', 'SetSecurity.dc.html'], ['··', 'All settings', 'SettingsConsole.dc.html'],
 ];
 

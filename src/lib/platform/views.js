@@ -7,7 +7,7 @@
 //   collections · invoices · subscriptions · adjustments · provisioning · plans
 
 import { DAY, rng, hash, daysBetween, startOfDay, startOfMonth, addMonths, periodOf, monthOf, monthLong, dm, dmy, hm, ago, ahead, taka, num, spark, initials, lastSeen, dur, dayOfMonth, at } from './util';
-import { PLAN_NAME, ladderLabel, staffIni, staffColor, STAGES, SETS, LIMIT_KEYS, UNLIMITED, REASON_LABEL, GRACE_DAYS, READONLY_DAYS } from './catalogue';
+import { PLAN_NAME, PLAN_IDS, LADDER_IDS, inEdition, ladderLabel, staffIni, staffColor, STAGES, SETS, LIMIT_KEYS, UNLIMITED, REASON_LABEL, GRACE_DAYS, READONLY_DAYS } from './catalogue';
 import {
   shopOf, subOf, subState, isPaying, isLiveStore, mrrOf, planOf, balance, invoiceState, openInvoices, paidOn, creditOn,
   lastPayment, paidVia, billItems, priceOf, itemName, outcomeLabel, dayName,
@@ -456,9 +456,9 @@ export function plans(db, t, ladderId) {
   const counts = {};
   for (const s of subs) counts[s.plan] = (counts[s.plan] || 0) + 1;
   const older = subs.filter((s) => s.version < ladder.live).length;
-  const tabs = ['online', 'retail', 'wholesale'].map((id) => ({ id, label: ladderLabel(id) + ' ladder', n: Object.values(db.subs).filter((s) => s.ladder === id && isLiveStore(subState(db, s.shopId, t))).length }));
-  const setRows = SETS.filter((s) => !['service'].includes(s.id) && (!s.ladder || s.ladder === ladderId)).map((s) => ({ id: s.id, label: s.label, cells: ['growth', 'business', 'enterprise'].map((p) => live.plans[p].sets[s.id] || (s.id === 'credits' ? 'Add-on' : 'Included')) }));
-  const limitRows = LIMIT_KEYS.slice(0, 6).map(([k, label]) => ({ k, label, cells: ['growth', 'business', 'enterprise'].map((p) => { const v = live.plans[p].limits[k]; return v >= UNLIMITED ? 'Unlimited' : k === 'storage' ? v + ' GB' : num(v); }) }));
+  const tabs = LADDER_IDS.map((id) => ({ id, label: ladderLabel(id), n: Object.values(db.subs).filter((s) => s.ladder === id && isLiveStore(subState(db, s.shopId, t))).length }));
+  const setRows = SETS.filter((s) => s.id !== 'service' && (!s.product || inEdition(ladderId, s.id))).map((s) => ({ id: s.id, label: s.label, cells: PLAN_IDS.map((p) => live.plans[p].sets[s.id] || (s.id === 'credits' ? 'Add-on' : 'Included')) }));
+  const limitRows = LIMIT_KEYS.slice(0, 6).map(([k, label]) => ({ k, label, cells: PLAN_IDS.map((p) => { const v = live.plans[p].limits[k]; return v >= UNLIMITED ? 'Unlimited' : k === 'storage' ? v + ' GB' : num(v); }) }));
   const drafts = db.planDrafts.filter((d) => d.ladder === ladderId && d.status !== 'approved');
   return { ladder, live, counts, older, tabs, setRows, limitRows, drafts, liveFrom: dmy(live.liveFrom) };
 }

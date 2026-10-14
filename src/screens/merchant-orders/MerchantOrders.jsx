@@ -7,6 +7,8 @@
 // Brief #4 additions: the views Payment to review (paymentProof.js) and Completed (orderRules.js › completionOf), the
 // shop's own sub-statuses as a badge and a filter (orderRules.js), and bulk Send to courier / Print labels running in
 // the background with a progress strip and per-order results (orderJobs.js, OrderJobs.jsx).
+// Date filter (Today, Yesterday, Last 7 days, This month, custom dates) and sort (newest, oldest, total high / low,
+// oldest unconfirmed first) are kept in the address like the other filters (?date=&from=&to=&sort=).
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -18,11 +20,11 @@ import { navigate } from '@/runtime/routes';
 import { formatBDT } from '@/lib/format';
 import { Dialog as __Dialog, EmptyState as __EmptyState, StatusBadge as __StatusBadge } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, Pager, LearnMore, Menu } from '@/components/ui/IndexKit';
-import { ORDER_STATUSES, ORDER_TOTAL, orderStatus, ORDER_TABS, tabKeys } from '@/lib/orderStatus';
+import { ORDER_STATUSES, ORDER_TOTAL, orderStatus, ORDER_TABS, tabKeys, NEW_KEYS } from '@/lib/orderStatus';
 import { getStockPlaces, onlinePlace } from '@/lib/locations';
 import { holdsFor } from '@/lib/stockHolds';
 import { demoOrders, getOrders, duplicatesOf, orderHref, invoiceHref, availability, approveOrder, cancelOrder, heldText, CAN_APPROVE, CAN_CANCEL, DEFAULT_HOLD_PLACE } from '@/lib/orders';
-import { syncCourier } from '@/lib/orderFlow';
+import { syncCourier, verifyOf } from '@/lib/orderFlow';
 import { holdsStock, wholesaleOn, hasModule } from '@/lib/edition';
 import { orderStates } from '@/lib/orderStates';
 import { getOrderRules, customStatusOf, completionOf } from '@/lib/orderRules';
@@ -33,6 +35,8 @@ import { sendReceipt } from '@/lib/receipts';
 import { invoiceFromOrder } from '@/components/SaleInvoice';
 import { saleOfOrder } from '@/lib/customerWarranty';
 import { ModuleSetup } from '@/components/ModuleSetup';
+import { getDrafts, deleteDraft, draftItems, DRAFTS_EVENT } from '@/lib/orderDrafts';
+import { formatDate, formatTime } from '@/lib/format';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -43,7 +47,8 @@ const VIEWS = [{ key: 'review', label: 'Payment to review' }, { key: 'completed'
 const TABS = [{ key: 'all', label: 'All', count: ORDER_TOTAL }, ...ORDER_TABS, ...VIEWS];
 // Retail (no online module): every order is a counter sale, finished or on due, so the courier steps don't apply.
 const RETAIL_TABS = [{ key: 'all', label: 'All' }, { key: 'pending', label: 'Payment due' }, { key: 'delivered', label: 'Completed' }, orderStatus('cancelled'), orderStatus('returned')];
-const isView = (k) => VIEWS.some((v) => v.key === k);
+// Drafts (orderDrafts.js): orders saved half-made from Create order; a tab only while there are some.
+const isView = (k) => VIEWS.some((v) => v.key === k) || k === 'drafts';
 /** The worked-out facts the list filters on: proof to review, completed, sub-status (read in the browser only). */
 const annotate = (list) => { const rules = getOrderRules(); return list.map((o) => ({ ...o, toReview: !!proofToReview(o), done: completionOf(o, { rules }).done, sub2: customStatusOf(o, rules) })); };
 const PAYMENTS = {
@@ -53,6 +58,34 @@ const PAYMENTS = {
   COD: { tone: 'neutral', icon: 'banknote' }
 };
 const NO_EXTRA = { channel: '', assigned: '', minTotal: '' };
+// placed-date filter and sort (?date=&from=&to=&sort=)
+const DATES = [['', 'Any date'], ['today', 'Today'], ['yesterday', 'Yesterday'], ['7d', 'Last 7 days'], ['month', 'This month'], ['custom', 'Custom dates']];
+const SORTS = [['', 'Newest first'], ['oldest', 'Oldest first'], ['total-desc', 'Total: high to low'], ['total-asc', 'Total: low to high'], ['unconfirmed', 'Oldest unconfirmed']];
+const isDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || '');
+/** [from, to) in ms for a date filter, or null for any date. Today follows the browser's clock (read after mount). */
+function dateRange(key, from, to, now = Date.now()) {
+  const d = new Date(now); d.setHours(0, 0, 0, 0);
+  const day = (n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x.getTime(); };
+  if (key === 'today') return [day(0), Infinity];
+  if (key === 'yesterday') return [day(-1), day(0)];
+  if (key === '7d') return [day(-6), Infinity];
+  if (key === 'month') { const x = new Date(d); x.setDate(1); return [x.getTime(), Infinity]; }
+  if (key === 'custom') {
+    const end = isDay(to) ? new Date(to + 'T00:00:00') : null;
+    if (end) end.setDate(end.getDate() + 1);
+    return [isDay(from) ? new Date(from + 'T00:00:00').getTime() : -Infinity, end ? end.getTime() : Infinity];
+  }
+  return null;
+}
+/** Waiting for the confirmation call: a new order whose call hasn't confirmed it yet. */
+const unconfirmed = (o) => NEW_KEYS.includes(o.statusKey) && !/^(POS|Wholesale)/.test(o.channel) && !o.isInvoice && (verifyOf(o) || {}).state !== 'confirmed';
+const SORT_BY = {
+  '': (a, b) => (b.at || 0) - (a.at || 0),
+  oldest: (a, b) => (a.at || 0) - (b.at || 0),
+  'total-desc': (a, b) => (b.amount || 0) - (a.amount || 0) || (b.at || 0) - (a.at || 0),
+  'total-asc': (a, b) => (a.amount || 0) - (b.amount || 0) || (b.at || 0) - (a.at || 0),
+  unconfirmed: (a, b) => { const x = a._u ? 0 : 1, y = b._u ? 0 : 1; return x - y || (x === 0 ? (a.at || 0) - (b.at || 0) : (b.at || 0) - (a.at || 0)); },
+};
 // The orders come from src/lib/orders.js: the demo orders, orders made in this browser and the
 // demo wholesale invoices, with status changes kept in this browser applied.
 const DEMO_ORDERS = demoOrders();
@@ -60,7 +93,7 @@ const digits = (t) => String(t).replace(/[^0-9]/g, '');
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
 class Component extends DCLogic {
-  state = { online: true, all: DEMO_ORDERS, status: 'all', q: '', courier: '', payment: '', zone: '', sub: '', page: 1, sel: {}, find: false, filtersOpen: false, extra: NO_EXTRA, draft: NO_EXTRA, approve: null };
+  state = { online: true, all: DEMO_ORDERS, status: 'all', q: '', courier: '', payment: '', zone: '', sub: '', date: '', from: '', to: '', sort: '', page: 1, sel: {}, find: false, filtersOpen: false, extra: NO_EXTRA, draft: NO_EXTRA, approve: null, drafts: [] };
   componentDidMount() {
     this.paint();
     this.readUrl();
@@ -70,8 +103,17 @@ class Component extends DCLogic {
     this._onPop = () => this.readUrl();
     window.addEventListener('popstate', this._onPop);
     this._watch = setInterval(() => { if (window.location.search !== this._search) this.readUrl(); }, 400);
+    this._onDrafts = () => this.setState({ drafts: getDrafts() });
+    window.addEventListener(DRAFTS_EVENT, this._onDrafts);
   }
-  reload() { syncCourier(); this.setState({ ready: true, online: hasModule('online'), all: annotate(getOrders()), rules: getOrderRules() }); }
+  reload() { syncCourier(); this.setState({ ready: true, online: hasModule('online'), all: annotate(getOrders()), rules: getOrderRules(), drafts: getDrafts() }); }
+  async removeDraft(d) {
+    const ok = await confirmDialog({ title: 'Delete draft ' + d.id + '?', body: 'The products, customer and notes saved in it are lost.', confirmLabel: 'Delete draft', tone: 'danger' });
+    if (!ok) return;
+    deleteDraft(d.id);
+    this.setState({ drafts: getDrafts() });
+    toast('Draft ' + d.id + ' deleted');
+  }
   /** Selected orders split into the ones the action applies to and the ones it skips. */
   pick(allowed) {
     const chosen = this.filtered().filter(o => this.state.sel[o.id]);
@@ -138,6 +180,7 @@ class Component extends DCLogic {
   }
   componentWillUnmount() {
     window.removeEventListener('popstate', this._onPop);
+    window.removeEventListener(DRAFTS_EVENT, this._onDrafts);
     clearInterval(this._watch);
   }
   componentDidUpdate() { this.paint(); }
@@ -152,6 +195,8 @@ class Component extends DCLogic {
     this.setState({
       status: orderStatus(status) || isView(status) ? status : 'all',
       q: p.get('q') || '', courier: p.get('courier') || '', payment: p.get('payment') || '', zone: p.get('zone') || '', sub: p.get('sub') || '',
+      date: DATES.some((d) => d[0] && d[0] === p.get('date')) ? p.get('date') : '', from: isDay(p.get('from')) ? p.get('from') : '', to: isDay(p.get('to')) ? p.get('to') : '',
+      sort: SORTS.some((x) => x[0] && x[0] === p.get('sort')) ? p.get('sort') : '',
       page: Math.max(1, parseInt(p.get('page'), 10) || 1),
       // ?channel=pos is the sidebar's "POS / Retail orders" view
       extra: { ...this.state.extra, channel: ['pos', 'online', 'wholesale'].includes(p.get('channel')) ? p.get('channel') : '' }
@@ -166,6 +211,10 @@ class Component extends DCLogic {
     if (st.payment) p.set('payment', st.payment);
     if (st.zone) p.set('zone', st.zone);
     if (st.sub) p.set('sub', st.sub);
+    if (st.date) p.set('date', st.date);
+    if (st.date === 'custom' && st.from) p.set('from', st.from);
+    if (st.date === 'custom' && st.to) p.set('to', st.to);
+    if (st.sort) p.set('sort', st.sort);
     if (st.extra && st.extra.channel) p.set('channel', st.extra.channel);
     if (page > 1) p.set('page', String(page));
     const qs = p.toString();
@@ -182,12 +231,14 @@ class Component extends DCLogic {
     });
   }
   filtered() {
-    const { status, q, courier, payment, zone, sub, extra } = this.state;
+    const { status, q, courier, payment, zone, sub, extra, date, from, to, sort } = this.state;
+    if (status === 'drafts') return [];
     const needle = q.trim().toLowerCase();
     const needleDigits = digits(needle);
     const min = Number(extra.minTotal) || 0;
-    // orders made on the Create order page or sent in through an order link come first
-    return this.state.all.filter(o => {
+    const range = this.state.ready ? dateRange(date, from, to) : null;
+    const found = this.state.all.filter(o => {
+      if (range && !((o.at || 0) >= range[0] && (o.at || 0) < range[1])) return false;
       if (status === 'review' ? !o.toReview : status === 'completed' ? !o.done : status !== 'all' && !tabKeys(status).includes(o.statusKey)) return false;
       if (sub && !(o.sub2 && o.sub2.id === sub)) return false;
       if (courier && o.courier !== courier) return false;
@@ -204,6 +255,9 @@ class Component extends DCLogic {
       const text = [o.id, o.invoiceId, o.customer, o.phone, o.itemTitle, o.courier, o.consignment].join(' ').toLowerCase();
       return text.includes(needle) || (needleDigits.length > 2 && digits(o.id + ' ' + o.phone + ' ' + o.consignment).includes(needleDigits));
     });
+    // newest first unless another order is chosen (the unconfirmed check is worked out once per order)
+    if (sort === 'unconfirmed') return found.map(o => ({ o, _u: unconfirmed(o), at: o.at })).sort(SORT_BY.unconfirmed).map(x => x.o);
+    return found.slice().sort(SORT_BY[sort] || SORT_BY['']);
   }
   exportCsv(rows) {
     if (!rows.length) { toast('Nothing to export: no orders match these filters', { tone: 'info' }); return; }
@@ -230,7 +284,7 @@ class Component extends DCLogic {
     const selCount = found.filter(o => sel[o.id]).length;
     const pageAllChecked = rows.length > 0 && rows.every(o => sel[o.id]);
     const from = encodeURIComponent(this.listUrl(st, page));
-    const tabLabel = st.status === 'all' ? 'All orders' : isView(st.status) ? VIEWS.find(x => x.key === st.status).label : ((st.online && ORDER_TABS.find(x => x.key === st.status)) || orderStatus(st.status) || { label: 'Matching' }).label + ' orders';
+    const tabLabel = st.status === 'all' ? 'All orders' : st.status === 'drafts' ? 'Draft orders' : isView(st.status) ? VIEWS.find(x => x.key === st.status).label : ((st.online && ORDER_TABS.find(x => x.key === st.status)) || orderStatus(st.status) || { label: 'Matching' }).label + ' orders';
     // tab and card counts come from the orders themselves (channel view applied, search and filters not)
     const inView = st.all.filter(o => st.extra.channel === 'online' ? !/^(POS|Wholesale)/.test(o.channel) : st.extra.channel === 'pos' ? o.channel.startsWith('POS') : st.extra.channel === 'wholesale' ? o.channel.startsWith('Wholesale') : true);
     const counts = { all: inView.length };
@@ -239,9 +293,11 @@ class Component extends DCLogic {
     if (st.online) ORDER_TABS.forEach(t => { counts[t.key] = t.keys.reduce((n, k) => n + inView.filter(o => o.statusKey === k).length, 0); });
     counts.review = inView.filter(o => o.toReview).length;
     counts.completed = inView.filter(o => o.done).length;
+    counts.drafts = st.drafts.length;
+    const showDrafts = st.online && (st.drafts.length > 0 || st.status === 'drafts');
     const dayFrom = new Date(); dayFrom.setHours(0, 0, 0, 0);
     const extraCount = (st.extra.channel ? 1 : 0) + (st.extra.assigned ? 1 : 0) + (Number(st.extra.minTotal) > 0 ? 1 : 0);
-    const hasFilters = !!(st.q || st.courier || st.payment || st.zone || st.sub || extraCount);
+    const hasFilters = !!(st.q || st.courier || st.payment || st.zone || st.sub || st.date || extraCount);
     const setDraft = (k) => (e) => { const value = e.target.value; this.setState(s => ({ draft: { ...s.draft, [k]: value } })); };
     // bulk approve: one hold place for every selected Pending order, with free stock per product there
     let approveVals = null;
@@ -262,16 +318,24 @@ class Component extends DCLogic {
     }
     return {
       online: st.online, ready: !!st.ready,
-      tabs: (st.online ? TABS : RETAIL_TABS).map(t => ({ ...t, count: counts[t.key] || 0, id: 'orders-tab-' + t.key, on: st.status === t.key, onClick: () => this.view({ status: t.key }) })),
+      isDrafts: st.status === 'drafts',
+      drafts: st.drafts.map(d => ({
+        ...d, href: '/new-order?draft=' + encodeURIComponent(d.id),
+        who: d.customer ? d.customer.name : 'No customer yet', items: draftItems(d), totalText: formatBDT(d.total || 0),
+        saved: formatDate(d.savedAt) + ', ' + formatTime(d.savedAt),
+        onRowClick: (e) => { if (e.target.closest('a,button')) return; navigate('/new-order?draft=' + encodeURIComponent(d.id)); },
+        onDelete: () => this.removeDraft(d)
+      })),
+      tabs: (st.online ? TABS.concat(showDrafts ? [{ key: 'drafts', label: 'Drafts' }] : []) : RETAIL_TABS).map(t => ({ ...t, count: counts[t.key] || 0, id: 'orders-tab-' + t.key, on: st.status === t.key, onClick: () => this.view({ status: t.key }) })),
       tabLabel,
       kpiPending: counts.pending,
       pageTitle: { pos: 'Retail orders', online: 'Online orders', wholesale: 'Wholesale orders' }[st.extra.channel] || 'Orders',
       newOrderHref: !st.online || st.extra.channel === 'pos' || st.extra.channel === 'wholesale' ? '/pos' : '/new-order',
       sparkOrders: Array.from({ length: 7 }, (_, i) => { const a = dayFrom.getTime() - (6 - i) * 864e5; return inView.filter(o => (o.at || 0) >= a && (o.at || 0) < a + 864e5).length; }),
       sparkValue: Array.from({ length: 7 }, (_, i) => { const a = dayFrom.getTime() - (6 - i) * 864e5; return inView.filter(o => (o.at || 0) >= a && (o.at || 0) < a + 864e5).reduce((n, o) => n + (o.amount || 0), 0); }),
-      find: !!(st.find || st.q || st.courier || st.payment || st.zone || st.sub || extraCount),
+      find: !!(st.find || st.q || st.courier || st.payment || st.zone || st.sub || st.date || extraCount),
       openFind: () => this.setState({ find: true }),
-      closeFind: () => { this.setState({ find: false, extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '', sub: '' }); },
+      closeFind: () => { this.setState({ find: false, extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '', sub: '', date: '', from: '', to: '' }); },
       kpiToday: inView.filter(o => (o.at || 0) >= dayFrom.getTime()).length,
       kpiTodayValue: formatBDT(inView.filter(o => (o.at || 0) >= dayFrom.getTime()).reduce((a, o) => a + (o.amount || 0), 0)),
       kpiCod: formatBDT(inView.filter(o => o.payment === 'COD' && ['approved', 'ready', 'shipped'].includes(o.statusKey)).reduce((a, o) => a + (o.amount || 0), 0)),
@@ -281,7 +345,12 @@ class Component extends DCLogic {
       kpiDue: formatBDT(inView.filter(o => o.statusKey === 'pending').reduce((a, o) => a + Math.max(0, (o.amount || 0) - (o.paid || 0)), 0)),
       kpiDueCount: counts.pending,
       total: counts.all,
-      q: st.q, courier: st.courier, payment: st.payment, zone: st.zone, sub: st.sub,
+      q: st.q, courier: st.courier, payment: st.payment, zone: st.zone, sub: st.sub, date: st.date, from: st.from, to: st.to, sort: st.sort,
+      onDate: (e) => this.view({ date: e.target.value, ...(e.target.value === 'custom' ? {} : { from: '', to: '' }) }),
+      onFrom: (e) => this.view({ from: e.target.value }),
+      onTo: (e) => this.view({ to: e.target.value }),
+      onSort: (e) => this.view({ sort: e.target.value }),
+      sortLabel: (SORTS.find((x) => x[0] === st.sort) || SORTS[0])[1],
       subs: (st.rules || { custom: [] }).custom.map(c => ({ ...c, base: (orderStatus(c.base) || {}).label || c.base })),
       onSub: (e) => this.view({ sub: e.target.value }),
       reload: () => this.reload(),
@@ -301,8 +370,8 @@ class Component extends DCLogic {
       empty: found.length === 0,
       emptyTitle: st.q.trim() ? 'No orders match “' + st.q.trim() + '”' : 'No demo orders match these filters',
       emptyBody: 'The demo carries ' + st.all.length + ' orders. ' + (hasFilters ? 'Clear the search and filters to see the ones in this tab.' : 'Pick another status tab.'),
-      hasFilters, filterCount: (st.courier ? 1 : 0) + (st.payment ? 1 : 0) + (st.zone ? 1 : 0) + (st.sub ? 1 : 0) + extraCount,
-      clearFilters: () => { this.setState({ extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '', sub: '' }); },
+      hasFilters, filterCount: (st.courier ? 1 : 0) + (st.payment ? 1 : 0) + (st.zone ? 1 : 0) + (st.sub ? 1 : 0) + (st.date ? 1 : 0) + extraCount,
+      clearFilters: () => { this.setState({ extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '', sub: '', date: '', from: '', to: '' }); },
       caption: tabLabel + ', page ' + page + ' of ' + pages + ', ' + found.length + ' demo orders',
       countLabel: found.length === 0 ? 'No orders to show'
         : 'Showing ' + (first + 1) + '–' + (first + rows.length) + ' of ' + found.length + (found.length === 1 ? ' demo order' : ' demo orders'),
@@ -359,6 +428,11 @@ const CSS = `
 .mo-today{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);white-space:nowrap}
 .mo-today svg{color:var(--text-muted)}
 .mo-badges{display:inline-flex;flex-wrap:wrap;gap:4px}
+.mo-sort{position:relative}
+.mo-sort select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font:inherit}
+.mo-sort.is-set{color:var(--primary);border-color:var(--primary);background:var(--fill-primary-soft)}
+.mo-sort:focus-within{outline:2px solid var(--primary);outline-offset:2px}
+.mo-day{background-image:none;padding-right:10px}
 `;
 
 // ---- markup ----
@@ -386,7 +460,7 @@ export default class MerchantOrdersScreen extends Component {
                 <ShopHeader icon="inbox" title={v.pageTitle}
                   about="Every order in one list: online, counter and wholesale. Open an order to verify, approve, pack and send it."
                   secondary={[{ label: 'Export', onClick: v.exportCsv }]}
-                  more={!v.online ? [{ label: 'Return history', href: '/return-history' }] : [{ label: 'Order work', href: '/order-work' }, ...(wholesaleOn() ? [{ label: 'Quotes', href: '/order-work?q=quotes' }] : []), { label: 'Courier returns', href: '/courier-returns' }, ...(wholesaleOn() ? [{ label: 'Wholesale orders', href: '/wholesale-orders' }] : []), { label: 'Order settings', href: '/order-settings' }, { label: 'Order notifications', href: '/set-notifications' }]}
+                  more={!v.online ? [{ label: 'Quotes', href: '/quotes' }, { label: 'Return history', href: '/return-history' }] : [{ label: 'Order work', href: '/order-work' }, { label: 'Quotes', href: '/quotes' }, { label: 'Courier returns', href: '/courier-returns' }, ...(wholesaleOn() ? [{ label: 'Wholesale orders', href: '/wholesale-orders' }] : []), { label: 'Order settings', href: '/order-settings' }, { label: 'Order notifications', href: '/set-notifications' }]}
                   primary={{ label: 'Create order', href: v.newOrderHref }} />
 
                 <ModuleSetup area="area-orders" />
@@ -422,12 +496,23 @@ export default class MerchantOrdersScreen extends Component {
                         <IndexTabs tabs={v.tabs.map((t) => ({ ...t, onClick: t.onClick }))} label="Order status" />
                         <span className="ix-tools">
                           <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={v.openFind}><__Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+                          {v.isDrafts ? null : <span className={'ix-btn ix-btn--sm ix-btn--icon mo-sort' + (v.sort ? ' is-set' : '')} title={'Sort: ' + v.sortLabel}>
+                            <__Icon name="arrow-up-down" width="16" height="16" aria-hidden="true" />
+                            <select aria-label="Sort orders" value={v.sort} onChange={v.onSort}>{SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+                          </span>}
                         </span>
                       </>)}
                     </div>
                   )}
                   {v.find && !v.hasSelection ? (
                     <div className="ix-filters" role="group" aria-label="Filters">
+                      <select aria-label="Date placed" className={'ix-filter' + (v.date ? ' is-set' : '')} value={v.date} onChange={v.onDate}>
+                        {DATES.map(([k, l]) => <option key={k} value={k}>{k ? l : 'Date'}</option>)}
+                      </select>
+                      {v.date === 'custom' ? (<>
+                        <input type="date" aria-label="From" className={'ix-filter mo-day' + (v.from ? ' is-set' : '')} value={v.from} max={v.to || undefined} onChange={v.onFrom} />
+                        <input type="date" aria-label="To" className={'ix-filter mo-day' + (v.to ? ' is-set' : '')} value={v.to} min={v.from || undefined} onChange={v.onTo} />
+                      </>) : null}
                       {v.online ? <select aria-label="Courier" className={'ix-filter' + (v.courier ? ' is-set' : '')} value={v.courier} onChange={v.onCourier}>
                         <option value="">Courier</option><option>Steadfast</option><option>Pathao</option><option>Carrybee</option><option>RedX</option>
                       </select> : null}
@@ -441,11 +526,46 @@ export default class MerchantOrdersScreen extends Component {
                         <option value="">Sub-status</option>{v.subs.map((c) => <option key={c.id} value={c.id}>{c.label} · {c.base}</option>)}
                       </select> : null}
                       <button type="button" className={'ix-filter' + (v.extraCount ? ' is-set' : '')} onClick={v.openFilters} aria-haspopup="dialog" style={{ backgroundImage: 'none', paddingRight: 10 }}>{v.extraCount ? 'More filters · ' + v.extraCount : 'More filters'}</button>
+                      {v.isDrafts ? null : <select aria-label="Sort orders" className={'ix-filter' + (v.sort ? ' is-set' : '')} style={{ maxWidth: 'none' }} value={v.sort} onChange={v.onSort}>{SORTS.map(([k, l]) => <option key={k} value={k}>{'Sort: ' + l}</option>)}</select>}
                       {v.hasFilters ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.clearFilters}>Clear all</button> : null}
                     </div>
                   ) : null}
 
-                  {v.empty ? (
+                  {v.isDrafts ? (
+                    v.drafts.length === 0 ? (
+                      <div className="ix-empty"><__EmptyState icon="file-pen-line" title="No draft orders" actionLabel="Create order" onAction={() => navigate('/new-order')} /></div>
+                    ) : (<>
+                      <ul className="ix-plist" aria-label="Draft orders">
+                        {v.drafts.map((d) => (
+                          <li key={d.id}>
+                            <__Link href={d.href} className="ix-pitem">
+                              <span className="ix-pitem__top"><b className="mo-id">{d.id}</b><span>{d.totalText}</span></span>
+                              <span className="ix-pitem__mid">{d.who} · {d.items}</span>
+                              <span className="ix-pitem__tags"><__StatusBadge tone="neutral" icon="file-pen-line">Saved {d.saved}</__StatusBadge></span>
+                            </__Link>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="ix-table-wrap">
+                        <table className="ix-table gc-table--keep">
+                          <caption className="sr-only">Draft orders</caption>
+                          <thead><tr><th scope="col">Draft</th><th scope="col">Saved</th><th scope="col">Customer</th><th scope="col">Items</th><th scope="col" className="ix-num">Total</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+                          <tbody>
+                            {v.drafts.map((d) => (
+                              <tr key={d.id} onClick={d.onRowClick}>
+                                <td><__Link href={d.href} className="ix-strong mo-id">{d.id}</__Link></td>
+                                <td className="ix-muted">{d.saved}</td>
+                                <td><span className="mo-cust">{d.who}</span></td>
+                                <td className="ix-muted">{d.items}</td>
+                                <td className="ix-num">{d.totalText}</td>
+                                <td className="ix-num"><button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={'Delete draft ' + d.id} title="Delete draft" onClick={d.onDelete}><__Icon name="trash-2" width="16" height="16" aria-hidden="true" /></button></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>)
+                  ) : v.empty ? (
                     <div className="ix-empty"><__EmptyState icon="inbox" title={v.emptyTitle} actionLabel={v.hasFilters ? 'Clear filters' : undefined} onAction={v.hasFilters ? v.clearFilters : undefined} /></div>
                   ) : (
                     <>
@@ -502,7 +622,7 @@ export default class MerchantOrdersScreen extends Component {
                     </div>
                     </>
                   )}
-                  <Pager label={v.countLabel} atStart={v.atStart} atEnd={v.atEnd} prev={v.prev} next={v.next} />
+                  {v.isDrafts ? null : <Pager label={v.countLabel} atStart={v.atStart} atEnd={v.atEnd} prev={v.prev} next={v.next} />}
                 </section>
                 <LearnMore topic="orders" />
               </div>

@@ -11,7 +11,7 @@
 import { currentPlanId, PLANS } from './plans';
 import { getOrders } from './orders';
 import { getCatalog } from './stock';
-import { USERS } from './team';
+import { allUsers } from './team';
 import { getPlaces } from './locations';
 import { usageThisMonth } from './platformUsage';
 import { getDomains } from './domains';
@@ -25,7 +25,7 @@ export const LIMITS = {
 const AT_LIMIT = {
   orders: 'New orders still come in. We’ll ask you to upgrade.',
   products: 'You can’t add products until you upgrade or archive some.',
-  seats: 'Add a seat or upgrade to invite more staff.',
+  seats: 'Upgrade, or deactivate someone in Users & roles, to invite more staff.',
   messages: 'Further messages are paid from your credits.',
   storage: 'New photos and files can’t be uploaded.',
   places: 'Upgrade to add another branch or warehouse.',
@@ -46,7 +46,8 @@ export function usageMeters(now = clockNow()) {
   const orders = safe(() => getOrders().filter((o) => o.at >= from && o.at <= now && o.status !== 'Cancelled').length, 0);
   const cat = safe(() => getCatalog(), []);
   const products = new Set(cat.map((p) => p.productId || p.name)).size;
-  const seats = USERS.length;
+  // everyone active or invited takes a seat (Settings › Users & roles); deactivated people don't
+  const seats = safe(() => allUsers().filter((u) => u.status !== 'off').length, 0);
   const use = safe(() => usageThisMonth(now), {});
   const messages = (use.sms || 0) + (use.whatsapp || 0);
   // photos: about 3 per product at ~350 KB, plus documents and the store theme
@@ -64,7 +65,7 @@ export function usageMeters(now = clockNow()) {
     meters: [
       row('orders', 'Orders this month', orders, 'orders', '/merchant-orders'),
       row('products', 'Products', products, 'products', '/all-products'),
-      row('seats', 'Staff seats', seats, 'seats', '/set-profile'),
+      row('seats', 'Staff seats', seats, 'seats', '/set-users'),
       row('messages', 'SMS & WhatsApp this month', messages, 'messages', '/credit-wallet'),
       row('storage', 'Storage', storage, 'MB', '/set-media', MB),
       row('places', 'Branches & warehouses', places, 'places', '/warehouses'),

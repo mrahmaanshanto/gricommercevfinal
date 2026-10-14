@@ -21,7 +21,8 @@ import { DAY, dmy, dm, daysBetween } from '@/lib/platform/util';
 import { METHODS, CONTROL_REASONS, PLAN_NAME } from '@/lib/platform/catalogue';
 import { shopOf, subOf, extendTrial } from '@/lib/platform/billing';
 import { activateTrial } from '@/lib/admin/merchants';
-import { LIC_VIEWS, licenceRows, licenceRow, issueKind, issuePaid, reinstate, revoke } from '@/lib/admin/licences';
+import { LIC_VIEWS, licenceRows, licenceRow, issueKind, issuePaid, reinstate } from '@/lib/admin/licences';
+import { ask, rightOf } from '@/lib/admin/actionRights';
 import { AdminShell, usePlatform } from '../AdminShell';
 import { SUBS_CSS, subsMoney as money, subsPlural as plural, subsWhen, subsDue, subsFromUrl, subsToUrl } from './subsShared';
 
@@ -200,7 +201,7 @@ export function LicencePanel({ id, db, t, onClose, onRevoke, onIssue }) {
               : ['Valid', 'Valid · payment late', 'Suspended'].includes(l.status) && !l.revoked
                 ? <Link href={`/admin/merchant?id=${id}&tab=billing`} className="ix-btn ix-btn--sm"><Icon name="refresh-cw" width="16" height="16" aria-hidden="true" />Renew</Link> : null}
             {kind ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => onIssue(id)}><Icon name="badge-check" width="16" height="16" aria-hidden="true" />{kind === 'reinstate' ? 'Give licence back' : 'Issue licence'}</button> : null}
-            {canRevoke && !l.revoked ? <button type="button" className="ix-btn ix-btn--sm ix-btn--danger" onClick={() => onRevoke(id)}><Icon name="shield-x" width="16" height="16" aria-hidden="true" />Revoke</button> : null}
+            {canRevoke && !l.revoked && rightOf('revoke').ok ? <button type="button" className="ix-btn ix-btn--sm ix-btn--danger" onClick={() => onRevoke(id)}><Icon name="shield-x" width="16" height="16" aria-hidden="true" />Revoke</button> : null}
           </div>
           {['Valid', 'Valid · payment late'].includes(l.status) ? <p className="subs-note">Renews by itself when the next bill is paid{l.validUntil ? ` (${dm(l.validUntil)})` : ''}; record a payment on the Billing tab.</p> : null}
         </div>
@@ -257,12 +258,13 @@ export default function Licences() {
     const reason = rv.pick === 'Other' ? rv.note.trim() : [rv.pick, rv.note.trim()].filter(Boolean).join(' · ');
     if (!rv.pick) { setRv({ ...rv, error: { field: 'pick', text: 'Pick a reason.' } }); return; }
     if (rv.pick === 'Other' && !rv.note.trim()) { setRv({ ...rv, error: { field: 'note', text: 'Say why.' } }); return; }
-    const r = revoke(rv.id, reason);
+    // rights and the second person (Security › Approvals › Revoke a licence) — lib/admin/actionRights.js
+    const r = ask({ action: 'revoke', shopIds: [rv.id], reason, db });
     if (!r.ok) { setRv({ ...rv, error: { field: 'pick', text: r.error } }); return; }
     const name = (shopOf(db, rv.id) || {}).name || 'the store';
     setRv(null);
     setOpenId(rv.id);
-    toast(`Licence revoked · ${name} suspended`);
+    toast(r.pending ? `Sent to ${r.request.approver} for a second approval` : `Licence revoked · ${name} suspended`);
   };
   const rvErr = (f) => (rv && rv.error && rv.error.field === f ? rv.error.text : null);
 

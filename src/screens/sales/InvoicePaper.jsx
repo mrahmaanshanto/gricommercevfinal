@@ -5,6 +5,7 @@
 import React from 'react';
 import { formatBDT, formatDate } from '@/lib/format';
 import { MERCHANT } from '@/lib/merchant';
+import { docIdentity } from '@/components/docs/DocPaper';
 import { paidSoFar, discountsOf, statusOf, activePayments } from '@/lib/invoices';
 
 export const INVOICE_STATUS = { paid: ['Paid', 'success'], partial: ['Partly paid', 'info'], unpaid: ['Unpaid', 'warning'] };
@@ -49,30 +50,31 @@ export function InvoicePaper({ inv, customer, held }) {
   const heldAt = () => held;
   const st = statusOf(view), disc = Math.round((discountsOf(view) - (view.totals.lineDisc || 0)) * 100) / 100;
   const taken = paymentsOf(view);
+  const me = docIdentity();   // Settings › General (WH-F5): the letterhead every buyer document uses
   return (
             <article className="iv-paper" aria-label={`Invoice ${view.id}`}>
               <header className="iv-paper__head">
                 <div className="iv-paper__brand">
-                  <svg width="52" height="52" viewBox="0 0 52 52" role="img" aria-label={`${MERCHANT.name} logo`}><rect width="52" height="52" rx="12" fill="#003087" /><path d="M35 19a10 10 0 1 0 1 13v-6h-9" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                  <div><b>{MERCHANT.name}</b><span>{MERCHANT.tagline}</span></div>
+                  {me.logo ? <img src={me.logo} alt={`${me.name} logo`} width="52" height="52" style={{ objectFit: 'contain' }} /> : <svg width="52" height="52" viewBox="0 0 52 52" role="img" aria-label={`${me.name} logo`}><rect width="52" height="52" rx="12" fill="#003087" /><path d="M35 19a10 10 0 1 0 1 13v-6h-9" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                  <div><b>{me.name}</b><span>{MERCHANT.tagline}</span></div>
                 </div>
                 <div className="iv-paper__title"><b>INVOICE</b><span>{view.id}{view.rev > 1 ? ` · revision ${view.rev}` : ''}</span><span className={'gc-badge gc-badge--' + STATUS[st][1]}>{STATUS[st][0]}</span></div>
               </header>
               <div className="iv-paper__meta">
-                <div><span className="iv-cap">From</span><b>{MERCHANT.name}</b><span>{MERCHANT.address}</span><span>{MERCHANT.phone} · {MERCHANT.email}</span><span>BIN {MERCHANT.bin} · Trade licence {MERCHANT.licence}</span></div>
+                <div><span className="iv-cap">From</span><b>{me.legal || me.name}</b><span>{me.address}</span><span>{me.phone} · {me.email}</span><span>BIN {me.bin} · Trade licence {me.licence}</span></div>
                 <div><span className="iv-cap">Bill to</span><b>{who(view)}</b><span>{(cust && cust.address) || 'Address not on file'}</span><span>{view.customer.phone || 'No mobile number'}</span>{view.wholesale ? <span>{view.tier || 'Wholesale customer'}</span> : null}</div>
                 <div><span className="iv-cap">Details</span><span>Invoice date: <b>{formatDate(view.at)}</b></span><span>Sold by: {view.cashier || '—'}</span><span>Counter: {view.counter || '—'}</span>{heldAt(view) ? <span>Stock held at {heldAt(view)}</span> : null}</div>
               </div>
               <table className="iv-paper__items">
                 <thead><tr><th scope="col">#</th><th scope="col">Item</th><th scope="col" className="iv-num">Qty</th><th scope="col" className="iv-num">Unit price</th><th scope="col" className="iv-num">Amount</th></tr></thead>
-                <tbody>{view.lines.map((l, i) => <tr key={l.id}><td>{i + 1}</td><td>{l.name}{l.meta ? <span className="iv-sub">{l.meta}</span> : null}</td><td className="iv-num">{l.qty}</td><td className="iv-num">{money(l.price)}</td><td className="iv-num">{money(l.price * l.qty - (l.disc || 0))}</td></tr>)}</tbody>
+                <tbody>{view.lines.map((l, i) => <tr key={l.id}><td>{i + 1}</td><td>{l.name}{l.meta ? <span className="iv-sub">{l.meta}</span> : null}{l.serials && l.serials.length ? <span className="iv-sub">{/^\d{15}$/.test(l.serials[0]) ? 'IMEI' : 'Serial'}: {l.serials.join(', ')}</span> : null}</td><td className="iv-num">{l.qty}</td><td className="iv-num">{money(l.price)}</td><td className="iv-num">{money(l.price * l.qty - (l.disc || 0))}</td></tr>)}</tbody>
               </table>
               <div className="iv-paper__foot">
                 <div className="iv-paper__notes">
                   <span className="iv-cap">Payments received</span>
                   {taken.length ? taken.map((x, i) => <span key={i}>{formatDate(x.at)} · {x.method} · {money(x.amount)}{x.by ? ` · received by ${x.by}` : ''}{x.extra ? ` · ${money(x.extra)} kept as advance` : ''}</span>) : <span>No payment received yet.</span>}
                   <span className="iv-cap" style={{ marginTop: 'var(--space-3)' }}>How to pay</span>
-                  <span>{MERCHANT.bank}</span><span>bKash {MERCHANT.bkash}</span>
+                  <span>{me.bank}</span><span>bKash {me.bkash}</span>
                 </div>
                 <dl className="iv-paper__sum">
                   <dt>Subtotal</dt><dd>{money(view.totals.gross - (view.totals.lineDisc || 0))}</dd>

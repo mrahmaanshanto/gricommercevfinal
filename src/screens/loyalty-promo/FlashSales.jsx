@@ -81,7 +81,7 @@ export default class FlashSalesScreen extends Component {
               <div className="ix-page">
                 <ShopHeader icon="zap" title="Flash sales"
                   about="Sales with a start and an end. Prices drop at the start time and go back to normal by themselves when time is up."
-                  more={[{ label: 'Offers', href: '/promo' }, { label: 'Coupons', href: '/coupons' }, { label: 'Offers page', href: '/offers' }]}
+                  more={[{ label: 'Offers', href: '/promo' }, { label: 'Coupons', href: '/coupons' }, { label: 'View offers page', icon: 'external-link', onClick: () => window.open('/offers', '_blank', 'noopener') }]}
                   primary={{ label: 'Start a flash sale', href: '/new-flash-sale' }} />
 
                 <MetricStrip label="This month" items={[

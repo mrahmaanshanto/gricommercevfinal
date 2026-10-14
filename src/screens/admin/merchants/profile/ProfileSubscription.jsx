@@ -8,7 +8,7 @@ import { confirmDialog, toast } from '@/runtime/ui';
 import { KV } from '@/components/ui/IndexKit';
 import { dm, dmy, taka } from '@/lib/platform/util';
 import { PLAN_NAME, ladderLabel } from '@/lib/platform/catalogue';
-import { endItem, setAutoCharge, planOf, priceOf, mrrOf } from '@/lib/platform/billing';
+import { endItem, setAutoCharge, planOf, priceOf, monthlyOf, mrrOf } from '@/lib/platform/billing';
 import { activityOf } from '@/lib/admin/merchants';
 import { Card, Row, Empty, when, dueText } from './profileShared';
 import { PlanSimulator } from './ProfileActions';
@@ -19,7 +19,9 @@ const TYPE_TONE = { Plan: 'primary', Module: 'success', Credits: 'neutral', 'One
 export function SubscriptionTab({ ctx }) {
   const { db, t, shop, sub, st, row, view, open } = ctx;
   const plan = planOf(db, sub);
-  const planPrice = priceOf(db, sub, { kind: 'plan', code: sub.plan });
+  const planPrice = monthlyOf(db, sub, { kind: 'plan', code: sub.plan });
+  const planBill = priceOf(db, sub, { kind: 'plan', code: sub.plan });
+  const yearly = sub.cycle === 'yearly';
   const monthly = mrrOf(db, sub, t);
   const items = view.billing.rows;
   const trials = view.modules.history;
@@ -54,7 +56,7 @@ export function SubscriptionTab({ ctx }) {
           )) : <Empty text={st.key === 'trial' ? 'Nothing is billed during the trial.' : 'Nothing is billed.'} action={closed ? null : { label: 'Add an item', onClick: () => open('item') }} />}
         </Card>
 
-        <Card title="Change package" action={<InfoTip label="About plan changes" text="The new price starts now. For the days left until the next bill, the difference (up or down) is added to that bill." />}>
+        <Card title="Change package" action={<InfoTip label="About plan changes" text="The new price starts now. For the days left until the next bill, the difference (up or down) goes on that bill. Moving off a yearly plan gives back the unused part of the year; a yearly plan is billed in full once a year." />}>
           {closed ? <Empty text="The store is closed. Restore it to change its package." /> : <PlanSimulator ctx={ctx} idp="sub" />}
         </Card>
 
@@ -77,8 +79,8 @@ export function SubscriptionTab({ ctx }) {
             ['Package', `${ladderLabel(sub.ladder)} · ${PLAN_NAME[sub.plan]}`],
             ['Plan version', 'v' + plan.version],
             ['Billing', sub.cycle === 'yearly' ? 'Yearly' : 'Monthly'],
-            ['Plan price', <span key="p" className="mp-data">{taka(planPrice)} a month</span>],
-            ['Monthly total', <span key="m" className="mp-data">{taka(monthly || planPrice)}</span>],
+            ['Plan price', <span key="p" className="mp-data">{taka(planBill)} {yearly ? 'a year' : 'a month'}</span>],
+            ['Monthly total', <span key="m" className="mp-data">{taka(monthly || planPrice)}{yearly ? ' (yearly ÷ 12)' : ''}</span>],
             st.key === 'trial' ? ['Trial', `Day ${st.days} of ${sub.trialDays} · ends ${dm(sub.trialStart + sub.trialDays * 864e5)}`] : null,
             ['Next bill', row.renewal ? `${dm(row.renewal)} · ${dueText(row.renewal, t)}` : '—'],
             ['Customer since', dmy(shop.createdAt)],

@@ -41,7 +41,7 @@ export const HANDOFF = [
   ['lowConfidence', 'GridAI is not sure of the answer'],
   ['repeat', 'The same question comes back after an answer'],
   ['legal', 'Legal, fraud or data-protection words'],
-  ['enterprise', 'An Enterprise merchant writes'],
+  ['enterprise', 'A Business plan merchant writes'],
 ];
 export const TEAMS = ['Support (Farhana Akter)', 'Sales (Tania Sultana)', 'Finance (Nusrat Islam)', 'Operations (Rakib Hasan)', 'Admin (Mahin Khan)'];
 export const APPROVERS = ['Nusrat Islam', 'Rakib Hasan', 'Farhana Akter', 'Mahin Khan', 'Tania Sultana'];
@@ -59,8 +59,8 @@ export const PERSONAS = [
   { id: 'late', label: 'Late-paying merchant', name: 'Faruk Ahmed', who: 'Mohona Traders · bill 9 days late', channel: 'whatsapp', lang: 'en', shop: '0012',
     facts: [['Plan', 'Retail · Growth'], ['Bill', '৳1,000 · 9 days late'], ['State', 'Read-only in 5 days']],
     ask: ['I paid by bKash but it is not showing', 'Why is my store going read-only?', 'Can I get a discount this month?', 'I want to talk to a person'] },
-  { id: 'angry', label: 'Angry merchant', name: 'Rafiq Uddin', who: 'Ghorer Bazar BD · Enterprise', channel: 'inbox', lang: 'en', shop: '0023',
-    facts: [['Plan', 'Online · Enterprise'], ['Open tickets', '2 (courier sync)'], ['Mood', 'Upset since yesterday']],
+  { id: 'angry', label: 'Angry merchant', name: 'Rafiq Uddin', who: 'Ghorer Bazar BD · Business', channel: 'inbox', lang: 'en', shop: '0023',
+    facts: [['Plan', 'Online · Business'], ['Open tickets', '2 (courier sync)'], ['Mood', 'Upset since yesterday']],
     ask: ['Your courier sync is useless, orders are stuck!', 'I want a refund for this month', 'Cancel my account now', 'Why should I keep paying for this?'] },
   { id: 'bangla', label: 'Bangla speaker', name: 'Nusrat Jahan', who: 'Rongdhonu Fashion · writes in Bangla', channel: 'whatsapp', lang: 'bn', shop: '0007',
     facts: [['Plan', 'Online · Growth'], ['Language', 'বাংলা'], ['Last ticket', 'SMS not delivered']],
@@ -86,8 +86,8 @@ const SITES = [
   ['/about', 'About', 1, 52], ['/terms', 'Terms of service', 1, 38], ['/privacy', 'Privacy policy', 1, 38],
 ];
 const FAQS = [
-  ['Pricing', 'How much does GridCommerce cost?', 'Plans start at ৳1,000 a month (Growth). Business is ৳2,500 and Enterprise ৳5,000. Paying yearly gives about two months free.',
-    'GridCommerce-এর খরচ কত?', 'প্যাকেজ শুরু মাসে ৳১,০০০ থেকে (Growth)। Business ৳২,৫০০ আর Enterprise ৳৫,০০০। বছরে একবারে দিলে প্রায় দুই মাস ফ্রি।', 412],
+  ['Pricing', 'How much does GridCommerce cost?', 'Plans start at ৳1,000 a month (Starter). Growth is ৳2,500 and Business ৳5,000. Paying yearly gives about two months free.',
+    'GridCommerce-এর খরচ কত?', 'প্যাকেজ শুরু মাসে ৳১,০০০ থেকে (Starter)। Growth ৳২,৫০০ আর Business ৳৫,০০০। বছরে একবারে দিলে প্রায় দুই মাস ফ্রি।', 412],
   ['Trial', 'Is there a free trial?', 'Yes. Every plan has a 15-day free trial with all its modules. No card is needed.',
     'ফ্রি ট্রায়াল আছে?', 'হ্যাঁ। প্রতিটি প্যাকেজে ১৫ দিনের ফ্রি ট্রায়াল, সব মডিউলসহ। কার্ড লাগে না।', 286],
   ['Payments', 'Can I take bKash and Nagad payments?', 'Yes. Connect bKash, Nagad, SSLCOMMERZ or EPS in Settings › Payments. Money reaches your account on the gateway’s payout days.',
@@ -98,10 +98,10 @@ const FAQS = [
     'WooCommerce থেকে প্রোডাক্ট আনা যাবে?', 'হ্যাঁ। Connections-এ WooCommerce যুক্ত করে প্রোডাক্ট ইমপোর্ট করুন, অথবা Assisted migration নিন (৳৫,০০০, ৩ কর্মদিবসে)।', 92],
   ['POS', 'Does GridCommerce work in my physical shop?', 'Yes. The POS register sells at the counter, prints receipts and shares one stock with your online store. It is in the Retail plans.',
     'দোকানে কি GridCommerce চলবে?', 'হ্যাঁ। POS দিয়ে কাউন্টারে বিক্রি, রসিদ প্রিন্ট আর অনলাইনের সাথে একই স্টক। এটা Retail প্যাকেজে আছে।', 133],
-  ['Account', 'How many staff can use my account?', 'Growth has 2 staff seats, Business 5 and Enterprise 15. Each person gets their own sign-in and role.',
-    'কতজন স্টাফ ব্যবহার করতে পারবে?', 'Growth-এ ২ জন, Business-এ ৫ জন আর Enterprise-এ ১৫ জন। প্রত্যেকে আলাদা লগইন আর রোল পায়।', 88],
-  ['Orders', 'Is there a limit on orders?', 'Growth includes 500 orders a month, Business 2,500 and Enterprise 10,000. We warn you at 80% and you can top up.',
-    'অর্ডারের কোনো লিমিট আছে?', 'Growth-এ মাসে ৫০০ অর্ডার, Business-এ ২,৫০০ আর Enterprise-এ ১০,০০০। ৮০%-এ সতর্ক করি, চাইলে টপ-আপ করা যায়।', 121],
+  ['Account', 'How many staff can use my account?', 'Starter has 2 staff seats, Growth 5 and Business 15. Each person gets their own sign-in and role.',
+    'কতজন স্টাফ ব্যবহার করতে পারবে?', 'Starter-এ ২ জন, Growth-এ ৫ জন আর Business-এ ১৫ জন। প্রত্যেকে আলাদা লগইন আর রোল পায়।', 88],
+  ['Orders', 'Is there a limit on orders?', 'Starter includes 500 orders a month, Growth 2,500 and Business 10,000. We warn you at 80% and you can top up.',
+    'অর্ডারের কোনো লিমিট আছে?', 'Starter-এ মাসে ৫০০ অর্ডার, Growth-এ ২,৫০০ আর Business-এ ১০,০০০। ৮০%-এ সতর্ক করি, চাইলে টপ-আপ করা যায়।', 121],
   ['Inbox', 'Can I answer Facebook and WhatsApp messages in one place?', 'Yes. The Inbox brings Messenger, Instagram, WhatsApp and comments together. It is an add-on (৳1,200 a month) with messaging credits.',
     'ফেসবুক আর হোয়াটসঅ্যাপের মেসেজ এক জায়গায় দেখা যায়?', 'হ্যাঁ। Inbox-এ মেসেঞ্জার, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ আর কমেন্ট একসাথে। এটা অ্যাড-অন (মাসে ৳১,২০০), মেসেজ ক্রেডিটসহ।', 104],
   ['Payments', 'How do I pay my GridCommerce bill?', 'Pay from Settings › Subscription by bKash, Nagad, Rocket, card or bank transfer. Bills come 7 days before your billing day.',
@@ -239,11 +239,11 @@ function seed(now) {
   return {
     docs, sites, faqs, policies, training, days, recent, unanswered, behaviour, history,
     useSets: Object.fromEntries(SETS.map((s) => [s.id, s.id !== 'service'])),
-    usePricing: { online: true, retail: true, wholesale: false },
+    usePricing: Object.fromEntries(LADDERS.map((l) => [l.id, true])),
   };
 }
 
-export const gridai = createStore({ key: 'gridai', version: 1, seed });
+export const gridai = createStore({ key: 'gridai', version: 2, seed });   // 2: the product's modules and editions
 const me = () => { try { return staff().name; } catch { return 'Mahin Khan'; } };
 const nextId = (list, p) => p + (Math.max(0, ...list.map((x) => Number(String(x.id).slice(p.length)) || 0)) + 1);
 
@@ -481,7 +481,7 @@ const MODULE_WORDS = [
 const plansOf = (ctx, ladder) => { const p = pricing(ctx.plans).find((l) => l.id === ladder); return p && p.plans.length ? p : null; };
 const inPlans = (ctx, setId) => {
   const out = [];
-  pricing(ctx.plans).forEach((l) => l.plans.forEach((p) => { if ((p.sets || {})[setId] === 'Included' || ((setId === 'retail' || setId === 'online') && l.set === setId)) out.push(l.label + ' · ' + p.name); }));
+  pricing(ctx.plans).forEach((l) => l.plans.forEach((p) => { if ((p.sets || {})[setId] === 'Included') out.push(l.label + ' · ' + p.name); }));
   return [...new Set(out)];
 };
 const t0 = (en, bn, more = '', moreBn = '') => ({ en, bn, more, moreBn });
@@ -575,7 +575,7 @@ export function answer(question, ctx) {
   const modHit = MODULE_WORDS.find(([re]) => re.test(low));
   if (!r && modHit && /\b(have|has|include|includes|does|is there|support|got)\b|আছে/.test(low)) r = moduleReply(modHit[1], ctx, d);
   if (!r && /price|cost|plan|package|how much|pricing|monthly|yearly|দাম|খরচ|প্যাকেজ|কত টাকা/.test(low)) {
-    const ladder = persona.id === 'late' ? 'retail' : /pos|shop|retail|দোকান/.test(low) ? 'retail' : 'online';
+    const ladder = persona.id === 'late' ? 'retail' : /inbox|connect|crm/.test(low) ? 'connect' : /(pos|shop|retail|দোকান)[^]*(online|web|ওয়েব)|(online|web|ওয়েব)[^]*(pos|shop|retail|দোকান)/.test(low) ? 'retail-online' : /pos|shop|retail|দোকান/.test(low) ? 'retail' : 'online';
     const lad = d.usePricing[ladder] ? plansOf(ctx, ladder) : null;
     if (lad) {
       const named = lad.plans.find((p) => low.includes(p.name.toLowerCase()));
@@ -604,7 +604,7 @@ export function answer(question, ctx) {
   if (upset && b.handoff.upset) handoff = handoff || 'The person is upset';
   if (r.confidence * 100 < b.confidence && b.handoff.lowConfidence) handoff = handoff || `Not sure (${Math.round(r.confidence * 100)}% < ${b.confidence}%)`;
   if (b.handoff.repeat && ctx.last && ctx.last.trim().toLowerCase() === low) handoff = handoff || 'The same question came back';
-  if (b.handoff.enterprise && persona.id === 'angry') handoff = handoff || 'Enterprise merchant';
+  if (b.handoff.enterprise && persona.id === 'angry') handoff = handoff || 'Business plan merchant';
   if (ctx.turn >= b.maxReplies && !handoff && persona.id === 'angry') handoff = `${b.maxReplies} AI replies without a fix`;
   let approval = null;
   if (r.action) {

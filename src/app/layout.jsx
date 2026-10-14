@@ -7,6 +7,8 @@ import { EveningCheck } from '@/components/EveningCheck';
 import { MeetingAlerts } from '@/components/MeetingAlerts';
 import { HelpPanel } from '@/components/ui/HelpPanel';
 import { ProposalBadge } from '@/components/ProposalBadge';
+import { DemoClockReady } from '@/components/DemoClockReady';
+import { AppBackBar } from '@/components/AppBackBar';
 
 export const metadata = {
   title: { default: 'GridCommerce', template: '%s · GridCommerce' },
@@ -38,6 +40,8 @@ export default function RootLayout({ children }) {
         <link rel="stylesheet" href={FONTS} />
       </head>
       <body>
+        {/* a web page opened from the phone app: "‹ Back to app" (only then) */}
+        <AppBackBar />
         {children}
         {/* phone app screens on a computer: back to the gallery of every screen (shown by phone-app.css only there) */}
         <a className="app-allscreens" href="/app-screens">← All screens</a>
@@ -49,6 +53,7 @@ export default function RootLayout({ children }) {
         <MeetingAlerts />
         <HelpPanel />
         <ProposalBadge />
+        <DemoClockReady />
       </body>
     </html>
   );

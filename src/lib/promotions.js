@@ -116,8 +116,8 @@ function seedOffers(today) {
     O('PR-SORRY100', { name: 'SORRY100 — ৳100 off', code: 'SORRY100', type: 'amount', reward: { value: 100 }, schedule: { start: today - 60 * DAY, end: null }, limits: { total: 20, perCustomer: 1 }, status: 'paused', pauseReason: 'Turned off', usedBefore: 4, salesBefore: 5200, discountBefore: 400 }),
     O('PR-EIDSAVE10', { name: 'EIDSAVE10 — 10% off', code: 'EIDSAVE10', type: 'percent', reward: { value: 10, cap: 150 }, channels: ['pos'], schedule: { start: today - 30 * DAY, end: null }, usedBefore: 57, salesBefore: 48200, discountBefore: 4100 }),
     O('PR-WELCOME50', { name: 'WELCOME50 — ৳50 off', code: 'WELCOME50', type: 'amount', reward: { value: 50 }, channels: ['pos'], schedule: { start: today - 30 * DAY, end: null }, usedBefore: 33, salesBefore: 21400, discountBefore: 1650 }),
-    // payment offer (was hard-coded at the checkout)
-    O('PR-BKASH10', { name: 'bKash 10% off', activation: 'payment', type: 'percent', reward: { value: 10, cap: 150 }, channels: ['online'], conditions: { minSpend: 500, payment: { mode: 'online', methods: ['bkash'] } }, stacking: { class: 'order', with: ['order', 'delivery', 'product', 'flash', 'points'], priority: 5 }, schedule: S(-20, 10), usedBefore: 402, salesBefore: 184300, discountBefore: 38900 }),
+    // payment offer (was hard-coded at the checkout); the POS register gives it too when the customer pays by bKash
+    O('PR-BKASH10', { name: 'bKash 10% off', activation: 'payment', type: 'percent', reward: { value: 10, cap: 150 }, channels: ['online', 'pos'], conditions: { minSpend: 500, payment: { mode: 'online', methods: ['bkash'] } }, stacking: { class: 'order', with: ['order', 'delivery', 'product', 'flash', 'points'], priority: 5 }, schedule: S(-20, 10), usedBefore: 402, salesBefore: 184300, discountBefore: 38900 }),
     // automatic offers (no code)
     O('PR-AUTO-DHAKA', { name: 'Free delivery over ৳2,500', activation: 'auto', type: 'free-delivery', reward: {}, channels: ['online'], conditions: { minSpend: 2500 }, stacking: { class: 'delivery', with: ['product', 'order', 'flash', 'points'] }, schedule: S(-5, 25), usedBefore: 86, salesBefore: 301200, discountBefore: 6020 }),
     O('PR-BXGY-TONER', { name: 'Buy 2 chargers, get earphones 50% off', activation: 'auto', type: 'bxgy', reward: { buy: { skus: ['AC-CHG-20'], qty: 2 }, get: { skus: ['AU-EAR-TC'], qty: 1, pct: 50 } }, conditions: {}, limits: { perOrder: 2 }, stacking: { class: 'product', with: ['product', 'order', 'delivery', 'points'] }, schedule: S(-3, 11), usedBefore: 19, salesBefore: 56400, discountBefore: 9400 }),
@@ -252,7 +252,13 @@ function customerOk(o, c, key, t, rows) {
   }
   if (cd.customer === 'tiers') { const tier = tierOfCustomer(c); if (!(cd.tiers || []).includes(tier)) return { ok: false, reason: 'Only for ' + (cd.tiers || []).map((x) => TIER_WORDS[x] || x).join(' and ') + ' members' }; }
   if (cd.customer === 'members' && !tierOfCustomer(c)) return { ok: false, reason: 'Only for members' };
-  if (cd.customer === 'one' && (!key || key !== cd.customerKey)) return { ok: false, reason: 'Only for one customer' };
+  // one customer: their customer key, or one of the numbers the code was made for (customerKeys, 'P:01…'), so a code
+  // made for a phone also works once the number belongs to a CRM customer (and the other way round)
+  if (cd.customer === 'one') {
+    const want = [cd.customerKey, ...(cd.customerKeys || [])].filter(Boolean);
+    const phone = c && c.phone ? 'P:' + String(c.phone).replace(/\D/g, '').replace(/^88/, '') : '';
+    if (!key || ![key, phone].some((k) => k && want.includes(k))) return { ok: false, reason: 'Only for one customer' };
+  }
   if (cd.customer === 'segment' && !((c && c.segments) || []).includes(cd.segment)) return { ok: false, reason: 'Not in this customer group' };
   if (o.limits.perCustomer && key && usedBy(o, key, t, rows) >= o.limits.perCustomer) return { ok: false, reason: 'Already used by this customer' };
   return { ok: true };

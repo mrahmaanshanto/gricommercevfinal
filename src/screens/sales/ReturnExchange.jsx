@@ -21,11 +21,15 @@ import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { RecordHeader, KV } from '@/components/ui/IndexKit';
 import { ManagerPin } from '@/components/ManagerPin';
+import { currentUser } from '@/lib/team';
+import { posLimitsOf } from '@/lib/shopUsers';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { addReturn, returnedFromHistory, cutFromHistory, storeCreditFor } from '@/lib/returns';
+import { addReturn, returnedFromHistory, cutFromHistory, storeCreditFor, getReturns } from '@/lib/returns';
 import { POS_KEYS, load, save, getSettings, getCounters, EMPLOYEES } from '@/lib/posStore';
 import { getInvoices, saveInvoice, stockOutAtSale, sentOf } from '@/lib/invoices';
-import { extraOrders, updateOrder } from '@/lib/orderLinks';
+import { updateOrder } from '@/lib/orderLinks';
+import { getOrders, orderChannel } from '@/lib/orders';
+import { serialsOfLine } from '@/lib/customerWarranty';
 import { CATALOG, productBy, addMove, stockAt } from '@/lib/stock';
 import { addHolds, holdsFor, closeHold } from '@/lib/stockHolds';
 import { DAMAGED_PLACE, onlinePlace } from '@/lib/locations';
@@ -35,13 +39,14 @@ import { getCreditRules } from '@/lib/creditRules';
 import { requestRefund } from '@/lib/refunds';
 import { issueCredit } from '@/lib/storeCredit';
 import { returnSerial } from '@/lib/serials';
+import { liveCounterSales } from '@/lib/liveCounterSales';
+import { priceFor } from '@/lib/wholesalePrice';
 
 const DAY = 86400000;
 const r2 = (n) => Math.round(n * 100) / 100;
 const money = (n) => { const v = r2(n); return formatBDT(v, { decimals: Number.isInteger(v) ? 0 : 2 }); };
 const digitsOf = (t) => String(t || '').replace(/\D/g, '').replace(/^88(?=01)/, '');
 const prettyPhone = (p) => { const d = digitsOf(p); return d.length === 11 ? d.slice(0, 5) + '-' + d.slice(5) : p || ''; };
-const amountOf = (t) => Number(String(t || '').replace(/[^0-9.]/g, '')) || 0;
 
 // two counter memos from yesterday, kept as demo sales (their returns are counted from the history)
 const memoAt = (day, h, m) => new Date(2026, 8, day, h, m).getTime();
@@ -53,43 +58,48 @@ const MEMOS = [
     lines: [memoLine('1040', 1, 'Baseus USB-C Cable 100W 1m', 1), memoLine('1040', 2, 'Tempered Glass 9H', 2), memoLine('1040', 3, 'Camera Lens Protector', 5), memoLine('1040', 4, 'Screen Cleaning Kit', 5), memoLine('1040', 5, 'Wireless Earbuds Pro', 1)] },
 ];
 
+const unitWord = (l) => ((l.serials || []).every((x) => /^\d{15}$/.test(x)) ? 'IMEI' : 'serial number');
 const REASONS = [['bad', 'Faulty item', 'triangle-alert'], ['size', 'Wrong size', 'ruler'], ['wrong', 'Wrong item given', 'repeat'], ['mind', 'Changed mind', 'user-round'], ['exp', 'Expired', 'calendar-x']];
 const PAY_METHODS = ['Cash', 'bKash', 'Nagad', 'Card'];
 const CHANNEL_TONE = { Retail: 'info', Wholesale: 'primary', Online: 'secondary' };
 
-/** "30 Sep, 2:05 PM" (orders list stamp, no year) -> time */
-function parsePlaced(text) {
-  const m = /^(\d{1,2}) (\w{3}),? (\d{1,2}):(\d{2}) (AM|PM)$/.exec(String(text || '').trim());
-  if (!m) return Date.now();
-  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(m[2]);
-  const now = new Date();
-  const d = new Date(now.getFullYear(), Math.max(0, month), Number(m[1]), (Number(m[3]) % 12) + (m[5] === 'PM' ? 12 : 0), Number(m[4]));
-  if (d.getTime() > now.getTime() + DAY) d.setFullYear(d.getFullYear() - 1);
-  return d.getTime();
+/** IMEI / serial numbers already taken back, from the return history: { ref: { lineId: [numbers] } }. */
+function serialsBack() {
+  const out = {};
+  getReturns().filter((r) => r.serials).forEach((r) => { const m = out[r.ref] || (out[r.ref] = {}); Object.entries(r.serials).forEach(([id, list]) => { m[id] = [...(m[id] || []), ...list]; }); });
+  return out;
 }
-
+let BACK = {};   // serialsBack() for the sources being built
 /** One shape for every sale that can take a return. */
 function shape(s) {
   const t = s.totals;
   const base = t.gross - (t.lineDisc || 0);
   const share = base ? t.total / base : 1;           // what the customer really paid per taka of line price
-  const vat = t.taxable ? t.tax / t.taxable : 0;
+  // VAT added on top of the prices (an item given in exchange costs that much more); prices that include VAT need nothing
+  const vatIn = !!t.vatIncluded && (t.tax || 0) > 0;
+  const vat = !vatIn && t.taxable ? t.tax / t.taxable : 0;
+  // IMEI / serial numbers already taken back on this sale (the return history keeps them per line)
+  const back = BACK[s.ref] || {};
   const lines = s.lines.map((l) => {
     const done = Math.min(l.qty, s.returned[l.id] || 0);
-    return { ...l, unit: l.price - (l.disc || 0) / l.qty, each: r2((l.price - (l.disc || 0) / l.qty) * share), done, left: l.qty - done };
+    const sold = (l.serials || []).filter(Boolean);
+    // a line whose every unit has its number is returned unit by unit: the cashier picks or scans the one that came back
+    const units = sold.length && sold.length >= l.qty ? sold.filter((sn) => !(back[l.id] || []).includes(sn)) : null;
+    return { ...l, unit: l.price - (l.disc || 0) / l.qty, each: r2((l.price - (l.disc || 0) / l.qty) * share), done, left: l.qty - done, units };
   });
-  return { ...s, share, vat, lines, due: Math.max(0, r2(s.due)), open: lines.some((l) => l.left > 0) };
+  return { ...s, share, vat, vatIn, lines, due: Math.max(0, r2(s.due)), open: lines.some((l) => l.left > 0) };
 }
 
 /** Every sale this browser knows about: POS sales, invoices, online orders and the demo memos. */
 function buildSources() {
+  BACK = serialsBack();
   const counters = getCounters();
   const placeOf = (counter) => (counters.find((c) => c.name === counter) || {}).stock || 'Dhanmondi branch';
   const sales = load(POS_KEYS.sales, []);
   const out = sales.map((s) => shape({
     key: 'pos:' + s.id, kind: 'pos', id: s.id, ref: s.id, label: s.id, at: s.at, channel: s.wholesale ? 'Wholesale' : 'Retail',
     customer: s.customer || {}, lines: s.lines, totals: s.totals, due: s.due || 0, place: s.place || placeOf(s.counter), cashier: s.cashier,
-    returned: s.returned || {}, orderId: s.orderId || '',
+    returned: s.returned || {}, orderId: s.orderId || '', counter: s.counter || '', atRetail: !!s.atRetail,
     // paid (partly) from the customer's wallet: money given back goes back to the wallet by default
     byWallet: (s.tenders || []).some((x) => x.method === 'Wallet'),
   }));
@@ -98,16 +108,18 @@ function buildSources() {
     customer: inv.customer || {}, lines: inv.lines, totals: inv.totals, due: inv.due || 0, place: placeOf(inv.counter), cashier: inv.cashier,
     returned: inv.returned || {}, orderId: '',
   })));
-  const posOrders = new Set(sales.map((s) => s.orderId).filter(Boolean));
-  extraOrders().filter((o) => !posOrders.has(o.id) && !/^(POS|Wholesale) ·/.test(o.channel || '')).forEach((o) => {
-    const meta = /^(\d+) items? · (.+)$/.exec(o.itemMeta || '');
-    const count = meta ? Number(meta[1]) : 1;
-    const value = meta ? amountOf(meta[2]) : amountOf(o.total);
+  // online orders, once delivered: each line as sold, sharing the order's discount (and any VAT added on top);
+  // the delivery charge is not given back
+  getOrders().filter((o) => orderChannel(o) === 'Online' && o.statusKey === 'delivered' && (o.lines || []).length).forEach((o) => {
+    const lines = o.lines.map((l, i) => ({ id: `${o.id}-${i + 1}`, sku: l.sku || '', name: l.name, price: Number(l.price) || 0, qty: Number(l.qty) || 0, disc: 0, serials: serialsOfLine(o, l, null) }));
+    const gross = r2(lines.reduce((a, l) => a + l.price * l.qty, 0));
+    const goods = r2(Math.max(0, (o.amount || 0) - (o.shipping || 0)));
     out.push(shape({
-      key: 'ord:' + o.id, kind: 'online', id: o.id, ref: o.id, label: 'Order ' + o.id, at: parsePlaced(o.placed), channel: 'Online',
-      customer: { name: o.customer, phone: digitsOf(o.phone) }, lines: [{ id: o.id + '-1', name: o.itemTitle || 'Items from the order', price: r2(value / count), qty: count, disc: 0 }],
-      totals: { gross: value, lineDisc: 0, total: value }, due: o.payment === 'Unpaid' ? amountOf(o.total) - cutFromHistory(o.id) : 0,
-      place: (o.stockOut && o.stockOut.place) || onlinePlace(), cashier: '', returned: returnedFromHistory(o.id), orderId: o.id,
+      key: 'ord:' + o.id, kind: 'online', id: o.id, ref: o.id, label: 'Order ' + o.id, at: (o.times && o.times.delivered) || o.at, channel: 'Online',
+      customer: { name: o.customer, phone: digitsOf(o.phone) }, lines,
+      totals: { gross, lineDisc: 0, total: goods || gross, tax: o.vat || 0, taxable: r2(goods - (o.vat || 0)), vatIncluded: !!o.vatIncluded },
+      due: Math.max(0, o.paid == null ? 0 : r2(o.amount - o.paid)) - cutFromHistory(o.id),
+      place: (o.stockOut && o.stockOut.place) || onlinePlace(), cashier: '', returned: returnedFromHistory(o.id), orderId: o.id, counter: '',
     }));
   });
   MEMOS.forEach((m) => {
@@ -116,9 +128,15 @@ function buildSources() {
     out.push(shape({
       key: 'memo:' + m.id, kind: 'memo', id: '#' + m.id, ref, label: ref, at: m.at, channel: 'Retail', customer: m.customer, lines: m.lines,
       totals: { gross, lineDisc: 0, total: gross }, due: (m.due < 0 ? gross : m.due) - cutFromHistory(ref), place: m.place, cashier: m.cashier,
-      returned: returnedFromHistory(ref), orderId: '',
+      returned: returnedFromHistory(ref), orderId: '', counter: '',
     }));
   });
+  // the counters' sales after September (liveCounterSales.js) are never saved: like the memos, their returns are
+  // counted from the return history
+  liveCounterSales().forEach((x) => out.push(shape({
+    key: 'live:' + x.id, kind: 'memo', id: x.id, ref: x.id, label: x.id, at: x.at, channel: 'Retail', customer: x.customer, lines: x.lines,
+    totals: x.totals, due: 0, place: x.place, cashier: x.cashier, returned: returnedFromHistory(x.id), orderId: x.id, counter: x.counter,
+  })));
   return out.sort((a, b) => b.at - a.at);
 }
 
@@ -209,6 +227,8 @@ const CSS = `
 .re-done{display:grid;place-items:center;width:20px;height:20px;flex:none;border-radius:var(--radius-full);background:var(--fill-success-soft);color:var(--text-success)}
 .re-actions{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2)}
 .re-empty{margin:0;font-size:var(--text-sm);color:var(--text-muted)}
+.re-units{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:6px;padding:0 0 4px 28px}
+.re-chip--odd{border-color:var(--text-warning);background:var(--fill-warning-soft);color:var(--text-warning);cursor:default}
 @media (max-width:760px){.re-res{grid-template-columns:minmax(0,1fr) auto}.re-res__when{grid-column:1}.re-res .gc-badge{grid-column:2;grid-row:1}}
 @media (max-width:599px){.re-cands{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){
@@ -241,6 +261,12 @@ export default function ReturnExchange() {
   const [by, setBy] = useState('');
   const [approvedBy, setApprovedBy] = useState('');
   const [pinOpen, setPinOpen] = useState(false);
+  // a line sold unit by unit (IMEI / serial): the numbers coming back, ticked or scanned
+  const [sn, setSn] = useState({});                    // line id -> numbers coming back
+  const [snOdd, setSnOdd] = useState([]);              // numbers taken back that were not sold on this sale: [{ serial, line, by }]
+  const [snScan, setSnScan] = useState('');
+  const [snAsk, setSnAsk] = useState(null);            // { serial, line } waiting for a manager's PIN
+  const [counterNow, setCounterNow] = useState('');    // the counter whose shift is open on this device (its drawer pays cash)
   const [saved, setSaved] = useState(null);            // the confirmed return; the form is locked while set
   const [tick, setTick] = useState(0);                 // bumps after a save so stock figures re-read
 
@@ -250,6 +276,7 @@ export default function ReturnExchange() {
   useEffect(() => {
     const list = reload();
     setReturnDays(getSettings().returnDays || 7);
+    setCounterNow((load(POS_KEYS.shift, null) || {}).counter || '');
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref');
     if (ref) {
@@ -274,7 +301,7 @@ export default function ReturnExchange() {
   }).slice(0, 8);
 
   const choose = (s) => {
-    setSelKey(s.key); setPicks({}); setMode('ret'); setMethod(''); setNewSku(''); setNewQty(1); setNq(''); setParts([]); setPd({ method: 'Cash', amount: '', ref: '' }); setRestDue(false); setRefundTo('');
+    setSelKey(s.key); setPicks({}); setSn({}); setSnOdd([]); setSnScan(''); setMode('ret'); setMethod(''); setNewSku(''); setNewQty(1); setNq(''); setParts([]); setPd({ method: 'Cash', amount: '', ref: '' }); setRestDue(false); setRefundTo('');
     setReason('bad'); setResellPick(null); setApprovedBy(''); setBy('');
   };
   const find = (e) => {
@@ -297,17 +324,18 @@ export default function ReturnExchange() {
   const resell = resellPick == null ? suggestResell : resellPick;
   const staff = by || (sel && EMPLOYEES.some((e) => e.name === sel.cashier) ? sel.cashier : EMPLOYEES[0].name);
 
-  // the item given instead (exchange); priced like the sale: wholesale price for wholesale, same VAT
+  // the item given instead (exchange); priced like the sale, by the one price rule (lib/wholesalePrice › priceFor):
+  // a wholesale buyer pays their price list / slab / wholesale price, as at the POS; same VAT
   const firstBack = back[0] || (sel ? sel.lines[0] : null);
   const newP = productBy(newSku) || (firstBack && productBy(firstBack.name)) || CATALOG[0];
-  const unitOf = (p) => r2((sel && sel.channel === 'Wholesale' ? p.wholesale : p.price) * (1 + (sel ? sel.vat : 0)));
+  const unitOf = (p, qty = 1) => r2((sel && sel.channel === 'Wholesale' && !sel.atRetail ? priceFor({ customer: sel.customer.phone, sku: p.sku, qty, channel: 'wholesale', retail: p.price }).price : p.price) * (1 + (sel ? sel.vat : 0)));
   const availOf = useMemo(() => {
     const cache = {};
     return (p) => { if (!sel) return 0; if (cache[p.sku] == null) cache[p.sku] = stockAt(p.sku, sel.place).available; return cache[p.sku]; };
   }, [sel && sel.place, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const newAvail = availOf(newP);
   const qtyNew = Math.max(1, Math.min(newQty, newAvail || 1));
-  const newVal = r2(unitOf(newP) * qtyNew);
+  const newVal = r2(unitOf(newP, qtyNew) * qtyNew);
   const diff = r2(newVal - credit);
   const cands = [newP, ...CATALOG.filter((p) => p.sku !== newP.sku && (!nq.trim() || (p.name + ' ' + p.sku + ' ' + p.barcode).toLowerCase().includes(nq.trim().toLowerCase())))].slice(0, 6);
 
@@ -352,12 +380,43 @@ export default function ReturnExchange() {
   // return window
   const ageDays = sel ? Math.floor((Date.now() - sel.at) / DAY) : 0;
   const outside = !!sel && Date.now() - sel.at > returnDays * DAY;
+  // money given back: a custom role may need a manager or may not refund at all (Settings › Users & roles › POS limits)
+  const refundRule = dir === 'out' && m !== 'Cut from due' && m !== 'Store credit' ? ((posLimitsOf(currentUser()) || {}).refunds || 'yes') : 'yes';
+  const needPin = outside || refundRule === 'pin';
 
   const setPick = (id, n) => { const o = { ...picks }; if (n) o[id] = n; else delete o[id]; setPicks(o); };
+  // unit by unit: tick the IMEI that came back (or scan it); a number not sold on this sale needs a manager
+  const setUnits = (l, list) => { setSn({ ...sn, [l.id]: list }); setPick(l.id, list.length); };
+  const toggleUnit = (l, num) => { const cur = sn[l.id] || []; setUnits(l, cur.includes(num) ? cur.filter((x) => x !== num) : [...cur, num]); };
+  const tickLine = (l) => {
+    const n = picks[l.id] || 0;
+    if (!l.units) { setPick(l.id, n ? 0 : 1); return; }
+    if (n) { setUnits(l, []); setSnOdd(snOdd.filter((x) => x.line !== l.id)); return; }
+    if (l.units.length === 1) { setUnits(l, [l.units[0]]); return; }
+    toast(`Tick or scan the ${unitWord(l)} of the ${l.name} that came back.`, { tone: 'info' });
+  };
+  const scanUnit = (e) => {
+    e.preventDefault();
+    const raw = snScan.trim().toUpperCase().replace(/\s+/g, '');
+    if (!raw || !sel) return;
+    const hit = sel.lines.find((l) => l.units && l.units.includes(raw));
+    if (hit) { if (!(sn[hit.id] || []).includes(raw)) toggleUnit(hit, raw); setSnScan(''); return; }
+    if (sel.lines.some((l) => (l.serials || []).includes(raw))) { toast(`${raw} has already come back.`, { tone: 'error' }); return; }
+    const open = sel.lines.filter((l) => l.units && l.left > (sn[l.id] || []).length);
+    if (!open.length) { toast('Nothing with an IMEI is left to take back on this sale.', { tone: 'error' }); return; }
+    setSnAsk({ serial: raw, line: open.find((l) => (sn[l.id] || []).length) || open[0] });
+  };
+  const approveOdd = (name) => {
+    const { serial, line } = snAsk;
+    setSnOdd([...snOdd, { serial, line: line.id, by: name }]);
+    setUnits(line, [...(sn[line.id] || []), serial]);
+    setSnAsk(null); setSnScan('');
+  };
 
   const confirm = () => {
     if (!sel) { toast('Find the sale first.', { tone: 'error' }); return; }
     if (!pcs) { toast('Tick the items coming back first.', { tone: 'error' }); return; }
+    if (refundRule === 'no') { toast('Your role can’t give money back. Ask a manager, or keep it as store credit.', { tone: 'error' }); return; }
     if (mode === 'exch' && !newAvail) { toast(`${newP.name} is out of stock at ${sel.place}. Pick another item.`, { tone: 'error' }); return; }
     if (dir === 'in') {
       const draft = typed > 0 && remaining ? { method: pd.method, amount: applied, ref: pd.ref.trim(), received: pd.method === 'Cash' ? typed : applied, change } : null;
@@ -367,11 +426,11 @@ export default function ReturnExchange() {
       const left = r2(amt - all.reduce((a, p) => a + p.amount, 0));
       if (left > 0.009 && !(restDue && canDue)) { toast(`${money(left)} is still to pay. Add another payment${canDue ? ' or leave it as due' : ''}.`, { tone: 'error' }); return; }
       if (draft) setParts(all);
-      if (outside && !approvedBy) { setPinOpen(true); return; }
+      if (needPin && !approvedBy) { setPinOpen(true); return; }
       doSave(approvedBy, all);
       return;
     }
-    if (outside && !approvedBy) { setPinOpen(true); return; }
+    if (needPin && !approvedBy) { setPinOpen(true); return; }
     doSave(approvedBy);
   };
 
@@ -379,7 +438,12 @@ export default function ReturnExchange() {
     const now = Date.now();
     const exch = mode === 'exch';
     const qtyMap = Object.fromEntries(back.map((l) => [l.id, picks[l.id]]));
-    const items = back.map((l) => `${l.name} × ${picks[l.id]}`).join(', ');
+    const items = back.map((l) => `${l.name} × ${picks[l.id]}${l.units && (sn[l.id] || []).length ? ` (${(sn[l.id] || []).map((x) => (/^\d{15}$/.test(x) ? 'IMEI ' : 'SN ') + x).join(', ')})` : ''}`).join(', ');
+    const snMap = Object.fromEntries(back.filter((l) => l.units && (sn[l.id] || []).length).map((l) => [l.id, sn[l.id]]));
+    // the drawer the cash goes through: the counter open on this device, else the counter that made the sale
+    // (the shift's expected cash counts it when it happens, posStore.js › shiftReport)
+    const counterAt = counterNow || sel.counter || '';
+    const drawer = { out: dir === 'out' ? (m === 'Cash' ? amt : m === 'Cut from due' ? rest : 0) : 0, in: dir === 'in' ? r2(payParts.filter((p) => p.method === 'Cash').reduce((a, p) => a + p.amount, 0)) : 0 };
     const given = exch ? `${newP.name} × ${qtyNew}` : '';
     const moneyKind = dir === 'in' ? 'collected' : dir === 'even' ? 'even' : m === 'Store credit' || m === 'Cut from due' ? 'credited' : 'refunded';
     const stockPlace = resell ? sel.place : DAMAGED_PLACE;
@@ -415,16 +479,18 @@ export default function ReturnExchange() {
       ...(dir === 'in' ? { payments: payParts, dueAdded: dueAdd } : {}), stock: resell ? 'restock' : 'damaged', reason: reasonLabel,
       place: stockPlace, by: staff, approvedBy: approver || '',
       account: posts.length ? posts[0].account : '', ledger: posts.map((e) => e.id),
+      counter: counterAt, drawer, ...(Object.keys(snMap).length ? { serials: snMap } : {}), ...(snOdd.length ? { notSold: snOdd } : {}),
     });
 
     // store credit lands in the customer's wallet (lib/storeCredit), so the POS and checkout can spend it
     if (dir === 'out' && m === 'Store credit' && phone) issueCredit({ phone, amount: amt, source: 'return', ref: row.id, by: staff, channel: sel.channel === 'Wholesale' ? 'Wholesale' : sel.channel === 'Retail' ? 'Retail' : 'Online' });
     // serial / IMEI numbers that came back go back on the register at the place the goods went
-    back.forEach((l) => (l.serials || []).slice(0, picks[l.id] || 0).forEach((sn) => returnSerial(sn, { ref: row.id, place: stockPlace })));
+    // (a line sold unit by unit returns the numbers picked or scanned; others the first numbers sold)
+    back.forEach((l) => (l.units ? sn[l.id] || [] : (l.serials || []).slice(0, picks[l.id] || 0)).forEach((x) => returnSerial(x, { ref: row.id, place: stockPlace })));
 
     // mark the quantities on the sale itself so they cannot come back twice, and take money off the due
     if (sel.kind === 'pos') {
-      const base = { type: exch ? 'exchange' : 'return', reason: reasonLabel, at: now, items, rt: row.id, ...(exch ? { given: [`${qtyNew} × ${newP.name}`] } : {}) };
+      const base = { type: exch ? 'exchange' : 'return', reason: reasonLabel, at: now, items, rt: row.id, counter: counterAt, ...(exch ? { given: [`${qtyNew} × ${newP.name}`] } : {}) };
       const entries = dir === 'in' ? [...payParts.map((p) => ({ ...base, amount: 0, collected: p.amount, method: p.method, ...(p.ref ? { txn: p.ref } : {}) })), ...(dueAdd ? [{ ...base, amount: 0, collected: 0, method: 'Due', due: dueAdd }] : [])]
         : cut && rest ? [{ ...base, amount: cut, method: 'Cut from due' }, { ...base, amount: rest, method: 'Cash' }]
           : [{ ...base, amount: dir === 'out' ? amt : 0, method: m }];
@@ -488,13 +554,13 @@ export default function ReturnExchange() {
     const stockText = (resell ? `Back on sale at ${sel.place}` : `Moved to ${DAMAGED_PLACE}, not for sale`)
       + (noRecord.length ? ` · no stock record for ${noRecord.join(', ')}` : '')
       + (exch ? ` · ${given} taken from ${sel.place}` : '');
-    setSaved({ id: row.id, exch, label: sel.label, items, given, moneyText, stockText, approver: approver || '', by: staff, at: now });
+    setSaved({ id: row.id, exch, label: sel.label, items, given, moneyText, stockText, approver: approver || '', by: staff, at: now, odd: snOdd, counter: drawer.out || drawer.in ? counterAt : '' });
     setPinOpen(false);
     reload();
     toast(`${exch ? 'Exchange' : 'Return'} ${row.id} saved · ${moneyText}.${slip ? ' Return slip sent to the printer.' : ''}`);
   };
 
-  const newReturn = () => { setSaved(null); setSelKey(''); setQ(''); setPicks({}); setApprovedBy(''); setMethod(''); setParts([]); setPd({ method: 'Cash', amount: '', ref: '' }); setRestDue(false); setRefundTo(''); setMode('ret'); setNewSku(''); setNewQty(1); setNq(''); };
+  const newReturn = () => { setSaved(null); setSelKey(''); setQ(''); setPicks({}); setSn({}); setSnOdd([]); setSnScan(''); setApprovedBy(''); setMethod(''); setParts([]); setPd({ method: 'Cash', amount: '', ref: '' }); setRestDue(false); setRefundTo(''); setMode('ret'); setNewSku(''); setNewQty(1); setNq(''); };
 
   const lock = !!saved;
 
@@ -565,16 +631,23 @@ export default function ReturnExchange() {
                       <div className="ix-card__body">
                         <fieldset className="re-lock" disabled={lock}>
                           <legend className="sr-only">Items and how they are settled</legend>
+                          {sel.lines.some((l) => l.units && l.left) ? (
+                            <form className="re-find" onSubmit={scanUnit}>
+                              <label className="ix-search"><Icon name="scan-barcode" width="16" height="16" aria-hidden="true" /><input value={snScan} onChange={(e) => setSnScan(e.target.value)} placeholder="Scan or type the IMEI that came back" aria-label="Scan or type the IMEI or serial number that came back" /></label>
+                              <button type="submit" className="ix-btn">Match</button>
+                            </form>
+                          ) : null}
                           <ul className="re-items">
                             {sel.lines.map((l) => {
                               const n = picks[l.id] || 0;
+                              const picked = sn[l.id] || [];
                               return (
                                 <li key={l.id} className={'re-item' + (n ? ' is-on' : '') + (l.left ? '' : ' is-done')}>
                                   <label>
-                                    <input type="checkbox" className="gc-check" disabled={!l.left} checked={n > 0} onChange={() => setPick(l.id, n ? 0 : 1)} />
+                                    <input type="checkbox" className="gc-check" disabled={!l.left} checked={n > 0} onChange={() => tickLine(l)} />
                                     <span><span className="re-strong">{l.name}</span><span className="re-sub">Sold {l.qty} · {money(l.each)} paid each{l.done ? ` · ${l.done} already returned` : ''}</span></span>
                                   </label>
-                                  {!l.left ? <span className="gc-badge gc-badge--slate">Returned</span> : n ? (
+                                  {!l.left ? <span className="gc-badge gc-badge--slate">Returned</span> : n && !l.units ? (
                                     <span className="re-stepper">
                                       <button type="button" aria-label={`One less ${l.name}`} disabled={n <= 1} onClick={() => setPick(l.id, n - 1)}><Icon name="minus" width="16" height="16" /></button>
                                       <b aria-label={`${n} coming back`}>{n}</b>
@@ -582,6 +655,12 @@ export default function ReturnExchange() {
                                     </span>
                                   ) : null}
                                   <span className={'re-item__val' + (n ? '' : ' is-off')}>{n ? money(l.each * n) : l.left ? `${l.left} can come back` : 'Nothing left'}</span>
+                                  {l.units && l.left ? (
+                                    <div className="re-units" role="group" aria-label={`Which ${l.name} came back`}>
+                                      {l.units.map((x) => <button key={x} type="button" className={'re-chip re-mono' + (picked.includes(x) ? ' is-on' : '')} aria-pressed={picked.includes(x)} disabled={!picked.includes(x) && picked.length >= l.left} onClick={() => toggleUnit(l, x)}>{unitWord(l) === 'IMEI' ? 'IMEI' : 'SN'} {x}</button>)}
+                                      {snOdd.filter((x) => x.line === l.id).map((x) => <span key={x.serial} className="re-chip re-chip--odd re-mono"><Icon name="shield-check" width="12" height="12" aria-hidden="true" />{x.serial} · not sold on this sale · approved by {x.by}</span>)}
+                                    </div>
+                                  ) : null}
                                 </li>
                               );
                             })}
@@ -617,7 +696,7 @@ export default function ReturnExchange() {
                                 })}
                               </div>
                               <div className="re-row">
-                                <span className="re-sub">Taking: <b style={{ color: 'var(--text-heading)', fontWeight: 'var(--weight-medium)' }}>{newP.name}</b>{sel.vat ? ' · price includes VAT' : ''}</span>
+                                <span className="re-sub">Taking: <b style={{ color: 'var(--text-heading)', fontWeight: 'var(--weight-medium)' }}>{newP.name}</b>{sel.vat || sel.vatIn ? ' · price includes VAT' : ''}</span>
                                 <span className="re-stepper">
                                   <button type="button" aria-label="One less of the new item" disabled={qtyNew <= 1} onClick={() => setNewQty(qtyNew - 1)}><Icon name="minus" width="16" height="16" /></button>
                                   <b aria-label={`${qtyNew} of the new item`}>{qtyNew}</b>
@@ -705,6 +784,8 @@ export default function ReturnExchange() {
                           ['Stock', saved.stockText],
                           ['Taken back by', saved.by],
                           saved.approver ? ['Approved by', saved.approver] : null,
+                          saved.odd && saved.odd.length ? ['Not sold on this sale', saved.odd.map((x) => `${x.serial} · approved by ${x.by}`).join(', ')] : null,
+                          saved.counter ? ['Cash drawer', saved.counter] : null,
                         ]} />
                         <div className="re-actions">
                           <button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast(`Return slip ${saved.id} sent to the printer`)}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print return slip</button>
@@ -718,7 +799,7 @@ export default function ReturnExchange() {
                       <div className="ix-card__body re-body">
                         <dl className="re-sum">
                           <dt>Items coming back</dt><dd>{pcs} {pcs === 1 ? 'piece' : 'pieces'}</dd>
-                          <dt>Credit for them (paid price{sel.vat ? ', VAT incl.' : ''})</dt><dd>{money(credit)}</dd>
+                          <dt>Credit for them (paid price{sel.vat || sel.vatIn ? ', VAT incl.' : ''})</dt><dd>{money(credit)}</dd>
                           {mode === 'exch' ? <><dt>New item · {newP.name} × {qtyNew}</dt><dd>{money(newVal)}</dd></> : null}
                         </dl>
                         <div className={'re-big re-big--' + big[0]} role="status">
@@ -730,10 +811,11 @@ export default function ReturnExchange() {
                         <div>
                           <label className="gc-label" htmlFor="re-by">Taken back by</label>
                           <select id="re-by" className="gc-input gc-select" value={staff} onChange={(e) => setBy(e.target.value)}>{EMPLOYEES.map((e) => <option key={e.name} value={e.name}>{e.name} · {e.branch}</option>)}</select>
+                          {(counterNow || sel.counter) && ((dir === 'out' && (m === 'Cash' || (m === 'Cut from due' && rest))) || (dir === 'in' && [...parts, pd].some((p) => p.method === 'Cash'))) ? <span className="re-sub">Cash drawer: {counterNow || sel.counter}</span> : null}
                         </div>
                         <div className="re-switch"><span>Print a return slip</span><button type="button" role="switch" aria-checked={slip} aria-label="Print a return slip" className="gc-switch" onClick={() => setSlip(!slip)}><span className="gc-switch__knob" /></button></div>
                         <button type="button" className="gc-btn gc-btn--solid gc-btn--block" onClick={confirm} disabled={!sel.open}>
-                          <Icon name={outside && !approvedBy ? 'shield-check' : 'check'} width="16" height="16" aria-hidden="true" /> {outside && !approvedBy ? 'Get manager approval' : mode === 'ret' ? 'Confirm return' : 'Confirm exchange'}
+                          <Icon name={needPin && !approvedBy ? 'shield-check' : 'check'} width="16" height="16" aria-hidden="true" /> {needPin && !approvedBy ? 'Get manager approval' : mode === 'ret' ? 'Confirm return' : 'Confirm exchange'}
                         </button>
                       </div>
                     </section>
@@ -750,9 +832,16 @@ export default function ReturnExchange() {
       </div>
       <ManagerPin
         open={pinOpen}
-        reason={sel ? `${sel.label} was sold ${ageDays} days ago, outside the ${returnDays}-day return window. A manager must approve this ${mode === 'ret' ? 'return' : 'exchange'}.` : ''}
+        reason={sel ? (outside ? `${sel.label} was sold ${ageDays} days ago, outside the ${returnDays}-day return window. A manager must approve this ${mode === 'ret' ? 'return' : 'exchange'}.` : `Giving ${money(amt)} back needs a manager’s approval for your role.`) : ''}
         onApprove={(name) => { setApprovedBy(name); doSave(name); }}
         onClose={() => setPinOpen(false)}
+      />
+      <ManagerPin
+        open={!!snAsk}
+        action="IMEI mismatch"
+        reason={snAsk && sel ? `${snAsk.serial} was not sold on ${sel.label} (sold: ${(snAsk.line.serials || []).join(', ')}). A manager must approve taking it back as ${snAsk.line.name}.` : ''}
+        onApprove={approveOdd}
+        onClose={() => setSnAsk(null)}
       />
     </div>
   );

@@ -38,6 +38,7 @@ const CSS = `
 .ss-row>span:not(.ss-yn){display:flex;flex-direction:column;min-width:0}
 .ss-row b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .ss-row small{font-size:var(--text-xs);color:var(--text-muted)}
+.ss-money{position:relative;width:160px}.ss-money>span{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted)}.ss-money>input{padding-left:26px}
 .ss-table{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
 .ss-table th{height:36px;padding:0 var(--space-3);background:var(--surface-subtle);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);text-align:left}
 .ss-table td{height:40px;padding:6px var(--space-3);border-top:1px solid var(--border-subtle);color:var(--text-body)}
@@ -74,11 +75,13 @@ export default function SetStockSetup() {
       if (!r.ok) { toast(Object.values(r.errors)[0], { tone: 'error' }); return; }
     }
     const before = getStockSetup();
-    saveStockSetup({ homeId: s.homeId, buying: s.buying, supplierChanges: s.supplierChanges, wholesale: s.wholesale });
+    const lim = String(s.poLimit ?? '').trim();
+    if (s.buying !== 'direct' && !/^\d+$/.test(lim)) { toast('Enter the approval limit as a whole number (0 = no approval).', { tone: 'error' }); return; }
+    saveStockSetup({ homeId: s.homeId, buying: s.buying, supplierChanges: s.supplierChanges, wholesale: s.wholesale, ...(s.buying !== 'direct' ? { poLimit: Number(lim) } : {}) });
     // settings history (lib/settingsHistory.js): what changed, old → new
-    const LBL = { homeId: 'Online orders ship from', buying: 'Buying', supplierChanges: 'Supplier changes', wholesale: 'Wholesale' };
+    const LBL = { homeId: 'Online orders ship from', buying: 'Buying', supplierChanges: 'Supplier changes', wholesale: 'Wholesale', poLimit: 'Purchase order approval limit' };
     const val = (k, x) => (k === 'homeId' ? ((placeById(x) || {}).name || x) : x);
-    logChanges({ formId: 'stocksetup', changes: Object.keys(LBL).filter((k) => JSON.stringify(before[k]) !== JSON.stringify(s[k])).map((k) => ({ field: k, label: LBL[k], from: val(k, before[k]), to: val(k, s[k]) })) });
+    logChanges({ formId: 'stocksetup', changes: Object.keys(LBL).filter((k) => String(before[k]) !== String(k === 'poLimit' ? Number(s[k]) : s[k])).map((k) => ({ field: k, label: LBL[k], from: val(k, before[k]), to: val(k, s[k]) })) });
     load();
     toast('Stock setup saved');
   };
@@ -158,6 +161,12 @@ export default function SetStockSetup() {
                         <div className="ss-pick" role="group" aria-label="How you buy">
                           {BUYING.map(([k, l, d]) => <button key={k} type="button" className="ss-opt" aria-pressed={s.buying === k} onClick={() => set({ buying: k })}><b>{l}</b><span>{d}</span></button>)}
                         </div>
+                        {s.buying !== 'direct' ? (
+                          <div className="ss-row">
+                            <span><b>Approval for purchase orders above</b><small>Staff orders over this wait for the owner or the warehouse manager. 0 = no approval.</small></span>
+                            <span className="ss-money"><span aria-hidden="true">৳</span><input id="ss-polimit" className="gc-input" inputMode="numeric" aria-label="Approval for purchase orders above (taka)" value={s.poLimit ?? ''} onChange={(e) => set({ poLimit: e.target.value.replace(/[^0-9]/g, '') })} /></span>
+                          </div>
+                        ) : null}
                       </div>
                     </section>
                   ) : null}

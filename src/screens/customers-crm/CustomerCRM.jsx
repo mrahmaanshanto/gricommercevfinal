@@ -8,7 +8,9 @@
 // cart and searches are demo data. Company mode (kind = company) adds Locations and Contacts on the same shell.
 // Insights read customerSignals.js (features + signals with model, time and "Not enough data") and recovery.js.
 // Controls keep status apart from restrictions (restrictions.js) and consent (consent.js); IP and device data show
-// only to roles allowed in Customer settings (crmAccess.js). Changes are kept in this browser.
+// only to roles allowed in Customer settings (crmAccess.js). Coupons and rewards post to the real libs for every
+// customer: one-time codes (personalCoupons.js → promotions.js), points (loyalty.js › adjustPoints) and store credit
+// (storeCredit.js › issueCredit). Changes are kept in this browser.
 // Edit freely: this file is now the source for the screen.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -25,9 +27,12 @@ import {
   addExternalId, removeExternalId, EXTERNAL_SOURCES, PHONE_LABELS, EMAIL_LABELS, CONTACT_ROLES, addLocation, removeLocation, linkContact, unlinkContact,
   addCustomer, IDENTITY_EVENT, searchCustomers,
 } from '@/lib/customers';
+import { TERMS, termsOf, setTerms, pricingLabel } from '@/lib/wholesalePrice';
 import { getCrmRows, crmRow } from '@/lib/crm';
 import { getOrders } from '@/lib/orders';
-import { findMember } from '@/lib/loyalty';
+import { findMember, getMembers, addMember, adjustPoints, tierFor } from '@/lib/loyalty';
+import { issueCredit, creditBalance } from '@/lib/storeCredit';
+import { personalCouponsOf } from '@/lib/personalCoupons';
 import { getConsent, setConsent, consentHistory, setAdsOptOut, whyNotAllowed, CONSENT_CHANNELS, CONSENT_STATES, CONSENT_TONE, CONSENT_SOURCES, CONSENT_EVENT, channelLabel } from '@/lib/consent';
 import { restrictionsOf, restrictionState, restrictionText, addRestriction, liftRestriction, restrictionProblem, RESTRICTION_TYPES, STATE_LABEL, PAY_METHODS, RESTRICTIONS_EVENT } from '@/lib/restrictions';
 import { getFieldDefs, getFieldValues, setFieldValue, parseValue, formatValue, fieldVisible, FIELDS_EVENT } from '@/lib/customFields';
@@ -37,11 +42,13 @@ import { opportunitiesOf, OPP_STATES, OPP_TYPES, RECOVERY_EVENT } from '@/lib/re
 import { canSeeDeviceData } from '@/lib/crmAccess';
 import { forgetDerived } from '@/lib/crmPrivacy';
 import { currentUser } from '@/lib/team';
-import { wholesaleOn, hasModule } from '@/lib/edition';
+import { hasModule, inEditionNav } from '@/lib/edition';
+import { useWholesale } from '@/lib/useWholesale';
 import { ManagerPin } from '@/components/ManagerPin';
 import { FORM_CSS, Switch, Steps } from '@/screens/loyalty-promo/loyShared';
 import CustomerEditDialog from './CustomerEditDialog';
 import CustomerInvoices from './CustomerInvoices';
+import AssignCouponDialog from './AssignCoupon';
 import CustomerWarranty from './CustomerWarranty';
 import { getInvoices } from '@/lib/invoices';
 import { meetingsWith, providerOf as meetingHow } from '@/lib/meetings';
@@ -113,15 +120,32 @@ const BARS = [['Oct', 0], ['Nov', 1200], ['Dec', 3400], ['Jan', 0], ['Feb', 2100
 // the areas a profile shows: the main things about one customer. Insights (signals, segments) and Controls (consent,
 // restrictions, devices, privacy) are kept in the code but not shown; their actions are in the header's More menu.
 const AREAS = [['overview', 'Overview'], ['orders', 'Orders'], ['invoices', 'Invoices'], ['activity', 'Messages & activity'], ['details', 'Details']];
-// wholesale (type, price list, profile) shows only while it is on (edition.js › WHOLESALE; off for now)
-const WS = wholesaleOn();
-const TAGS = ['VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up', 'Prefers call'].filter((t) => t !== 'Wholesale' || WS);
+// wholesale (type, price list, profile) shows only while it is on (edition.js › WHOLESALE; off for now). Read after
+// mount (useWholesale in the screen), so the server and the browser draw the same first page.
+const ALL_TAGS = ['VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up', 'Prefers call'];
 const ALABELS = ['Home', 'Office', 'Family', 'Shop', 'Branch', 'Other'];
 const STAFF = ['Tania', 'Karim', 'Shanto', 'Rupa'];
 const PREFERRED = ['WhatsApp', 'Phone', 'SMS', 'Email'];
 const MDEF = { sms: 'Hi {name}, ', whatsapp: 'Hi {name}, ', email: 'Hi {name},\n\n' };
 const REASONS = { cod: ['Refused cash-on-delivery parcels', 'Fake or prank orders', 'Address could not be found'], prepaid: ['Large orders', 'Orders above the credit limit'], review: ['Address check needed', 'Unusual orders'], order_cap: ['New account', 'Large orders'], method: ['Payment disputes', 'Chargeback'], credit_hold: ['Overdue invoices', 'Credit limit reached'], blocked: ['Abusive to staff', 'Fraud confirmed'] };
 const STATUS_TONE = { Active: 'success', Suspended: 'error', Closed: 'neutral' };
+// why store credit is given → its source in storeCredit.js
+const CREDIT_WHY = [['Sorry for a late delivery', 'goodwill'], ['Refund', 'refund'], ['Gift', 'goodwill'], ['Fix a mistake', 'manual']];
+const PTONE = { Unused: 'info', Used: 'success', Expired: 'neutral', Paused: 'warning' };
+
+/** The loyalty member behind a customer: by any of their numbers; a demo customer's masked number (01711-2X4-518)
+ *  matches the member whose number fits the mask, then their name. */
+function memberFor(c) {
+  const list = getMembers();
+  const phones = [...c.phones.map((p) => p.value), c.phone, c.bookPhone].filter(Boolean);
+  for (const p of phones) { const m = findMember(p, list); if (m) return m; }
+  if (c.origin !== 'demo') return null;
+  for (const p of phones) {
+    const raw = String(p).replace(/[\s\-().]/g, '').replace(/^\+?88/, '');
+    if (raw.length === 11 && /X/.test(raw)) { const re = new RegExp('^' + raw.replace(/X/g, '\\d') + '$'); const m = list.find((x) => re.test(x.phone)); if (m) return m; }
+  }
+  return list.find((x) => x.name === c.name) || null;
+}
 
 // ---- styles ----
 
@@ -213,6 +237,8 @@ function SignalBox({ s }) {
 
 export default function CustomerCRMScreen() {
   const [ready, setReady] = useState(false);
+  const WS = useWholesale();
+  const TAGS = ALL_TAGS.filter((t) => t !== 'Wholesale' || WS);
   const [ref, setRef] = useState(DEMO_ID);
   const [tab, setTabState] = useState('overview');
   const [ver, setVer] = useState(0);
@@ -222,7 +248,8 @@ export default function CustomerCRMScreen() {
   const [err, setErr] = useState('');
   const [pin, setPin] = useState(null);      // a restriction waiting for a manager
   const [editProf, setEditProf] = useState(null);
-  const [ui, setUi] = useState({ nba: null, pts: 1845, credit: 1250, mch: 'sms', mb: {}, subj: 'A little something for you', sent: [], nt: '', ordAll: false, rng: '12m', tlAll: false });
+  const [coup, setCoup] = useState(false);   // Assign coupon dialog
+  const [ui, setUi] = useState({ nba: null, mch: 'sms', mb: {}, subj: 'A little something for you', sent: [], nt: '', ordAll: false, rng: '12m', tlAll: false });
   const set = (p) => setUi((u) => ({ ...u, ...p }));
   const me = (currentUser() || {}).name || 'Staff';
   const role = (currentUser() || {}).role;
@@ -265,7 +292,7 @@ export default function CustomerCRMScreen() {
     const restr = restrictionsOf(c);
     const opps = opportunitiesOf(c.id);
     const segs = segmentsOf(c, rows);
-    const member = demo ? null : findMember(c.digits);
+    const member = memberFor(c);
     const contacts = company ? rows.filter((x) => x.companyId === c.id) : [];
     const coRow = c.companyId ? rows.find((x) => x.id === c.companyId) : null;
     const dupes = rows.filter((x) => x.id !== c.id && x.kind === c.kind && ((x.name === c.name) || x.phones.some((p) => phones.has(normalizePhone(p.value)))));
@@ -320,13 +347,15 @@ export default function CustomerCRMScreen() {
   const fieldDefs = getFieldDefs().filter((d) => fieldVisible(d, role));
   const fieldVals = getFieldValues(c.id);
   const whole = WS && (c.types || []).indexOf('Wholesale') >= 0;
-  const pts = demo ? ui.pts : D.member ? D.member.points : 0;
-  const level = demo ? 'Gold' : D.member && D.member.tierObj ? D.member.tierObj.name : c.level;
+  const pts = D.member ? D.member.points : 0;
+  // the loyalty tier from what they actually bought (the demo customer was always shown as Gold)
+  const level = D.member && D.member.tierObj ? D.member.tierObj.name : (tierFor(c.spent || 0) || {}).name || c.level;
   const verified = c.phones.find((p) => p.primary) || c.phones[0];
   const company0 = D.coRow;
   // a book customer's figures come from their invoices; when they only have online orders, count those
   const live = D.orders.filter((o) => o.st !== 'Cancelled');
   const figs = c.orders || !live.length ? { orders: c.orders, spent: c.spent, aov: c.aov } : { orders: live.length, spent: live.reduce((a, o) => a + o.amt, 0), aov: Math.round(live.reduce((a, o) => a + o.amt, 0) / live.length) };
+  const myCoupons = company ? [] : personalCouponsOf({ id: c.id, phone: c.phone, phones: c.phones.map((p) => p.value).concat(D.member ? [D.member.phone] : []) });
   const openCart = D.opps.find((o) => ['waiting', 'contactable', 'call_queued'].indexOf(o.state) >= 0);
 
   // ---- actions ----
@@ -343,7 +372,34 @@ export default function CustomerCRMScreen() {
     setEditProf(null); bump();
     uiToast(vals.name + ' was updated.' + (isWhole && !wasWhole ? ' They now show under Wholesale customers.' : ''));
   };
-  const call = () => uiToast('Calling ' + c.phone + ' …');
+  // Call opens the dialer with the number (Inbox › Calls, ?dial=); without Calls in the edition the phone's own dialer
+  const call = () => {
+    const ph = (D.member && D.member.phone) || (verified && verified.value) || c.phone;   // a demo number is masked; the member's is whole
+    if (!ph) { uiToast('No phone number on this customer.', { tone: 'info' }); return; }
+    if (inEditionNav('calls')) navigate('/merchant-calls?dial=' + encodeURIComponent(ph) + '&name=' + encodeURIComponent(c.name));
+    else window.location.href = 'tel:' + String(ph).replace(/[^0-9+]/g, '');
+  };
+  // coupons and rewards: a member is needed for points and store credit; a customer-book customer becomes one here
+  const canReward = !company && (!!D.member || (c.origin === 'book' && /^01[3-9]\d{8}$/.test(c.digits)));
+  const ensureMember = () => D.member || (c.origin === 'book' ? addMember({ name: c.name, phone: c.digits }) : null);
+  const saveCredit = () => {
+    const mem = ensureMember();
+    if (!mem) { setErr('Not a loyalty member yet.'); return; }
+    const n = f.n || 200, why = CREDIT_WHY.find((x) => x[0] === f.why) || CREDIT_WHY[0];
+    const r = issueCredit({ phone: mem.phone, amount: n, source: why[1], note: why[0], by: me });
+    if (r.error) { setErr(r.error); return; }
+    close(); bump(); uiToast(bdt(n) + ' store credit added for ' + first + '. Balance ' + bdt(creditBalance(mem.phone)) + '.');
+  };
+  const savePoints = () => {
+    const mem = ensureMember();
+    if (!mem) { setErr('Not a loyalty member yet.'); return; }
+    const d = (f.op === 'take' ? -1 : 1) * (f.n || 100);
+    const r = adjustPoints({ phone: mem.phone, points: d, reason: String(f.why || '').trim() || (d > 0 ? 'Gift' : 'Correction'), by: me });
+    if (r.error) { setErr(r.error); return; }
+    close(); bump();
+    const now = findMember(mem.phone);
+    uiToast((d > 0 ? 'Gave ' : 'Took ') + Math.abs(d) + ' points. ' + first + ' now has ' + (now ? now.points : 0).toLocaleString('en-IN') + ' points.');
+  };
   const goMessage = () => { setTab('activity'); setTimeout(() => { const el = document.getElementById('crm-compose'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 0); };
   const msgBody = ui.mb[ui.mch] != null ? ui.mb[ui.mch] : MDEF[ui.mch];
   const msgBlock = whyNotAllowed(c, ui.mch, 'service');
@@ -545,22 +601,25 @@ export default function CustomerCRMScreen() {
         {demo ? <><dt>Refunded</dt><dd>৳650</dd><dt>Cancelled</dt><dd>৳1,240</dd></> : null}
         <dt>Due</dt><dd>{bdt(c.due)}</dd>
         {whole || company ? <><dt>Credit limit</dt><dd>{c.creditLimit ? bdt(c.creditLimit) : 'No limit'}</dd></> : null}
-        {company ? <><dt>Payment terms</dt><dd>{c.terms || '—'}</dd></> : null}
+        {company ? <><dt>Payment terms</dt><dd>{(termsOf(c) || {}).terms || '—'}</dd></> : null}
         <dt className="is-total">Average order</dt><dd className="is-total">{bdt(figs.aov)}</dd>
       </dl>
     </Card>
-    {demo ? (
-      <Card id="crm-rewards" title="Coupons and rewards" action={<Plain onClick={() => open('coupon')} dialog>Assign coupon</Plain>}>
+    {!company ? (
+      <Card id="crm-rewards" title="Coupons and rewards" action={<Plain onClick={() => setCoup(true)} dialog>Assign coupon</Plain>}>
         <div className="ix-chips">
-          <button type="button" className="ix-btn ix-btn--sm" onClick={() => open('points', { op: 'give', n: 100 })}><__Icon name="star" width="16" height="16" aria-hidden="true" />Give or take points</button>
-          <button type="button" className="ix-btn ix-btn--sm" onClick={() => open('credit', { n: 200 })}><__Icon name="wallet" width="16" height="16" aria-hidden="true" />Add credit</button>
+          <button type="button" className="ix-btn ix-btn--sm" disabled={!canReward} onClick={() => open('points', { op: 'give', n: 100, why: '' })} aria-haspopup="dialog"><__Icon name="star" width="16" height="16" aria-hidden="true" />Give or take points</button>
+          <button type="button" className="ix-btn ix-btn--sm" disabled={!canReward} onClick={() => open('credit', { n: 200, why: CREDIT_WHY[0][0] })} aria-haspopup="dialog"><__Icon name="wallet" width="16" height="16" aria-hidden="true" />Add credit</button>
         </div>
-        <ul className="crm-list" aria-label="Coupons">{COUP.map((x) => <li key={x[0]}><div><b className="ly-fig">{x[0]}</b><span className="crm-sub">{x[1]} · {x[2]} · {x[3]}</span></div><span style={{ textAlign: 'right' }}><__StatusBadge tone={CTONE[x[4]]}>{x[4]}</__StatusBadge><span className="crm-sub">{x[5]}</span></span></li>)}</ul>
-        <KV rows={[['Loyalty points', ui.pts.toLocaleString('en-IN') + ' · earned 2,105 · used 260'], ['Wallet credit', bdt(ui.credit)]]} />
-      </Card>
-    ) : D.member ? (
-      <Card id="crm-rewards" title="Loyalty" action={<__Link href={'/member-detail?phone=' + c.digits}>Member</__Link>}>
-        <KV rows={[['Level', level], ['Points', D.member.points.toLocaleString('en-IN')], ['Wallet', bdt(D.member.wallet || 0)]]} />
+        {myCoupons.length || demo ? (
+          <ul className="crm-list" aria-label="Coupons">
+            {myCoupons.map((x) => <li key={x.id}><div><b className="ly-fig">{x.code}</b><span className="crm-sub">{x.label} · {x.made ? fmtD(x.made) : ''}</span></div><span style={{ textAlign: 'right' }}><__StatusBadge tone={PTONE[x.state]}>{x.state}</__StatusBadge><span className="crm-sub">{x.ends ? 'Ends ' + fmtD(x.ends) : 'No end date'}</span></span></li>)}
+            {demo ? COUP.map((x) => <li key={x[0]}><div><b className="ly-fig">{x[0]}</b><span className="crm-sub">{x[1]} · {x[2]} · {x[3]}</span></div><span style={{ textAlign: 'right' }}><__StatusBadge tone={CTONE[x[4]]}>{x[4]}</__StatusBadge><span className="crm-sub">{x[5]}</span></span></li>) : null}
+          </ul>
+        ) : <p className="ly-help">No coupons yet.</p>}
+        {D.member ? <KV rows={[['Level', D.member.tierObj ? D.member.tierObj.name : level], ['Loyalty points', D.member.points.toLocaleString('en-IN')], ['Store credit', bdt(D.member.wallet || 0)]]} />
+          : <p className="ly-help">{canReward ? 'Not a loyalty member yet. Giving points or credit makes them one.' : 'Not a loyalty member yet.'} <__Link href="/members">Members</__Link></p>}
+        {D.member ? <__Link href={'/member-detail?phone=' + D.member.phone}>Member</__Link> : null}
       </Card>
     ) : null}
   </>);
@@ -570,7 +629,7 @@ export default function CustomerCRMScreen() {
     </Card>
   ) : company || whole ? (
     <Card id="crm-terms" title="Account terms">
-      <KV rows={[...(WS ? [['Price list', c.tier ? 'Wholesale ' + c.tier : '—']] : []), ['Payment terms', c.terms || '—'], ['Credit limit', c.creditLimit ? bdt(c.creditLimit) : 'No limit'], ['Owed now', bdt(c.due)]]} />
+      <KV rows={[...(WS ? [['Prices', pricingLabel(c) || '—']] : []), ['Payment terms', <TermsPick key="t" c={c} />], ['Credit limit', c.creditLimit ? bdt(c.creditLimit) : 'No limit'], ['Owed now', bdt(c.due)]]} />
       {whole && !company ? <__Link href={'/wholesale-customer?phone=' + (c.bookPhone || c.digits) + (c.demoId ? '&demo=' + c.demoId : '')}>Wholesale profile</__Link> : null}
     </Card>
   ) : null;
@@ -796,13 +855,14 @@ export default function CustomerCRMScreen() {
         secondary={[{ label: 'Edit', onClick: openEdit }, { label: 'Call', onClick: call }]}
         more={[
           whole && !company ? { label: 'Wholesale profile', href: '/wholesale-customer?phone=' + (c.bookPhone || c.digits) + (c.demoId ? '&demo=' + c.demoId : '') } : null,
+          (company || whole) && inEditionNav('orders-quotes') && { label: 'New quote', href: '/quotes?new=1&buyer=' + encodeURIComponent(company ? c.id : (c.bookPhone || c.digits)) },
           hasModule('comms') && { label: 'Schedule meeting', href: '/meetings?new=1&customer=' + encodeURIComponent(c.bookPhone || c.phone || (c.phones[0] || {}).value || '') },
           { label: 'Merge customer', href: '/all-customers?view=dupes' },
           company ? { label: 'Add contact', onClick: () => { setTab('details'); open('contact', { q: '', role: 'Buyer', loc: (c.locations[0] || {}).id || '' }); } } : { label: 'Add to a company', onClick: () => open('link', { company: '', role: 'Buyer', loc: '' }) },
           { label: 'Custom fields', onClick: () => setTab('details') },
           { label: 'Edit consent', onClick: () => open('consent', { channel: 'sms', state: 'in', source: 'Staff', note: '' }) },
           { label: 'Add restriction', onClick: () => startRestr('cod') },
-          demo ? { label: 'Assign coupon', onClick: () => open('coupon') } : null,
+          !company ? { label: 'Assign coupon', onClick: () => setCoup(true) } : null,
           c.status === 'Active' ? { label: 'Suspend customer', tone: 'danger', onClick: () => open('suspend', { reason: 'Too many returned orders', until: '' }) } : { label: 'Turn account back on', onClick: reactivate },
         ].filter(Boolean)}
         primary={{ label: 'Message', onClick: goMessage }} />
@@ -821,15 +881,14 @@ export default function CustomerCRMScreen() {
         <aside className="ix-side">{custCard}{area[1]}{notesCard}</aside>
       </div>
 
-      <__Dialog open={!!m} title={{ addr: f.id ? 'Edit address' : 'Add an address', coupon: 'Assign a coupon', credit: 'Add wallet credit', points: 'Give or take points', suspend: 'Suspend ' + c.name, restr: 'Add a restriction', consent: 'Change consent', phone: 'Add a phone', email: 'Add an email', ext: 'Add an outside ID', fields: 'Custom fields', loc: 'Add a location', contact: 'Add a contact', link: 'Link to a company' }[m] || ''} onClose={close} width={520}
+      <__Dialog open={!!m} title={{ addr: f.id ? 'Edit address' : 'Add an address', credit: 'Add store credit', points: 'Give or take points', suspend: 'Suspend ' + c.name, restr: 'Add a restriction', consent: 'Change consent', phone: 'Add a phone', email: 'Add an email', ext: 'Add an outside ID', fields: 'Custom fields', loc: 'Add a location', contact: 'Add a contact', link: 'Link to a company' }[m] || ''} onClose={close} width={520}
         footer={m === 'contact' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={close}>Close</button> : <>
           <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={close}>Cancel</button>
           <button type="button" className={'gc-btn gc-btn--sm gc-btn--solid' + (m === 'suspend' ? ' gc-btn--error' : '')} onClick={() => {
             if (m === 'addr') saveAddr(); else if (m === 'restr') saveRestr(); else if (m === 'consent') saveConsentDlg(); else if (m === 'phone' || m === 'email') saveContact(); else if (m === 'ext') saveExt(); else if (m === 'fields') saveFields(); else if (m === 'loc') saveLoc(); else if (m === 'link') saveLink(); else if (m === 'suspend') suspend();
-            else if (m === 'coupon') { close(); uiToast('One-time code NUSV10 assigned and sent on WhatsApp.'); }
-            else if (m === 'credit') { set({ credit: ui.credit + (f.n || 200) }); close(); uiToast(bdt(f.n || 200) + ' added to her wallet.'); }
-            else if (m === 'points') { const d = (f.op === 'take' ? -1 : 1) * (f.n || 100); set({ pts: Math.max(0, ui.pts + d) }); close(); uiToast((d > 0 ? 'Gave ' : 'Took ') + Math.abs(d) + ' points.'); }
-          }}>{{ addr: 'Save address', restr: restrType.approval ? 'Ask a manager' : 'Add restriction', consent: 'Save', phone: 'Add phone', email: 'Add email', ext: 'Add ID', fields: 'Save', loc: 'Add location', link: 'Link', suspend: 'Suspend account', coupon: 'Assign coupon', credit: 'Add ' + bdt(f.n || 200), points: (f.op === 'take' ? 'Take ' : 'Give ') + (f.n || 100) + ' points' }[m] || 'Save'}</button>
+            else if (m === 'credit') saveCredit();
+            else if (m === 'points') savePoints();
+          }}>{{ addr: 'Save address', restr: restrType.approval ? 'Ask a manager' : 'Add restriction', consent: 'Save', phone: 'Add phone', email: 'Add email', ext: 'Add ID', fields: 'Save', loc: 'Add location', link: 'Link', suspend: 'Suspend account', credit: 'Add ' + bdt(f.n || 200), points: (f.op === 'take' ? 'Take ' : 'Give ') + (f.n || 100) + ' points' }[m] || 'Save'}</button>
         </>}>
         <div className="crm-dialog">
           {err ? <p className="gc-help gc-help--error" role="alert" style={{ margin: 0 }}>{err}</p> : null}
@@ -914,27 +973,36 @@ export default function CustomerCRMScreen() {
             <Field id="crm-s-long" label="For how long"><select id="crm-s-long" className="gc-input gc-select" value={f.until} onChange={ff('until')}><option value="">Until I turn it back on</option><option>7 days</option><option>30 days</option></select></Field>
             <p className="gc-help gc-help--error" style={{ margin: 0 }}>They will not be able to log in or place orders. Open orders stay as they are. To stop only cash on delivery, add a restriction instead.</p>
           </>) : null}
-          {m === 'coupon' ? (<>
-            <Field id="crm-c-coupon" label="Coupon"><select id="crm-c-coupon" className="gc-input gc-select"><option>Make a one-time code just for her</option><option>EID300 — ৳300 off on ৳2,000+</option><option>CASE15 — 15% off accessories</option><option>GOLD500 — ৳500 off on ৳5,000+</option></select></Field>
-            <div className="ly-two">
-              <Field id="crm-c-disc" label="Discount"><select id="crm-c-disc" className="gc-input gc-select"><option>10% off, up to ৳300</option><option>৳100 off</option><option>৳200 off</option><option>Free delivery</option></select></Field>
-              <Field id="crm-c-valid" label="Works for"><select id="crm-c-valid" className="gc-input gc-select"><option>7 days</option><option>3 days</option><option>14 days</option><option>30 days</option></select></Field>
-            </div>
-            <Field id="crm-c-tell" label="Tell her by"><select id="crm-c-tell" className="gc-input gc-select"><option>WhatsApp</option><option>SMS</option><option>Email</option><option>Don’t send a message</option></select></Field>
-          </>) : null}
           {m === 'credit' ? (<>
-            <div className="ly-row"><Steps label="credit amount" less="Less credit amount" more="More credit amount" display={bdt(f.n || 200)} onDec={() => setF({ ...f, n: Math.max(50, (f.n || 200) - 50) })} onInc={() => setF({ ...f, n: (f.n || 200) + 50 })} /><span>goes into her wallet — she can pay with it</span></div>
-            <Field id="crm-cr-why" label="Why?"><select id="crm-cr-why" className="gc-input gc-select"><option>Sorry for a late delivery</option><option>Refund</option><option>Gift</option><option>Fix a mistake</option></select></Field>
+            <div className="ly-row"><Steps label="credit amount" less="Less credit amount" more="More credit amount" display={bdt(f.n || 200)} onDec={() => setF({ ...f, n: Math.max(50, (f.n || 200) - 50) })} onInc={() => setF({ ...f, n: (f.n || 200) + 50 })} /><span>store credit they can pay with</span></div>
+            <Field id="crm-cr-why" label="Why?"><select id="crm-cr-why" className="gc-input gc-select" value={f.why || CREDIT_WHY[0][0]} onChange={ff('why')}>{CREDIT_WHY.map((x) => <option key={x[0]}>{x[0]}</option>)}</select></Field>
           </>) : null}
           {m === 'points' ? (<>
             <div className="gc-seg" role="group" aria-label="Give or take">{[['give', 'Give'], ['take', 'Take']].map(([k, l]) => <button key={k} type="button" className={'gc-seg__btn' + ((f.op || 'give') === k ? ' gc-seg__btn--active' : '')} aria-pressed={(f.op || 'give') === k} onClick={() => setF({ ...f, op: k })}>{l}</button>)}</div>
             <div className="ly-row"><Steps label="points" less="Less points" more="More points" display={f.n || 100} onDec={() => setF({ ...f, n: Math.max(10, (f.n || 100) - 10) })} onInc={() => setF({ ...f, n: (f.n || 100) + 10 })} /><span>points</span></div>
-            <Field id="crm-p-why" label="Why?"><input id="crm-p-why" className="gc-input" placeholder="e.g. Sorry gift" /></Field>
+            <Field id="crm-p-why" label="Why?"><input id="crm-p-why" className="gc-input" value={f.why || ''} onChange={ff('why')} maxLength={80} placeholder="e.g. Sorry gift" /></Field>
           </>) : null}
         </div>
       </__Dialog>
       <ManagerPin open={!!pin} reason={pin ? 'Add “' + (RESTRICTION_TYPES[pin.type] || {}).label + '” for ' + c.name + ': ' + pin.reason : ''} action="Customer restriction" by={me} refId={c.id} onApprove={approveRestr} onClose={() => setPin(null)} />
+      <AssignCouponDialog open={coup} customers={[{ id: c.id, name: c.name, phone: (D.member && D.member.phone) || (verified && verified.value) || c.phone, phones: c.phones.map((p) => p.value) }]} onClose={() => setCoup(false)} onDone={() => { setCoup(false); bump(); }} />
       <CustomerEditDialog open={!!editProf} customer={editProf} phoneLocked={c.origin === 'book'} onSave={saveProfile} onClose={() => setEditProf(null)} />
     </div>
   );
 }
+
+/** Payment terms picked from the list (Net 0 · 7 · 15 · 30 · 45); invoices' due dates follow them (WH-F6). */
+function TermsPick({ c }) {
+  const [, redo] = useState(0);
+  const t = termsOf(c);
+  const own = t && t.from === 'buyer' ? t.terms : '';
+  const dflt = t && t.from !== 'buyer' ? (t.from === 'company' ? t.company + ' · ' : 'Shop default · ') + t.terms : 'Shop default · Net 30';
+  return (
+    <select className="gc-input gc-select" aria-label="Payment terms" value={own} style={{ height: 32, maxWidth: 220 }}
+      onChange={(e) => { const r = setTerms(c, e.target.value); redo((n) => n + 1); uiToastTerms(r); }}>
+      <option value="">{dflt}</option>
+      {TERMS.map((x) => <option key={x.k} value={x.k}>{x.label}</option>)}
+    </select>
+  );
+}
+const uiToastTerms = (r) => uiToast(r ? 'Payment terms: ' + r.terms + '. New invoices fall due ' + (r.days ? r.days + ' days after the sale.' : 'on delivery.') : 'Payment terms saved');

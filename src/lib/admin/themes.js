@@ -22,6 +22,7 @@ import { createStore } from './store';
 import { db as platformDB, staff } from '@/lib/platform/store';
 import { DAY, rng, startOfDay } from '@/lib/platform/util';
 import { moduleBy } from '@/lib/platform/catalogue';
+import { WHOLESALE } from '@/lib/edition';
 import { subOf } from '@/lib/platform/billing';
 
 const H = 3600e3;
@@ -47,11 +48,12 @@ export const STATUS_TONE = { Published: 'success', 'In review': 'warning', Draft
 
 /** The packages a theme can be offered on (an Online storefront comes with these). */
 export const PACKAGES = [
+  { id: 'online-starter', label: 'Online Starter', short: 'Starter' },
   { id: 'online-growth', label: 'Online Growth', short: 'Growth' },
   { id: 'online-business', label: 'Online Business', short: 'Business' },
-  { id: 'online-enterprise', label: 'Online Enterprise', short: 'Enterprise' },
   { id: 'retail-online', label: 'Retail + Online', short: 'Retail + Online' },
-  { id: 'wholesale-online', label: 'Wholesale + Online', short: 'Wholesale + Online' },
+  // wholesale is not sold while it is switched off (lib/edition.js › WHOLESALE)
+  ...(WHOLESALE ? [{ id: 'wholesale-online', label: 'Wholesale + Online', short: 'Wholesale + Online' }] : []),
 ];
 export const packageLabel = (id) => (PACKAGES.find((p) => p.id === id) || {}).label || id;
 
@@ -110,9 +112,8 @@ export function packageOfShop(db, shop) {
   if (!shop || !(shop.segs || []).includes('Online')) return null;
   const sub = subOf(db, shop.id);
   if (!sub) return null;
-  if (sub.ladder === 'online') return (shop.segs || []).includes('Retail') ? 'retail-online' : 'online-' + sub.plan;
-  if (sub.ladder === 'retail') return 'retail-online';
-  if (sub.ladder === 'wholesale') return 'wholesale-online';
+  if (sub.ladder === 'online') return 'online-' + sub.plan;
+  if (sub.ladder === 'retail-online' || sub.ladder === 'retail') return 'retail-online';
   return null;
 }
 /** Live stores with an online storefront: [{ shop, pkg }]. */
@@ -147,114 +148,114 @@ const THEME_SEED = [
   ['nokshi', 'Nokshi', 'nokshi', 'Fashion', '#7c3aed', 'Large imagery for products people want to look at.',
     ['Lookbook grid', 'Size guide block', 'Fast on 3G', 'Bangla and English menus', 'Wishlist'],
     ['announce', 'header', 'hero', 'categories', 'grid', 'reviews', 'footer'],
-    ['M06', 'M02', 'M09', 'M20', 'M21', 'M10', 'G4', 'M08'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'],
+    ['M06', 'M02', 'M09', 'M20', 'M21', 'M10', 'G4', 'M08'], ['online-starter', 'online-growth', 'online-business', 'retail-online'],
     ['1.0.0', '1.4.0', '2.0.0', '2.3.0', '2.3.1'], { months: 22, next: { v: '2.4.0', stage: 'review', by: 'Tanvir Alam', notes: 'Lookbook grid takes portrait photos; size guide opens as a bottom sheet' } }],
   ['nokshi-saree', 'Nokshi Saree', 'nokshi', 'Fashion', '#9333ea', 'Long scrolls of drape photos, fabric and weave up front.',
     ['Drape gallery', 'Fabric and weave block', 'Blouse piece note', 'Video try-on'],
     ['announce', 'header', 'hero', 'grid', 'banner', 'reviews', 'footer'],
-    ['M06', 'M02', 'M09', 'M21', 'M10', 'M08'], ['online-business', 'online-enterprise', 'retail-online'],
+    ['M06', 'M02', 'M09', 'M21', 'M10', 'M08'], ['online-growth', 'online-business', 'retail-online'],
     ['1.0.0', '1.2.0', '1.4.0'], { months: 14 }],
   ['nokshi-lookbook', 'Nokshi Lookbook', 'nokshi', 'Fashion', '#6d28d9', 'An editorial lookbook that shops straight from the photo.',
     ['Shop the look', 'Full-bleed photos', 'Collection stories'],
     ['header', 'hero', 'banner', 'grid', 'footer'],
-    ['M06', 'M02', 'M10'], ['online-business', 'online-enterprise'],
+    ['M06', 'M02', 'M10'], ['online-growth', 'online-business'],
     [], { months: 1, next: { v: '1.0.0', stage: 'review', by: 'Nabila Chowdhury', notes: 'First version for review' } }],
   ['counter', 'Counter', 'counter', 'Grocery', '#15803d', 'Dense catalogue browsing for shops with a lot of lines.',
     ['Category-first layout', 'Stock badges', 'Counter pickup option', 'Quick add from the list', 'Weight and unit prices'],
     ['announce', 'header', 'categories', 'grid', 'banner', 'footer'],
-    ['M06', 'M02', 'M21', 'M20', 'G4', 'M08', 'M23', 'M25'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'],
+    ['M06', 'M02', 'M21', 'M20', 'G4', 'M08', 'M23', 'M25'], ['online-starter', 'online-growth', 'online-business', 'retail-online'],
     ['1.0.0', '2.0.0', '3.0.0', '3.1.0'], { months: 24, lastRollout: 'next-visit', next: { v: '3.2.0', stage: 'draft', by: 'Sumaiya Ahmed', notes: 'Basket reorder from the account page; bigger stock badges' } }],
   ['counter-fresh', 'Counter Fresh', 'counter', 'Grocery', '#16a34a', 'Fresh food with delivery slots on the first screen.',
     ['Delivery slot picker', 'Fresh today shelf', 'Weight-based prices'],
     ['announce', 'header', 'hero', 'categories', 'grid', 'footer'],
-    ['M06', 'M02', 'M21', 'M08', 'M23'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'],
+    ['M06', 'M02', 'M21', 'M08', 'M23'], ['online-starter', 'online-growth', 'online-business', 'retail-online'],
     ['1.0.0', '1.2.0', '1.2.2'], { months: 10 }],
   ['signal', 'Signal', 'signal', 'Electronics', '#0070a0', 'Specification tables that stay readable on a phone.',
     ['Spec comparison', 'Warranty block', 'EMI display', 'IMEI-ready product page'],
     ['announce', 'header', 'hero', 'categories', 'grid', 'spec', 'reviews', 'footer'],
-    ['M06', 'M02', 'M09', 'M28', 'M21', 'M10', 'M08', 'G1'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'],
+    ['M06', 'M02', 'M09', 'M28', 'M21', 'M10', 'M08', 'G1'], ['online-starter', 'online-growth', 'online-business', 'retail-online'],
     ['1.0.0', '1.5.0', '2.0.0', '2.0.4'], { months: 20, next: { v: '2.1.0', stage: 'approved', by: 'Tanvir Alam', notes: 'Compare up to four phones; EMI table by bank', schedule: 3 } }],
   ['signal-compare', 'Signal Compare', 'signal', 'Electronics', '#0284c7', 'A comparison-first store for phones and gadgets.',
     ['Side-by-side compare', 'Price drop alerts', 'Accessory bundles'],
     ['header', 'hero', 'spec', 'grid', 'footer'],
-    ['M06', 'M02', 'M28', 'M21'], ['online-business', 'online-enterprise'],
+    ['M06', 'M02', 'M28', 'M21'], ['online-growth', 'online-business'],
     [], { months: 1, next: { v: '0.9.0', stage: 'draft', by: 'Sumaiya Ahmed', notes: 'First draft', rejected: 'The compare table scrolls sideways on a 360px phone; please fold it into rows' } }],
   ['tuli', 'Tuli', 'tuli', 'Beauty', '#c2410c', 'Warm, editorial pages for small-batch brands.',
     ['Ingredient block', 'Review-led product page', 'Bundle builder', 'Skin type filter'],
     ['announce', 'header', 'hero', 'grid', 'reviews', 'banner', 'footer'],
-    ['M06', 'M02', 'M09', 'M20', 'M21', 'G4', 'M08'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'],
+    ['M06', 'M02', 'M09', 'M20', 'M21', 'G4', 'M08'], ['online-starter', 'online-growth', 'online-business', 'retail-online'],
     ['1.0.0', '1.3.0', '1.5.0', '1.6.0', '1.6.1'], { months: 18, rolledBack: { v: '1.6.1', reason: 'The checkout button was hidden behind the chat bubble on iPhone Safari' } }],
   ['tuli-glow', 'Tuli Glow', 'tuli', 'Single product', '#ea580c', 'One hero product, its story and a short COD order form.',
     ['One-page order form', 'Before and after slider', 'COD and delivery note'],
     ['header', 'hero', 'reviews', 'form', 'footer'],
-    ['M06', 'M02', 'M23', 'M08', 'M09'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'],
+    ['M06', 'M02', 'M23', 'M08', 'M09'], ['online-starter', 'online-growth', 'online-business', 'retail-online'],
     ['1.0.0', '1.1.0'], { months: 8 }],
   ['padma', 'Padma', 'padma', 'Multi-product store', '#0f766e', 'Built for buyers ordering by the carton, not the piece.',
     ['Tier price table', 'Minimum order rules', 'Quick reorder', 'Buyer account prices'],
     ['header', 'categories', 'grid', 'spec', 'footer'],
-    ['M06', 'M02', 'M14', 'M25', 'M08'], ['online-enterprise', 'wholesale-online'],
+    ['M06', 'M02', 'M14', 'M25', 'M08'], ['online-business', 'wholesale-online'],
     ['1.0.0', '1.0.3'], { months: 9 }],
   ['rickshaw', 'Rickshaw', 'rickshaw', 'Grocery', '#b91c1c', 'Short menus, fast checkout, delivery windows up front.',
     ['Menu sections', 'Delivery window picker', 'Repeat last order'],
     ['announce', 'header', 'categories', 'grid', 'footer'],
-    ['M06', 'M02', 'M08', 'M23', 'M21'], ['online-growth', 'online-business', 'online-enterprise'],
+    ['M06', 'M02', 'M08', 'M23', 'M21'], ['online-starter', 'online-growth', 'online-business'],
     ['1.0.0', '1.1.0', '1.2.0'], { months: 11 }],
   ['haat', 'Haat', 'counter', 'Multi-product store', '#2e559d', 'A general store with many departments and a strong search.',
     ['Department menu', 'Search with Bangla spelling', 'Deals shelf', 'Brand pages'],
     ['announce', 'header', 'hero', 'categories', 'grid', 'banner', 'footer'],
-    ['M06', 'M02', 'M09', 'M20', 'M21', 'M10', 'G4', 'M08'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online', 'wholesale-online'],
+    ['M06', 'M02', 'M09', 'M20', 'M21', 'M10', 'G4', 'M08'], ['online-starter', 'online-growth', 'online-business', 'retail-online', 'wholesale-online'],
     ['1.0.0', '1.3.0', '2.0.0'], { months: 16 }],
   ['ekpata', 'Ekpata', 'tuli', 'Landing page', '#be185d', 'One page that sells one offer, for stores that run on ads.',
     ['Single scroll', 'Order form in the page', 'Countdown', 'Pixel and server tracking'],
     ['header', 'hero', 'countdown', 'reviews', 'form', 'footer'],
-    ['M06', 'M12', 'M23', 'G1', 'M08'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'],
+    ['M06', 'M12', 'M23', 'G1', 'M08'], ['online-starter', 'online-growth', 'online-business', 'retail-online'],
     ['1.0.0', '1.2.0'], { months: 7 }],
   ['bazar-classic', 'Bazar Classic', 'counter', 'General e-commerce', '#64748b', 'The first GridCommerce storefront, kept for stores that still use it.',
     ['Classic grid', 'Sidebar categories'],
     ['header', 'categories', 'grid', 'footer'],
-    ['M06', 'M02', 'M08'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'],
+    ['M06', 'M02', 'M08'], ['online-starter', 'online-growth', 'online-business', 'retail-online'],
     ['1.0.0', '1.5.0', '1.9.2'], { months: 30, state: 'deprecated', replacement: 'haat', reason: 'Replaced by Haat: no Bangla search and slow on 3G' }],
   ['dokan-starter', 'Dokan Starter', 'counter', 'General e-commerce', '#475569', 'A plain starter store for testing new sections.',
     ['Plain grid', 'Basic product page'],
     ['header', 'grid', 'footer'],
-    ['M06', 'M02'], ['online-growth'],
+    ['M06', 'M02'], ['online-starter'],
     ['0.8.0'], { months: 5, state: 'disabled', reason: 'The cart lost items when the phone went offline; off until 0.9 is reviewed' }],
 ];
 
 const TEMPLATE_SEED = [
   ['eid-offer', 'Eid offer', 'Campaign', '#047857', 'Eid collection with a countdown to the last delivery day.',
     ['Countdown to last delivery', 'Gift note', 'Bundle offer'], ['announce', 'hero', 'countdown', 'grid', 'form', 'footer'],
-    ['M12', 'M06', 'M21', 'M08'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'], ['1.0.0', '1.1.0', '2.0.0'], { months: 15 }],
+    ['M12', 'M06', 'M21', 'M08'], ['online-starter', 'online-growth', 'online-business', 'retail-online'], ['1.0.0', '1.1.0', '2.0.0'], { months: 15 }],
   ['flash-sale', 'Flash sale', 'Campaign', '#dc2626', 'A timed sale with stock left on every item.',
     ['Stock left bar', 'Countdown', 'Coupon box'], ['announce', 'hero', 'countdown', 'grid', 'footer'],
-    ['M12', 'M06', 'M21'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'], ['1.0.0', '1.2.0'], { months: 12 }],
+    ['M12', 'M06', 'M21'], ['online-starter', 'online-growth', 'online-business', 'retail-online'], ['1.0.0', '1.2.0'], { months: 12 }],
   ['cod-single', 'Single product COD', 'Product', '#0070a0', 'One product, the reasons to buy and a COD form on the same page.',
     ['COD order form', 'Delivery charge by area', 'WhatsApp button'], ['hero', 'reviews', 'form', 'footer'],
-    ['M12', 'M06', 'M23', 'M08', 'G1'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'], ['1.0.0', '1.3.0', '1.4.2'], { months: 18 }],
+    ['M12', 'M06', 'M23', 'M08', 'G1'], ['online-starter', 'online-growth', 'online-business', 'retail-online'], ['1.0.0', '1.3.0', '1.4.2'], { months: 18 }],
   ['pre-order', 'Pre-order', 'Product', '#7c3aed', 'Take advance payment for stock that is on its way.',
     ['Advance amount', 'Expected arrival date', 'Pre-order count'], ['hero', 'grid', 'form', 'footer'],
-    ['M12', 'M06', 'M02'], ['online-business', 'online-enterprise', 'retail-online'], ['1.0.0', '1.1.0'], { months: 9 }],
+    ['M12', 'M06', 'M02'], ['online-growth', 'online-business', 'retail-online'], ['1.0.0', '1.1.0'], { months: 9 }],
   ['lead-form', 'Lead form', 'Lead', '#0f766e', 'Collect a name and phone number for a call back.',
     ['Short form', 'Thank-you page', 'Lead to CRM'], ['hero', 'form', 'footer'],
-    ['M12'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online', 'wholesale-online'], ['1.0.0'], { months: 6 }],
+    ['M12'], ['online-starter', 'online-growth', 'online-business', 'retail-online', 'wholesale-online'], ['1.0.0'], { months: 6 }],
   ['webinar', 'Webinar sign-up', 'Event', '#2e559d', 'Sign up for a live class or product demo.',
     ['Date and time block', 'Speaker cards', 'Reminder by SMS'], ['hero', 'countdown', 'form', 'footer'],
-    ['M12'], ['online-business', 'online-enterprise'], [], { months: 1, next: { v: '1.0.0', stage: 'review', by: 'Tanvir Alam', notes: 'First version for review' } }],
+    ['M12'], ['online-growth', 'online-business'], [], { months: 1, next: { v: '1.0.0', stage: 'review', by: 'Tanvir Alam', notes: 'First version for review' } }],
   ['app-download', 'App download', 'App', '#334155', 'Send visitors to the store’s app with a QR code.',
     ['Store badges', 'QR code', 'Screens carousel'], ['hero', 'banner', 'footer'],
-    ['M12'], ['online-enterprise'], [], { months: 0, next: { v: '0.1.0', stage: 'draft', by: 'Nabila Chowdhury', notes: 'First draft' } }],
+    ['M12'], ['online-business'], [], { months: 0, next: { v: '0.1.0', stage: 'draft', by: 'Nabila Chowdhury', notes: 'First draft' } }],
   ['boishakh', 'Pohela Boishakh sale', 'Campaign', '#c2410c', 'Red-and-white Boishakh offer page with a gift on big orders.',
     ['Gift over an amount', 'Festive banner', 'Bundle offer'], ['announce', 'hero', 'grid', 'banner', 'form', 'footer'],
-    ['M12', 'M06', 'M21'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'], ['1.0.0', '1.1.0'], { months: 8 }],
+    ['M12', 'M06', 'M21'], ['online-starter', 'online-growth', 'online-business', 'retail-online'], ['1.0.0', '1.1.0'], { months: 8 }],
   ['puja-offer', 'Puja offer', 'Campaign', '#b45309', 'Puja collection with delivery dates by district.',
     ['Delivery dates by district', 'Collection grid', 'Coupon box'], ['announce', 'hero', 'grid', 'form', 'footer'],
-    ['M12', 'M06', 'M21', 'M08'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'], ['1.0.0'], { months: 2 }],
+    ['M12', 'M06', 'M21', 'M08'], ['online-starter', 'online-growth', 'online-business', 'retail-online'], ['1.0.0'], { months: 2 }],
   ['winter-sale', 'Winter sale 2025', 'Campaign', '#1d4ed8', 'Last winter’s sale page.',
     ['Countdown', 'Size chart'], ['hero', 'countdown', 'grid', 'footer'],
-    ['M12', 'M06', 'M21'], ['online-growth', 'online-business', 'online-enterprise', 'retail-online'], ['1.0.0', '1.0.1'], { months: 11, state: 'deprecated', replacement: 'flash-sale', reason: 'Seasonal: Flash sale does the same with any season' }],
+    ['M12', 'M06', 'M21'], ['online-starter', 'online-growth', 'online-business', 'retail-online'], ['1.0.0', '1.0.1'], { months: 11, state: 'deprecated', replacement: 'flash-sale', reason: 'Seasonal: Flash sale does the same with any season' }],
   ['coming-soon', 'Coming soon', 'Lead', '#475569', 'A launch page that collects phone numbers.',
     ['Countdown', 'Notify me form'], ['hero', 'countdown', 'form'],
-    ['M12'], ['online-growth', 'online-business', 'online-enterprise'], ['1.0.0'], { months: 4, state: 'disabled', reason: 'The countdown shows the wrong time in Dhaka; off until 1.0.1' }],
+    ['M12'], ['online-starter', 'online-growth', 'online-business'], ['1.0.0'], { months: 4, state: 'disabled', reason: 'The countdown shows the wrong time in Dhaka; off until 1.0.1' }],
 ];
 
 const PAGE_TITLES = {
@@ -403,7 +404,7 @@ function seed(now) {
   return data;
 }
 
-export const themes = createStore({ key: 'themes', version: 1, seed });
+export const themes = createStore({ key: 'themes', version: 2, seed });   // 2: packages follow the product's plans
 
 // ---- reading -------------------------------------------------------------------------------------------------------
 export const itemsOf = (data, kind) => data.items.filter((i) => !kind || i.kind === kind);

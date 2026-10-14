@@ -6,7 +6,7 @@
 import React from 'react';
 import { Icon } from '@/runtime/dc';
 import { navigate } from '@/runtime/routes';
-import { USERS, ROLES, signInAs, currentUser, hasWorkInEdition, roleTitles, homeOf, userBy } from '@/lib/team';
+import { USERS, ROLES, signInAs, currentUser, hasWorkInEdition, roleTitles, homeOf, userBy, allUsers, roleById } from '@/lib/team';
 
 const CSS = `
 .da{margin-top:28px;padding-top:20px;border-top:1px solid #e2e8f0}
@@ -28,7 +28,7 @@ export function DemoAccounts({ title = 'Profile type', sub = 'Switch to a team m
   // only the roles that have work in this site's edition (the list is worked out after mount, so a preview
   // picked on the full site never changes the server HTML)
   const [list, setList] = React.useState(USERS);
-  React.useEffect(() => { setMe(currentUser().id); setList(USERS.filter(hasWorkInEdition)); }, []);
+  React.useEffect(() => { setMe(currentUser().id); setList(allUsers().filter((u) => u.status !== 'off' && u.status !== 'invited' && hasWorkInEdition(u))); }, []);   // Settings › Users & roles: deactivated people can't sign in
   const go = (id) => { signInAs(id); navigate(homeOf(userBy(id))); };
   return (
     <section className={'da' + (plain ? ' da--plain' : '')} aria-labelledby="da-title">
@@ -38,7 +38,7 @@ export function DemoAccounts({ title = 'Profile type', sub = 'Switch to a team m
       <div className="da__grid">
         {list.map((u) => (
           <button key={u.id} type="button" className="da__btn" aria-current={me === u.id} onClick={() => go(u.id)}>
-            <span className="da__ic"><Icon name={ROLES[u.role].icon} width="16" height="16" aria-hidden="true" /></span>
+            <span className="da__ic"><Icon name={(roleById((u.roles || [])[0]) || ROLES[u.role] || ROLES.seller).icon} width="16" height="16" aria-hidden="true" /></span>
             <span style={{ minWidth: 0 }}><b>{roleTitles(u).join(' + ')}</b><small>{u.name}</small></span>
           </button>
         ))}

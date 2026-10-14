@@ -7,17 +7,20 @@
 // left and the customer's facts on the right.
 // Front end only: built from the customer book, the invoices, customer credit and the return history.
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { EmptyState, InfoTip } from '@/components/ui';
 import { RecordHeader, MetricStrip, KV } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { MERCHANT } from '@/lib/merchant';
 import { getCustomers, findCustomer, tierOf, phoneDigits } from '@/lib/customers';
 import { wholesaleOn } from '@/lib/edition';
 import { getInvoices, paymentLog, creditOf, creditLog, CREDIT_METHOD } from '@/lib/invoices';
 import { getReturns } from '@/lib/returns';
+import { docIdentity } from '@/components/docs/DocPaper';
+import { termsText } from '@/components/docs/ProformaPaper';
+import { sendDocOnWhatsApp } from '@/components/docs/ShareActions';
+import { printDoc } from '@/lib/shareDoc';
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const money = (n) => formatBDT(n, { decimals: Number.isInteger(r2(n)) ? 0 : 2 });
@@ -91,6 +94,7 @@ function ledgerOf(invoices, returns, credits) {
 
 export default function CustomerStatement() {
   const [ready, setReady] = useState(false);
+  const sheet = useRef(null);   // the statement paper: PDF and WhatsApp (WH-F5)
   const [phone, setPhone] = useState('');
   const [data, setData] = useState({ book: [], invoices: [], returns: [], credits: [], credit: 0 });
   const [from, setFrom] = useState('');
@@ -150,6 +154,8 @@ export default function CustomerStatement() {
   const limit = (cust && cust.creditLimit) || 0;
   const back = wholesaleOn() && cust && cust.types && cust.types.includes('Wholesale') ? '/wholesale-customer?phone=' + phone : '/customer-crm?phone=' + phone;
   const address = (cust && cust.address) || 'Not on file';
+  const me = docIdentity();
+  const terms = termsText(phone);
 
   const cells = (x) => (
     <>
@@ -162,7 +168,8 @@ export default function CustomerStatement() {
   return shell(<>
     <RecordHeader back={back} backLabel="Back to the customer" title={`Statement · ${name}`}
       meta={`${phone} · ${period} · ${shown.length} entr${shown.length === 1 ? 'y' : 'ies'}`}
-      primary={{ label: 'Print statement', onClick: () => window.print() }} />
+      secondary={[{ label: 'Send on WhatsApp', icon: 'send', onClick: () => sendDocOnWhatsApp({ kind: 'statement', id: '', to: { name, phone }, total: closing > 0 ? closing : 0, lines: [period === 'All time' ? '' : period, closing < 0 ? `Advance with us: ${money(-closing)}` : ''], link: undefined }) }]}
+      primary={{ label: 'PDF', onClick: () => printDoc(sheet.current, `Statement ${name}`, '.cs-sheet{display:flex!important;position:static!important;padding:0!important}') }} />
 
     <MetricStrip label="Account" items={[
       { label: 'Invoiced', value: money(invoiced), sub: `${invoices.length} invoice${invoices.length === 1 ? '' : 's'}` },
@@ -220,14 +227,14 @@ export default function CustomerStatement() {
     </div>
 
     {/* the sheet that prints; hidden on screen */}
-    <article className="cs-sheet" aria-hidden="true">
+    <article ref={sheet} className="cs-sheet" aria-hidden="true">
       <header className="cs-sheet__head">
-        <div><b>{MERCHANT.name}</b><span>{MERCHANT.address}</span><br /><span>{MERCHANT.phone} · {MERCHANT.email} · BIN {MERCHANT.bin}</span></div>
+        <div><b>{me.name}</b><span>{me.address}</span><br /><span>{me.phone} · {me.email} · BIN {me.bin}</span></div>
         <div className="cs-sheet__title"><b>STATEMENT OF ACCOUNT</b><span>{period}</span><br /><span>Printed {formatDate(Date.now())}</span></div>
       </header>
       <div className="cs-sheet__meta">
         <div><span className="cs-sheet__cap">Customer</span><b>{name}</b><span>{address}</span><span>{phone}</span></div>
-        <div><span className="cs-sheet__cap">Terms</span><span>{tier ? tier.label : 'Retail prices'}</span><span>Credit limit: {limit ? formatBDT(limit) : 'none'}</span></div>
+        <div><span className="cs-sheet__cap">Terms</span><span>{tier ? tier.label : 'Retail prices'}</span>{terms ? <span>Payment terms: {terms}</span> : null}<span>Credit limit: {limit ? formatBDT(limit) : 'none'}</span></div>
         <div><span className="cs-sheet__cap">Summary</span><span>Invoiced {money(invoiced)} · Paid {money(paid)}</span><span>Due {money(due)} · Advance {money(data.credit)}</span><b>Balance: {balanceText(closing)}</b></div>
       </div>
       <table>
@@ -246,7 +253,7 @@ export default function CustomerStatement() {
         </tbody>
       </table>
       <footer className="cs-sheet__end">
-        <span>Please report any difference within 7 days. Pay by {MERCHANT.bank} or bKash {MERCHANT.bkash}.</span>
+        <span>Please report any difference within 7 days. Pay by {me.bank} or bKash {me.bkash}.</span>
         <span className="cs-sheet__sign">Authorised signature</span>
       </footer>
     </article>

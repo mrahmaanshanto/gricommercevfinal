@@ -23,6 +23,9 @@ import { EMPLOYEES } from '@/lib/posStore';
 import { getCustomers, findCustomer, tierOf } from '@/lib/customers';
 import { getHolds } from '@/lib/stockHolds';
 import { InvoicePaper, PAPER_CSS, INVOICE_STATUS as STATUS, paymentsOf } from './InvoicePaper';
+import { sendDocOnWhatsApp } from '@/components/docs/ShareActions';
+import { printDoc } from '@/lib/shareDoc';
+import { dueDateOf } from '@/lib/invoices';
 
 const METHODS = [['Cash', 'banknote'], ['bKash', null, 'bkash'], ['Nagad', null, 'nagad'], ['Card', 'credit-card'], ['Bank', 'landmark']];
 const CREDIT_TILE = [CREDIT_METHOD, 'wallet'];
@@ -108,6 +111,8 @@ export default function SalesInvoice() {
   useEffect(() => {
     setId(new URLSearchParams(window.location.search).get('id') || '');
     setBook(getCustomers()); reload(); setReady(true);
+    // ?deliver=1: a sales order made with "Deliver now" opens on its delivery (serial numbers, challan)
+    if (new URLSearchParams(window.location.search).get('deliver') === '1') setDeliver(true);
   }, []);
 
   const inv = all.find((r) => r.id === id);
@@ -165,11 +170,14 @@ export default function SalesInvoice() {
     const tail = keep ? ` · ${money(extra)} kept as ${name}’s advance` : extra ? ` · give ${money(extra)} back as change` : '';
     toast((isPaid(next) ? `${inv.id} is paid · ${money(applied)} by ${method}, received by ${pay.by}. It is now a completed sale.` : `${money(applied)} received by ${pay.by} (${method}) · ${money(next.due)} left on ${inv.id}`) + tail);
   };
-  /** Send the invoice (or a new revision of it) to the customer by SMS. */
+  /** Send the invoice (or a new revision of it) on WhatsApp: the shop's WhatsApp opens with the message, and the send
+   *  is logged in the delivery log (lib/shareDoc.js, WH-F5). */
   const send = (target = inv, again = false) => {
     saveInvoice({ ...target, sentAt: Date.now() }); reload();
-    toast(phone ? `Invoice ${target.id}${target.rev > 1 ? ' (revision ' + target.rev + ')' : ''} sent ${again ? 'again ' : ''}to ${name} by SMS · ${phone}` : `${name} has no mobile number to send the invoice to.`, phone ? undefined : { tone: 'error' });
+    sendDocOnWhatsApp({ kind: 'invoice', id: target.id + (target.rev > 1 ? ' (revision ' + target.rev + ')' : ''), to: { name, phone }, total: target.totals.total,
+      dueAt: target.due > 0 ? dueDateOf(target) : 0, lines: target.due > 0 && target.due < target.totals.total ? [`Paid so far: ${money(paidSoFar(target))} · due ${money(target.due)}`] : [] });
   };
+  const pdf = () => { const node = document.querySelector('.gc-modal .iv-paper'); if (node) printDoc(node, 'Invoice ' + inv.id, '.iv-paper{position:static!important;border:0!important;padding:0!important}'); };
   const saveFix = (e) => {
     e.preventDefault();
     const amt = num(fix.amount);
@@ -230,7 +238,7 @@ export default function SalesInvoice() {
                   {stage !== 'paid' ? <StatusBadge tone={STAGES[stage].tone} icon={STAGES[stage].icon}>{STAGES[stage].label}</StatusBadge> : null}
                   {inv.wholesale ? <StatusBadge tone={DELIVERY[dv.status][1]} icon="truck">{DELIVERY[dv.status][0]}</StatusBadge> : null}
                 </>}
-                secondary={[{ label: 'Send', onClick: () => send(inv, !!inv.sentAt) }, { label: 'Return', href: '/return-exchange?ref=' + encodeURIComponent(inv.id) }]}
+                secondary={[{ label: 'Send on WhatsApp', onClick: () => send(inv, !!inv.sentAt) }, { label: 'Return', href: '/return-exchange?ref=' + encodeURIComponent(inv.id) }]}
                 more={[
                   !isPaid(inv) ? { label: 'Edit invoice', onClick: openEdit } : null,
                   holdable ? { label: 'Hold stock', onClick: () => setHold(true) } : null,
@@ -332,7 +340,7 @@ export default function SalesInvoice() {
                     </section>
                   ) : null}
 
-                  {inv.wholesale ? (
+                  {inv.wholesale || inv.delivers ? (
                     <section className="ix-card si-card" aria-labelledby="si-delivery">
                       <header className="ix-card__head"><h2 id="si-delivery">Delivery</h2>{dv.status !== 'full' ? <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={() => setDeliver(true)}><Icon name="truck" width="16" height="16" aria-hidden="true" />Deliver</button> : null}</header>
                       <div className="ix-card__body" style={(inv.deliveries || []).length ? { paddingBottom: 0 } : undefined}>
@@ -435,7 +443,7 @@ export default function SalesInvoice() {
       </div>
 
       <Dialog open={paper} title={`Invoice ${inv.id}`} onClose={() => setPaper(false)} width={820}
-        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => window.print()}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print or save PDF</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => { send(inv, !!inv.sentAt); setPaper(false); }}><Icon name="send" width="16" height="16" aria-hidden="true" /> Send to customer</button></>}>
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={pdf}><Icon name="download" width="16" height="16" aria-hidden="true" /> PDF</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => { send(inv, !!inv.sentAt); setPaper(false); }}><Icon name="send" width="16" height="16" aria-hidden="true" /> Send on WhatsApp</button></>}>
         <InvoicePaper inv={inv} customer={cust} held={held} />
       </Dialog>
 

@@ -13,8 +13,11 @@ import { invoiceIdentity } from '@/lib/businessProfile';
 import { printNode } from '@/lib/printNode';
 import { coverOf } from '@/lib/warranty';
 import { productOfLine, serialsOfLine, coverStart } from '@/lib/customerWarranty';
+import { unitsFor, packText } from '@/lib/wholesalePrice';
 
 const r2 = (n) => Math.round(n * 100) / 100;
+// a line sold in cartons or boxes: "2 cartons + 4 pcs" under its quantity (WH-F3)
+const packsOf = (l) => { if (!l.sku) return ''; try { const u = unitsFor(l.sku); return u.length > 1 && l.qty >= u[u.length - 1].per ? packText(l.sku, l.qty) : ''; } catch { return ''; } };
 const money = (n) => formatBDT(n, { decimals: Number.isInteger(r2(n)) ? 0 : 2 });
 const warrantyText = (l, at) => { const w = coverOf(productOfLine(l), at); return w ? `${w.label} · until ${formatDate(w.until)}` : ''; };
 
@@ -24,8 +27,8 @@ export function invoiceFromSale(s) {
   const disc = r2((t.cartDisc || 0) + (t.couponDisc || 0) + (t.memberDisc || 0) + (t.pointsDisc || 0));
   return {
     id: s.id, at: s.at, customer: s.customer || {}, seller: s.salesperson || s.cashier || '', place: s.counter || '',
-    lines: (s.lines || []).map((l) => ({ name: l.name, qty: l.qty, price: l.price, amount: r2(l.price * l.qty - (l.disc || 0)), serials: l.serials || [], warranty: warrantyText(l, s.at) })),
-    subtotal: r2((t.gross || 0) - (t.lineDisc || 0)), discount: disc, vat: t.tax || 0, total: t.total || 0,
+    lines: (s.lines || []).map((l) => ({ name: l.gift ? `${l.name} (free gift)` : l.name, sku: l.sku || '', qty: l.qty, price: l.price, amount: r2(l.price * l.qty - (l.disc || 0)), serials: l.serials || [], warranty: warrantyText(l, s.at) })),
+    subtotal: r2((t.gross || 0) - (t.lineDisc || 0)), discount: disc, vat: t.tax || 0, vatIncluded: !!t.vatIncluded, total: t.total || 0,
     payments: (s.tenders || []).map((x) => ({ method: /^Due/.test(x.method) ? 'Unpaid (due)' : x.method, amount: x.amount })), change: s.change || 0, due: s.due || 0,
   };
 }
@@ -35,11 +38,11 @@ export function invoiceFromOrder(o, sale) {
   const start = coverStart(o);
   const lines = (o.lines || []).map((l) => ({ name: l.name, qty: l.qty, price: l.price, amount: r2(l.price * l.qty), serials: serialsOfLine(o, l, null), warranty: warrantyText(l, start) }));
   const subtotal = r2(lines.reduce((a, l) => a + l.amount, 0));
-  const total = o.amount || r2(subtotal + (o.shipping || 0) + (o.vat || 0) - (o.discount || 0));
+  const total = o.amount || r2(subtotal + (o.shipping || 0) + (o.vatIncluded ? 0 : o.vat || 0) - (o.discount || 0));
   const paid = o.payment === 'Paid' ? total : o.paid || 0;
   return {
     id: o.id, at: o.at, customer: { name: o.customer, phone: o.phone !== '—' ? o.phone : '', address: o.address || '' }, seller: o.soldBy || '', place: o.channel,
-    lines, subtotal, discount: o.discount || 0, vat: o.vat || 0, shipping: o.shipping || 0, total,
+    lines, subtotal, discount: o.discount || 0, vat: o.vat || 0, vatIncluded: !!o.vatIncluded, shipping: o.shipping || 0, total,
     payments: paid ? [{ method: o.method || (o.payment === 'COD' ? 'Cash on delivery' : 'Payment received'), amount: paid }] : [], change: 0, due: r2(Math.max(0, total - paid)),
   };
 }
@@ -57,7 +60,7 @@ const S = {
 export function SaleInvoice({ doc, innerRef }) {
   if (!doc) return null;
   const id = (() => { try { return invoiceIdentity(); } catch { return {}; } })();
-  const sum = [['Subtotal', doc.subtotal], doc.discount ? ['Discount', -doc.discount] : null, doc.shipping ? ['Delivery', doc.shipping] : null, doc.vat ? ['VAT', doc.vat] : null].filter(Boolean);
+  const sum = [['Subtotal', doc.subtotal], doc.discount ? ['Discount', -doc.discount] : null, doc.shipping ? ['Delivery', doc.shipping] : null, doc.vat && !doc.vatIncluded ? ['VAT', doc.vat] : null].filter(Boolean);
   return (
     <div style={{ position: 'absolute', left: '-10000px', top: 0, width: '190mm' }} aria-hidden="true">
       <div ref={innerRef} style={S.page}>
@@ -86,7 +89,7 @@ export function SaleInvoice({ doc, innerRef }) {
               <td style={S.td}><b style={{ fontWeight: 'var(--weight-medium)' }}>{l.name}</b>
                 {l.serials.length ? <div style={{ ...S.muted, fontFamily: 'var(--font-data)' }}>{(l.serials.every((x) => /^\d{15}$/.test(x)) ? 'IMEI ' : 'Serial ') + l.serials.join(', ')}</div> : null}
                 {l.warranty ? <div style={S.muted}>Warranty: {l.warranty}</div> : null}</td>
-              <td style={{ ...S.td, ...S.num }}>{l.qty}</td><td style={{ ...S.td, ...S.num }}>{money(l.price)}</td><td style={{ ...S.td, ...S.num }}>{money(l.amount)}</td>
+              <td style={{ ...S.td, ...S.num }}>{l.qty}{packsOf(l) ? <div style={S.muted}>{packsOf(l)}</div> : null}</td><td style={{ ...S.td, ...S.num }}>{money(l.price)}</td><td style={{ ...S.td, ...S.num }}>{money(l.amount)}</td>
             </tr>
           ))}</tbody>
         </table>
@@ -94,6 +97,7 @@ export function SaleInvoice({ doc, innerRef }) {
           <div style={{ width: '75mm', display: 'flex', flexDirection: 'column', gap: '1mm' }}>
             {sum.map(([k, v]) => <div key={k} style={S.row}><span>{k}</span><span style={S.num}>{v < 0 ? '− ' + money(-v) : money(v)}</span></div>)}
             <div style={{ ...S.row, borderTop: '1px solid #0f172a', paddingTop: '1mm', fontWeight: 'var(--weight-semibold)' }}><span>Total</span><span style={S.num}>{money(doc.total)}</span></div>
+            {doc.vat && doc.vatIncluded ? <div style={{ ...S.row, ...S.muted }}><span>VAT included in total</span><span style={S.num}>{money(doc.vat)}</span></div> : null}
             {doc.payments.map((p, i) => <div key={i} style={{ ...S.row, ...S.muted }}><span>Paid · {p.method}</span><span style={S.num}>{money(p.amount)}</span></div>)}
             {doc.change ? <div style={{ ...S.row, ...S.muted }}><span>Change</span><span style={S.num}>{money(doc.change)}</span></div> : null}
             {doc.due ? <div style={{ ...S.row, fontWeight: 'var(--weight-semibold)' }}><span>Due</span><span style={S.num}>{money(doc.due)}</span></div> : null}

@@ -22,13 +22,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AppScreen, Content, AppBar, ActionBar, Button, IconButton, Field, TextInput, Stepper, Segmented, Chips, Sheet, SearchField, ListRow, Note, Pill, EmptyState, Skeleton, Icon, useAppData, money, toast, confirmDialog } from '../kit/AppKit';
 import { POS_KEYS as KEYS, load, save, getCounters, getCash, saveCash, getShifts, saveShifts, getSettings, shiftReport, nextId, postCashMove, postVariance, claimCounter, counterBusy, releaseCounter } from '@/lib/posStore';
-import { commitSale, queueSale, newOpId, saleForOp, getQueue, queuedQty } from '@/lib/posSale';
+import { commitSale, queueSale, newOpId, saleForOp, getQueue, queuedQty, nextSaleNo } from '@/lib/posSale';
 import { trackingOf, checkSerial, serialsAt } from '@/lib/serials';
 import { payAccounts, devicesAt } from '@/lib/hardware';
 import { getCatalog, stockAt, allowNegative } from '@/lib/stock';
 import { isStatusSellable } from '@/lib/sellable';
 import { getStockPlaces, placeName } from '@/lib/locations';
-import { loadVat, vatRateFor } from '@/lib/vat';
+import { loadVat, billVat } from '@/lib/vat';
 import { getCustomers, findCustomer, phoneDigits } from '@/lib/customers';
 import { dueForPhone } from '@/lib/invoices';
 import { getCreditRules, limitFor, dueDateFor, checkDue, DEFAULT_CREDIT_RULES } from '@/lib/creditRules';
@@ -58,8 +58,9 @@ function totalsOf(lines, discount, vat) {
   left -= cartDisc;
   const base = gross - lineDisc;
   const share = base ? left / base : 0;
-  const tax = r2(lines.reduce((s, l) => s + (l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0)) * share * vatRateFor(l.cat, vat) / 100, 0));
-  return { gross: r2(gross), lineDisc, cartDisc, couponDisc: 0, promo: null, memberDisc: 0, pointsUsed: 0, pointsDisc: 0, taxable: r2(left), tax, total: r2(left + tax), units: lines.reduce((s, l) => s + l.qty, 0) };
+  // VAT inside the shelf price (MRP, the default) or added on top, as on the web register (lib/vat)
+  const { tax, included } = billVat(lines, share, vat);
+  return { gross: r2(gross), lineDisc, cartDisc, couponDisc: 0, promo: null, memberDisc: 0, pointsUsed: 0, pointsDisc: 0, taxable: r2(included ? left - tax : left), tax, vatIncluded: included, total: r2(included ? left : left + tax), units: lines.reduce((s, l) => s + l.qty, 0) };
 }
 const readCart = () => { try { return JSON.parse(window.sessionStorage.getItem(CART)) || null; } catch { return null; } };
 const writeCart = (c) => { try { window.sessionStorage.setItem(CART, JSON.stringify(c)); } catch { /* ignore */ } };
@@ -246,7 +247,7 @@ export default function MPos() {
     const creditBy = typeof approver === 'string' ? approver : '';
     if (creditOver && !creditBy) { setPin({ kind: 'credit', reason: `${buyer ? buyer.name : 'The customer'} would owe ${m2(r2(owedBefore + owedNow))}, over the ${m2(creditLimit)} credit limit. A manager approves leaving ${m2(owedNow)} unpaid.`, amount: owedNow }); return; }
     const sales = load(KEYS.sales, []);
-    const orderNo = 'ORD-20260907-' + String(sales.length + getQueue().length + 1).padStart(4, '0');
+    const orderNo = nextSaleNo(counterRow, Date.now(), [...sales, ...getQueue()]);   // one number per sale, as on the web register
     const who = { name: customer.name.trim() || (buyer ? buyer.name : ''), phone: customer.phone.trim() };
     const sale = { id: orderNo, opId, wholesale: false, tier: '', atRetail: false, invoice: !!(who.name || who.phone), rev: 1, payments: [], at: Date.now(), lines: lines.map(freezeLine), customer: who, member: null, earned: 0, totals: t, coupon: '', tenders: list, change, due: owedNow, creditBy, printed: false, cashier: shift.cashier, salesperson: shift.cashier, counter: shift.counter, counterId: shift.counterId, place, offline, returned: {}, stockOut: true, deliveries: [] };
     if (owedNow > 0) sale.dueAt = dueDateFor(sale.at, rules);
@@ -417,7 +418,7 @@ export default function MPos() {
           </span>
         </div>
         <div style={{ marginTop: '14px', padding: '12px 14px', borderRadius: 'var(--radius-xl)', background: 'var(--bg)', fontSize: 'var(--text-sm)' }}>
-          {[['Subtotal', t.gross], t.cartDisc ? ['Discount', -t.cartDisc] : null, t.tax ? ['VAT', t.tax] : null].filter(Boolean).map(([k2, v]) => <div key={k2} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{k2}</span><span className="num">{m2(v)}</span></div>)}
+          {[['Subtotal', t.gross], t.cartDisc ? ['Discount', -t.cartDisc] : null, t.tax ? [t.vatIncluded ? 'VAT included' : 'VAT', t.tax] : null].filter(Boolean).map(([k2, v]) => <div key={k2} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{k2}</span><span className="num">{m2(v)}</span></div>)}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'var(--weight-semibold)', marginTop: '4px' }}><span>Total</span><span className="num">{m2(t.total)}</span></div>
         </div>
       </Sheet>

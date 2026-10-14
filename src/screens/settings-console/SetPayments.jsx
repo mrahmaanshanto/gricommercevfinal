@@ -14,7 +14,7 @@ import { wholesaleOn, hasModule } from '@/lib/edition';
 import { formatBDT } from '@/lib/format';
 import __SetRail from '@/screens/settings-console/SetRail';
 import __SetTopbar from '@/screens/settings-console/SetTopbar';
-import { GatewayList } from '@/components/GatewaySetup';
+import { GatewayList, GatewaySetup } from '@/components/GatewaySetup';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -892,7 +892,7 @@ export default class SetPaymentsScreen extends Component {
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>{v.offline} on</span>
-                          <button type="button" onClick={v.f.say("“Add gateway” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add gateway</button>
+                          <button type="button" onClick={() => this.setState({ addGateway: true })} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add gateway</button>
                         </span>
                       </div>
                       <div className="set-wrap" style={{ display: "flex", alignItems: "flex-start", gap: "13px", padding: "13px 16px", borderBottom: "1px solid #f1f5f9" }}>
@@ -945,6 +945,8 @@ export default class SetPaymentsScreen extends Component {
                 </div>
                 <__SaveBar f={v.f} note="· 11:04 AM by Ashiq Khan" />
               </form>
+              {/* one setup for every gateway: the same flow as Connections › Payments */}
+              {this.state.addGateway ? <GatewaySetup onClose={() => this.setState({ addGateway: false })} /> : null}
             </div>
           </div>
         </div>

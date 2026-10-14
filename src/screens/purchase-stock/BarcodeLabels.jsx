@@ -1,263 +1,303 @@
 'use client';
-// Generated from design/templates/purchase-stock/BarcodeLabels.dc.html by scripts/convert-design.mjs.
-// Barcode labels — Stocks & inventory — Barcode labels, a Shopify-style tool page (docs/shopify-style.md): pick the
-// items and the label layout on the left, the live preview on the right, Print in the header.
-// Edit freely: this file is now the source for the screen.
+// Barcode labels (/barcode-labels) — print shelf and product labels from the real catalogue (PR-F6), a Shopify-style
+// tool page: pick the products and how many labels on the left, the layout, and the live preview on the right.
+// - Products: any product or variant in the one catalogue (lib/stock.js › getCatalog: the demo products, the stock
+//   catalogue and products added in this browser), found by name, SKU or barcode. Downloads, licences and services
+//   have no label. `?skus=SKU:qty,SKU2` opens it with products picked (All products › Print labels, Receive goods).
+// - A product without a barcode gets "Make one": an in-store EAN-13 (starts with 2, barcodeType 'internal', so Google
+//   never treats it as a GTIN), saved on the product or variant (lib/products.js › saveProduct).
+// - Layout: A4 sheet 3 × 8 or 4 × 10, or a label roll 38 × 25 mm / 50 × 30 mm; show shop name, product name, price,
+//   MRP, barcode and SKU. Bars come from lib/barcodeSvg.js (EAN-13 / EAN-8, else Code 128).
+// - Print: only the labels are printed (lib/printNode.js), at their real size; "Save as PDF" works the same way.
+// Front end only; the browser's print dialog picks the printer.
 
-import React from 'react';
-import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Icon } from '@/runtime/dc';
+import { Sidebar, Topbar } from '@/shell/Shell';
 import { ShopHeader } from '@/components/ui/IndexKit';
-import { toast as __toast } from '@/runtime/ui';
+import { useIsPhone } from '@/components/ui';
+import { toast } from '@/runtime/ui';
+import { getCatalog, stockAt, isVirtualRow, STOCK_EVENT } from '@/lib/stock';
+import { findProduct, saveProduct, codeOwner } from '@/lib/products';
+import { invoiceIdentity } from '@/lib/businessProfile';
+import { barcodeOf, inStoreEan13 } from '@/lib/barcodeSvg';
+import { formatBDT } from '@/lib/format';
+import { printNode } from '@/lib/printNode';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+// label sizes in mm; a sheet has `cols` × `rows` labels on an A4 page
+const SIZES = [
+  { k: 'a4-24', l: 'A4 · 3 × 8', w: 70, h: 37.125, cols: 3, rows: 8, sheet: true, fs: 1 },
+  { k: 'a4-40', l: 'A4 · 4 × 10', w: 52.5, h: 29.7, cols: 4, rows: 10, sheet: true, fs: 0.85 },
+  { k: 'r38', l: 'Roll · 38 × 25 mm', w: 38, h: 25, sheet: false, fs: 0.72 },
+  { k: 'r50', l: 'Roll · 50 × 30 mm', w: 50, h: 30, sheet: false, fs: 0.88 },
+];
+const SHOWS = [['shop', 'Shop name', true], ['name', 'Product name', true], ['price', 'Price', true], ['mrp', 'MRP', false], ['barcode', 'Barcode', true], ['sku', 'SKU', false]];
+const MAX = 1000;          // labels in one print
+const lc = (x) => String(x || '').toLowerCase();
+const nameOf = (r) => (r.variant && !String(r.name).includes(r.variant) ? r.name + ' · ' + r.variant : r.name);
+const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
-var BND = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
-function dg(s, bn) { s = String(s); return bn ? s.replace(/[0-9]/g, function (d) { return BND[+d]; }) : s; }
-function money(n, bn) { var s = String(Math.round(Math.abs(n))); var last = s.slice(-3), rest = s.slice(0, -3); if (rest) s = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + last; else s = last; return dg((n < 0 ? '−' : '') + '৳' + s, bn); }
-function unbn(x) { return String(x).replace(/[০-৯]/g, function (d) { return BND.indexOf(d); }); }
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function seg(self, opts, cur, key, i) { return opts.map(function (o) { var on = o[0] === cur; return { k: o[0], l: o[1 + i], on: on, pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-function sw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-function toast(self, m) { __toast(m); }
-var T = {"shop": ["রহমান স্টোর", "Dazzle Shop"], "h": ["বারকোড লেবেল প্রিন্ট", "Print barcode labels"], "hsub": ["কোন মালে লেবেল লাগবে বাছুন, কয়টা লাগবে দিন, তারপর প্রিন্ট করুন।", "Pick the items, set how many labels, then print."], "toProducts": ["প্রোডাক্ট তালিকা", "Product list"], "s1": ["১. আইটেম", "1. Items"], "byStock": ["স্টক অনুযায়ী", "Match stock"], "find": ["প্রোডাক্ট খুঁজুন", "Find a product"], "inStock": ["স্টকে", "In stock"], "noCode": ["যে প্রোডাক্টের বারকোড নেই: ৫টা", "Products without a barcode: 5"], "makeCode": ["বানিয়ে দিন", "Make them"], "madeCode": ["৫টা প্রোডাক্টের বারকোড বানানো হলো। এখন ওদের লেবেলও প্রিন্ট করা যাবে।", "Barcodes made for 5 products. You can print their labels now."], "less": ["কমান", "Less"], "more": ["বাড়ান", "More"], "s2": ["২. লেআউট", "2. Layout"], "size": ["লেবেলের মাপ", "Label size"], "showOn": ["লেবেলে যা থাকবে", "Show on label"], "oShop": ["দোকানের নাম", "Shop name"], "oName": ["প্রোডাক্টের নাম", "Product name"], "oPrice": ["দাম", "Price"], "oMrp": ["এমআরপি", "MRP"], "printer": ["প্রিন্টার", "Printer"], "s3": ["৩. প্রিন্ট", "3. Print"], "mrp": ["এমআরপি", "MRP"], "totalLbl": ["মোট লেবেল", "Total labels"], "pageTitle": ["বারকোড লেবেল", "Barcode labels"]};
-
-class Component extends DCLogic {
-  renderVals() {
-    var self = this, s = this.state || {};
-    var bn = false, i = bn ? 0 : 1;
-    var t = {}; Object.keys(T).forEach(function (k) { t[k] = T[k][i]; });
-    var L = function (a, b) { return bn ? a : b; };
-    var EAN = ['3211', '2221', '2122', '1411', '1132', '1231', '1114', '1312', '1213', '3112'];
-    // id, bn, en, ini, swatch, code, stock, sell, mrp, defaultQty, tile
-    var IT = [
-      ['v1', 'সিলিকন কেস · M নেভি', 'Silicone case · A55 Navy', 'প', '#1e3a6e', '8941230551007', 8, 550, 600, 8],
-      ['v2', 'সিলিকন কেস · M কালো', 'Silicone case · A55 Black', 'প', '#111827', '8941230551014', 6, 550, 600, 6],
-      ['v3', 'সিলিকন কেস · L নেভি', 'Silicone case · A35 Navy', 'প', '#1e3a6e', '8941230551021', 10, 550, 600, 10],
-      ['v4', 'সিলিকন কেস · L কালো', 'Silicone case · A35 Black', 'প', '#111827', '8941230551038', 7, 550, 600, 7],
-      ['v5', 'সিলিকন কেস · XL নেভি', 'Silicone case · A15 Navy', 'প', '#1e3a6e', '8941230551045', 4, 550, 600, 4],
-      ['v6', 'সিলিকন কেস · XL কালো', 'Silicone case · A15 Black', 'প', '#111827', '8941230551052', 3, 550, 600, 3],
-      ['p9', 'স্ক্রিন ক্লিনিং ওয়াইপস', 'Screen cleaning wipes', 'ল', '', '8941100504108', 55, 65, 70, 10],
-      ['p4', 'লাইটনিং ক্যাবল ১ মি.', 'Lightning cable 1 m', 'চ', '', '8941100503118', 64, 135, 140, 0],
-      ['p8', 'মাইক্রো-USB ক্যাবল ১ মি.', 'Micro-USB cable 1 m', 'ম', '', '8941100503217', 40, 145, 150, 0]
-    ];
-    var SIZES = {
-      s38: { cols: 3, gap: 10, h: 120, pad: 8, rad: 8, g: 3, f1: 10.5, f2: 12.5, barH: 34, f3: 10, f4: 15, mod: 1, sheetBg: '#eef2f6', per: 9 },
-      s50: { cols: 2, gap: 12, h: 170, pad: 12, rad: 10, g: 4, f1: 12.5, f2: 15, barH: 52, f3: 12, f4: 19, mod: 2, sheetBg: '#eef2f6', per: 4 },
-      a4: { cols: 5, gap: 5, h: 60, pad: 3, rad: 3, g: 1, f1: 7, f2: 8, barH: 14, f3: 7, f4: 8.5, mod: 0.9, sheetBg: '#ffffff', per: 30 }
-    };
-    var size = s.size || 's38', z = SIZES[size];
-    var qtys = s.qtys || {};
-    var qOf = function (it) { return qtys[it[0]] == null ? it[9] : qtys[it[0]]; };
-    var setQ = function (id, v) { var o = assign({}, qtys); o[id] = Math.max(0, v); self.setState({ qtys: o }); };
-    var q = s.q || '';
-    var total = IT.reduce(function (n, it) { return n + qOf(it); }, 0);
-    var bars = function (code) {
-      var out = [], push = function (w, dark) { out.push({ w: +(w * z.mod).toFixed(2), bg: dark ? '#0f172a' : 'transparent' }); };
-      push(1, 1); push(1, 0); push(1, 1);
-      for (var k = 1; k < 13; k++) {
-        var p = EAN[+code[k]];
-        if (k === 7) { push(1, 0); push(1, 1); push(1, 0); push(1, 1); push(1, 0); }
-        var right = k >= 7;
-        for (var m = 0; m < 4; m++) push(+p[m], right ? (m % 2 === 0) : (m % 2 === 1));
-      }
-      push(1, 1); push(1, 0); push(1, 1);
-      return out;
-    };
-    var fmtCode = function (c) { return dg(c.slice(0, 1) + ' ' + c.slice(1, 7) + ' ' + c.slice(7), bn); };
-    var showShop = sw(self, 'oShop', true), showName = sw(self, 'oName', true), showPrice = sw(self, 'oPrice', true), showMrp = sw(self, 'oMrp', false);
-    var labels = [];
-    IT.forEach(function (it) { var n = qOf(it); if (!n) return; var br = bars(it[5]); for (var k = 0; k < n && labels.length < z.per; k++) labels.push({ name: it[1 + i], bars: br, num: fmtCode(it[5]), price: money(it[7], bn), mrp: money(it[8], bn) }); });
-    var printer = s.printer || (size === 'a4' ? 'a4' : 'xp');
-    var pages = Math.max(1, Math.ceil(total / 65));
-    return {
-      t: t,
-      fillStock: function () { var picked = IT.filter(function (it) { return qOf(it) > 0; }); var use = picked.length ? picked : IT; var o = assign({}, qtys); use.forEach(function (it) { o[it[0]] = it[6]; }); self.setState({ qtys: o }); toast(self, L('স্টক যতগুলো, লেবেলও ততগুলো বসানো হলো।', 'Label counts now match stock.')); },
-      q: q, typeQ: function (e) { self.setState({ q: e.target.value }); },
-      codeMissing: !s.made, codeMade: !!s.made,
-      makeCodes: function () { self.setState({ made: true }); toast(self, L('৫টা নতুন বারকোড বানানো হলো।', '5 new barcodes created.')); },
-      items: IT.filter(function (it) { return !q || (it[1] + ' ' + it[2] + ' ' + it[5]).toLowerCase().indexOf(unbn(q).toLowerCase()) >= 0 || (it[1] + it[2]).indexOf(q) >= 0; }).map(function (it) {
-        var n = qOf(it), sel = n > 0;
-        return { name: it[1 + i], ini: it[1 + i].slice(0, 1), hasSw: !!it[4], sw: it[4] || 'transparent', code: dg(it[5], bn), stock: dg(it[6], bn),
-          qty: dg(n, bn), sel: sel,
-          inc: function () { setQ(it[0], n + 1); }, dec: function () { setQ(it[0], n - 1); } };
-      }),
-      totalTxt: dg(total, bn) + L('টা', ''),
-      sizes: seg(self, [['s38', '৩৮×২৫ মিমি', '38×25 mm'], ['s50', '৫০×৩০ মিমি', '50×30 mm'], ['a4', 'A4 শিটে ৬৫টা', 'A4 sheet, 65 up']], size, 'size', i),
-      shows: [[showShop, 'oShop'], [showName, 'oName'], [showPrice, 'oPrice'], [showMrp, 'oMrp']].map(function (x) { return { l: t[x[1]], on: x[0].on, toggle: x[0].toggle }; }),
-      printer: printer, pickPrinter: function (e) { self.setState({ printer: e.target.value === 'a4' ? 'a4' : 'xp' }); },
-      printers: [{ k: 'xp', l: L('Xprinter XP-365B · লেবেল প্রিন্টার', 'Xprinter XP-365B · label printer') }, { k: 'a4', l: L('Canon LBP2900 · সাধারণ A4 প্রিন্টার', 'Canon LBP2900 · regular A4 printer') }],
-      z: z, labels: labels,
-      showShop: showShop.on, showName: showName.on, showPrice: showPrice.on, showMrp: showMrp.on, showPriceRow: showPrice.on || showMrp.on,
-      previewNote: size === 'a4' ? L('প্রথম ৩০টা দেখাচ্ছে · ' + dg(pages, true) + 'টা A4 শিট লাগবে', 'First 30 shown · ' + pages + ' A4 sheet' + (pages > 1 ? 's' : '') + ' needed') : L('প্রথম ' + dg(labels.length, true) + 'টা দেখাচ্ছে · মোট ' + dg(total, true) + 'টা', 'First ' + labels.length + ' shown · ' + total + ' in total'),
-      printLbl: L('প্রিন্ট করুন (' + dg(total, true) + 'টা লেবেল)', 'Print (' + total + ' labels)'),
-      print: function () { if (!total) { toast(self, L('আগে বাম পাশে লেবেলের সংখ্যা দিন।', 'Set label counts on the left first.')); return; } toast(self, L(dg(total, true) + 'টা লেবেল প্রিন্টারে পাঠানো হলো।', total + ' labels sent to the printer.')); }
-    };
-  }
+/** The catalogue rows that can carry a label. */
+function labelRows() {
+  return getCatalog().filter((r) => r.st !== 'deleted' && !isVirtualRow(r));
 }
 
-// ---- styles ----
+/** Make an in-store barcode for a row and save it on its product (or variant). Returns the code or ''. */
+function makeBarcode(row, taken) {
+  const p = findProduct({ id: row.productId, sku: row.sku });
+  if (!p) return '';
+  let code = '';
+  for (let i = 0; i < 20 && !code; i += 1) { const c = inStoreEan13(taken); if (c && !codeOwner('barcode', c, p.id)) code = c; }
+  if (!code) return '';
+  const vars = Array.isArray(p.variants) ? p.variants : [];
+  const at = vars.findIndex((v, n) => (v.sku || (p.sku || p.id) + '-' + (n + 1)) === row.sku);
+  if (at >= 0 && row.sku !== p.sku) saveProduct({ ...p, variants: vars.map((v, n) => (n === at ? { ...v, barcode: code, barcodeType: 'internal' } : v)) }, { note: 'In-store barcode made on Barcode labels' });
+  else saveProduct({ ...p, barcode: code, barcodeType: 'internal' }, { note: 'In-store barcode made on Barcode labels' });
+  taken.add(code);
+  return code;
+}
+
+/** One printed label, sized in mm. */
+function Label({ row, size, show, shop }) {
+  const bc = row.barcode ? barcodeOf(row.barcode) : null;
+  const f = size.fs;
+  const mrp = Number(row.mrp) > 0 && Number(row.mrp) !== Number(row.price) ? row.mrp : null;
+  let x = 0;
+  return (
+    <div className="bl-lab" style={{ width: size.w + 'mm', height: size.h + 'mm', padding: (1.6 * f).toFixed(2) + 'mm ' + (2.4 * f).toFixed(2) + 'mm' }}>
+      {show.shop && shop ? <span className="bl-lab__shop" style={{ fontSize: (6.5 * f).toFixed(2) + 'pt' }}>{shop}</span> : null}
+      {show.name ? <span className="bl-lab__name" style={{ fontSize: (8 * f).toFixed(2) + 'pt' }}>{nameOf(row)}</span> : null}
+      {show.barcode && bc ? (
+        <svg className="bl-lab__bars" viewBox={`0 0 ${bc.modules} 40`} preserveAspectRatio="none" aria-hidden="true" style={{ height: (size.h * 0.32).toFixed(2) + 'mm' }}>
+          {bc.bars.map((w, i) => { const r = i % 2 === 0 ? <rect key={i} x={x} y="0" width={w} height="40" /> : null; x += w; return r; })}
+        </svg>
+      ) : null}
+      {show.barcode && bc ? <span className="bl-lab__code" style={{ fontSize: (6.5 * f).toFixed(2) + 'pt' }}>{bc.text}</span> : null}
+      {show.barcode && !bc ? <span className="bl-lab__none" style={{ fontSize: (6.5 * f).toFixed(2) + 'pt' }}>No barcode</span> : null}
+      {show.sku ? <span className="bl-lab__sku" style={{ fontSize: (6 * f).toFixed(2) + 'pt' }}>SKU {row.sku}</span> : null}
+      {(show.price && row.price) || (show.mrp && mrp) ? (
+        <span className="bl-lab__price">
+          {show.price && row.price ? <b style={{ fontSize: (10 * f).toFixed(2) + 'pt' }}>{formatBDT(row.price)}</b> : null}
+          {show.mrp && mrp ? <span style={{ fontSize: (6.5 * f).toFixed(2) + 'pt' }}>MRP {formatBDT(mrp)}</span> : null}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** The labels laid out for printing: A4 pages with a grid, or one label per page on a roll. */
+function Pages({ labels, size, show, shop, limit }) {
+  const list = limit ? labels.slice(0, limit) : labels;
+  if (!size.sheet) return <div className="bl-roll">{list.map((r, i) => <div key={i} className="bl-rollcell"><Label row={r} size={size} show={show} shop={shop} /></div>)}</div>;
+  const per = size.cols * size.rows;
+  const pages = [];
+  for (let i = 0; i < list.length; i += per) pages.push(list.slice(i, i + per));
+  return pages.map((pg, n) => (
+    <div key={n} className="bl-a4" style={{ gridTemplateColumns: `repeat(${size.cols}, ${size.w}mm)`, gridAutoRows: size.h + 'mm' }}>
+      {pg.map((r, i) => <Label key={i} row={r} size={size} show={show} shop={shop} />)}
+    </div>
+  ));
+}
 
 const CSS = `
 .bl-tool{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:var(--space-4);align-items:start}
 .bl-col{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
 .bl-body{display:flex;flex-direction:column;gap:var(--space-3)}
 .bl-body>.ix-search{flex:none}
-.bl-note{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);font-size:var(--text-sm)}
-.bl-note>span{flex:1;min-width:0}
-.bl-note--warn{background:var(--fill-warning-soft);color:var(--text-heading)}
-.bl-note--warn>svg{color:var(--text-warning)}
-.bl-note--ok{background:var(--fill-success-soft);color:var(--text-heading)}
-.bl-note--ok>svg{color:var(--text-success)}
+.bl-hits{margin:0;padding:0;list-style:none;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);max-height:280px;overflow:auto}
+.bl-hits li+li{border-top:1px solid var(--border-subtle)}
+.bl-hit{display:flex;align-items:center;gap:var(--space-3);width:100%;padding:8px 10px;border:0;background:none;font:inherit;text-align:left;cursor:pointer}
+.bl-hit:hover,.bl-hit:focus-visible{background:var(--fill-primary-soft)}
+.bl-hit>span{display:flex;flex:1;flex-direction:column;min-width:0}
+.bl-hit b,.bl-name>b{overflow:hidden;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);text-overflow:ellipsis;white-space:nowrap}
+.bl-hit small,.bl-name>span{font-size:var(--text-xs);color:var(--text-muted);font-variant-numeric:tabular-nums}
+.bl-hit>svg{flex:none;color:var(--primary)}
 .bl-items{margin:0;padding:0;list-style:none;border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
-.bl-item{display:flex;align-items:center;gap:var(--space-3);padding:6px 6px 6px 10px;border-top:1px solid var(--border-subtle)}
+.bl-item{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);padding:6px 6px 6px 10px;border-top:1px solid var(--border-subtle)}
 .bl-item:first-child{border-top:0}
-.bl-item.is-on{background:var(--fill-primary-soft)}
-.bl-item .ix-thumb{position:relative;background:var(--surface-subtle);color:var(--text-muted)}
-.bl-item.is-on .ix-thumb{background:var(--surface-card);color:var(--primary)}
-.bl-swatch{position:absolute;right:-3px;bottom:-3px;width:12px;height:12px;border:2px solid var(--surface-card);border-radius:var(--radius-full)}
-.bl-name{display:flex;flex:1;flex-direction:column;min-width:0}
-.bl-name>b{overflow:hidden;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);text-overflow:ellipsis;white-space:nowrap}
-.bl-name>span{font-size:var(--text-xs);color:var(--text-muted);font-variant-numeric:tabular-nums}
+.bl-name{display:flex;flex:1 1 160px;flex-direction:column;min-width:0}
+.bl-mono{font-family:var(--font-data)}
+.bl-warn{color:var(--text-warning)}
 .bl-step{display:flex;flex:none;align-items:center;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card)}
-.bl-item.is-on .bl-step{border-color:var(--primary)}
-.bl-step>span{min-width:28px;text-align:center;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-muted);font-variant-numeric:tabular-nums}
-.bl-item.is-on .bl-step>span{color:var(--primary)}
-.bl-total{display:flex;align-items:center;justify-content:space-between;font-size:var(--text-sm);color:var(--text-body)}
+.bl-step input{width:48px;height:28px;border:0;background:none;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-semibold);text-align:center;color:var(--text-heading);font-variant-numeric:tabular-nums}
+.bl-note{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--fill-warning-soft);font-size:var(--text-sm);color:var(--text-heading)}
+.bl-note>span{flex:1;min-width:0}
+.bl-note>svg{flex:none;color:var(--text-warning)}
+.bl-total{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-body)}
 .bl-total>b{font-family:var(--font-data);font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .bl-field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .bl-field .gc-label{margin:0}
+.bl-field .gc-seg{flex-wrap:wrap}
 .bl-shows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2) var(--space-4)}
 .bl-show{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:32px;font-size:var(--text-sm);color:var(--text-heading)}
-/* the preview: a sheet of real-size-looking labels (paper stays white in both themes) */
-.bl-sheet{height:410px;overflow:hidden;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
-.bl-label{display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--slate-300);background:#fff;color:var(--slate-900)}
-.bl-label__shop{line-height:1.15;font-weight:var(--weight-medium);color:var(--slate-600);white-space:nowrap}
-.bl-label__name{max-width:100%;overflow:hidden;line-height:1.2;font-weight:var(--weight-semibold);text-overflow:ellipsis;white-space:nowrap}
-.bl-label__code{font-family:var(--font-data);line-height:1.1;letter-spacing:var(--tracking-label)}
-.bl-label>*{flex-shrink:0}
-.bl-label__price{display:flex;align-items:baseline;line-height:1.1;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bl-empty{margin:0;font-size:var(--text-sm);color:var(--text-muted)}
+/* the preview: the real-size page, scaled to fit the card (paper stays white in both themes) */
+.bl-view{overflow:auto;max-height:640px;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.bl-scale{transform-origin:top left}
+.bl-a4{display:grid;width:210mm;height:297mm;align-content:start;justify-content:center;padding-top:0;background:#fff;box-shadow:var(--shadow-sm)}
+.bl-a4+.bl-a4{margin-top:6mm}
+.bl-roll{display:flex;flex-direction:column;align-items:flex-start;gap:3mm}
+.bl-rollcell{background:#fff;box-shadow:var(--shadow-sm)}
+.bl-lab{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4mm;overflow:hidden;background:#fff;color:#000;text-align:center;outline:1px dashed var(--slate-300);outline-offset:-1px;font-family:var(--font-sans)}
+.bl-lab>*{flex-shrink:0;max-width:100%}
+.bl-lab__shop{font-weight:var(--weight-medium);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bl-lab__name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.15;font-weight:var(--weight-semibold)}
+.bl-lab__bars{display:block;width:88%;fill:#000}
+.bl-lab__code,.bl-lab__sku{font-family:var(--font-data);line-height:1.1;letter-spacing:.04em}
+.bl-lab__none{color:#555}
+.bl-lab__price{display:flex;align-items:baseline;gap:1.5mm;line-height:1.1;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bl-lab__price span{color:#333;text-decoration:line-through}
+.bl-print{position:absolute;left:-10000px;top:0}
+@media print{.bl-lab{outline:0}.bl-a4{box-shadow:none;break-after:page;margin:0!important}.bl-roll{gap:0}.bl-rollcell{break-after:page;box-shadow:none}}
 @media (max-width:1023px){.bl-tool{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:640px){.bl-shows{grid-template-columns:minmax(0,1fr)}.bl-sheet{height:auto;max-height:420px}}
+@media (max-width:640px){.bl-shows{grid-template-columns:minmax(0,1fr)}.bl-view{max-height:420px}.bl-step input{height:36px}.bl-item .bl-name{flex-basis:100%}.bl-item .bl-x{margin-left:auto}}
 `;
 
-// ---- markup ----
+export default function BarcodeLabels() {
+  const phone = useIsPhone();
+  const [rows, setRows] = useState([]);
+  const [shop, setShop] = useState('');
+  const [picks, setPicks] = useState([]);      // [{ sku, qty }]
+  const [q, setQ] = useState('');
+  const [size, setSize] = useState('a4-24');
+  const [show, setShow] = useState(Object.fromEntries(SHOWS.map(([k, , on]) => [k, on])));
+  const [printing, setPrinting] = useState(false);   // the full set of labels is drawn only while printing
 
-export default class BarcodeLabelsScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    const t = v.t || {};
-    const z = v.z || {};
-    return (
-      <div className="dc-screen ds" data-screen="BarcodeLabels">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell">
-          <__Sidebar sticky="" active="stock-labels" />
-          <main className="gc-shell__main">
-            <__Topbar crumb={"Stocks & inventory"} page="Barcode labels" placeholder="Search products, customers or memo no." />
-            <div className="gc-shell__content">
-              <div className="ix-page">
-                <ShopHeader icon="scan-barcode" title={t.h} about={t.hsub}
-                  secondary={[{ label: t.toProducts, href: '/all-products' }]}
-                  primary={{ label: v.printLbl, onClick: v.print, icon: 'printer' }} />
+  const load = () => setRows(labelRows());
+  useEffect(() => {
+    const all = labelRows();
+    setRows(all);
+    try { const id = invoiceIdentity(); setShop(id.tradingName || id.name || ''); } catch { setShop(''); }
+    const raw = new URLSearchParams(window.location.search).get('skus') || '';
+    const bySku = new Map(all.map((r) => [lc(r.sku), r.sku]));
+    const start = raw.split(',').map((x) => x.trim()).filter(Boolean).map((x) => { const [k, n] = x.split(':'); return { sku: bySku.get(lc(k)), qty: Math.max(1, Math.min(MAX, Math.round(Number(n) || 1))) }; }).filter((x) => x.sku);
+    const seen = new Set();
+    setPicks(start.filter((x) => (seen.has(x.sku) ? false : seen.add(x.sku))));
+    if (raw && start.length) setSize('a4-24');
+    window.addEventListener(STOCK_EVENT, load);
+    return () => window.removeEventListener(STOCK_EVENT, load);
+  }, []);
 
-                <div className="bl-tool">
-                  <div className="bl-col">
-                    {/* 1. which items, and how many labels of each */}
-                    <section className="ix-card" aria-labelledby="bl-h-items">
-                      <div className="ix-card__head">
-                        <h2 id="bl-h-items">{t.s1}</h2>
-                        <button type="button" className="ix-btn ix-btn--sm" onClick={v.fillStock}><__Icon name="layers" width="16" height="16" aria-hidden="true" />{t.byStock}</button>
-                      </div>
-                      <div className="ix-card__body bl-body">
-                        <label className="ix-search">
-                          <__Icon name="search" width="16" height="16" aria-hidden="true" />
-                          <input value={v.q} onInput={v.typeQ} onChange={v.typeQ} placeholder={t.find} aria-label={t.find} />
-                        </label>
-                        {v.codeMissing ? (
-                          <div className="bl-note bl-note--warn">
-                            <__Icon name="triangle-alert" width="16" height="16" aria-hidden="true" />
-                            <span>{t.noCode}</span>
-                            <button type="button" className="ix-btn ix-btn--sm" onClick={v.makeCodes}><__Icon name="scan-barcode" width="16" height="16" aria-hidden="true" />{t.makeCode}</button>
-                          </div>
-                        ) : null}
-                        {v.codeMade ? (
-                          <div className="bl-note bl-note--ok" role="status">
-                            <__Icon name="circle-check" width="16" height="16" aria-hidden="true" />
-                            <span>{t.madeCode}</span>
-                          </div>
-                        ) : null}
-                        <ul className="bl-items">
-                          {__list(v.items).map((it, i) => (
-                            <li key={i} className={'bl-item' + (it.sel ? ' is-on' : '')}>
-                              <span className="ix-thumb" aria-hidden="true">{it.ini}{it.hasSw ? <span className="bl-swatch" style={{ background: it.sw }} /> : null}</span>
-                              <span className="bl-name"><b>{it.name}</b><span><span style={{ fontFamily: "var(--font-data)" }}>{it.code}</span> · {t.inStock} {it.stock}</span></span>
+  const bySku = useMemo(() => new Map(rows.map((r) => [r.sku, r])), [rows]);
+  const picked = picks.map((p) => ({ ...p, row: bySku.get(p.sku) })).filter((p) => p.row);
+  const needle = lc(q.trim());
+  const hits = needle ? rows.filter((r) => (lc(nameOf(r)) + ' ' + lc(r.sku) + ' ' + lc(r.barcode)).includes(needle)).slice(0, 8) : [];
+  const total = picked.reduce((a, p) => a + p.qty, 0);
+  const noCode = picked.filter((p) => !p.row.barcode);
+  const z = SIZES.find((x) => x.k === size);
+  const labels = useMemo(() => picked.flatMap((p) => Array.from({ length: p.qty }, () => p.row)).slice(0, MAX), [picks, rows]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const perPage = z.sheet ? z.cols * z.rows : 0;
+  const pages = z.sheet ? Math.max(1, Math.ceil(total / perPage)) : total;
+
+  const add = (r) => { setQ(''); setPicks(picks.some((p) => p.sku === r.sku) ? picks.map((p) => (p.sku === r.sku ? { ...p, qty: p.qty + 1 } : p)) : [...picks, { sku: r.sku, qty: 1 }]); };
+  const setQty = (sku, n) => setPicks(picks.map((p) => (p.sku === sku ? { ...p, qty: Math.max(0, Math.min(MAX, Math.round(Number(n) || 0))) } : p)));
+  const remove = (sku) => setPicks(picks.filter((p) => p.sku !== sku));
+  const matchStock = () => {
+    if (!picked.length) { toast('Pick products first.', { tone: 'error' }); return; }
+    setPicks(picks.map((p) => ({ ...p, qty: Math.max(0, Math.min(MAX, stockAt(p.sku, '').onHand)) })));
+    toast('Label counts now match the stock on hand');
+  };
+  const make = (list) => {
+    const taken = new Set(getCatalog().map((r) => r.barcode).filter(Boolean));
+    const made = list.map((p) => makeBarcode(p.row, taken)).filter(Boolean);
+    load();
+    if (made.length) toast(made.length === 1 ? 'Barcode made and saved on the product' : `${made.length} barcodes made and saved on the products`);
+    else toast('The barcode could not be made. Open the product and add one there.', { tone: 'error' });
+  };
+  const print = () => {
+    if (!total) { toast('Pick products and how many labels first.', { tone: 'error' }); return; }
+    if (show.barcode && noCode.length) { toast(`${plural(noCode.length, 'product')} without a barcode. Make one first, or switch Barcode off.`, { tone: 'error' }); return; }
+    setPrinting(true);
+  };
+  useEffect(() => {
+    if (!printing) return;
+    const node = document.getElementById('bl-print');
+    if (node) printNode(node, { title: 'Barcode labels', css: z.sheet ? '@page{size:A4 portrait;margin:0}' : `@page{size:${z.w}mm ${z.h}mm;margin:0}` });
+    setPrinting(false);
+  }, [printing]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  const scale = z.sheet ? (phone ? 0.38 : 0.62) : phone ? 1.2 : 1.6;
+  const previewPages = z.sheet ? Math.min(pages, 2) : 0;
+  const previewLabels = z.sheet ? labels.slice(0, previewPages * perPage) : labels.slice(0, 12);
+
+  return (
+    <div className="dc-screen ds" data-screen="BarcodeLabels">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <div className="gc-shell">
+        <Sidebar sticky="" active="stock-labels" />
+        <main className="gc-shell__main">
+          <Topbar crumb="Inventory" page="Barcode labels" placeholder="Search or scan any barcode" />
+          <div className="gc-shell__content">
+            <div className="ix-page">
+              <ShopHeader icon="scan-barcode" title="Barcode labels" about="Pick the products, set how many labels, choose the label size, then print. Only the labels are printed."
+                secondary={[{ label: 'All products', href: '/all-products' }]}
+                primary={{ label: total ? `Print ${plural(total, 'label')}` : 'Print', onClick: print, icon: 'printer' }} />
+
+              <div className="bl-tool">
+                <div className="bl-col">
+                  <section className="ix-card" aria-labelledby="bl-h-items">
+                    <div className="ix-card__head">
+                      <h2 id="bl-h-items">Products</h2>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={matchStock}><Icon name="layers" width="16" height="16" aria-hidden="true" />Match stock</button>
+                    </div>
+                    <div className="ix-card__body bl-body">
+                      <label className="ix-search">
+                        <Icon name="search" width="16" height="16" aria-hidden="true" />
+                        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a product by name, SKU or barcode" aria-label="Find a product" />
+                      </label>
+                      {needle ? (hits.length ? (
+                        <ul className="bl-hits" aria-label="Products found">
+                          {hits.map((r) => (
+                            <li key={r.sku}><button type="button" className="bl-hit" onClick={() => add(r)}>
+                              <span><b>{nameOf(r)}</b><small><span className="bl-mono">{r.sku}</span>{r.barcode ? ' · ' + r.barcode : ' · no barcode'}</small></span>
+                              <Icon name="plus" width="16" height="16" aria-hidden="true" />
+                            </button></li>
+                          ))}
+                        </ul>
+                      ) : <p className="bl-empty">No product matches “{q.trim()}”.</p>) : null}
+                      {noCode.length ? (
+                        <div className="bl-note" role="status">
+                          <Icon name="triangle-alert" width="16" height="16" aria-hidden="true" />
+                          <span>{noCode.length === 1 ? '1 product has' : noCode.length + ' products have'} no barcode.</span>
+                          <button type="button" className="ix-btn ix-btn--sm" onClick={() => make(noCode)}><Icon name="scan-barcode" width="16" height="16" aria-hidden="true" />{noCode.length === 1 ? 'Make one' : 'Make them'}</button>
+                        </div>
+                      ) : null}
+                      {picked.length ? (
+                        <ul className="bl-items" aria-label="Labels to print">
+                          {picked.map((p) => (
+                            <li key={p.sku} className="bl-item">
+                              <span className="bl-name"><b>{nameOf(p.row)}</b><span><span className="bl-mono">{p.row.barcode || p.sku}</span>{p.row.barcode ? '' : <span className="bl-warn"> · no barcode</span>} · {p.row.price ? formatBDT(p.row.price) : 'no price'}</span></span>
+                              {!p.row.barcode ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => make([p])}>Make one</button> : null}
                               <span className="bl-step">
-                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" onClick={it.dec} aria-label={`${t.less ?? ""} ${it.name ?? ""}`}><__Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
-                                <span>{it.qty}</span>
-                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" onClick={it.inc} aria-label={`${t.more ?? ""} ${it.name ?? ""}`}><__Icon name="plus" width="16" height="16" aria-hidden="true" /></button>
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" onClick={() => setQty(p.sku, p.qty - 1)} aria-label={'Fewer labels for ' + nameOf(p.row)}><Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
+                                <input inputMode="numeric" aria-label={'Labels for ' + nameOf(p.row)} value={p.qty} onChange={(e) => setQty(p.sku, e.target.value.replace(/[^0-9]/g, ''))} />
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" onClick={() => setQty(p.sku, p.qty + 1)} aria-label={'More labels for ' + nameOf(p.row)}><Icon name="plus" width="16" height="16" aria-hidden="true" /></button>
                               </span>
+                              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain bl-x" onClick={() => remove(p.sku)} aria-label={'Remove ' + nameOf(p.row)}><Icon name="x" width="16" height="16" aria-hidden="true" /></button>
                             </li>
                           ))}
                         </ul>
-                        <div className="bl-total"><span>{t.totalLbl}</span><b>{v.totalTxt}</b></div>
-                      </div>
-                    </section>
-
-                    {/* 2. label size, what shows on it, the printer */}
-                    <section className="ix-card" aria-labelledby="bl-h-layout">
-                      <div className="ix-card__head"><h2 id="bl-h-layout">{t.s2}</h2></div>
-                      <div className="ix-card__body bl-body">
-                        <div className="bl-field">
-                          <span className="gc-label" id="bl-size">{t.size}</span>
-                          <div className="gc-seg" role="group" aria-labelledby="bl-size">
-                            {__list(v.sizes).map((o) => <button key={o.k} type="button" className={'gc-seg__btn' + (o.on ? ' gc-seg__btn--active' : '')} aria-pressed={!!o.on} onClick={o.pick}>{o.l}</button>)}
-                          </div>
-                        </div>
-                        <div className="bl-field">
-                          <span className="gc-label">{t.showOn}</span>
-                          <div className="bl-shows">
-                            {__list(v.shows).map((o) => (
-                              <div key={o.l} className="bl-show">
-                                <span>{o.l}</span>
-                                <button type="button" role="switch" aria-checked={!!o.on} aria-label={o.l} className="gc-switch" onClick={o.toggle}><span className="gc-switch__knob" /></button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <label className="bl-field">
-                          <span className="gc-label">{t.printer}</span>
-                          <select className="gc-input gc-select" value={v.printer} onInput={v.pickPrinter} onChange={v.pickPrinter} aria-label={t.printer}>
-                            {__list(v.printers).map((o) => <option key={o.k} value={o.k}>{o.l}</option>)}
-                          </select>
-                        </label>
-                      </div>
-                    </section>
-                  </div>
-
-                  {/* 3. the live preview */}
-                  <section className="ix-card" aria-labelledby="bl-h-preview">
-                    <div className="ix-card__head">
-                      <h2 id="bl-h-preview">{t.s3}</h2>
-                      <span className="ix-muted" style={{ fontSize: "var(--text-xs)" }}>{v.previewNote}</span>
+                      ) : !needle ? <p className="bl-empty">Search above to add products, or pick them in All products and choose Print labels.</p> : null}
+                      <div className="bl-total"><span>Labels</span><b>{total}{total > MAX ? ` (first ${MAX} printed)` : ''}</b></div>
                     </div>
-                    <div className="ix-card__body">
-                      <div className="bl-sheet" style={{ background: z.sheetBg === '#ffffff' ? 'var(--surface-card)' : 'var(--surface-subtle)' }}>
-                        <div style={{ display: "grid", gridTemplateColumns: `repeat(${z.cols}, minmax(0, 1fr))`, gap: z.gap }}>
-                          {__list(v.labels).map((lb, i) => (
-                            <div key={i} className="bl-label" style={{ height: z.h, padding: z.pad, gap: z.g, borderRadius: z.rad }}>
-                              {v.showShop ? <span className="bl-label__shop" style={{ fontSize: z.f1 }}>{t.shop}</span> : null}
-                              {v.showName ? <span className="bl-label__name" style={{ fontSize: z.f2 }}>{lb.name}</span> : null}
-                              <span aria-hidden="true" style={{ display: "flex", flexShrink: 0, height: z.barH }}>
-                                {__list(lb.bars).map((b, j) => <span key={j} style={{ width: b.w, background: b.bg }} />)}
-                              </span>
-                              <span className="bl-label__code" style={{ fontSize: z.f3 }}>{lb.num}</span>
-                              {v.showPriceRow ? (
-                                <span className="bl-label__price" style={{ gap: z.g }}>
-                                  {v.showPrice ? <span style={{ fontSize: z.f4, fontWeight: "var(--weight-semibold)" }}>{lb.price}</span> : null}
-                                  {v.showMrp ? <span style={{ fontSize: z.f3, color: "var(--slate-600)" }}>{t.mrp} {lb.mrp}</span> : null}
-                                </span>
-                              ) : null}
+                  </section>
+
+                  <section className="ix-card" aria-labelledby="bl-h-layout">
+                    <div className="ix-card__head"><h2 id="bl-h-layout">Layout</h2></div>
+                    <div className="ix-card__body bl-body">
+                      <div className="bl-field">
+                        <span className="gc-label" id="bl-size">Label size</span>
+                        <div className="gc-seg" role="group" aria-labelledby="bl-size">
+                          {SIZES.map((o) => <button key={o.k} type="button" className={'gc-seg__btn' + (o.k === size ? ' gc-seg__btn--active' : '')} aria-pressed={o.k === size} onClick={() => setSize(o.k)}>{o.l}</button>)}
+                        </div>
+                      </div>
+                      <div className="bl-field">
+                        <span className="gc-label">Show on the label</span>
+                        <div className="bl-shows">
+                          {SHOWS.map(([k, l]) => (
+                            <div key={k} className="bl-show">
+                              <span>{l}</span>
+                              <button type="button" role="switch" aria-checked={!!show[k]} aria-label={l} className="gc-switch" onClick={() => setShow({ ...show, [k]: !show[k] })}><span className="gc-switch__knob" /></button>
                             </div>
                           ))}
                         </div>
@@ -265,11 +305,28 @@ export default class BarcodeLabelsScreen extends Component {
                     </div>
                   </section>
                 </div>
+
+                <section className="ix-card" aria-labelledby="bl-h-preview">
+                  <div className="ix-card__head">
+                    <h2 id="bl-h-preview">Preview</h2>
+                    <span className="ix-muted" style={{ fontSize: 'var(--text-xs)' }}>{total ? (z.sheet ? `${plural(pages, 'A4 sheet')}${pages > 2 ? ' · first 2 shown' : ''}` : `${plural(total, 'label')} on the roll${total > 12 ? ' · first 12 shown' : ''}`) : 'Nothing picked yet'}</span>
+                  </div>
+                  <div className="ix-card__body">
+                    <div className="bl-view">
+                      {previewLabels.length ? (
+                        <div style={{ width: `calc(${z.sheet ? 210 : z.w}mm * ${scale})`, height: z.sheet ? `calc(${previewPages * 297 + (previewPages - 1) * 6}mm * ${scale})` : `calc(${previewLabels.length * (z.h + 3)}mm * ${scale})` }}>
+                          <div className="bl-scale" style={{ transform: `scale(${scale})` }}><Pages labels={previewLabels} size={z} show={show} shop={shop} /></div>
+                        </div>
+                      ) : <p className="bl-empty">Pick products to see the labels.</p>}
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
-    );
-  }
+      {printing ? <div className="bl-print" aria-hidden="true"><div id="bl-print"><Pages labels={labels} size={z} show={show} shop={shop} /></div></div> : null}
+    </div>
+  );
 }

@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/ui';
 import { confirmDialog, toast } from '@/runtime/ui';
 import { SETS } from '@/lib/platform/catalogue';
 import { modulesOf, setModule } from '@/lib/admin/merchants';
+import { rightOf } from '@/lib/admin/actionRights';
 import { Card, Row } from './profileShared';
 
 const STATE = {
@@ -24,8 +25,11 @@ export function ModulesTab({ ctx }) {
   const groups = SETS.map((s) => ({ ...s, mods: mods.filter((m) => m.set === s.id && pick(m)) })).filter((g) => g.mods.length);
   const count = { all: mods.length, active: mods.filter((m) => m.active).length, off: mods.filter((m) => !m.active).length, staff: mods.filter((m) => m.state === 'on' || m.state === 'blocked').length };
 
-  const flip = (m) => open('module', { code: m.code, name: m.name, on: !m.active });
+  // turning a module on or off for one store needs Edit on Plans & modules (Roles & permissions)
+  const right = rightOf('module');
+  const flip = (m) => (right.ok ? open('module', { code: m.code, name: m.name, on: !m.active }) : toast(right.reason));
   const reset = async (m) => {
+    if (!right.ok) { toast(right.reason); return; }
     if (!(await confirmDialog({ title: `${m.name} back to the package?`, body: 'The store gets what its package gives for this module.', confirmLabel: 'Reset' }))) return;
     const r = setModule(shop.id, m.code, null);
     toast(r.ok ? `${m.name} follows the package again` : r.error);
@@ -40,6 +44,7 @@ export function ModulesTab({ ctx }) {
         <span style={{ flex: 1 }} />
         <button type="button" className="ix-btn" onClick={() => open('modtrial')}>Start a module trial</button>
       </div>
+      {!right.ok ? <p className="mp-muted" style={{ margin: 0, fontSize: 'var(--text-xs)' }}>{right.reason}</p> : null}
       {groups.length ? groups.map((g) => (
         <Card key={g.id} title={g.label} action={<span className="mp-muted" style={{ fontSize: 'var(--text-xs)' }}>{g.sub}</span>} flush>
           <div className="mp-mods">
@@ -50,9 +55,9 @@ export function ModulesTab({ ctx }) {
                 <Row key={m.code} title={<>{m.name} <span className="mp-muted mp-data">{m.code}</span></>}
                   sub={<StatusBadge tone={tone}>{label}{m.state === 'trial' && m.note ? ' · ' + m.note.replace('Trial · ', '') : ''}</StatusBadge>}
                   end={<>
-                    {forced ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => reset(m)}>Reset</button> : null}
+                    {forced && right.ok ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => reset(m)}>Reset</button> : null}
                     {g.always && g.id === 'platform' ? <span className="mp-muted" style={{ fontSize: 'var(--text-xs)' }}>Always on</span> : (
-                      <button type="button" role="switch" className="gc-switch" aria-checked={!!m.active} aria-label={`${m.name} for this store`} onClick={() => flip(m)}><span className="gc-switch__knob" /></button>
+                      <button type="button" role="switch" className="gc-switch" aria-checked={!!m.active} aria-label={`${m.name} for this store`} onClick={() => flip(m)} disabled={!right.ok} title={right.ok ? undefined : right.reason}><span className="gc-switch__knob" /></button>
                     )}
                   </>} />
               );

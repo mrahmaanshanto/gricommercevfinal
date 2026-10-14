@@ -9,6 +9,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/runtime/dc';
+import { ProviderLogo } from '@/components/MeetingProvider';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { EmptyState, StatusBadge } from '@/components/ui';
 import { RecordHeader, KV } from '@/components/ui/IndexKit';
@@ -153,7 +154,7 @@ export default function MeetingView() {
     <RecordHeader back="/admin/meetings" backLabel="Back to meetings" title={m.title}
       about="One meeting: record the outcome once it has started (with an optional follow-up task), keep notes, and turn the AI summary's action items into tasks. Reschedule, mark missed or cancel with a reason from More."
       badges={<MeetBadges m={m} t={t} />}
-      meta={<><span className="mt-data">#{m.id}</span> · {whenText(m)} · {p.label}</>}
+      meta={<><span className="mt-data">#{m.id}</span> · {whenText(m)} · <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, verticalAlign: 'middle' }}><ProviderLogo id={m.provider} size={14} alt={m.provider === 'zoom' ? p.label : ''} />{m.provider === 'zoom' ? null : p.label}</span></>}
       secondary={m.link ? [{ label: 'Copy link', icon: 'copy', onClick: () => copyLink(m) }] : []}
       more={more} primary={primary} />
 
@@ -253,7 +254,7 @@ export default function MeetingView() {
             ['Type', typeOf(m.type).label],
             ['When', `${dayLabel(m.at, t)} · ${hm(m.at)}`],
             ['Duration', `${m.mins} min`],
-            ['Where', m.provider === 'office' ? OFFICE : p.label],
+            ['Where', m.provider === 'office' ? OFFICE : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><ProviderLogo id={m.provider} size={16} alt={m.provider === 'zoom' ? p.label : ''} />{m.provider === 'zoom' ? null : p.label}</span>],
             who.kind !== 'none' ? [who.kind === 'merchant' ? 'Merchant' : 'Lead', who.href ? <Link key="w" href={who.href}>{who.name}{who.kind === 'merchant' ? ` #${who.id}` : ''}</Link> : who.name] : null,
             who.kind === 'lead' && who.id ? ['Lead ID', <span key="l" className="mt-data">{who.id}</span>] : null,
             ['Runs it', m.host],

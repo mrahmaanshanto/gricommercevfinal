@@ -18,6 +18,9 @@ import { allProducts, getSavedProducts } from '@/lib/products';
 import { getSales } from '@/lib/salesBook';
 import { getAllPartners, getConfig } from '@/lib/settlements';
 import { getCounters, POS_KEYS } from '@/lib/posStore';
+import { startFirstRun, onboardingOf, FIRST_KEY, READY_KEY } from '@/lib/onboarding';
+import { addedUsers } from '@/lib/shopUsers';
+import { getJobs } from '@/lib/dataImport';
 
 export const EXTRAS_CSS = `
 .hx-asof{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap}
@@ -60,8 +63,7 @@ export function AsOf({ at, onRefresh }) {
 }
 
 // ---- first run ---------------------------------------------------------------------------------------------
-const FIRST_KEY = 'gc.home.firstrun';
-const READY_KEY = 'gc.home.readiness';
+// FIRST_KEY / READY_KEY: lib/onboarding.js (sign-up starts the first-run view too)
 const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch { return fb; } };
 const raw = (k) => safe(() => window.localStorage.getItem(k), null);
 const readJson = (k) => safe(() => JSON.parse(window.localStorage.getItem(k)), null);
@@ -72,10 +74,7 @@ function firstRun() {
   if (typeof window === 'undefined') return null;
   const q = new URLSearchParams(window.location.search).get('firstrun');
   if (q === '0') { writeJson(FIRST_KEY, null); writeJson(READY_KEY, null); return null; }
-  if (q === '1' && !readJson(FIRST_KEY)) {
-    writeJson(READY_KEY, null);
-    writeJson(FIRST_KEY, { at: Date.now(), products: safe(() => getSavedProducts().length, 0), counters: raw(POS_KEYS.counters), staff: raw('gc.hr.staff') });
-  }
+  if (q === '1' && !readJson(FIRST_KEY)) startFirstRun();
   return readJson(FIRST_KEY);
 }
 /** A new or empty shop: the demo's first-run view, or no products and no sales yet. */
@@ -96,7 +95,9 @@ const STEPS = [
   { id: 'payment', module: 'commerce', label: 'Connect a payment', href: '/connections?group=payments', done: (b) => partnerSet('Gateway', b) },
   { id: 'courier', module: 'online', label: 'Set up a courier', href: '/connections?group=delivery', done: (b) => partnerSet('Courier', b) },
   { id: 'counter', module: 'pos', label: 'Set up a counter', href: '/pos-manage', done: (b) => (b ? raw(POS_KEYS.counters) !== b.counters : safe(() => getCounters().length, 0) > 0) },
-  { id: 'staff', module: 'hr', label: 'Invite your staff', href: '/staff-create', done: (b) => (b ? raw('gc.hr.staff') !== b.staff : true) },
+  // core Settings, every plan: an invite sent after the view started (Settings › Users & roles)
+  { id: 'staff', module: 'core', label: 'Invite your team', href: '/set-users?invite=1', done: (b) => (b ? safe(() => addedUsers().some((u) => u.invitedAt >= b.at), false) : true) },
+  { id: 'import', module: 'core', label: 'Bring your customers from another system', href: '/import-data?type=customers', done: (b) => safe(() => getJobs().some((j) => j.kind === 'customers' && j.done && (!b || j.startedAt >= b.at)), false) || !b },
 ];
 
 /** The setup checklist on a new shop's Home; null when the shop is set up, or once dismissed or done. */
@@ -118,7 +119,7 @@ export function Readiness({ ed }) {
   const hide = () => { writeJson(READY_KEY, { dismissed: true, at: Date.now() }); setState(null); };
   return (
     <section className="ix-card hx-ready" aria-labelledby="hx-ready-h">
-      <header className="ix-card__head"><h2 id="hx-ready-h">Set up your shop</h2><span>{done} of {state.length} done</span></header>
+      <header className="ix-card__head"><h2 id="hx-ready-h">Getting started</h2><span>{done} of {state.length} done</span></header>
       <div className="ix-card__body">
         <div className="hx-bar" aria-hidden="true"><i style={{ width: `${Math.round((done / state.length) * 100)}%` }} /></div>
         <div className="hx-steps">
@@ -130,6 +131,7 @@ export function Readiness({ ed }) {
             </div>
           ))}
         </div>
+        {(onboardingOf() || {}).start === 'own' ? <p className="hx-empty">You chose to start with your own data. The sample shop’s orders and figures stay in this preview; a live shop starts empty.</p> : null}
         <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" style={{ marginTop: 'var(--space-2)' }} onClick={hide}>Dismiss</button>
       </div>
     </section>

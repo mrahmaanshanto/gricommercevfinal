@@ -10,7 +10,7 @@ import React, { useRef, useState } from 'react';
 import { Icon as __Icon } from '@/runtime/dc';
 import { Dialog as __Dialog, StatusBadge as __StatusBadge } from '@/components/ui';
 import { toast as __toast } from '@/runtime/ui';
-import { parseCsv, autoMap, dryRun, importRows, templateCsv, IMPORT_FIELDS } from '@/lib/productImport';
+import { parseCsv, autoMap, dryRun, importRows, templateCsv, importFields } from '@/lib/productImport';
 import { currentUser } from '@/lib/team';
 
 const TONE = { ready: ['Ready', 'success'], warning: ['Warning', 'warning'], error: ['Error', 'error'] };
@@ -107,7 +107,7 @@ export default function ImportProducts({ open, onClose, onDone }) {
                 <span>{h || 'Column ' + (i + 1)}<small>{(rows[1] || [])[i] || '—'}</small></span>
                 <select className="gc-input gc-select" aria-label={'Field for ' + (h || 'column ' + (i + 1))} value={map[i] || ''} onChange={(e) => setMap({ ...map, [i]: e.target.value })}>
                   <option value="">Don’t import</option>
-                  {IMPORT_FIELDS.map((f) => <option key={f.k} value={f.k} disabled={map[i] !== f.k && mapped.includes(f.k)}>{f.label}{f.need ? ' *' : ''}</option>)}
+                  {importFields().map((f) => <option key={f.k} value={f.k} disabled={map[i] !== f.k && mapped.includes(f.k)}>{f.label}{f.need ? ' *' : ''}</option>)}
                 </select>
               </React.Fragment>
             ))}

@@ -15,16 +15,24 @@ import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { InfoTip as __InfoTip, Dialog as __Dialog } from '@/components/ui';
 import { RecordHeader } from '@/components/ui/IndexKit';
 import ProductChannels from '@/components/ProductChannels';
+import ProductReviewsCard from '@/components/ProductReviewsCard';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 import { findProduct, saveProduct, codeOwner, newProductId, getSavedProducts, duplicateProduct, allProducts } from '@/lib/products';
 import { getStockSetup, isOnePlace } from '@/lib/stockSetup';
-import { addMove, stockAt, getCatalog, isVirtualRow, UNTRACKED } from '@/lib/stock';
-import { onlinePlace, getBranchNames } from '@/lib/locations';
+import { addMove, stockAt, getCatalog, isVirtualRow, UNTRACKED, CATALOG } from '@/lib/stock';
+import { onlinePlace, getBranchNames, getStockPlaces, STOCK_PLACES } from '@/lib/locations';
+import { getCategories, formTables, CATEGORY_SEED } from '@/lib/productCategories';
+import { productLevel } from '@/lib/reorder';
 import { ManagerPin } from '@/components/ManagerPin';
 import { UNITS, unitOf, packsOf, packLine } from '@/lib/units';
 import { ID_TYPES, idLabel, validateId, idOwner, gtinOk } from '@/lib/identifiers';
 import { TEMPLATES, tplBy, templateFor, templateOfCategory, groupsOf, fieldValue, hiddenValues, tplDefaults, TPL_SOURCE, CAP_LABEL } from '@/lib/productTemplates';
 import { saveDraft, draftFor, dropDraft, agoText, AUTOSAVE_MS } from '@/lib/productDrafts';
+import SeoPanel, { SEO_PANEL_CSS } from '@/components/seo/SeoPanel';
+import { setLinkInHtml } from '@/lib/seo';
+import { vatRateFor, loadVat } from '@/lib/vat';
+import { contextOf } from '@/lib/seoItems';
+import { toHandle, cleanHandleInput } from '@/lib/handles';
 import { versionsOf, latestVersion, openEdit, closeEdit, editorsOf, takeOver, staleSince, needsPriceApproval, priceChangePct, priceLimit, requestPrice, openPriceRequests, decidePrice, VERSIONS_EVENT } from '@/lib/productVersions';
 import { REL_KINDS, relationIds, setRelation } from '@/lib/productRelations';
 import { keysOf, freeKeys, addKeys, maskKey } from '@/lib/licenceKeys';
@@ -93,8 +101,9 @@ function moqError(x, required) {
   return '';
 }
 function catLeaf(path) { var parts = String(path || '').split(' › '); return parts[parts.length - 1]; }
-function catPathOf(cat) { return cat ? (PARENT[cat] ? PARENT[cat] + ' › ' : '') + cat : ''; }
-function slugOf(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+function catPathOf(cat) { return cat ? CAT_PATH[cat] || (PARENT[cat] ? PARENT[cat] + ' › ' : '') + cat : ''; }
+// the product's address from its title: Bangla is written in Latin letters or kept (Online Store › SEO, lib/handles.js)
+function slugOf(t) { return toHandle(t); }
 // Barcodes (Nayeem's Product brief #1): a manufacturer's barcode (GTIN, printed on the pack) is kept apart from a code
 // the shop makes for itself. "Generate" makes an in-store EAN-13 (starting with 2, the range kept for use inside a shop),
 // marked barcodeType 'internal', so it is never sent to Google as a GTIN. The product keeps one main barcode (the GTIN
@@ -121,8 +130,14 @@ var fillVariations = function (opts, variants, sku) {
   var by = {}; variants.forEach(function (x) { if (!by[x.name]) by[x.name] = x; });
   return combos(vo).map(function (c) { return by[c.join(' / ')] || newVariation(c, sku); });
 };
-// Opening stock (Inventory drawer): posted as stock moves when the product is saved
-var OPEN_PLACES = ['Central Warehouse', 'Dhanmondi branch'];
+// Opening stock (Inventory drawer): one box per stock place (the live list, read after mount; a one-place shop has
+// one), and per variant when the variants keep their own stock. Posted as stock moves when the product is saved.
+// The boxes are kept as { 'place|variant name': '3' } ('' = the product itself).
+var openKey = function (pl, vn) { return pl + '|' + (vn || ''); };
+// A product whose own SKU is a row of the stock catalogue keeps its stock under that SKU, even with variants
+// (stock.js › getCatalog); otherwise each variant is its own stock row.
+var ownStockSku = function (sku) { var k = String(sku || '').trim().toLowerCase(); return !!k && CATALOG.some(function (c) { return c.sku.toLowerCase() === k; }); };
+var variantSku = function (rec, x, n) { return x.sku || (rec.sku || rec.id) + '-' + (n + 1); };
 // The product's values as form state (edit mode).
 function prefillFrom(p) {
   var opts0 = (p.opts || []).map(function (o) { return { name: o.name, values: (o.values || []).slice(), visible: o.visible !== false, variation: o.variation !== false }; });
@@ -136,7 +151,7 @@ function prefillFrom(p) {
     editId: p.id, orig: p, basePrice: p.price, title: p.name, short: p.short || '', long: p.long || '', seoT: p.seoT || '', seoD: p.seoD || '', tags: p.tags || [],
     price: money(p.price), cost: money(p.cost), mrp: money(p.mrp), wholesale: str(p.wholesale), moq: str(p.moq), sell: p.sell || 'retail',
     sku: p.sku || '', gtin: bt === 'gtin' ? p.barcode : '', internalBc: bt === 'internal' ? p.barcode : (intId ? intId.value : ''),
-    oversell: !!p.oversell, cat: leaf, brand: p.brand || '', status: p.st || 'active', opts: opts0,
+    oversell: !!p.oversell, cat: leaf, brand: p.brand || '', status: p.goLiveAt && p.st === 'draft' ? 'scheduled' : p.st || 'active', opts: opts0,
     variants: fillVariations(opts0, (p.variants || []).map(function (x) { return assign(assign({}, x), { wholesale: str(x.wholesale), moq: str(x.moq) }); }), p.sku),
     // brief #1: units & packs, identifiers, template + specification values, format, selling modes, bundle, relations
     unit: p.unit || 'pc', packs: packsOf({ sku: p.sku, packs: p.packs }).map(function (k) { return assign({}, k); }), ids: ids0.filter(function (x) { return !x.internal; }),
@@ -146,9 +161,9 @@ function prefillFrom(p) {
     // the reference page's fields (kept on the product record)
     invMode: p.invMode || null, saleUnit: p.saleUnit || null, buyUnit: p.buyUnit || null, sellability: p.sellability || null,
     subcats: Array.isArray(p.subcats) ? p.subcats.map(catLeaf) : (PARENT[leaf] ? [leaf] : []), collections: (p.collections || []).slice(),
-    media: (p.media || []).map(function (m) { return assign({}, m); }), handle: p.handle || '', noindex: !!p.noindex, faqs: p.faqs || [],
+    media: (p.media || []).map(function (m) { return assign({}, m); }), handle: p.handle || '', noindex: !!p.noindex, faqs: p.faqs || [], seoX: assign({}, p.seo || {}), goLiveAt: p.goLiveAt || '', vatRate: p.vatRate == null ? '' : String(p.vatRate),
     ship: p.ship ? assign({}, p.ship) : null, wq: p.warranty ? (p.warranty.has ? 'yes' : 'no') : null, wp: p.warranty ? p.warranty.policy : null, wtext: p.warranty ? p.warranty.text : null,
-    snt: p.snType || null, shelfN: p.shelf ? String(p.shelf.n) : null, shelfU: p.shelf ? p.shelf.u : null, lowAt: p.lowAt != null ? String(p.lowAt) : null,
+    snt: p.snType || null, shelfN: p.shelf ? String(p.shelf.n) : null, shelfU: p.shelf ? p.shelf.u : null, lowAt: String(productLevel({ sku: p.sku, lowAt: p.lowAt })),
     specLayout: p.specLayout || null, publishing: p.publishing || null, google: p.google || null, sg: p.sizeGuide || null
   };
 }
@@ -161,10 +176,12 @@ var AI_TXT = {
   seoD: 'Buy the 5G Smartphone Pro 256GB at the best price in BD. Official warranty, 6.7" AMOLED, 5000 mAh. Cash on delivery all over Bangladesh.'
 };
 var FAQ_AI = [['Is this the official version?', 'Yes. Every phone is official and PTA approved, with a 1-year brand warranty.'], ['Does it support 5G in Bangladesh?', 'Yes, it works on 5G where Grameenphone and Robi have it, and on 4G everywhere else.'], ['Can I pay by EMI?', 'Yes, 3 to 12 months EMI on most bank cards.']];
-// the shop's categories (Products › Categories): main categories and their subcategories
-var CATS = [['Phones', 0], ['Smartphones', 1], ['Feature phones', 1], ['Tablets', 0], ['Accessories', 0], ['Cases & covers', 1], ['Chargers & cables', 1], ['Screen protection', 1], ['Holders & stands', 1], ['Batteries', 1], ['Audio', 0], ['Earbuds', 1], ['Earphones', 1], ['Wearables', 0], ['Power banks', 0], ['Services', 0], ['Repairs', 1], ['Software', 0], ['Digital', 0], ['Gifts', 0]];
-var PARENT = { Smartphones: 'Phones', 'Feature phones': 'Phones', 'Cases & covers': 'Accessories', 'Chargers & cables': 'Accessories', 'Screen protection': 'Accessories', 'Holders & stands': 'Accessories', Batteries: 'Accessories', Earbuds: 'Audio', Earphones: 'Audio', Repairs: 'Services' };
-var MAIN_CATS = CATS.filter(function (c) { return !c[1]; }).map(function (c) { return c[0]; });
+// the shop's categories (Products › Categories, lib/productCategories.js): main categories and every category inside
+// them ([name, isSub, label]); PARENT = a category's main category, CAT_PATH = its full path. The demo tree on the first
+// render, the shop's saved tree after mount (loadCats).
+var CATS, PARENT, MAIN_CATS, CAT_PATH;
+function loadCats(t) { CATS = t.cats; PARENT = t.parent; MAIN_CATS = t.mains; CAT_PATH = t.path; }
+loadCats(formTables(getCategories(CATEGORY_SEED)));
 // the brand list is Products › Brands (lib/brands.js): the demo brands until the browser's list is read after mount
 var BRANDS = DEMO_BRANDS.map(function (b) { return b.name; });
 var COLLECTIONS = ['New arrivals', 'Best sellers', 'Eid picks', 'Smartphones', 'Gift ideas', 'Clearance'];
@@ -211,6 +228,9 @@ class Component extends DCLogic {
   }
   // /add-product adds a new product; /add-product?sku=… (or ?id=…) opens that product for editing.
   componentDidMount() {
+    // the shop's categories and stock places (browser data): read before the first browser render
+    loadCats(formTables());
+    this.stockPlaces = getStockPlaces();
     // wholesale price, MOQ and selling mode only where the shop sells wholesale (stockSetup.js)
     this.setState({ wsOn: getStockSetup().wholesale, brandList: brandNames() });
     var self = this, qs = new URLSearchParams(window.location.search), saved = getSavedProducts();
@@ -304,6 +324,9 @@ class Component extends DCLogic {
     var asProduct = { template: tplOwn, cat: catPath, data: data };
     var unit = f('unit', 'pc'), packs = f('packs', []), ids = f('ids', []), bundle = f('bundle', null), rel = f('rel', null) || { related: [], accessories: [], substitutes: [], successor: '', fbt: [] };
     var physical = format === 'physical';
+    // opening stock boxes: the live stock places (one in a one-place shop), per variant when each variant has its own stock
+    var openPlaces = this.stockPlaces || STOCK_PLACES, openStock = f('openStock', {}) || {};
+    var openPerVariant = variants.length > 0 && !ownStockSku(sku);
     var invDef = flags0.indexOf('IMEI') >= 0 || caps.indexOf('imei') >= 0 ? 'imei' : flags0.indexOf('Serial') >= 0 || caps.indexOf('serial') >= 0 ? 'serial' : flags0.indexOf('Expiry') >= 0 || caps.indexOf('expiry') >= 0 ? 'batch' : caps.indexOf('weight') >= 0 || unit === 'kg' ? 'weight' : 'quantity';
     var invMode = f('invMode', invDef), expiresOn = physical && invMode === 'batch', serialOn = physical && (invMode === 'serial' || invMode === 'imei');
     var snt = invMode === 'serial' ? 'serial' : f('snt', 'imei2') === 'imei1' ? 'imei1' : 'imei2';
@@ -394,7 +417,7 @@ class Component extends DCLogic {
         return parents.map(function (m) {
           return { name: m, items: CATS.filter(function (c) { return PARENT[c[0]] === m; }).map(function (c) {
             var on = subcats.indexOf(c[0]) >= 0;
-            return { k: c[0], label: c[0], on: on, toggle: function () {
+            return { k: c[0], label: c[2] || c[0], on: on, toggle: function () {
               var next = on ? subcats.filter(function (x) { return x !== c[0]; }) : subcats.concat(c[0]);
               var main = mainCat || PARENT[c[0]];
               var inMain = next.filter(function (x) { return PARENT[x] === main; });
@@ -658,13 +681,19 @@ class Component extends DCLogic {
       }),
       addPack: function () { self.setState({ packs: packs.concat({ id: 'pk' + Date.now().toString(36), name: 'Box of 12', qty: '12', barcode: '' }) }); },
       packErr: errs.packs || '',
-      // opening stock (posted once on save) and the live stock of this product at each place
-      open0: f('open0', '0'), typeOpen0: function (e) { self.setState({ open0: e.target.value }); },
-      open1: f('open1', '0'), typeOpen1: function (e) { self.setState({ open1: e.target.value }); },
-      openPlaces: OPEN_PLACES,
-      stockHere: OPEN_PLACES.map(function (pl) {
+      // opening stock (posted once on save): a box per place, per variant when each variant keeps its own stock
+      openPlaces: openPlaces, openPerVariant: openPerVariant,
+      openRows: (openPerVariant ? variants : [{ name: '' }]).map(function (x) {
+        return { key: x.name || 'product', label: x.name, cells: openPlaces.map(function (pl) {
+          var k = openKey(pl, x.name);
+          return { key: k, place: pl, value: openStock[k] == null ? '' : openStock[k], aria: 'Opening stock ' + (x.name ? x.name + ' at ' : '') + pl,
+            onChange: function (e) { var o = assign({}, openStock); o[k] = e.target.value.replace(/\D/g, ''); self.setState({ openStock: o }); } };
+        }) };
+      }),
+      // the live stock of this product at each place
+      stockHere: openPlaces.map(function (pl) {
         if (!live) return { avail: 0, held: 0 };
-        var keys = variants.length ? variants.map(function (x) { return x.sku; }).filter(Boolean) : [sku || ownId].filter(Boolean);
+        var keys = openPerVariant ? variants.map(function (x, n) { return variantSku({ sku: sku, id: ownId }, x, n); }) : [sku || ownId].filter(Boolean);
         return keys.reduce(function (a, k) { var st = stockAt(k, pl); return { avail: a.avail + Math.max(0, st.available), held: a.held + st.held }; }, { avail: 0, held: 0 });
       }),
       showStock: physical && !(bundle && bundle.type !== 'kit')
@@ -676,7 +705,7 @@ class Component extends DCLogic {
     assign(v, {
       ship: ship, setShip: setShip, toggleFragile: function () { var o = assign({}, ship); o.fragile = !ship.fragile; self.setState({ ship: o }); },
       shipLine: format === 'digital' ? 'Digital / downloadable · file, download limit and access' : format === 'licence' ? 'Digital licence · ' + (live ? freeKeys(sku || ownId) : 0) + ' free keys' : format === 'service' ? 'Service / non-stock · nothing to ship' :
-        (String(ship.weight).trim() || dims.length ? 'Physical · ' + [String(ship.weight).trim() ? ship.weight + ' kg' : '', dims.length === 3 ? dims.join(' × ') + ' cm' : '', ship.fragile ? 'Fragile' : ''].filter(Boolean).join(' · ') : 'Physical · shipping weight/dimensions · parcel defaults'),
+        (String(ship.weight).trim() || dims.length ? 'Physical · ' + [String(ship.weight).trim() ? ship.weight + ' kg' : '', dims.length === 3 ? dims.join(' × ') + ' cm' : '', ship.fragile ? 'Fragile' : ''].filter(Boolean).join(' · ') : 'No weight or size yet'),
       shipFrom: live ? onlinePlace() : ''
     });
 
@@ -684,10 +713,23 @@ class Component extends DCLogic {
     var handleAuto = slugOf(title) || 'untitled-product', handle = f('handle', '') || handleAuto;
     assign(v, {
       seoOpen: !!s.seoOpen, toggleSeo: function () { self.setState({ seoOpen: !s.seoOpen }); },
-      handle: handle, handleOwn: f('handle', ''), handleAuto: handleAuto, typeHandle: function (e) { self.setState({ handle: slugOf(e.target.value) === handleAuto ? '' : e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-') }); },
+      handle: handle, handleOwn: f('handle', ''), handleAuto: handleAuto, typeHandle: function (e) { self.setState({ handle: slugOf(e.target.value) === handleAuto ? '' : cleanHandleInput(e.target.value) }); },
       serpTitle: seoT || (title || 'Untitled product') + ' Price in Bangladesh', serpDesc: seoD || plainText(short) || 'Add a short description to improve the search preview.',
       seoT: seoT, seoD: seoD, typeSeoT: function (e) { self.setState({ seoT: e.target.value }); }, typeSeoD: function (e) { self.setState({ seoD: e.target.value }); }, seoTCount: seoT.length + ' of 70 letters',
       noindex: !!f('noindex', false), indexOpts: [['index', 'Index'], ['noindex', 'Noindex']].map(function (o) { var on = (o[0] === 'noindex') === !!f('noindex', false); return { l: o[1], on: on, pick: function () { self.setState({ noindex: o[0] === 'noindex' }); } }; }),
+      // VAT / tax: the product's own rate, or its category's (Accounts › Setup › VAT) when left on "Same as its category"
+      vatRate: f('vatRate', ''), setVatRate: function (e) { self.setState({ vatRate: e.target.value }); }, catVat: vatRateFor(catPathOf(cat), loadVat()) || 0,
+      // the shared SEO panel (components/seo/SeoPanel.jsx): title, description and noindex stay the product's own fields
+      seoObj: assign(assign({}, f('seoX', {})), { metaTitle: seoT, metaDescription: seoD, noindex: !!f('noindex', false) }),
+      setSeoObj: function (patch) {
+        var o = {}, rest = assign({}, f('seoX', {}));
+        Object.keys(patch).forEach(function (k) { if (k === 'metaTitle') o.seoT = patch[k]; else if (k === 'metaDescription') o.seoD = patch[k]; else if (k === 'noindex') o.noindex = !!patch[k]; else rest[k] = patch[k]; });
+        o.seoX = rest; self.setState(o);
+      },
+      seoCtx: contextOf('product', { id: s.editId || 'new', name: title, handle: f('handle', ''), short: short, long: long, media: media, faqs: faqs, cat: catPathOf(cat), brand: brand, sku: sku, barcode: gtin || internalBc, barcodeType: gtin ? 'gtin' : 'internal', price: moneyNum(price), mrp: moneyNum(mrp), inv: (s.orig && s.orig.inv) || 0, variants: variants, oversell: oversell, st: status === 'active' ? 'active' : 'draft' }),
+      seoAlt: function (img, alt) { self.setState({ media: media.map(function (m, i) { return i === img.media ? assign(assign({}, m), { alt: alt }) : m; }) }); },
+      seoLink: function (link, patch) { self.setState({ long: setLinkInHtml(long, link.n, patch) }); },
+      seoSchedule: status === 'active' && editing && s.orig && s.orig.st === 'active' ? null : { at: f('goLiveAt', ''), label: 'Go live on', onChange: function (at) { self.setState({ goLiveAt: at, status: at ? 'scheduled' : (status === 'scheduled' ? 'draft' : status) }); } },
       faqs: faqs.map(function (q) { return { q: q[0], a: q[1] }; }),
       addFaq: function () { self.setState({ faqs: faqs.concat([['New question', 'Answer']]) }); },
       setFaq: function (i, k) { return function (e) { self.setState({ faqs: faqs.map(function (q, j) { if (j !== i) return q; var n = q.slice(); n[k] = e.target.value; return n; }) }); }; },
@@ -868,7 +910,7 @@ class Component extends DCLogic {
         bundle: bundle ? { type: bundle.type, parts: bundle.parts.filter(function (x) { return x.sku; }).map(function (x) { return { sku: x.sku, qty: Math.max(1, Number(x.qty) || 1) }; }) } : null,
         // the reference page's fields
         sellability: sellability, invMode: invMode, snType: serialOn ? snt : null, shelf: expiresOn ? { n: +shelfN, u: shelfU } : null, lowAt: wholeNum(lowAt),
-        saleUnit: saleUnit, buyUnit: buyUnit, subcats: subcats.map(catPathOf), collections: collections, media: media, handle: f('handle', ''), noindex: !!f('noindex', false), faqs: faqs,
+        saleUnit: saleUnit, buyUnit: buyUnit, subcats: subcats.map(catPathOf), collections: collections, media: media, handle: f('handle', ''), noindex: !!f('noindex', false), faqs: faqs, seo: f('seoX', {}), goLiveAt: status === 'scheduled' ? f('goLiveAt', '') || null : null, vatRate: f('vatRate', '') === '' ? null : Number(f('vatRate', '')),
         ship: physical ? ship : null, warranty: { has: wq === 'yes', policy: wp, text: wtext }, specLayout: f('specLayout', null), publishing: f('publishing', null), google: f('google', null), sizeGuide: sg === 'none' ? null : sg
       });
     };
@@ -908,12 +950,19 @@ class Component extends DCLogic {
       if (plu && rec.sku && rec.unit === 'kg') { try { setWeighed(rec.sku, plu.value); } catch (er) { /* ignore */ } }
       if (!s.editId) self.watchLock(rec.id);
       // opening stock typed in the Inventory drawer goes into stock once (the boxes go back to 0 after saving)
-      var opening = format !== 'physical' || (bundle && bundle.type !== 'kit') ? [] : OPEN_PLACES.map(function (pl, i) { return { place: isOnePlace() ? onlinePlace() : pl, qty: wholeNum(f('open' + i, '0')) || 0 }; }).filter(function (x) { return x.qty > 0; });
-      if (opening.length && rec.variants && rec.variants.length) __toast('Opening stock for a product with variants is added per variant in Stock › Stock adjustments', { tone: 'info' });
-      else opening.forEach(function (x) { addMove({ sku: rec.sku || rec.id, place: x.place, qty: x.qty, kind: 'opening', reason: 'Opening stock', by: me.name, ref: rec.id, op: rec.id + ':opening:' + x.place + ':' + (rec.version || 0) }); });
+      // (each place's box; per variant when the variants keep their own stock, matched by the variant's name)
+      var perVar = !!(rec.variants && rec.variants.length) && !ownStockSku(rec.sku);
+      var opening = [];
+      if (format === 'physical' && !(bundle && bundle.type !== 'kit')) openPlaces.forEach(function (pl) {
+        (perVar ? rec.variants : [null]).forEach(function (x, n) {
+          var qty = wholeNum(openStock[openKey(pl, x ? x.name : '')]) || 0;
+          if (qty > 0) opening.push({ place: isOnePlace() ? onlinePlace() : pl, sku: x ? variantSku(rec, x, n) : rec.sku || rec.id, qty: qty });
+        });
+      });
+      opening.forEach(function (x) { addMove({ sku: x.sku, place: x.place, qty: x.qty, kind: 'opening', reason: 'Opening stock', by: me.name, ref: rec.id, op: rec.id + ':opening:' + x.sku + ':' + x.place + ':' + (rec.version || 0) }); });
       // A new product becomes an edit of itself, so the next save updates it instead of adding another.
       window.history.replaceState(window.history.state, '', window.location.pathname + (rec.sku ? '?sku=' + encodeURIComponent(rec.sku) : '?id=' + encodeURIComponent(rec.id)));
-      self.setState({ errors: null, editId: rec.id, orig: rec, basePrice: rec.price, variants: pre.variants, status: rec.st, savedList: getSavedProducts(), open0: '0', open1: '0', loadedV: rec.version || 0, autosavedAt: null, recover: null, price: opt.keepPrice ? pre.price : f('price', ''), ids: pre.ids, internalBc: pre.internalBc, gtin: pre.gtin, altText: null },
+      self.setState({ errors: null, editId: rec.id, orig: rec, basePrice: rec.price, variants: pre.variants, status: rec.goLiveAt && rec.st === 'draft' ? 'scheduled' : rec.st, savedList: getSavedProducts(), openStock: {}, loadedV: rec.version || 0, autosavedAt: null, recover: null, price: opt.keepPrice ? pre.price : f('price', ''), ids: pre.ids, internalBc: pre.internalBc, gtin: pre.gtin, altText: null },
         function () { self.markSaved(); toast(self, opt.keepPrice ? 'Saved. The new price waits for a manager’s approval.' : okMsg); });
     };
     var errCount = Object.keys(errs).length;
@@ -999,8 +1048,8 @@ class Component extends DCLogic {
     v.primarySave = drafty ? v.saveDraft : v.submit;
     // everything the product is made of, as one snapshot (unsaved changes = it differs from the saved one)
     this._snap = JSON.stringify([title, short, long, seoT, seoD, f('handle', ''), !!f('noindex', false), tags, faqs, String(price), String(cost), String(mrp), String(wholesale), String(moq), sell,
-      sku, gtin, internalBc, ids, packs, unit, saleUnit, buyUnit, invMode, snt, shelfN, shelfU, lowAt, f('open0', '0'), f('open1', '0'), oversell, backorder, f('restockAt', ''), giftOnly, sellability,
-      cat, subcats, brand, collections, status, tplOwn, data, f('specLayout', null), format, f('digital', null), bundle, rel, opts, variants, media, ship, wq, wp, wtext, f('publishing', null), f('google', null), sg]);
+      sku, gtin, internalBc, ids, packs, unit, saleUnit, buyUnit, invMode, snt, shelfN, shelfU, lowAt, f('openStock', {}), oversell, backorder, f('restockAt', ''), giftOnly, sellability,
+      cat, subcats, brand, collections, status, tplOwn, data, f('specLayout', null), format, f('digital', null), bundle, rel, opts, variants, media, ship, wq, wp, wtext, f('publishing', null), f('google', null), sg, f('seoX', {}), f('goLiveAt', ''), f('vatRate', '')]);
     return v;
   }
 }
@@ -1194,6 +1243,8 @@ const CSS = `
 .ap-stock th:first-child,.ap-stock td:first-child{text-align:left}
 .ap-stock td{padding:6px 0;border-top:1px solid var(--border-subtle);text-align:right;font-variant-numeric:tabular-nums}
 .ap-stock td+td,.ap-stock th+th{padding-left:var(--space-3)}
+.ap-open .ap-stock input{width:60px;text-align:right}
+.ap-open .ap-stock td+td,.ap-open .ap-stock th+th{padding-left:var(--space-2)}
 .ap-ready{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
 .ap-ready li{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}
 .ap-ready i{display:grid;flex:none;place-items:center;width:16px;height:16px;border-radius:var(--radius-full);background:var(--border-strong);color:#fff}
@@ -1299,7 +1350,7 @@ export default class AddProductScreen extends Component {
     const idsBad = v.skuErr || v.barcodeErr || v.internalErr || v.idErr || v.packErr || v.err?.shelf;
     return (
       <div className="dc-screen ds" data-screen="AddProduct">
-        <style dangerouslySetInnerHTML={{ __html: PARTS_CSS + RTE_CSS + CSS }} />
+        <style dangerouslySetInnerHTML={{ __html: PARTS_CSS + RTE_CSS + CSS + SEO_PANEL_CSS }} />
         <div className="gc-shell">
           <__Sidebar sticky="" active={v.editing ? "products-all" : "products-add"} />
           <main className="gc-shell__main">
@@ -1345,7 +1396,7 @@ export default class AddProductScreen extends Component {
                             <AiBtn onClick={v.aiShort}>Write with AI</AiBtn>
                           </div>
                           <textarea id="pf-short" className={'gc-input' + (v.ai?.short ? ' ap-ai-on' : '')} rows="3" value={v.short} onChange={v.typeShort} />
-                          <p className="ap-help">Concise copy for product cards, feeds and quick previews.</p>
+                          <p className="ap-help">Shown on product lists and quick previews.</p>
                           {v.ai?.short ? <AiCheck onKeep={v.keep_short} onUndo={v.undo_short} /> : null}
                         </div>
                         {v.online ? <div className="ap-field">
@@ -1365,7 +1416,7 @@ export default class AddProductScreen extends Component {
                     {/* ---- 2. media ---- */}
                     <section className="ix-card" aria-labelledby="ap-h-media">
                       <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-media">Media</h2><p className="ix-card__sub">Images/video · drag-order equivalent controls · first item is the primary media · alt text editable.</p></div>
+                        <div><h2 id="ap-h-media">Media</h2></div>
                         <span className="ap-acts">
                           {v.media.length ? <AiBtn onClick={v.aiAlt}>Alt text with AI</AiBtn> : null}
                           <button type="button" className="ix-btn" onClick={pickMedia}>Add media</button>
@@ -1404,7 +1455,7 @@ export default class AddProductScreen extends Component {
                     {/* ---- 3. classification: main category, subcategories, template ---- */}
                     <section className="ix-card ix-card--open" aria-labelledby="ap-h-class">
                       <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-class">Product classification</h2><p className="ix-card__sub">Use one main category for taxonomy/defaults, then assign as many relevant subcategories as needed.</p></div>
+                        <div><h2 id="ap-h-class">Category and template</h2></div>
                       </div>
                       <div className="ix-card__body ap-body">
                         <div className="ap-grid2">
@@ -1414,7 +1465,7 @@ export default class AddProductScreen extends Component {
                               <option value="">Other</option>
                               {__list(v.mainCats).map((c) => (<option key={c} value={c}>{c}</option>))}
                             </select>
-                            <p className="ap-help">Primary taxonomy path, defaults and reporting category.</p>
+                            <p className="ap-help">Used in reports and for the product’s default details.</p>
                           </div>
                           <div className="ap-field">
                             <span className="gc-label" id="ap-l-subs">Subcategories <span className="ix-muted">multiple allowed</span></span>
@@ -1426,7 +1477,7 @@ export default class AddProductScreen extends Component {
                         <div className="ap-tplrow">
                           <div>
                             <label className="gc-label" htmlFor="pf-tpl" style={{ margin: 0 }}>Product template</label>
-                            <p className="ap-help">Controls the starting specification schema. Existing values with matching field names are preserved</p>
+                            <p className="ap-help">Decides which specifications the product has. Values you already filled in are kept.</p>
                             <span className="ap-src">{v.tplSource}{v.tplCaps.length ? ' · Turns on: ' + v.tplCaps.join(', ') : ''}</span>
                           </div>
                           <select id="pf-tpl" className="gc-input gc-select" value={v.tplSel} onChange={v.setTpl}>
@@ -1440,7 +1491,7 @@ export default class AddProductScreen extends Component {
                     {/* ---- 4. specifications: SPECIFICATION | VALUE | ORDER per group ---- */}
                     <section className="ix-card" aria-labelledby="ap-h-spec">
                       <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-spec">Specifications</h2><p className="ix-card__sub">{v.tplName + ' template · reorder groups/rows, rename anything, or add merchant-specific specifications.'}</p></div>
+                        <div><h2 id="ap-h-spec">Specifications</h2></div>
                         <button type="button" className="ix-btn" onClick={v.addGroup}><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add group</button>
                       </div>
                       <div className="ix-card__body ap-body">
@@ -1486,7 +1537,7 @@ export default class AddProductScreen extends Component {
                     {/* ---- 5. pricing ---- */}
                     <section className="ix-card" aria-labelledby="ap-h-price">
                       <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-price">Pricing</h2><p className="ix-card__sub">Margin planning only; procurement and inventory remain the source of live cost truth.</p></div>
+                        <div><h2 id="ap-h-price">Pricing</h2></div>
                         <span className={'ap-pill' + (v.marginBad ? ' is-bad' : '')}>{v.margin}</span>
                       </div>
                       <div className="ix-card__body ap-body">
@@ -1501,8 +1552,8 @@ export default class AddProductScreen extends Component {
                             <MoneyIn id="pf-mrp" value={v.mrp} onChange={v.typeMrp} label="MRP / Compare-at" />
                           </div>
                           <div className="ap-field">
-                            <div className="ap-lbl"><label className="gc-label" htmlFor="pf-cost">Estimated/default cost {v.costReq ? <span className="ap-req" aria-hidden="true">*</span> : null}</label><__InfoTip text="Customers never see this" /></div>
-                            <MoneyIn id="pf-cost" value={v.cost} onChange={v.typeCost} label="Estimated/default cost" invalid={v.err?.cost} describedBy={v.err?.cost ? "pf-cost-err" : undefined} />
+                            <div className="ap-lbl"><label className="gc-label" htmlFor="pf-cost">Cost per item {v.costReq ? <span className="ap-req" aria-hidden="true">*</span> : null}</label><__InfoTip text="What you pay for one. Used for profit; customers never see it." /></div>
+                            <MoneyIn id="pf-cost" value={v.cost} onChange={v.typeCost} label="Cost per item" invalid={v.err?.cost} describedBy={v.err?.cost ? "pf-cost-err" : undefined} />
                             <Err id="pf-cost-err" text={v.err?.cost} />
                           </div>
                         </div>
@@ -1524,10 +1575,13 @@ export default class AddProductScreen extends Component {
                           </>) : null}
                           <label className="ap-field">
                             <span className="gc-label">VAT / tax</span>
-                            <select className="gc-input gc-select" aria-label="Tax rate">
-                              <option>Standard VAT 15%</option>
-                              <option>Reduced 7.5%</option>
-                              <option>No VAT</option>
+                            <select className="gc-input gc-select" aria-label="Tax rate" value={v.vatRate} onChange={v.setVatRate}>
+                              <option value="">{'Same as its category · ' + v.catVat + '%'}</option>
+                              <option value="15">Standard VAT 15%</option>
+                              <option value="10">10%</option>
+                              <option value="7.5">Reduced 7.5%</option>
+                              <option value="5">5%</option>
+                              <option value="0">No VAT</option>
                             </select>
                           </label>
                         </div>
@@ -1543,7 +1597,7 @@ export default class AddProductScreen extends Component {
                     {/* ---- 6. product model: format, selling mode, sellability ---- */}
                     <section className="ix-card" aria-labelledby="ap-h-model">
                       <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-model">Product model</h2><p className="ix-card__sub">Independent behaviours prevent product-type explosion.</p></div>
+                        <div><h2 id="ap-h-model">Product model</h2></div>
                       </div>
                       <div className="ix-card__body ap-body">
                         <div className={v.wsOn ? 'ap-grid3' : 'ap-grid2'}>
@@ -1670,7 +1724,6 @@ export default class AddProductScreen extends Component {
                     <section className="ix-card ap-one" aria-labelledby="ap-h-inv">
                       <div>
                         <h2 id="ap-h-inv">Inventory, identifiers & units</h2>
-                        <p className="ix-card__sub">Inventory policy only here · live quantity remains Inventory truth</p>
                         <p className="ap-one__val">{v.invLine}</p>
                         {idsBad ? <p className="ap-one__err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" />Check the codes in Manage.</p> : null}
                       </div>
@@ -1685,40 +1738,18 @@ export default class AddProductScreen extends Component {
                       <button type="button" className="ix-btn" onClick={v.open('ship')}>Edit</button>
                     </section> : null}
 
-                    {v.online ? <section className="ix-card" aria-labelledby="ap-h-seo">
-                      <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-seo">Search engine listing</h2><p className="ix-card__sub">Website SEO is separate from Product Data and Google listing data.</p></div>
-                        <button type="button" className="ix-btn" aria-expanded={v.seoOpen} onClick={v.toggleSeo}>{v.seoOpen ? 'Hide advanced' : 'Edit SEO'}</button>
+                    {v.online ? <SeoPanel kind="product" idPrefix="pf-seo" seo={v.seoObj} onChange={v.setSeoObj} ctx={v.seoCtx} onAlt={v.seoAlt} onLink={v.seoLink} schedule={v.seoSchedule}
+                      titleAction={<AiBtn onClick={v.aiSeo}>Write with AI</AiBtn>}>
+                      {v.ai?.seo ? <AiCheck onKeep={v.keep_seo} onUndo={v.undo_seo} /> : null}
+                      <div className="ap-field">
+                        <label className="gc-label" htmlFor="pf-handle">URL handle</label>
+                        <span className="ap-prefix"><span aria-hidden="true">/products/</span><input id="pf-handle" className="gc-input" value={v.handle} onChange={v.typeHandle} /></span>
                       </div>
-                      <div className="ix-card__body ap-body">
-                        <div className="ap-serp">
-                          <b>{v.serpTitle}</b>
-                          <small>{'dazzleshop.com.bd/products/' + v.handle}</small>
-                          <span>{v.serpDesc}</span>
-                        </div>
-                        {v.seoOpen ? (
-                          <div className="ap-body ap-fade">
-                            <div className="ap-field">
-                              <div className="ap-lbl"><label className="gc-label" htmlFor="pf-seot">Page title</label><span className="ap-count ap-push">{v.seoTCount}</span><AiBtn onClick={v.aiSeo}>Write with AI</AiBtn></div>
-                              <input id="pf-seot" className={'gc-input' + (v.ai?.seo ? ' ap-ai-on' : '')} value={v.seoT} placeholder={v.serpTitle} onChange={v.typeSeoT} />
-                            </div>
-                            <div className="ap-field">
-                              <label className="gc-label" htmlFor="pf-seod">Meta description</label>
-                              <textarea id="pf-seod" className={'gc-input' + (v.ai?.seo ? ' ap-ai-on' : '')} rows="2" value={v.seoD} placeholder="Add a short description so people know what they will find." onChange={v.typeSeoD} />
-                            </div>
-                            {v.ai?.seo ? <AiCheck onKeep={v.keep_seo} onUndo={v.undo_seo} /> : null}
-                            <div className="ap-grid2">
-                              <div className="ap-field">
-                                <label className="gc-label" htmlFor="pf-handle">URL handle</label>
-                                <span className="ap-prefix"><span aria-hidden="true">/products/</span><input id="pf-handle" className="gc-input" value={v.handle} onChange={v.typeHandle} /></span>
-                              </div>
-                              <div className="ap-field">
-                                <span className="gc-label" id="ap-l-index">Search engines</span>
-                                <Seg opts={v.indexOpts} labelledBy="ap-l-index" />
-                              </div>
-                            </div>
-                            <div className="ap-field">
-                              <div className="ap-lbl"><span className="gc-label">Product FAQ</span><__InfoTip text="Shown on the product page. Answers the questions customers ask most." /><span className="ap-push" /><AiBtn onClick={v.aiFaq}>Suggest with AI</AiBtn></div>
+                      <details className="seo-g" open={v.faqs.length > 0 || undefined}>
+                        <summary>Product FAQ<small>· {v.faqs.length ? v.faqs.length + ' questions' : 'none yet'}</small><__Icon name="chevron-right" width="16" height="16" className="seo-chev" aria-hidden="true" /></summary>
+                        <div className="seo-g__in">
+                      <div className="ap-field">
+                              <div className="ap-lbl"><span className="gc-label">Questions on the product page</span><__InfoTip text="Shown on the product page. Answers the questions customers ask most." /><span className="ap-push" /><AiBtn onClick={v.aiFaq}>Suggest with AI</AiBtn></div>
                               {__list(v.faqs).map((q, i) => (
                                 <div key={i} className={'ap-faq' + (v.ai?.faq ? ' is-ai' : '')}>
                                   <div className="ap-row" style={{ flexWrap: "nowrap" }}><input className="gc-input ap-grow" value={q.q} onChange={v.setFaq(i, 0)} aria-label="Question" /><button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Remove question" onClick={v.removeFaq(i)}><__Icon name="x" width="16" height="16" aria-hidden="true" /></button></div>
@@ -1728,15 +1759,14 @@ export default class AddProductScreen extends Component {
                               {v.ai?.faq ? <AiCheck onKeep={v.keep_faq} onUndo={v.undo_faq} /> : null}
                               <div><button type="button" className="ix-btn ix-btn--sm" onClick={v.addFaq}><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add a question</button></div>
                             </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    </section> : null}
+                        </div>
+                      </details>
+                    </SeoPanel> : null}
 
                     {SHOW_RELATIONS ? <section className="ix-card ap-one" aria-labelledby="ap-h-rel">
                       <div>
                         <h2 id="ap-h-rel">Product relationships</h2>
-                        <p className="ix-card__sub">Compatible accessories · substitutes · successor/predecessor · components · frequently bought together.</p>
+                        <p className="ix-card__sub">Accessories, alternatives, newer models, parts and items often bought together.</p>
                         {v.relCount || v.isBundle ? <p className="ap-one__val">{[v.relCount ? (v.relCount === 1 ? '1 linked product' : v.relCount + ' linked products') : '', v.isBundle ? 'Bundle of ' + v.partRows.length + (v.partRows.length === 1 ? ' part' : ' parts') : ''].filter(Boolean).join(' · ')}</p> : null}
                         {v.bundleErr ? <p className="ap-one__err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" />{v.bundleErr}</p> : null}
                       </div>
@@ -1766,13 +1796,13 @@ export default class AddProductScreen extends Component {
                           <option value="archived">Archived</option>
                           {v.isDeleted ? (<option value="deleted">Deleted — restore by picking another status</option>) : null}
                         </select>
-                        <p className="ap-help">Archive instead of destructive delete once transaction history exists.</p>
+                        <p className="ap-help">Stopped selling it? Archive it: its past orders stay.</p>
                       </div>
                     </section>
 
                     {v.online ? <section className="ix-card" aria-labelledby="ap-h-pub">
                       <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-pub">Publishing</h2><p className="ix-card__sub">Channels and catalogues</p></div>
+                        <div><h2 id="ap-h-pub">Publishing</h2></div>
                         <button type="button" className="ap-linkbtn" onClick={v.open('pub')}>Manage</button>
                       </div>
                       <div className="ix-card__body">
@@ -1812,11 +1842,11 @@ export default class AddProductScreen extends Component {
 
                     <section className="ix-card" aria-labelledby="ap-h-data">
                       <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-data">Product data</h2><p className="ix-card__sub">{v.dataCount + ' structured fields · ' + v.tplName}</p></div>
+                        <div><h2 id="ap-h-data">Product data</h2><p className="ix-card__sub">{v.dataCount === 1 ? '1 field' : v.dataCount + ' fields'}</p></div>
                         <button type="button" className="ap-linkbtn" onClick={v.open('data')}>View all</button>
                       </div>
                       <div className="ix-card__body">
-                        {v.dataChips.length ? <div className="ap-chips">{v.dataChips.map((c, i) => <span key={i} className="ap-chip">{c}</span>)}</div> : <p className="ap-help">No structured fields yet.</p>}
+                        {v.dataChips.length ? <div className="ap-chips">{v.dataChips.map((c, i) => <span key={i} className="ap-chip">{c}</span>)}</div> : <p className="ap-help">No product data yet.</p>}
                       </div>
                     </section>
 
@@ -1834,20 +1864,21 @@ export default class AddProductScreen extends Component {
                       </div>
                     </section> : null}
 
+                    {v.editing ? <ProductReviewsCard product={(this.state || {}).orig} /> : null}
+
                     <section className="ix-card" aria-labelledby="ap-h-war">
                       <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-war">Warranty</h2><p className="ix-card__sub">Customer-facing policy</p></div>
+                        <div><h2 id="ap-h-war">Warranty</h2></div>
                         <button type="button" className="ap-linkbtn" onClick={v.open('warranty')}>Manage</button>
                       </div>
                       <div className="ix-card__body ap-body" style={{ gap: "var(--space-2)" }}>
                         <p className="ap-big">{v.warrantyLine}</p>
-                        <p className="ap-help">Supplier warranty stays in Purchasing; serial traceability stays in Inventory; claims stay in After-sales.</p>
                       </div>
                     </section>
 
                     <section className="ix-card" aria-labelledby="ap-h-act">
                       <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-act">Activity & governance</h2><p className="ix-card__sub">Version and audit trail</p></div>
+                        <div><h2 id="ap-h-act">Activity</h2></div>
                         <button type="button" className="ap-linkbtn" onClick={v.openVersions}>View</button>
                       </div>
                       <div className="ix-card__body ap-body" style={{ gap: "var(--space-2)" }}>
@@ -1881,7 +1912,7 @@ export default class AddProductScreen extends Component {
                   {__list(v.invModes).map((x) => (<option key={x[0]} value={x[0]}>{x[1]}</option>))}
                 </select>
               ) : <div className="gc-input ap-readonly">Not tracked</div>}
-              <p className="ap-help">{v.physical ? 'This declares how the product should be tracked. Existing live stock migration remains an Inventory workflow.' : v.format === 'licence' ? 'Stock is the number of free licence keys.' : 'Not counted in stock. No courier, weight or opening stock.'}</p>
+              <p className="ap-help">{v.physical ? 'How this product’s stock is counted. Changing it does not change the stock you already have.' : v.format === 'licence' ? 'Stock is the number of free licence keys.' : 'Not counted in stock. No courier, weight or opening stock.'}</p>
             </div>
             {v.serialOn ? (
               <div className="ap-panel ap-fade">
@@ -1944,7 +1975,7 @@ export default class AddProductScreen extends Component {
               </div>
               <Err id="pf-internal-err" text={v.internalErr} />
             </div>
-            <p className="ap-amber">Grid may generate an internal barcode, but must never fabricate or export it as a GTIN/EAN.</p>
+            <p className="ap-amber">A barcode made here works in your shop only. It is never sent to Google as a GTIN.</p>
             <div className="ap-field">
               <div className="ap-lbl"><span className="gc-label">Other codes</span><__InfoTip text="Supplier codes, pack barcodes, PLU, scale codes, ISBN, and codes for one variant. Every code here scans as this product." /></div>
               {__list(v.idRows).map((r) => (
@@ -2008,10 +2039,24 @@ export default class AddProductScreen extends Component {
               </table>
               <div className="ap-field">
                 <span className="gc-label">Opening stock</span>
-                <div className="ap-grid2">
-                  <label className="ap-field"><span className="ap-src">Central Warehouse</span><input className="gc-input ap-num" value={v.open0} onChange={v.typeOpen0} inputMode="numeric" aria-label="Opening stock Central Warehouse" /></label>
-                  <label className="ap-field"><span className="ap-src">Dhanmondi branch</span><input className="gc-input ap-num" value={v.open1} onChange={v.typeOpen1} inputMode="numeric" aria-label="Opening stock Dhanmondi branch" /></label>
-                </div>
+                {v.openPerVariant ? (
+                  <div className="gc-table-wrap ap-open">
+                    <table className="ap-stock gc-table--keep gc-table--scroll">
+                      <thead><tr><th scope="col">Variant</th>{__list(v.openPlaces).map((pl) => (<th key={pl} scope="col">{pl}</th>))}</tr></thead>
+                      <tbody>
+                        {__list(v.openRows).map((r) => (
+                          <tr key={r.key}><td>{r.label}</td>{r.cells.map((c) => (<td key={c.key}><input className="gc-input ap-num" value={c.value} onChange={c.onChange} inputMode="numeric" placeholder="0" aria-label={c.aria} /></td>))}</tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="ap-grid2">
+                    {__list(v.openRows?.[0]?.cells).map((c) => (
+                      <label key={c.key} className="ap-field"><span className="ap-src">{c.place}</span><input className="gc-input ap-num" value={c.value} onChange={c.onChange} inputMode="numeric" placeholder="0" aria-label={c.aria} /></label>
+                    ))}
+                  </div>
+                )}
                 <p className="ap-help">Added to stock once, when you save.</p>
               </div>
               <label className="ap-row" style={{ fontSize: "var(--text-sm)" }}>
@@ -2178,7 +2223,7 @@ export default class AddProductScreen extends Component {
               ) : null}
             </div>
           )) : <p className="ap-help">This product has no variants. Add an option first.</p>}
-          {v.hasVariants ? <p className="ap-help">{v.sellsWs ? 'Leave a variant’s wholesale price or MOQ empty to use the product’s own (shown in grey). ' : ''}Available stock is intentionally read-only. Quantity changes must create Inventory ledger movements.</p> : null}
+          {v.hasVariants ? <p className="ap-help">{v.sellsWs ? 'Leave a variant’s wholesale price or MOQ empty to use the product’s own (shown in grey). ' : ''}Stock is shown here only. To change it, receive goods or adjust stock in Stock.</p> : null}
         </Drawer>
 
         <Drawer open={sh === 'pub'} title="Manage publishing" sub={v.pageTitle} saveLabel="Apply" onCancel={v.cancelSheet} onSave={v.closeSheet}>
@@ -2202,13 +2247,13 @@ export default class AddProductScreen extends Component {
             {__list(v.catRows).map((r) => (
               <label key={r.k} className="ap-check">
                 <input type="checkbox" className="gc-check" checked={r.on} onChange={r.toggle} />
-                <span><b style={{ fontWeight: "var(--weight-medium)" }}>{r.label}</b><small>Availability can be restricted by catalogue or location</small></span>
+                <span><b style={{ fontWeight: "var(--weight-medium)" }}>{r.label}</b></span>
               </label>
             ))}
           </div>
           <div className="ap-dsec">
             <h3 className="ap-dh">Variant exceptions</h3>
-            <p className="ap-help">Individual variants can override parent publishing when necessary.</p>
+            <p className="ap-help">Untick a variant to keep it off sale while the rest of the product is published.</p>
             {v.hasVariants ? __list(v.varRows).map((r) => (
               <label key={r.key} className="ap-check">
                 <input type="checkbox" className="gc-check" checked={r.published} onChange={r.togglePub} />
@@ -2227,7 +2272,7 @@ export default class AddProductScreen extends Component {
         </Drawer>
 
         <Drawer open={sh === 'data'} title="Product data" sub={v.pageTitle} onCancel={v.cancelSheet} onSave={v.closeSheet}>
-          <p className="ap-help">This is the full structured Product Data view for the selected template. Add/reorder fields in the main Specifications card; edit values here without leaving the product.</p>
+          <p className="ap-help">Every detail of this product. To add or reorder fields, use Specifications.</p>
           {__list(v.dataGroups).map((g) => (
             <div key={g.name} className="ap-dsec">
               <h3 className="ap-dh">{g.name}<span className="ap-push ap-src">{g.rows.length === 1 ? '1 field' : g.rows.length + ' fields'}</span></h3>
@@ -2324,7 +2369,6 @@ export default class AddProductScreen extends Component {
                 <span className="ap-src">Printed on the invoice and warranty card</span>
               </div>
             </>) : null}
-            <p className="ap-help">Supplier warranty stays in Purchasing; serial traceability stays in Inventory; claims stay in After-sales.</p>
           </div>
         </Drawer>
 

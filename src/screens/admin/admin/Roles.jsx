@@ -4,7 +4,8 @@
 // work). Right: the open role (?role=) — its permission matrix (the menu's areas grouped by layer × View, Create,
 // Edit, Approve, Delete, Export; one Save), the people who have it (assign / remove) and "Preview the menu as this
 // role" (/admin?staff=<a demo sign-in with that role>). New role, Duplicate, Rename and Delete (custom roles only).
-// The menu still reads lib/admin/access.js; this matrix becomes the source once the super admin has a server.
+// The menu reads it once loaded (access.js › canOpen). Store actions follow its Edit and Approve columns
+// (lib/admin/actionRights.js): suspend, pause, cancel, grace, credits, modules and licence revokes.
 // Data: lib/admin/admin.js (roles, assign; saveRolePerms, createRole, duplicateRole, renameRole, deleteRole,
 // assignRole, removeRole — each writes administrator activity).
 
@@ -195,7 +196,7 @@ export default function Roles() {
             </section>
 
             <section className="ix-card" aria-labelledby="rl-mx-h">
-              <CardHead id="rl-mx-h" title="Permissions" tip={<InfoTip text="A right needs View. Turning View off turns the area off. The menu still reads access.js (which areas each role opens); this matrix becomes the source once the super admin has a server." />} />
+              <CardHead id="rl-mx-h" title="Permissions" tip={<InfoTip text="A right needs View. Turning View off turns the area off. Store actions follow these rights: suspend, pause and cancel need Approve on Merchants or on Billing & credits; grace and credits need Edit on Billing & credits; turning a module on or off for one store needs Edit on Plans & modules." />} />
               {locked ? <div style={{ padding: 'var(--space-3) var(--space-4) 0' }}><Note>The super administrator always has every right. Duplicate it to make a narrower role.</Note></div> : null}
               <div className="ix-table-wrap ix-table-wrap--show">
                 <table className="ix-table rl-matrix gc-table--keep gc-table--scroll">

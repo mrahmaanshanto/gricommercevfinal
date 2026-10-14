@@ -36,7 +36,7 @@ import { createStore } from './store';
 import { otherIncome } from './company';
 import { db as platformDB, now as platformNow, staff, load as loadPlatform } from '@/lib/platform/store';
 import { recordPayment, invoiceById, balance, invoiceState, subOf, subState, isPaying, mrrOf, shopOf } from '@/lib/platform/billing';
-import { PLAN_NAME, ladderLabel } from '@/lib/platform/catalogue';
+import { PLAN_NAME, ladderLabel, LADDERS } from '@/lib/platform/catalogue';
 import { rng, DAY, TZ, dhaka, startOfMonth, addMonths, periodOf, monthOf, monthLong, pad4, taka, startOfDay } from '@/lib/platform/util';
 
 // ---- the company ---------------------------------------------------------------------------------------------------
@@ -63,6 +63,7 @@ export const CATEGORIES = [
   { key: 'software', name: 'Software subscriptions', sub: 'Workspace, GitHub, Figma' },
   { key: 'legal', name: 'Legal & accounts', sub: 'Bookkeeping, audit, licences' },
   { key: 'travel', name: 'Travel', sub: 'Merchant visits, rides' },
+  { key: 'partners', name: 'Service partners', sub: 'Outside experts paid for Services orders' },
   { key: 'other', name: 'Other', sub: 'Office supplies, equipment' },
 ];
 export const catBy = (key) => CATEGORIES.find((c) => c.key === key) || { key, name: key, sub: '' };
@@ -436,7 +437,7 @@ function seed(now) {
   const rf = (x) => F.refunds.push({ id: 'RF-' + pad4(F.seq.rf++), invoiceId: null, note: '', approvedBy: null, approvedAt: null, sentBy: null, sentAt: null, ref: '', declinedBy: null, declinedAt: null, declineReason: '', ...x });
   rf({ shopId: '0021', amount: 1000, reason: 'Cancelled within 7 days', method: 'bKash', account: 'bkash', status: 'sent', requestedBy: 'Farhana Akter', requestedAt: day(112, 12), approvedBy: 'Nusrat Islam', approvedAt: day(111, 10), sentBy: 'Nusrat Islam', sentAt: day(111, 15), ref: '9BX41KQ2M' });
   rf({ shopId: '0009', amount: 1000, reason: 'Charged twice', method: 'bKash', account: 'bkash', status: 'sent', requestedBy: 'Farhana Akter', requestedAt: day(71, 16), approvedBy: 'Nusrat Islam', approvedAt: day(70, 11), sentBy: 'Nusrat Islam', sentAt: day(70, 14, 30), ref: '7HC20LMP4', note: 'Paid from the panel and again on a call' });
-  rf({ shopId: '0012', amount: 5000, reason: 'Billing error', method: 'Bank transfer', account: 'city', status: 'sent', requestedBy: 'Mahin Khan', requestedAt: day(46, 11), approvedBy: 'Nusrat Islam', approvedAt: day(45, 10), sentBy: 'Nusrat Islam', sentAt: day(45, 16), ref: 'CBL-NPSB-220931', note: 'Enterprise billed instead of the agreed yearly price' });
+  rf({ shopId: '0012', amount: 5000, reason: 'Billing error', method: 'Bank transfer', account: 'city', status: 'sent', requestedBy: 'Mahin Khan', requestedAt: day(46, 11), approvedBy: 'Nusrat Islam', approvedAt: day(45, 10), sentBy: 'Nusrat Islam', sentAt: day(45, 16), ref: 'CBL-NPSB-220931', note: 'Monthly billed instead of the agreed yearly price' });
   rf({ shopId: '0007', amount: 833, reason: 'Outage credit paid back', method: 'bKash', account: 'bkash', status: 'sent', requestedBy: 'Farhana Akter', requestedAt: day(21, 12), approvedBy: 'Mahin Khan', approvedAt: day(20, 10), sentBy: 'Nusrat Islam', sentAt: day(20, 12, 10), ref: '3KD82NVQ1' });
   rf({ shopId: '0035', amount: 1000, reason: 'Other', method: 'Nagad', account: 'nagad', status: 'sent', requestedBy: 'Farhana Akter', requestedAt: day(13, 15), approvedBy: 'Nusrat Islam', approvedAt: day(12, 11), sentBy: 'Nusrat Islam', sentAt: day(12, 13), ref: 'NG55TR0Q', note: 'Paid a bill after pausing the store' });
   rf({ shopId: '0047', amount: 2500, reason: 'Charged twice', method: 'bKash', account: 'bkash', status: 'approved', requestedBy: 'Farhana Akter', requestedAt: day(2, 14), approvedBy: 'Nusrat Islam', approvedAt: day(1, 10, 30), note: 'Owner paid by bKash and auto-charge also ran' });
@@ -538,15 +539,15 @@ export function revenueMonths(db, F, t, n = 12) {
   });
 }
 
-/** Subscription money collected in [from, to) by package (Online / Retail / Wholesale). */
+/** Subscription money collected in [from, to) by edition (Online / Retail / Retail + Online / Connect). */
 export function revenueByPackage(db, from, to) {
-  const by = { online: 0, retail: 0, wholesale: 0 };
+  const by = Object.fromEntries(LADDERS.map((l) => [l.id, 0]));
   for (const p of okPays(db)) {
     if (p.at < from || p.at >= to) continue;
     const sub = subOf(db, p.shopId);
     if (sub) by[sub.ladder] = (by[sub.ladder] || 0) + p.amount;
   }
-  return [['online', 'Online'], ['retail', 'Retail'], ['wholesale', 'Wholesale']].map(([key, name]) => ({ key, name, value: by[key] || 0 }));
+  return LADDERS.map((l) => ({ key: l.id, name: l.label, value: by[l.id] || 0 }));
 }
 
 /** What a store pays a month at a moment (0 when it is not paying then). */
@@ -558,8 +559,8 @@ function storeMrr(db, shop, x) {
 }
 /** Recurring revenue now, by package. */
 export function mrrNow(db, t) {
-  const by = { online: 0, retail: 0, wholesale: 0, total: 0 };
-  for (const s of db.shops) { const v = storeMrr(db, s, t); if (!v) continue; by[subOf(db, s.id).ladder] += v; by.total += v; }
+  const by = { ...Object.fromEntries(LADDERS.map((l) => [l.id, 0])), total: 0 };
+  for (const s of db.shops) { const v = storeMrr(db, s, t); if (!v) continue; const k = subOf(db, s.id).ladder; by[k] = (by[k] || 0) + v; by.total += v; }
   return by;
 }
 /**
@@ -1204,3 +1205,54 @@ export function setServiceActive(id, on) {
 
 /** For tests and the reports: the platform's data and clock as the finance pages see them. */
 export const platform = () => ({ db: platformDB(), t: platformNow() });
+
+// ---- Services orders (lib/platform/services.js; copied in by lib/admin/servicesSync.js) ------------------------------------
+// Each charge, payout and refund of a service order is booked once, keyed by `src` (the order's charge key).
+const SRC_ACCOUNT = { bkash: 'bkash', nagad: 'nagad', card: 'brac', credits: 'float', subscription: 'brac' };
+const SRC_METHOD = { bkash: 'bKash', nagad: 'Nagad', card: 'Card', credits: 'GridCommerce credits', subscription: 'Card' };
+/** A paid service charge → Finance › Income (received). c: { src, shopId, shopName, at, label, fee, vatPct, vat, total, method, txId, category } */
+export function bookServiceCharge(c) {
+  if ((finance.get().income || []).some((r) => r.src === c.src)) return { ok: true, existing: true };
+  return finance.commit((F, t) => {
+    if (F.income.some((r) => r.src === c.src)) return { ok: true, existing: true };
+    const when = Math.min(c.at || t, t);
+    const nos = nextIncomeNo(F, when);
+    const rec = {
+      ...nos, src: c.src, at: when, serviceId: c.financeId || null, serviceName: c.label, category: c.category || 'Services', incomeCat: 'services',
+      customer: { type: 'store', shopId: c.shopId, name: c.shopName }, description: 'Services order ' + String(c.src).split(':')[0], qty: 1, unit: 'oneoff',
+      unitPrice: c.fee, discount: 0, vatPct: c.vatPct, vat: c.vat, total: c.total, dueAt: null, payments: [], createdBy: 'Services (automatic)', createdAt: t,
+      attachments: [], note: c.method === 'subscription' ? 'Monthly service billed with the subscription' : '', voided: null, history: [{ at: t, by: 'Services', text: 'Booked from the order' }],
+    };
+    rec.payments.push({ id: rec.id + '-P1', at: when, amount: c.total, account: SRC_ACCOUNT[c.method] || 'city', method: SRC_METHOD[c.method] || 'bKash', txId: c.txId || '', by: 'Services' });
+    F.income.push(rec);
+    return { ok: true, income: rec };
+  });
+}
+/** What a partner expert earned → an expense waiting for approval (owed until it is paid). p: { src, at, amount, partner, label } */
+export function bookPartnerPayout(p) {
+  if ((finance.get().expenses || []).some((e) => e.src === p.src)) return { ok: true, existing: true };
+  return finance.commit((F, t) => {
+    if (F.expenses.some((e) => e.src === p.src)) return { ok: true, existing: true };
+    let v = F.vendors.find((x) => x.name === p.partner.name);
+    if (!v) { v = { id: 'V' + pad4(F.seq.ven++), name: p.partner.name, category: 'partners', contact: p.partner.name, phone: p.partner.phone || '—', email: p.partner.email || '—', terms: 'Net 15', account: 'city' }; F.vendors.push(v); }
+    F.expenses.push({
+      id: 'EXP-' + pad4(F.seq.exp++), key: null, src: p.src, at: Math.min(p.at || t, t), category: 'partners', vendor: v.id, account: 'city', amount: p.amount, vat: 0,
+      attachment: '', note: 'Partner payout · ' + p.label, createdBy: 'Services (automatic)', createdAt: t, approver: 'Nusrat Islam', approvedBy: null, approvedAt: null,
+      status: 'waiting', paidAt: null, paidBy: null, ref: '',
+    });
+    return { ok: true };
+  });
+}
+/** A service refund that was approved and sent (in Services) → Finance › Refunds as sent. r: { src, shopId, amount, at, method, reason, by, approvedBy } */
+export function bookServiceRefund(r) {
+  if ((finance.get().refunds || []).some((x) => x.src === r.src)) return { ok: true, existing: true };
+  return finance.commit((F, t) => {
+    if (F.refunds.some((x) => x.src === r.src)) return { ok: true, existing: true };
+    F.refunds.push({
+      id: 'RF-' + pad4(F.seq.rf++), src: r.src, shopId: r.shopId, invoiceId: null, amount: r.amount, reason: 'Other', method: SRC_METHOD[r.method] || 'bKash',
+      account: SRC_ACCOUNT[r.method] || 'city', note: 'Services refund · ' + r.reason, status: 'sent', requestedBy: r.by, requestedAt: r.at, approvedBy: r.approvedBy || null, approvedAt: r.at,
+      sentBy: r.sentBy || r.approvedBy || null, sentAt: Math.min(r.sentAt || t, t), ref: '', declinedBy: null, declinedAt: null, declineReason: '',
+    });
+    return { ok: true };
+  });
+}

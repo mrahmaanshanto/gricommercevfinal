@@ -13,7 +13,8 @@ import { accountForMethod } from './ledger';
 import { wholesaleOn } from './edition';
 
 const KEY = 'gc.returns';
-export const RETURN_CHANNELS = ['Online', 'Retail', 'Wholesale'].filter((c) => c !== 'Wholesale' || wholesaleOn());
+/** The channels returns are kept by; read when called (the edition preview and the wholesale switch are known by then). */
+export const returnChannels = () => ['Online', 'Retail', 'Wholesale'].filter((c) => c !== 'Wholesale' || wholesaleOn());
 const at = (day, h, m) => new Date(2026, 8, day, h, m).getTime();
 const SEED = [
   { id: 'RT-0009', at: at(30, 9, 30), channel: 'Online', ref: '#136804', customer: 'Salma Begum', items: 'Baseus Car Phone Holder × 1', type: 'return', amount: 1890, money: 'refunded', method: 'bKash', stock: 'restock', reason: 'Returned without damage', place: 'Central Warehouse', by: 'System' },

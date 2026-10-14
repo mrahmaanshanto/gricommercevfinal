@@ -1,7 +1,8 @@
 'use client';
 // Merchant app · Stock (/m-stock). The board's layout (design/templates/app/MStock.dc.html) with live data:
 //   places     All places + each stock place (locations.getStockPlaces; hidden in a one-place shop)
-//   summary    stock value at cost (stock.js › unitValue) and three tiles: Out of stock, Low stock (under the web Stock
+//   summary    stock value at cost (stock.js › unitValue; people without cost access — kit/appScope.js › seesCost — see
+//              the pieces in stock instead) and three tiles: Out of stock, Low stock (under the web Stock
 //              page's reorder level), Expiring (batches.js › expiryList, 30 days)
 //   tools      Transfer · Count · Adjust · Damage (/m-transfers, /m-adjust), each when the edition and role allow it
 //   views      Needs action (out + low, worst first) · All items · Expiring (batches, with Write off)
@@ -19,6 +20,7 @@ import { getPOs, DEMO_POS } from '@/lib/purchaseOrders';
 import { resolveScan } from '@/lib/identifiers';
 import { Thumb, ScanSheet } from './stock/Scanner';
 import { rowsOf, placeList, onePlace, reorderOf, stockTone, soldPerDay, allowed, me, safe, dayText, plural } from './stock/stockData';
+import { seesCost } from './kit/appScope';
 
 const BAR = { err: '#ff5724', warn: '#ff9800', ok: '#10b981' };
 const TEXT = { err: 'var(--err)', warn: 'var(--warn)', ok: 'var(--muted)' };
@@ -62,7 +64,8 @@ export default function MStockScreen() {
     }).filter((x) => x.stocked);
     const exp = safe(() => expiryList({ days: 30 }), []).filter((b) => !place || b.place === place);
     const value = rows.reduce((a, x) => a + Math.max(0, x.st.onHand) * safe(() => unitValue(x.r), 0), 0);
-    return { rows, exp, value, out: rows.filter((x) => x.tone === 'err' && x.r.st !== 'archived'), low: rows.filter((x) => x.tone === 'warn' && x.r.st !== 'archived') };
+    const pieces = rows.reduce((a, x) => a + Math.max(0, x.st.onHand), 0);
+    return { rows, exp, value, pieces, out: rows.filter((x) => x.tone === 'err' && x.r.st !== 'archived'), low: rows.filter((x) => x.tone === 'warn' && x.r.st !== 'archived') };
   }, [ready, tick, place]);
 
   const hit = useMemo(() => (q ? safe(() => resolveScan(q), null) : null), [q]);
@@ -70,6 +73,8 @@ export default function MStockScreen() {
   const match = (x) => !k || (hit && hit.sku === x.r.sku) || [x.r.sku, x.r.name, x.r.barcode].some((v) => String(v || '').toLowerCase().includes(k));
   const list = data ? (view === 'all' ? data.rows : [...data.out, ...data.low.slice().sort((a, b) => a.st.available / a.re - b.st.available / b.re)]).filter(match) : [];
   const can = (r) => ctx && allowed(r, ctx);
+  // buying prices only for people who may see them (the stock value is at cost)
+  const cost = !ctx || seesCost(ctx.user);
   const tools = [
     ['/m-transfers?new=1' + (place ? '&from=' + encodeURIComponent(place) : ''), 'Transfer', 'arrows', '/m-transfers'],
     ['/m-adjust?tab=count' + (place ? '&place=' + encodeURIComponent(place) : ''), 'Count', 'clipboard', '/m-adjust'],
@@ -107,8 +112,8 @@ export default function MStockScreen() {
           <Chips items={[{ key: '', label: 'All places' }, ...places.map((p) => ({ key: p, label: p.replace(/ branch$/, '') }))]} value={place} onChange={setPlace} style={{ marginTop: '2px', overflowX: 'auto' }} />
         ) : null}
         <div className="card" style={{ margin: '16px 20px 0', padding: '18px 18px 16px' }}>
-          <div className="k">Stock value · at cost{onePlace() && places[0] ? ` · ${places[0]}` : ''}</div>
-          <div className="v num" style={{ fontSize: 'var(--text-3xl)' }}>{data ? money(data.value) : '—'}</div>
+          <div className="k">{cost ? 'Stock value · at cost' : 'Pieces in stock'}{onePlace() && places[0] ? ` · ${places[0]}` : ''}</div>
+          <div className="v num" style={{ fontSize: 'var(--text-3xl)' }}>{data ? (cost ? money(data.value) : data.pieces.toLocaleString('en-IN')) : '—'}</div>
           <StatRow cols={3} style={{ marginTop: '14px' }}>
             <Stat tone="err" value={data ? data.out.length : '—'} label="Out of stock" onClick={() => setView('action')} />
             <Stat tone="warn" value={data ? data.low.length : '—'} label="Low stock" onClick={() => setView('action')} />
@@ -135,7 +140,7 @@ export default function MStockScreen() {
                     <span style={{ flex: '1', minWidth: '0' }}>
                       <span className="st-name" style={{ fontSize: 'var(--text-sm-plus)', fontWeight: 'var(--weight-medium)' }}>{b.name}</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs-plus)', color: TEXT[tone], marginTop: '2px' }}><span className={'sh ' + tone} style={{ color: SHAPE[tone] }} />{b.left} left · {b.expired ? 'expired ' + dayText(b.expiry) : 'expires ' + dayText(b.expiry)}</span>
-                      <span className="s" style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--muted)' }}>{b.place} · {b.ref} · {money(b.value)}</span>
+                      <span className="s" style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--muted)' }}>{b.place} · {b.ref}{cost ? ' · ' + money(b.value) : ''}</span>
                     </span>
                     <span className="st-end">{ctx && (ctx.ids.has('stock-expiry') || ctx.ids.has('stock-adjust')) ? <button type="button" className="ib st-act" aria-label={'Write off ' + b.name} onClick={() => writeOff(b)}><Icon name="minus" size={20} /></button> : null}</span>
                   </div>

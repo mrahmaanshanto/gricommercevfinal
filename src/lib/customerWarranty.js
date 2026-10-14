@@ -16,6 +16,7 @@ import { getSerials } from './serials';
 import { allProducts } from './products';
 import { productBy } from './stock';
 import { coverOf } from './warranty';
+import { liveSaleOf } from './liveCounterSales';
 
 const DAY = 864e5;
 const CLAIMS = 'gc.warranty.claims';
@@ -29,8 +30,8 @@ export function productOfLine(l, list = allProducts()) {
     || list.find((p) => p.sku && p.sku === (l.sku || (row && row.sku)))
     || list.find((p) => p.name === l.name) || null;
 }
-/** The POS sale an order came from (counter sales), or null. */
-export const saleOfOrder = (o) => load(POS_KEYS.sales, []).find((x) => x.orderId === o.id || (x.shipOrders || []).some((y) => y.id === o.id)) || null;
+/** The POS sale an order came from (counter sales, including the generated ones after September), or null. */
+export const saleOfOrder = (o) => load(POS_KEYS.sales, []).find((x) => x.orderId === o.id || (x.shipOrders || []).some((y) => y.id === o.id)) || liveSaleOf(o.id) || null;
 /** The IMEI / serial numbers sold on one line of an order. */
 export function serialsOfLine(o, l, sale = saleOfOrder(o), units = getSerials()) {
   const ref = sale ? sale.id : o.id;

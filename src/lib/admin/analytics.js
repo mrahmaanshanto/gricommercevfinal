@@ -28,7 +28,7 @@
 import { createStore } from './store';
 import { staff } from '@/lib/platform/store';
 import { DAY, TZ, rng, hash, dhaka, startOfDay, startOfMonth, addMonths, monthOf, dayOfMonth, dm, dmy, yearOf } from '@/lib/platform/util';
-import { MODULES, SETS, PLAN_NAME, ladderLabel, READONLY_DAYS } from '@/lib/platform/catalogue';
+import { MODULES, SETS, PLAN_NAME, PLAN_IDS, LADDER_IDS, ladderLabel, READONLY_DAYS } from '@/lib/platform/catalogue';
 import { subOf, subState, isPaying, isLiveStore, mrrOf } from '@/lib/platform/billing';
 import { merchantRow, modulesOf, usageOf } from './merchants';
 import { executive } from './dashboard';
@@ -243,10 +243,10 @@ function seedLapsed(now) {
     for (let i = 0; i < count; i++) {
       const createdAt = m + r.int(0, 27) * DAY + r.int(9, 21) * H;
       if (createdAt + 16 * DAY > now) continue;
-      const ladder = pickW(r, [['online', 70], ['retail', 20], ['wholesale', 10]]);
+      const ladder = pickW(r, [['online', 62], ['retail', 16], ['retail-online', 14], ['connect', 8]]);
       out.push({
         id: 'LT-' + String(n++).padStart(4, '0'), name: r.pick(LAPSE_A) + ' ' + r.pick(LAPSE_B), createdAt, ladder,
-        plan: pickW(r, [['growth', 60], ['business', 33], ['enterprise', 7]]), dist: pickW(r, LAPSE_DIST), channel: pickW(r, LAPSE_CH), reason: pickW(r, LAPSE_WHY),
+        plan: pickW(r, [['starter', 60], ['growth', 33], ['business', 7]]), dist: pickW(r, LAPSE_DIST), channel: pickW(r, LAPSE_CH), reason: pickW(r, LAPSE_WHY),
       });
     }
   }
@@ -254,7 +254,7 @@ function seedLapsed(now) {
 }
 export const analytics = createStore({
   key: 'analytics',
-  version: 2,
+  version: 3,   // 3: lapsed trials on the product's editions and plans
   seed: (now) => ({ campaigns: seedCampaigns(), schedules: seedSchedules(now), lapsed: seedLapsed(now), seq: 4 }),
 });
 
@@ -622,7 +622,7 @@ export function growth(db, data, from, to, t, acq = null) {
       label: monthOf(mFrom), title: monthOf(mFrom) + ' ' + yearOf(mFrom) + (i === 0 ? ' (so far)' : ''), from: mFrom, to: mTo,
       mrrBy: mrr.values, mrr: sum(mrr.values, (v) => v),
       paying: A.filter((a) => payingAt(a, mTo - 1)).length,
-      payingBy: ['online', 'retail', 'wholesale'].map((l) => A.filter((a) => a.ladder === l && payingAt(a, mTo - 1)).length),
+      payingBy: LADDER_IDS.map((l) => A.filter((a) => a.ladder === l && payingAt(a, mTo - 1)).length),
       trials: A.filter((a) => a.createdAt >= mFrom && a.createdAt < mTo).length,
       newPaying: A.filter((a) => a.converted && a.paidAt >= mFrom && a.paidAt < mTo).length,
       left: A.filter((a) => a.converted && a.leftAt && a.leftAt >= mFrom && a.leftAt < mTo).length,
@@ -658,8 +658,8 @@ export function growth(db, data, from, to, t, acq = null) {
   // packages: live stores by ladder and plan
   const live = A.filter((a) => !a.lapsed && isLiveStore(a.state));
   const packages = [];
-  for (const ladder of ['online', 'retail', 'wholesale']) {
-    for (const plan of ['growth', 'business', 'enterprise']) {
+  for (const ladder of LADDER_IDS) {
+    for (const plan of PLAN_IDS) {
       const g = live.filter((a) => a.ladder === ladder && a.plan === plan);
       if (!g.length) continue;
       packages.push({ key: ladder + ':' + plan, ladder, plan, name: `${ladderLabel(ladder)} · ${PLAN_NAME[plan]}`, stores: g.length, paying: g.filter((a) => a.paying).length, trial: g.filter((a) => a.stateKey === 'trial').length, mrr: sum(g, (a) => a.mrr) });
@@ -682,9 +682,10 @@ export function growth(db, data, from, to, t, acq = null) {
     ltv: { arpa: u.arpa, churn, ltv: u.ltv, cac: u.cac, ratio: u.cac ? u.ltv / u.cac : null, months: churn > 0 ? 1 / churn : null },
   };
 }
-const LADDER_SETS = ['online', 'retail', 'wholesale'];
-/** Module adoption across live stores (paying and on trial). optional: not part of a segment's own set (grow, scale,
- *  credit add-ons, services), so it shows a real choice rather than the segment mix. */
+// the modules that come with an edition itself (what the store sells through), not a choice within it
+const LADDER_SETS = ['core', 'catalog', 'money', 'reports', 'commerce', 'online', 'pos', 'comms', 'gridai'];
+/** Module adoption across live stores (paying and on trial). optional: a module the plan or an add-on decides (stock
+ *  places, purchase orders, marketing, channels, automation, HR, credits, services), not the edition's own core. */
 export function moduleAdoption(db, t, ladder = '') {
   const live = db.shops.filter((s) => { const st = subState(db, s.id, t); return isPaying(st) || st.key === 'trial'; })
     .filter((s) => !ladder || (subOf(db, s.id) || {}).ladder === ladder);
@@ -695,7 +696,7 @@ export function moduleAdoption(db, t, ladder = '') {
     counts[m.code] = (counts[m.code] || 0) + 1;
     if (m.state === 'trial') trials[m.code] = (trials[m.code] || 0) + 1;
   }
-  return MODULES.filter((m) => m.set !== 'platform' && m.set !== 'everyday').map((m) => ({
+  return MODULES.filter((m) => m.set !== 'platform').map((m) => ({
     code: m.code, name: m.name, set: m.set, setLabel: (SETS.find((x) => x.id === m.set) || {}).label || m.set,
     stores: counts[m.code] || 0, trials: trials[m.code] || 0, share: ratio(counts[m.code] || 0, live.length),
     of: live.length, optional: !LADDER_SETS.includes(m.set),

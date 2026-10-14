@@ -7,6 +7,7 @@ const KEY = 'gc.ledger';
 import { ITEM_SEED, ITEMS_KEY } from './settlementSeed';
 import { LEDGER_SEED } from './ledgerSeed';
 import { platformRows } from './platformCosts';
+import { liveCounterLedger } from './liveCounterSales';
 
 // type: Cash · Bank · Mobile (the shop's own money) · Holding (money a payment gateway or courier
 // has collected for the shop and has not paid out yet — see settlements.js)
@@ -58,6 +59,7 @@ export function accountForMethod(method, atCounter) {
   if (m === 'sslcommerz') return 'h-ssl';
   if (m === 'eps') return 'h-eps';
   if (m === 'bank' || m === 'bank transfer') return 'brac';
+  if (m === 'cheque') return 'brac';   // a buyer's cheque is paid into the bank (Collections, WH-F7)
   return null;   // due / credit / store credit: no money moved
 }
 /** Accounts a payment method can be paid from (for "pay from account" choices). */
@@ -88,8 +90,8 @@ const changed = () => { try { window.dispatchEvent(new CustomEvent('gc:ledger'))
 
 const read = () => { try { return JSON.parse(window.localStorage.getItem(KEY)) || []; } catch { return []; } };
 /** Every entry, newest first: the ones made in this browser, the platform's own monthly bills (platformCosts.js),
- *  then the demo month (ledgerSeed.js). */
-export const getEntries = () => (typeof window === 'undefined' ? [...platformRows(), ...LEDGER_SEED] : [...read(), ...platformRows(), ...LEDGER_SEED]);
+ *  the counters' takings after September (liveCounterSales.js), then the demo month (ledgerSeed.js). */
+export const getEntries = () => (typeof window === 'undefined' ? [...platformRows(), ...LEDGER_SEED] : [...read(), ...platformRows(), ...liveCounterLedger(), ...LEDGER_SEED].sort((a, b) => b.at - a.at));
 
 /**
  * Record money moving. amount > 0 comes in, amount < 0 goes out.

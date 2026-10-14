@@ -1,7 +1,7 @@
 'use client';
 // Automations — the rules list, laid out like Shopify Flow's workflow list (components/ui/IndexKit.jsx): title row,
 // key figures, then one card with the category views, search and filters, bulk on / off and a compact table.
-// A row opens the workflow builder; the run history opens in a side panel (Recent runs).
+// A row opens that rule in the workflow builder (/workflow-builder?id=); New workflow starts from a trigger picker; the run history opens in a side panel (Recent runs).
 // Test a rule (side panel): run a rule against a sample event and see each step — conditions met or not, and for a
 // message whether the send layer would send it (consent, suppression, quiet hours, caps). Nothing is sent. Its
 // Versions tab lists every change to the rule; an old version can be brought back (src/lib/automationRules.js).
@@ -16,36 +16,37 @@ import { toast } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { Sheet, StatusBadge, EmptyState } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, Menu } from '@/components/ui/IndexKit';
-import { getRules, setRuleOn, ruleBy, ruleVersions, restoreVersion, simulate, SAMPLE_EVENTS, TRIGGERS, RULES_EVENT } from '@/lib/automationRules';
+import { getRules, setRuleOn, ruleBy, ruleVersions, restoreVersion, simulate, conditionLabel, SAMPLE_EVENTS, TRIGGERS, RULES_EVENT } from '@/lib/automationRules';
 import { formatDate } from '@/lib/format';
 
 // ---- logic ----
 
 const CATS = [['all', 'All'], ['orders', 'Orders'], ['delivery', 'Delivery'], ['customers', 'Customers'], ['stock', 'Stock'], ['marketing', 'Marketing']];
-// id, cat, name, when, then, default on, runs 7d, cost note, custom
-const RULES = [
-  ['r1', 'orders', 'Thank customers after AI confirmation', 'an order is AI confirmed', 'send a WhatsApp message with the order summary and delivery date', true, 212, '৳1.10 per message', false],
-  ['r2', 'delivery', 'Book the courier when an order is packed', 'an order moves to Packed', 'book the default courier from the dispatch location and print the label', true, 164, 'No charge', false],
-  ['r3', 'delivery', 'Ask for a review after delivery', 'a parcel is delivered, then wait 2 days', 'send an SMS with the review link', true, 138, '৳0.60 per SMS', false],
-  ['r4', 'stock', 'Request stock when it runs low', 'stock at any location falls below its alert level', 'create a purchase request for the manager to approve', true, 9, 'No charge', false],
-  ['r5', 'customers', 'Flag customers who return twice', 'the same phone number has 2 returned orders', 'tag the customer “Risky” and turn off COD for them', false, 0, 'No charge', false],
-  ['r6', 'marketing', 'Share new blog posts', 'a blog post is published on WordPress', 'schedule it for the Facebook Page and LinkedIn page', false, 0, 'No charge', false],
-  ['c1', 'orders', 'Big orders need a manager call', 'a COD order is over ৳10,000 and from a new customer', 'hold the order and notify the Dhanmondi manager in the app', true, 6, 'No charge', true],
-  ['c2', 'marketing', 'Win back quiet customers', 'a customer has not ordered for 60 days', 'send a WhatsApp offer with code COMEBACK10', true, 41, '৳1.10 per message', true]
-];
+// each row: id, cat, name, when, then, on, runs 7d, cost note, custom — built from the rules in src/lib/automationRules.js
+// (Grid AI's own rules are listed in Grid AI › Automations)
+const lc = (t) => (t ? t.charAt(0).toLowerCase() + t.slice(1) : '');
+const waitWords = (h) => (h >= 24 && h % 24 === 0 ? `${h / 24} ${h / 24 === 1 ? 'day' : 'days'}` : `${h} ${h === 1 ? 'hour' : 'hours'}`);
+function describe(r) {
+  const when = lc(TRIGGERS[r.trigger] || r.trigger) + (r.conditions.length ? ' and ' + r.conditions.map((c) => lc(conditionLabel(r.trigger, c))).join(' and ') : '') + (r.wait ? ', then wait ' + waitWords(r.wait) : '');
+  const then = r.actions.map((a) => (a.kind === 'message' ? 'send ' + (a.channel === 'sms' ? 'an SMS' : a.channel === 'email' ? 'an email' : 'a WhatsApp message') : lc(a.label))).join(', then ') || 'nothing yet';
+  return [r.id, r.cat, r.name, when, then, r.on, r.runs || 0, r.cost || 'No charge', !!r.custom];
+}
+const listRules = () => getRules().filter((r) => r.cat !== 'ai').map(describe);
 const RUNS = [['3:12 PM', 'Thank customers after AI confirmation', 'WhatsApp sent to Farhana Akter · #ORD-0929-011', 'ok'], ['2:55 PM', 'Book the courier when an order is packed', 'Pathao booked · #ORD-0929-004 · from Central Warehouse', 'ok'], ['1:40 PM', 'Big orders need a manager call', 'Held #ORD-0929-007 · ৳12,400 · new customer', 'ok'], ['11:20 AM', 'Ask for a review after delivery', 'SMS to 01911-204417 failed: number switched off', 'fail'], ['10:05 AM', 'Request stock when it runs low', 'Request PR-0929-02 · Braided Lightning Cable at Mirpur', 'ok'], ['9:00 AM', 'Win back quiet customers', '12 WhatsApp offers sent', 'ok']];
 const catName = (k) => (CATS.find((c) => c[0] === k) || CATS[0])[1];
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 const BUILDER = '/workflow-builder';
+const openRule = (id) => BUILDER + '?id=' + encodeURIComponent(id);
 
 class Component extends DCLogic {
-  state = { f: 'all', on: {}, q: '', find: false, status: '', kind: '', sel: {}, runsOpen: false, lab: '' };
+  state = { f: 'all', on: {}, rules: [], q: '', find: false, status: '', kind: '', sel: {}, runsOpen: false, lab: '' };
   componentDidMount() { this.readOn(); window.addEventListener(RULES_EVENT, this.readOn); }
   componentWillUnmount() { window.removeEventListener(RULES_EVENT, this.readOn); }
-  readOn = () => { const on = {}; getRules().forEach((r) => { on[r.id] = r.on; }); this.setState({ on }); };
+  readOn = () => { const rules = listRules(); const on = {}; rules.forEach((r) => { on[r[0]] = r[5]; }); this.setState({ rules, on, loaded: true }); };
   isOn(r) { return this.state.on[r[0]] == null ? r[5] : this.state.on[r[0]]; }
   /** Turn the selected rules on or off. */
   setMany(ids, value) {
+    const RULES = this.state.rules;
     const list = RULES.filter((r) => ids.includes(r[0]) && this.isOn(r) !== value);
     if (!list.length) { toast(value ? 'The selected rules are already on' : 'The selected rules are already off', { tone: 'info' }); return; }
     const on = { ...this.state.on };
@@ -56,6 +57,7 @@ class Component extends DCLogic {
   }
   renderVals() {
     const st = this.state;
+    const RULES = st.rules;
     const needle = st.q.trim().toLowerCase();
     const live = RULES.filter((r) => this.isOn(r));
     const runs = live.reduce((a, r) => a + r[6], 0);
@@ -85,7 +87,7 @@ class Component extends DCLogic {
       status: st.status, onStatus: (e) => this.setState({ status: e.target.value }),
       kind: st.kind, onKind: (e) => this.setState({ kind: e.target.value }),
       hasFilters, clear,
-      empty: rows.length === 0,
+      empty: !!st.loaded && rows.length === 0,
       emptyTitle: needle ? 'No rules match “' + st.q.trim() + '”' : 'No rules match these filters',
       countLabel: rows.length ? 'Showing ' + plural(rows.length, 'rule') : 'No rules to show',
       selCount: selIds.length, allChecked,
@@ -106,7 +108,8 @@ class Component extends DCLogic {
           checked: !!st.sel[r[0]],
           onToggle: () => this.setState((s) => ({ sel: { ...s.sel, [r[0]]: !s.sel[r[0]] } })),
           onSwitch: () => this.setMany([r[0]], !on),
-          onRowClick: (e) => { if (e.target.closest('a,button,input,label,select')) return; navigate(BUILDER); },
+          href: openRule(r[0]),
+          onRowClick: (e) => { if (e.target.closest('a,button,input,label,select')) return; navigate(openRule(r[0])); },
         };
       }),
     };
@@ -257,7 +260,7 @@ export default class AutomationsScreen extends Component {
                     <ul className="ix-plist" aria-label={v.tabLabel}>
                       {v.rows.map((r) => (
                         <li key={r.id}>
-                          <Link href={BUILDER} className="ix-pitem">
+                          <Link href={r.href} className="ix-pitem">
                             <span className="ix-pitem__top"><b>{r.name}</b><span>{r.on ? <StatusBadge tone="success">On</StatusBadge> : <StatusBadge tone="neutral">Off</StatusBadge>}</span></span>
                             <span className="ix-pitem__mid">{r.when}</span>
                           </Link>
@@ -282,7 +285,7 @@ export default class AutomationsScreen extends Component {
                           {v.rows.map((r) => (
                             <tr key={r.id} className={r.checked ? 'is-sel' : ''} onClick={r.onRowClick} title={r.full}>
                               <td className="ix-check"><input type="checkbox" checked={r.checked} onChange={r.onToggle} aria-label={'Select ' + r.name} /></td>
-                              <td><Link href={BUILDER} className="ix-strong">{r.name}</Link></td>
+                              <td><Link href={r.href} className="ix-strong">{r.name}</Link></td>
                               <td className="ix-muted"><span className="au-when">{r.when}</span></td>
                               <td className="ix-muted">{r.cat}{r.custom ? ' · Custom' : ''}</td>
                               <td className="ix-num">{r.runs}</td>

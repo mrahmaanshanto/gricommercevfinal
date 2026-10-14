@@ -25,7 +25,7 @@ import { formatBDT, formatDate } from '@/lib/format';
 import { dailySummary } from '@/lib/reports/dailySummary';
 import { addDays, monthStart } from '@/lib/reports/period';
 import { clockNow, startOfDay, getPayouts } from '@/lib/settlements';
-import { getSales, salesByChannel } from '@/lib/salesBook';
+import { getSales, salesByChannel, getSaleLines } from '@/lib/salesBook';
 import { getOrders, isCounterSale, courierReturns, rtoState } from '@/lib/orders';
 import { getMeetings, needsNote } from '@/lib/meetings';
 import { ORDER_STATUSES } from '@/lib/orderStatus';
@@ -131,6 +131,13 @@ function build({ dayOffset, place, ed = 'full' }) {
   const salesOf = (x) => (place ? ((x.sales.byPlace.find((p) => p.place === place) || {}).revenue || 0) : x.sales.total);
   const billsOf = (x) => (place ? ((x.sales.byPlace.find((p) => p.place === place) || {}).bills || 0) : x.sales.orders);
   const sales = { today: salesOf(d), prev: salesOf(prev), bills: billsOf(d) };
+  // today is compared with yesterday up to the same time of day (not the whole of yesterday)
+  if (dayOffset === 0) {
+    const prevDay = addDays(day, -1), upTo = prevDay + Math.max(1, now - day);
+    sales.prev = place
+      ? safe(() => getSaleLines(getSales()), []).filter((l) => l.at >= prevDay && l.at < upTo && (l.place || '') === place).reduce((a, l) => a + (Number(l.revenue) || 0), 0)
+      : safe(() => salesByChannel(prevDay, upTo).all.revenue, 0);
+  }
 
   // orders
   const orders = safe(() => getOrders(), []).filter((o) => !isCounterSale(o));

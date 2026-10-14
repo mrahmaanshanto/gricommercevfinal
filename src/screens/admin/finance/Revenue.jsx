@@ -1,7 +1,7 @@
 'use client';
 // Revenue (/admin/revenue) — what GridCommerce earns, laid out like the merchant panel's Sales & profit
 // (screens/accounts/SalesProfit.jsx): key figures, revenue by month split by source (subscriptions, add-ons, messaging
-// credits, one-off charges), by package (Online / Retail / Wholesale), how recurring revenue moved (new, expansion,
+// credits, one-off charges), by edition (Online / Retail / Retail + Online / Connect), how recurring revenue moved (new, expansion,
 // contraction, churn — an estimate worked out from today's bills), and the stores that paid the most. Export as CSV.
 // Data: lib/admin/finance › revenueMonths, revenueByPackage, mrrNow, mrrMovement, topStores (from lib/platform payments).
 
@@ -18,7 +18,7 @@ import { revenueMonths, revenueByPackage, mrrNow, mrrMovement, topStores, SOURCE
 import { AdminShell } from '../AdminShell';
 import { FIN_CSS, SOURCE_COLORS, useFinance, money, short, tick, Skeleton, ErrorCard, Card, rowGo, rowKey } from './finShared';
 
-const PKG_COLORS = { online: 'var(--viz-1)', retail: 'var(--viz-3)', wholesale: 'var(--viz-4)' };
+const PKG_COLORS = { online: 'var(--viz-1)', retail: 'var(--viz-3)', 'retail-online': 'var(--viz-4)', connect: 'var(--viz-5)' };
 const signedK = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + money(n);
 
 function work(db, F, t) {

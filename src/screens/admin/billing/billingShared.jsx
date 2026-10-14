@@ -20,7 +20,7 @@ import {
   outcomeLabel, mrrOf,
 } from '@/lib/platform/billing';
 import { adjustmentEffect } from '@/lib/platform/views';
-import { extendGrace } from '@/lib/admin/merchants';
+import { ask, rightOf, figureOf } from '@/lib/admin/actionRights';
 
 export const money = (n) => taka(n);
 export const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
@@ -293,13 +293,14 @@ export function GraceSheet({ db, t, shopId, close }) {
     if (!pick) { setErr({ field: 'reason', text: 'Pick a reason.' }); return; }
     if (pick === 'Other' && !note.trim()) { setErr({ field: 'note', text: 'Say why the grace is extended.' }); return; }
     const reason = pick === 'Other' ? note.trim() : [pick, note.trim()].filter(Boolean).join(' · ');
-    const r = extendGrace(shopId, days, reason);
+    const r = ask({ action: 'grace', shopIds: [shopId], value: figureOf(db, shopId, 'owed', t), params: { days: Number(days) }, reason, db });
     if (!r || !r.ok) { setErr({ field: fieldFor(r && r.error, [[/why/i, 'reason']]), text: (r && r.error) || 'The grace could not be extended.' }); return; }
-    toast(`Grace extended by ${plural(r.days, 'day')} for ${shop ? shop.name : 'the store'}`);
+    toast(r.pending ? `Sent to ${r.request.approver} for a second approval` : `Grace extended by ${plural(Number(days), 'day')} for ${shop ? shop.name : 'the store'}`);
     close();
   };
   return (
-    <FormSheet id="bl-grace" title={shop ? `Extend grace · ${shop.name}` : 'Extend grace'} close={close} onSubmit={submit} submit="Extend grace" danger disabled={!late.length} error={err}>
+    <FormSheet id="bl-grace" title={shop ? `Extend grace · ${shop.name}` : 'Extend grace'} close={close} onSubmit={submit} submit="Extend grace" danger disabled={!late.length || !rightOf('grace').ok} error={err}>
+      {!rightOf('grace').ok ? <p className="bl-note bl-note--err">{rightOf('grace').reason}</p> : null}
       <p className="bl-note bl-note--err">{late.length ? `${late.map((i) => i.id).join(', ')} move${late.length === 1 ? 's' : ''} its due date on, so read-only and suspension come later. The money is still owed.` : 'Nothing is overdue, so there is no grace to extend.'}</p>
       <Field id="bg-d" label="Days">
         <select id="bg-d" {...ctl(null, true)} value={days} onChange={(e) => setDays(e.target.value)}>{['3', '7', '14'].map((d) => <option key={d} value={d}>{d} days</option>)}</select>

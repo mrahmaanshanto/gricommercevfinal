@@ -27,7 +27,7 @@ const write = (k, v) => {
 /** The alert kinds, in the order Settings lists them. module: the edition module the kind needs (null: every edition). */
 export const NOTIFY_TYPES = [
   { key: 'orders', label: 'New orders', sub: 'Online orders and counter sales', icon: 'bag', module: 'commerce' },
-  { key: 'payouts', label: 'Payouts', sub: 'Money arriving and late payouts', icon: 'cash', module: 'money' },
+  { key: 'payouts', label: 'Payments', sub: 'Payments to review, payouts and late payouts', icon: 'cash', module: 'commerce' },
   { key: 'stock', label: 'Low stock', sub: 'Items running out at a place', icon: 'box', module: 'catalog' },
   { key: 'messages', label: 'Messages', sub: 'Chats, meetings and support tickets', icon: 'chat', module: 'comms' },
   { key: 'approvals', label: 'Approvals', sub: 'Money requests waiting for you', icon: 'check', module: 'money' },

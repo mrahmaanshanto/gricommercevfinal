@@ -22,22 +22,28 @@ const ROUTES = {
   'set-orders': '/order-settings', 'set-catalog': '/catalog-setup', 'set-customers': '/customer-settings', 'set-channels': '/channel-settings', 'set-autocall': '/auto-call-settings',
   'set-comms': '/workflow-settings', 'set-staff': '/hr-setup', 'set-accounts': '/account-setup', 'set-pos': '/pos-manage',
   general: '/set-general', preference: '/set-preference', payment: '/set-payments', delivery: '/set-delivery',
-  ai: '/set-ai', rules: '/set-rules', notifications: '/set-notifications', stocksetup: '/stock-setup', profile: '/set-profile', usage: '/set-usage', seo: '/set-seo', storage: '/set-storage',
-  apisec: '/set-security', dbbackup: '/set-security#s1', filebackup: '/set-security#s2',
-  privacy: '/set-privacy', domains: '/set-domains', history: '/settings-history',
+  notifications: '/set-notifications', stocksetup: '/stock-setup', profile: '/set-profile', seo: '/set-seo',
+  apisec: '/set-security',
+  users: '/set-users', import: '/import-data',
+  privacy: '/set-privacy', domains: '/set-domains', bizmail: '/email', history: '/settings-history',
   billing: '/subscription', usagelimits: '/subscription#usage', wallet: '/credit-wallet',
   // every outside connection is made in Connections
   connections: '/connections', social: '/connections?group=social', courier: '/connections?group=delivery', mail: '/connections?group=messages', sms: '/connections?group=messages',
 };
 
 const GROUPS = [
-  ['Store', [['connections', 'Connections', 'ok'], ['general', 'General', 'ok'], ['profile', 'Profile type', 'ok'], ['stocksetup', 'Stock setup', 'ok'], ['preference', 'Preference', 'ok'], ['privacy', 'Privacy & consent', 'ok'], ['domains', 'Domains', 'ok'], ['pos', 'POS', 'ok'], ['report', 'Report Settings', 'none']]],
+  ['Store', [['connections', 'Connections', 'ok'], ['general', 'General', 'ok'], ['profile', 'Profile type', 'ok'], ['stocksetup', 'Stock setup', 'ok'], ['preference', 'Preference', 'ok'], ['privacy', 'Privacy & consent', 'ok'], ['domains', 'Domains', 'ok'], ['bizmail', 'Business email', 'ok'], ['pos', 'POS', 'ok'], ['report', 'Report Settings', 'none']]],
+  // who can sign in (every plan) and bringing data from another system
+  ['Users & data', [['users', 'Users & roles', 'ok'], ['import', 'Import data', 'ok']]],
   ['Business setup', [['set-orders', 'Orders', 'ok'], ['set-catalog', 'Products & catalog', 'ok'], ['set-customers', 'Customers', 'ok'], ['set-channels', 'Sales channels', 'ok'], ['set-autocall', 'Auto-call', 'ok'], ['set-comms', 'Communications', 'ok'], ['set-staff', 'Staff & HR', 'ok'], ['set-accounts', 'Accounts', 'ok'], ['set-pos', 'POS counters', 'ok']]],
   ['Commerce', [['payment', 'Payment Gateway', 'ok'], ['delivery', 'Delivery Settings', 'ok'], ['courier', 'Courier Settings', 'warn', '1']]],
   ['Notifications', [['notifications', 'Order notifications', 'ok']]],
-  ['Communication', [['mail', 'Mail', 'ok'], ['sms', 'SMS', 'warn', '1'], ['push', 'Push Notifications', 'off'], ['social', 'Social Integrations', 'ok'], ['ai', 'AI provider', 'ok'], ['rules', 'Auto-Reply Rules', 'ok'], ['usage', 'AI Usage', 'none']]],
+  // AI is set up in the Grid AI area only (Settings, Models & limits, Usage & billing); the old AI provider, AI Usage
+  // and Auto-Reply Rules pages forward there (next.config.mjs › MOVED)
+  ['Communication', [['mail', 'Mail', 'ok'], ['sms', 'SMS', 'warn', '1'], ['push', 'Push Notifications', 'off'], ['social', 'Social Integrations', 'ok']]],
   ['Discovery', [['seo', 'SEO', 'ok'], ['smart', 'Smart Search', 'ok'], ['imgsearch', 'Image Search', 'off']]],
-  ['Platform', [['storage', 'Storage', 'warn', '1'], ['realtime', 'Realtime (Websocket)', 'ok'], ['apisec', 'API Security', 'ok'], ['recaptcha', 'Recaptcha', 'off'], ['dbbackup', 'Database Backup', 'ok'], ['filebackup', 'File Backup', 'warn', '1'], ['history', 'Settings history', 'none']]],
+  // storage, database / file backups, realtime and recaptcha are run by GridCommerce (super admin), not the shop
+  ['Security & data', [['apisec', 'API keys & backups', 'ok'], ['history', 'Settings history', 'none']]],
   ['Account & billing', [['billing', 'Plan & billing', 'ok'], ['usagelimits', 'Usage & limits', 'none'], ['wallet', 'Wallet & credits', 'none']]],
 ];
 
@@ -46,14 +52,13 @@ const STATE = { ok: 'configured', warn: 'needs setup', off: 'turned off' };
 const ICON = {
   connections: 'plug', general: 'store', profile: 'user-cog', stocksetup: 'boxes', preference: 'sliders-horizontal', pos: 'scan-line', report: 'file-bar-chart',
   payment: 'credit-card', delivery: 'truck', courier: 'package', notifications: 'bell', mail: 'mail', sms: 'message-square', push: 'bell-ring',
-  social: 'share-2', ai: 'bot', rules: 'list-checks', usage: 'gauge', seo: 'search', smart: 'sparkles', imgsearch: 'image', storage: 'hard-drive',
-  realtime: 'radio', apisec: 'shield', recaptcha: 'shield-check', dbbackup: 'database', filebackup: 'archive',
-  privacy: 'lock', domains: 'globe', history: 'history', billing: 'receipt', usagelimits: 'activity', wallet: 'wallet',
+  social: 'share-2', seo: 'search', smart: 'sparkles', imgsearch: 'image', apisec: 'shield',
+  privacy: 'lock', domains: 'globe', users: 'user-cog', import: 'file-up', history: 'history', billing: 'receipt', usagelimits: 'activity', wallet: 'wallet',
   'set-orders': 'package', 'set-catalog': 'tag', 'set-customers': 'users', 'set-channels': 'share-2', 'set-autocall': 'phone-call',
   'set-comms': 'messages-square', 'set-staff': 'contact', 'set-accounts': 'landmark', 'set-pos': 'monitor-smartphone',
 };
 // sections that belong to a module (src/lib/edition.js); the rest are in every edition
-const SECTION_MODULE = { domains: 'online', notifications: 'online', usage: 'comms', stocksetup: 'catalog', pos: 'pos', report: 'reports', payment: 'commerce', delivery: 'online', courier: 'online', social: 'comms', ai: 'comms', rules: 'comms', seo: 'online', smart: 'online', imgsearch: 'online' };
+const SECTION_MODULE = { domains: 'online', notifications: 'online', stocksetup: 'catalog', pos: 'pos', report: 'reports', payment: 'commerce', delivery: 'online', courier: 'online', social: 'comms', seo: 'online', smart: 'online', imgsearch: 'online' };
 
 class Component extends DCLogic {
   constructor(p) {

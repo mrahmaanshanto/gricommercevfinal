@@ -75,8 +75,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   Reports (`catalogue.js › editionReports`), Settings' section list, Help links, the top bar, My dashboard and the demo
   accounts follow it; orders and sales are filtered to the edition's channels (`editionChannels()` in `orders.getOrders`,
   `salesBook.getSales`). New page or menu item → add it to a module in `MODULES`. Stock and purchase are three modules:
-  `catalog` (products, stock, Purchases, suppliers, damaged & expired, warranty), `places` (warehouses, branches, racks,
-  transfers, adjustments, counts, holds) and `purchasing` (purchase orders, receiving, requests); the Online edition has
+  `catalog` (products, stock, stock adjustments and counts, Purchases, suppliers, damaged & expired, warranty), `places`
+  (warehouses, branches, racks, transfers, holds) and `purchasing` (purchase orders, receiving, requests); the Online edition has
   only `catalog`.
 - Sign-in: `/` opens `/merchant-sign-in`, which asks "Choose your system" (`components/SystemPicker.jsx`, `lib/systems.js`:
   Retail, Online, Retail + Online — each its own site; on the full site it previews the edition).
@@ -127,6 +127,18 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `lib/inbox.js` adds reactions (`reactTo`), `replyTo`, `bigEmoji`, `unreadCount` (chats with unread), social mentions
   (`getMentions`, `chatFromMention`) and team mentions (`teamMentions`: notes with @FirstName). Comments are drawn
   Facebook-style (bubble, "time · Like · Reply" line, nested replies).
+- **Inbox › Email** (`/email-inbox`, `screens/merchant-inbox/EmailInbox.jsx`, `lib/emailInbox.js`, browser storage `gc.emailbox`):
+  the shop's email to info@, sales@, support@ and orders@ as conversations (one row per thread: everyone in it, message count;
+  views Inbox · Assigned to me · Starred · Sent (threads the shop wrote in) · Archived · Spam, Deleted when it has any; address
+  filter, search). Wide screens read beside the list, smaller ones in a side panel. A thread lists its messages in order, the
+  middle ones folded ("n earlier messages"); each message shows To / Cc (Bcc on the shop's own), its quoted mail behind "•••"
+  and Reply · Reply all · Forward for that message. The writing box does Reply / Reply all (`recipientsFor`: sender, plus
+  everyone on To and Cc without the shop's addresses) / Forward (quotes the message and its attachments) with To, Cc, Bcc, or a
+  Note; messages keep `to`, `cc`, `bcc`, `kind`, `replyTo`, `quote`. Demo: a customer's answer joins the thread 45 s after the
+  shop's first reply and makes it unread (`answer` → `pending`). Assign, star, archive, spam, delete with Undo, Compose (From,
+  To, Cc, Bcc, Subject). The sender is
+  matched to a customer by email and `#1xxxxx` order numbers link to the order. Menu count `live: 'email'` (unread in Inbox,
+  part of the Inbox area total). The domain is the Business email domain once active, else sample mail with a "Set up" line.
 - Inbox channels follow Connections (`connectedInbox(use)`, `components/inbox/useLiveChannels.js`): chat chips show the
   connected chat channels, Comments only connected channels' posts, and a Reviews view shows Google reviews (the Google
   Business review list); the header's Channels button lists every inbox channel with Connect / Reconnect.
@@ -249,6 +261,38 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
     Activity. Shared parts in `AddProductParts.jsx`; new products start as Draft.
   - **Barcodes.** "Make one" makes an in-store EAN-13 (starts with 2, `barcodeType: 'internal'`). Google Merchant
     treats it as no GTIN (`channels.js`).
+- **SEO (Module C, Oct 2026)**: one model, `lib/seo.js` (an item's `seo`: metaTitle, metaDescription, focusKeyword, canonical,
+  noindex, nofollow, og*, schema; older page `seo.title/description` and product `seoT/seoD/noindex` still read via `readSeo` /
+  `seoPatch`), links in text as `[text](url){nofollow sponsored ugc new}` (product HTML keeps rel/target), automatic schema
+  (`autoSchema`: Product, BlogPosting, LocalBusiness, CollectionPage, FAQPage, BreadcrumbList) merged with the shop's own
+  JSON-LD (same type replaces), `headFor` / `headHtml`, Bangladesh-time scheduling (`toDhakaInput`). One panel,
+  `components/seo/SeoPanel.jsx`, in the page, post, product, category and landing-page editors. `lib/seoItems.js` = every
+  website item through one adapter per type (`allItems`, `contextOf`, `saveSeo`, `saveHandle`, `saveAlt`, `healthOf`, sitemap,
+  robots.txt). `lib/redirects.js`: 301/302 list, `autoRedirect` called by each type's save when a live item's address
+  changes (no chains / loops), not-found log. Addresses come from `lib/handles.js › toHandle` (Bangla → Latin letters, or
+  kept). Pages: Online Store › SEO `/seo` (Health · Redirects · Not found · Sitemap · robots.txt · Settings) and `/seo-bulk`.
+  Customer views (`screens/storefront/storeChrome.jsx`: shared header/footer, `useStoreItem` follows redirects and logs
+  misses, `SeoHead` writes the head tags): `/page`, `/blog-post?slug=`, `/product?handle=`, `/category?handle=`,
+  `/lp?handle=`. Front end only: tags are added after load (inspector, not View source); the server must send them.
+- **Services (Module B, Oct 2026)**: merchants buy expert help (SEO, Meta / Google ads, branding, store design, product
+  upload, migration, setup, descriptions). One shared store, `lib/platform/services.js` (catalogue with packages, add-ons,
+  brief form, editions / plans; experts; orders with statuses brief → progress ⇄ waiting (deadline paused) → qa → delivered →
+  closed, monthly reports, store access, extra-work quotes, refunds; `billables` / `payables`). Dazzle Shop is platform store
+  #0090 (`SELF_SHOP`; platform `DATA_VERSION` 4). Merchant: Team & settings › Services (`/services`, `/service-detail`,
+  `/service-order`, `/my-services`, `/my-service`; `screens/services/`; paying also books an expense in the shop's ledger).
+  Super admin: Services area (`/admin/services`, `/admin/service-order`, `/admin/services/catalogue` + `/admin/service-edit`
+  with the brief form builder, `/admin/services/experts`, `/admin/services/reports`; `screens/admin/services/`).
+  `lib/admin/servicesSync.js` (run by AdminShell) books charges into Finance › Income, partner payouts as expenses waiting
+  (owed), sent refunds, and approves the access session the owner approved in their panel (`supportAccess.approvedInPanel`).
+- **Business email (Module D, Oct 2026)**: name@shop mailboxes sold per mailbox, provider-neutral (`settings.provider` is a
+  placeholder: own servers or a reseller). One shared store, `lib/platform/mail.js` (settings: plans, storage add-ons,
+  included mailboxes per plan, yearly discount, caps, provider cost; domains with verify + MX/SPF/DKIM/DMARC that turn green
+  with the clock, seats, extra GB, catch-all, shop sending, quarantine, imports, charges; mailboxes; addresses
+  alias/group/forward; `shopSender`, `offboard`, `alerts`). Merchant: Settings › Business email `/email` (setup steps, then
+  Mailboxes · Addresses · Domain & DNS · Plan & usage · Apps (QR, IMAP import) · Spam) and `/webmail` (provider stand-in).
+  Users & roles' invite can make a mailbox; HR `settleLeaving` suspends it and forwards its mail; Order notifications show
+  the sending address. Super admin: Business email area (`/admin/email` directory with money and alerts, `/plans`,
+  `/abuse`; `screens/admin/email/`).
 - Courier statement (`/courier-statement`, Orders › Courier statement; `lib/courierStatement.js`): for a period (by
   dispatch day) and one courier or all, each parcel's state (waiting pickup, in transit, out for delivery, delivery failed,
   delivered, coming back, partly received, returned — from the order times, courier hooks and Courier returns receipts)
@@ -262,7 +306,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - POS: `/pos` (`src/screens/pos-register/Pos.jsx`) is the one register; `/pos-manage` (`PosManage.jsx`) is its
   back office (counters, employees and shifts, cash pickups, settings). Both read and write
   `src/lib/posStore.js` (browser storage). Register shortcuts are listed in `SHORTCUTS` in `Pos.jsx` (F1 on screen).
-- **Wholesale is switched off (Oct 2026)**: `WHOLESALE = false` in `src/lib/edition.js` removes the `wholesale` module and
+- **Wholesale is switched off (Oct 2026)**: `WHOLESALE` in `src/lib/edition.js` (true only when built with `NEXT_PUBLIC_WHOLESALE=true`) removes the `wholesale` module and
   the Wholesale channel from every edition; screens check `wholesaleOn()` (Quotes, price lists, MOQ, Wholesale views,
   types, filters, columns, demo wholesale invoices and returns). `docs/wholesale-audit.md` lists every item; setting the
   switch to true brings it back. Invoices stay (module `money`): `/sales-invoices` (`src/screens/sales/SalesInvoices.jsx`,

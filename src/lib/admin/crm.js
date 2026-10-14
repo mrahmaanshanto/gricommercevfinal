@@ -55,7 +55,8 @@ export const ACT_KINDS = {
 export const LOG_KINDS = ['call', 'whatsapp', 'email', 'meeting'];
 export const MEETING_KINDS = ['Google Meet', 'Zoom', 'Office visit', 'At their shop', 'Phone call'];
 export const QUOTE_STATUS = { draft: ['Draft', 'neutral'], sent: ['Sent', 'primary'], accepted: ['Accepted', 'success'], declined: ['Declined', 'error'], expired: ['Expired', 'neutral'] };
-export const PLAN_PRICE = { growth: 1000, business: 2500, enterprise: 5000 };
+// the product's plans (Starter · Growth · Business) at their Online list price; a quote's edition sets the real price
+export const PLAN_PRICE = { starter: 1000, growth: 2500, business: 5000 };
 export const PLANS = Object.keys(PLAN_PRICE);
 /** The modules a lead can be interested in (names from the platform's MODULES). */
 export const INTEREST_MODULES = ['Online orders', 'Courier and COD', 'Checkout', 'Themes', 'Landing pages', 'POS', 'Counter sales', 'Cash and expenses',
@@ -109,7 +110,8 @@ export function platformSource(src) {
 }
 /** Business type → the store's segments. */
 export const segsOf = (type) => (type === 'Mixed' ? ['Online', 'Retail'] : [type || 'Online']);
-const ladderOfType = (type) => (type === 'Retail' ? 'retail' : type === 'Wholesale' ? 'wholesale' : 'online');
+/** Business type → the edition it buys (wholesale is not sold while it is switched off: a wholesaler buys Retail). */
+export const ladderOfType = (type) => (type === 'Mixed' ? 'retail-online' : type === 'Retail' || type === 'Wholesale' ? 'retail' : 'online');
 const typeOfSegs = (segs) => (segs.length > 1 ? 'Mixed' : segs[0] || 'Online');
 
 const MOBILE = /^01[3-9]\d{8}$/;
@@ -183,7 +185,7 @@ function seed(now) {
     if (['Shopify', 'WooCommerce', 'Tally', 'Another POS'].includes(sw) && r.chance(0.4)) out.push('Migration');
     return out;
   };
-  const planFor = (orders) => (orders < 300 ? (r.chance(0.85) ? 'growth' : 'business') : orders < 1500 ? (r.chance(0.8) ? 'business' : 'growth') : r.chance(0.6) ? 'enterprise' : 'business');
+  const planFor = (orders) => (orders < 300 ? (r.chance(0.85) ? 'starter' : 'growth') : orders < 1500 ? (r.chance(0.8) ? 'growth' : 'starter') : r.chance(0.6) ? 'business' : 'growth');
   const hourAt = (day, lo = 10, hi = 19) => startOfDay(day) + r.int(lo, hi) * 3600e3 + r.pick([0, 15, 30, 45]) * 6e4;
 
   // one lead's story: stages from New to `final` (+ won/lost), activity between createdAt and end
@@ -347,7 +349,7 @@ function seed(now) {
   return { leads: raw.reverse(), seq };
 }
 
-export const crm = createStore({ key: 'crm', version: 1, seed });
+export const crm = createStore({ key: 'crm', version: 2, seed });   // 2: the product's editions and plans
 
 // ---- reads --------------------------------------------------------------------------------------------------------
 export const leads = () => crm.get().leads;
@@ -720,7 +722,7 @@ export function importLeads(rows, { owner } = {}) {
       const f = { ...row.data, owner: SALES_NAMES.includes(owner) ? owner : SALES_NAMES[0] };
       const bad = check(f, data);
       if (bad) { skipped.push({ line: row.line, error: bad.error }); continue; }
-      f.plan = f.orders < 300 ? 'growth' : f.orders < 1500 ? 'business' : 'enterprise';
+      f.plan = f.orders < 300 ? 'starter' : f.orders < 1500 ? 'growth' : 'business';
       const l = blank(data, clean(f), t, who());
       act(data, l, t, 'system', `Imported by ${who()} · ${l.source}`);
       l.next = { at: startOfDay(t) + DAY + 11 * 3600e3, what: stageOf('new').next };

@@ -1,122 +1,91 @@
 'use client';
-// Workflow builder — the node editor in Shopify density (components/ui/IndexKit.jsx RecordHeader): back to Rules,
-// the workflow's name with its Active badge, Turn on / off, Save. One card holds the Editor / Executions views, the
-// test-run note, Add node and Test workflow, then the canvas (trigger, IF branches, actions; the node panel slides in
-// on the right) or the run list. Rename is under More actions.
+// Workflow builder — one rule of src/lib/automationRules.js on a canvas, in Shopify density (IndexKit RecordHeader).
+// `/workflow-builder?id=<rule>` opens THAT rule; with no id it starts from a trigger picker (the triggers the engine
+// supports: BUILDER_TRIGGERS). The canvas is drawn from the rule: trigger → conditions (IF; false = nothing happens) →
+// wait → actions in order. Nodes open a panel on the right to change them; "Add node" / + offers only what the engine
+// runs (conditions on the trigger's own fields, a wait, WhatsApp / SMS / email messages, a task for a team).
+// Save writes through the lib (createRule for a new one, saveWorkflow = a new version for an existing one); Turn on / off
+// is saved at once (setRuleOn); Delete (custom workflows only) asks first. Test workflow runs the lib's simulator on a
+// sample event: nothing is sent. Executions lists the rule's recent runs (runsOf). Kept in this browser (front end only).
 // Edit freely: this file is the source for the screen.
 
-import React from 'react';
-import { DCLogic, Icon } from '@/runtime/dc';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Icon } from '@/runtime/dc';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { toast } from '@/runtime/ui';
-import { StatusBadge } from '@/components/ui';
+import { toast, confirmDialog } from '@/runtime/ui';
+import { navigate } from '@/runtime/routes';
+import { StatusBadge, EmptyState } from '@/components/ui';
 import { RecordHeader, IndexTabs } from '@/components/ui/IndexKit';
+import {
+  ruleBy, setRuleOn, createRule, saveWorkflow, deleteRule, duplicateRule, runsOf, simulate, validateRule,
+  SAMPLE_EVENTS, TRIGGERS, BUILDER_TRIGGERS, CONDITION_FIELDS, fieldOf, conditionLabel, OP_LABEL, ACTION_KINDS, TASK_OWNERS,
+  MESSAGE_CLASSES, catOfTrigger,
+} from '@/lib/automationRules';
+import { getTemplates } from '@/lib/messaging';
+import { capsOf } from '@/lib/channelCaps';
+import { formatDate, formatTime } from '@/lib/format';
 
 // ---- logic ----
 
-function val(e) { return e && e.target ? e.target.value : e; }
+const SOFT = { primary: ['var(--fill-primary-soft)', 'var(--primary)'], info: ['var(--fill-info-soft)', 'var(--text-info)'], warning: ['var(--fill-warning-soft)', 'var(--text-warning)'], success: ['var(--fill-success-soft)', 'var(--text-success)'], neutral: ['var(--slate-100)', 'var(--slate-600)'], accent: ['var(--fill-accent-soft)', 'var(--accent-text)'], secondary: ['var(--fill-secondary-soft)', 'var(--secondary-focus)'] };
+// node type → [tone, subtitle, icon]
+const TY = {
+  trig: ['primary', 'Trigger', 'zap'], if: ['info', 'Conditions', 'git-branch'], wait: ['neutral', 'Wait', 'clock'], stop: ['neutral', 'End', 'circle-x'],
+  whatsapp: ['success', 'WhatsApp', 'message-circle'], sms: ['secondary', 'SMS', 'message-square'], email: ['accent', 'Email', 'mail'],
+  task: ['warning', 'Task', 'bell'], ai: ['primary', 'Grid AI', 'sparkles'],
+};
+const CATS = [['orders', 'Orders'], ['delivery', 'Delivery'], ['customers', 'Customers'], ['stock', 'Stock'], ['marketing', 'Marketing']];
+const NW = 76;
+const GAP = 150;
+const clone = (x) => JSON.parse(JSON.stringify(x));
+const short = (s, n = 42) => (String(s || '').length > n ? String(s).slice(0, n - 1) + '…' : String(s || ''));
+const waitText = (h) => (h >= 24 && h % 24 === 0 ? `${h / 24} ${h / 24 === 1 ? 'day' : 'days'}` : `${h} ${h === 1 ? 'hour' : 'hours'}`);
+const toDraft = (r) => ({ name: r.name, trigger: r.trigger, cat: r.cat, conditions: clone(r.conditions || []), actions: clone(r.actions || []), wait: r.wait || 0, on: r.on !== false, custom: !!r.custom });
+const labeled = (d) => ({ ...d, conditions: d.conditions.map((c) => ({ ...c, label: conditionLabel(d.trigger, c) })) });
+const key = (d) => JSON.stringify(d ? { ...labeled(d), custom: undefined } : null);
+function tplName(id) { const t = getTemplates().find((x) => x.id === id); return t ? t.name : id; }
+function actionName(a) {
+  if (a.kind === 'message') return a.template ? tplName(a.template) : 'Send ' + (a.channel === 'email' ? 'an email' : capsOf(a.channel).name);
+  return short(a.label, 40) || (a.kind === 'task' ? 'Task' : 'Grid AI step');
+}
+function actionSub(a) {
+  if (a.kind === 'message') return `${capsOf(a.channel).name} · ${a.cls || 'Transactional'}${a.fallback ? ' · if needed' : ''}`;
+  if (a.kind === 'task') return 'Task · ' + (a.owner || 'Team');
+  return 'Grid AI';
+}
+function defaultCond(f) {
+  if (f.alert) return { field: f.field, op: 'lt', value: 'alert' };
+  if (f.type === 'choice') return { field: f.field, op: 'is', value: f.choices[0] };
+  if (f.type === 'yesno') return { field: f.field, op: 'is', value: true };
+  return { field: f.field, op: f.type === 'money' ? 'gt' : 'gte', value: f.def != null ? f.def : f.type === 'money' ? 5000 : 1 };
+}
+/** The canvas drawn from the rule: nodes in a row, the IF's false branch to an end node underneath. */
+function graph(d) {
+  const list = [{ key: 'trig', ty: 'trig', name: TRIGGERS[d.trigger] || d.trigger, sub: 'Trigger' }];
+  if (d.conditions.length) list.push({ key: 'if', ty: 'if', name: d.conditions.length === 1 ? conditionLabel(d.trigger, d.conditions[0]) : `${d.conditions.length} conditions, all must match`, sub: 'Conditions' });
+  if (d.wait) list.push({ key: 'wait', ty: 'wait', name: 'Wait ' + waitText(d.wait), sub: 'Wait' });
+  d.actions.forEach((a, i) => list.push({ key: 'a' + i, ty: a.kind === 'message' ? a.channel : a.kind, name: actionName(a), sub: actionSub(a) }));
+  const nodes = list.map((n, i) => ({ ...n, x: 24 + i * GAP, y: 190 }));
+  const edges = [];
+  for (let i = 1; i < nodes.length; i += 1) edges.push([nodes[i - 1].key, nodes[i].key, nodes[i - 1].key === 'if' ? 'true' : '']);
+  const ifN = nodes.find((n) => n.key === 'if');
+  if (ifN) { nodes.push({ key: 'stop', ty: 'stop', name: 'Nothing happens', sub: 'End', x: ifN.x + GAP, y: 340 }); edges.push(['if', 'stop', 'false']); }
+  const last = list.length ? nodes[list.length - 1] : null;
+  const plus = last ? { x: last.x + NW + 14, y: last.y + 24, lab: last.key === 'if' ? 'true' : '', after: last.name } : null;
+  return { nodes, edges, plus };
+}
 
-// type -> [type, bg, fg, subtitle]
-var SOFT = { primary: ['var(--fill-primary-soft)', 'var(--primary)'], info: ['var(--fill-info-soft)', 'var(--text-info)'], warning: ['var(--fill-warning-soft)', 'var(--text-warning)'], success: ['var(--fill-success-soft)', 'var(--text-success)'], neutral: ['var(--slate-100)', 'var(--slate-600)'], accent: ['var(--fill-accent-soft)', 'var(--accent-text)'], secondary: ['var(--fill-secondary-soft)', 'var(--secondary-focus)'] };
-function ty(k, tone, sub) { return [k, SOFT[tone][0], SOFT[tone][1], sub]; }
-var TY = { trig: ty('trig', 'primary', 'Trigger'), if: ty('if', 'info', 'IF'), hold: ty('hold', 'warning', 'Orders'), wa: ty('wa', 'success', 'WhatsApp'), wait: ty('wait', 'neutral', 'Wait'), call: ty('call', 'primary', 'AI call'), ok: ty('ok', 'success', 'Orders'), truck: ty('truck', 'accent', 'Courier'), sms: ty('sms', 'secondary', 'SMS'), tag: ty('tag', 'secondary', 'Customers'), bell: ty('bell', 'warning', 'Staff'), split: ty('split', 'info', 'Switch') };
-var START = [
-  { id: 'n1', ty: 'trig', name: 'Order placed', x: 24, y: 230, p: [['Event', 'New order'], ['Sources', 'Website, Facebook, WhatsApp']] },
-  { id: 'n2', ty: 'if', name: 'Big outside-Dhaka COD?', x: 164, y: 230, c: [['Payment method', 'is', 'COD'], ['Order total', 'is more than', '3000'], ['Delivery zone', 'is', 'Outside Dhaka']] },
-  { id: 'n3', ty: 'hold', name: 'Hold order', x: 304, y: 120, p: [['Reason', 'Waiting for advance delivery charge']] },
-  { id: 'n4', ty: 'wa', name: 'Ask ৳150 advance', x: 444, y: 120, p: [['Template', 'advance_request_bn'], ['Amount', '150'], ['Pay by', 'bKash · 01711-482093']] },
-  { id: 'n5', ty: 'wait', name: 'Wait 30 min', x: 584, y: 120, p: [['Wait for', '30 minutes'], ['Or resume when', 'bKash payment arrives']] },
-  { id: 'n6', ty: 'if', name: 'Advance paid?', x: 724, y: 120, c: [['bKash payment', 'exists for', 'this order']] },
-  { id: 'n8', ty: 'ok', name: 'Release and confirm', x: 864, y: 40, p: [['New status', 'Confirmed'], ['Note', 'Advance ৳150 received']] },
-  { id: 'n9', ty: 'call', name: 'AI call customer', x: 864, y: 200, p: [['Script', 'Advance reminder'], ['Language', 'Match customer']] },
-  { id: 'n7', ty: 'call', name: 'AI call to confirm', x: 304, y: 340, p: [['Script', 'Standard confirmation'], ['Language', 'Match customer']] },
-  { id: 'n10', ty: 'truck', name: 'Book courier', x: 444, y: 340, p: [['Courier', 'Default (Pathao)'], ['Ship from', 'Central Warehouse']] }
-];
-var EDGES = [['n1', 'n2', ''], ['n2', 'n3', 'true'], ['n2', 'n7', 'false'], ['n3', 'n4', ''], ['n4', 'n5', ''], ['n5', 'n6', ''], ['n6', 'n8', 'true'], ['n6', 'n9', 'false'], ['n7', 'n10', '']];
-var CAT = [['Triggers', [['trig', 'Order placed', 'A new order from any channel'], ['trig', 'Order status changed', 'Any move between statuses'], ['trig', 'AI call finished', 'With the call result'], ['trig', 'Parcel delivered', 'From the courier'], ['trig', 'Stock is low', 'Below the alert level'], ['trig', 'On a schedule', 'Every day, week or month']]],
-  ['GridCommerce', [['hold', 'Hold order', 'Pause the order'], ['ok', 'Change order status', 'Move it to any status'], ['truck', 'Book courier', 'Pathao, Steadfast, RedX, Carrybee'], ['tag', 'Tag customer', 'Add or remove a tag'], ['bell', 'Notify staff', 'In the app and by SMS']]],
-  ['Messages', [['wa', 'WhatsApp message', 'Approved template'], ['sms', 'SMS', 'Masking name Dazzle Shop'], ['call', 'AI call', 'Bangla or English']]],
-  ['Flow', [['if', 'IF', 'Split into true and false'], ['split', 'Switch', 'Split by value into many paths'], ['wait', 'Wait', 'For a time or an event']]]];
-var TEST_PATH = ['n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n9'];
-var OUT = { n1: '{ "order": "#ORD-0929-007", "total": 12400,\n  "payment": "COD", "zone": "Outside Dhaka" }', n2: 'true → 1 item', n3: '{ "status": "On hold" }', n4: '{ "whatsapp": "delivered", "to": "01819-554120" }', n5: 'Resumed after 30 minutes', n6: 'false → 1 item (no bKash payment)', n9: '{ "result": "AI confirmed", "advance": "promised by 6:00 PM" }' };
-var NW = 76;
-var NODE_ICON = { trig: 'zap', if: 'git-branch', hold: 'pause', wa: 'message-circle', wait: 'clock', call: 'phone', ok: 'check', truck: 'truck', sms: 'message-square', tag: 'tag', bell: 'bell', split: 'split' };
-class Component extends DCLogic {
-  // phones: open the canvas at 100% so labels stay readable; it pans inside a box about 70% of the screen tall.
-  // The % button still zooms to fit the whole drawing.
-  componentDidMount() {
-    if (typeof window === 'undefined' || !window.matchMedia || !window.matchMedia('(max-width:640px)').matches) return;
-    var nodes = (this.state && this.state.nodes) || START;
-    var w = Math.max(960, Math.max.apply(null, nodes.map(function (n) { return n.x; })) + 116);
-    var cw = this.canvasEl ? this.canvasEl.clientWidth : window.innerWidth - 32;
-    var fit = Math.min(1, Math.max(.3, Math.floor((cw - 8) / w * 100) / 100));
-    this.setState({ z: 1, fitZ: fit });
-  }
-  renderVals() {
-    var self = this, s = this.state || {};
-    var nodes = s.nodes || START, edges = s.edges || EDGES, sel = s.sel || null, tab = s.tab || 'editor', ran = s.ran || null, z = s.z || 1;
-    var byId = {}; nodes.forEach(function (n) { byId[n.id] = n; });
-    var outs = function (id) { return edges.filter(function (e) { return e[0] === id; }); };
-    function upd(id, fn) { self.setState({ nodes: nodes.map(function (n) { return n.id === id ? fn(JSON.parse(JSON.stringify(n))) : n; }) }); }
-    function addAfter(fromId, label, ty, nm) {
-      var f = byId[fromId], nx = f.x + 140, ny = f.y + (label === 'false' ? 110 : label === 'true' ? -80 : 0);
-      while (nodes.some(function (n) { return Math.abs(n.x - nx) < 60 && Math.abs(n.y - ny) < 60; })) ny += 110;
-      ny = Math.max(20, Math.min(ny, 520));
-      var id = 'n' + (100 + nodes.length);
-      var nn = { id: id, ty: ty, name: nm, x: nx, y: ny, p: ty === 'if' ? undefined : [['Setting', 'Default']], c: ty === 'if' ? [['Field', 'is', 'value']] : undefined };
-      self.setState({ nodes: nodes.concat([nn]), edges: edges.concat([[fromId, id, label]]), sel: id, creator: null, ran: null });
-      toast(nm + ' added. Set it up in the panel on the right.');
-    }
-    var ranSet = {}; if (ran) ran.forEach(function (id) { ranSet[id] = 1; });
-    var pluses = [];
-    nodes.forEach(function (n) { var o = outs(n.id);
-      if (n.ty === 'if') { ['true', 'false'].forEach(function (lab) { if (!o.some(function (e) { return e[2] === lab; })) pluses.push({ from: n.id, lab: lab, x: n.x + NW + 26, y: n.y + (lab === 'true' ? 14 : 44) }); }); }
-      else if (!o.length) pluses.push({ from: n.id, lab: '', x: n.x + NW + 26, y: n.y + 26 }); });
-    var v = {
-      name: s.name == null ? 'Advance charge for big outside-Dhaka COD orders' : s.name, onName: function (e) { self.setState({ name: val(e) }); },
-      nodeCount: nodes.length + ' nodes', layerW: Math.max(960, Math.max.apply(null, nodes.map(function (n) { return n.x; })) + 116),
-      canvasH: Math.round(Math.max(570, Math.max.apply(null, nodes.map(function (n) { return n.y; })) + 140) * z + 64) + 'px',
-      active: s.act !== false, toggleActive: function () { var on = s.act === false; self.setState({ act: on }); toast(on ? 'Workflow turned on.' : 'Workflow turned off. It stops at the next matching event.'); },
-      saveL: s.saved ? 'Saved' : 'Save', save: function () { self.setState({ saved: true }); toast('Workflow saved.'); },
-      tabs: [['editor', 'Editor'], ['exec', 'Executions']].map(function (t) { var on = t[0] === tab; return { key: t[0], label: t[1], id: 'wf-tab-' + t[0], on: on, onClick: function () { self.setState({ tab: t[0] }); } }; }),
-      isEditor: tab === 'editor', isExec: tab === 'exec',
-      runNote: ran ? 'Last test: #ORD-0929-007 · ' + ran.length + ' of ' + nodes.length + ' nodes ran · 1.4 s' : 'Tests run on a real order. Nothing is sent to the customer.',
-      test: function () { self.setState({ ran: TEST_PATH.filter(function (id) { return byId[id]; }), tab: 'editor' }); toast('Test run on #ORD-0929-007 (৳12,400, COD, Chattogram): took the true branch, no advance paid, ended at AI call. Nothing was sent.'); },
-      zoom: z, zoomL: Math.round(z * 100) + '%', zIn: function () { self.setState({ z: Math.min(1.2, +(z + .1).toFixed(1)) }); }, zOut: function () { self.setState({ z: Math.max(Math.min(.6, s.fitZ || .6), +(z - .1).toFixed(1)) }); }, zFit: function () { self.setState({ z: s.fitZ || 1 }); },
-      nodes: nodes.map(function (n) { var t = TY[n.ty], ok = !!ranSet[n.id];
-        return { name: n.name, sub: t[3], x: n.x, y: n.y, icon: NODE_ICON[n.ty], bg: t[1], fg: t[2], ok: ok, cls: 'node' + (n.ty === 'trig' ? ' trig' : '') + (ok ? ' ok' : '') + (sel === n.id ? ' sel' : ''),
-          px: n.x - 6, py: n.y + NW / 2 - 5, inDisp: n.ty === 'trig' ? 'none' : 'block', lx: n.x + NW / 2 - 65, ly: n.y + NW + 6,
-          pick: function () { self.setState({ sel: n.id, creator: null }); } }; }),
-      edges: edges.map(function (e) { var a = byId[e[0]], b = byId[e[1]]; if (!a || !b) return null;
-        var sx = a.x + NW, sy = a.y + NW / 2 + (e[2] === 'true' ? -14 : e[2] === 'false' ? 14 : 0), tx = b.x - 2, ty = b.y + NW / 2;
-        var l = Math.min(sx, tx) - 10, t = Math.min(sy, ty) - 10, w = Math.abs(tx - sx) + 20, h = Math.abs(ty - sy) + 20;
-        var x1 = sx - l, y1 = sy - t, x2 = tx - l, y2 = ty - t, mx = (x2 - x1) / 2;
-        var both = ranSet[e[0]] && ranSet[e[1]];
-        var c = both ? 'var(--fill-success)' : 'var(--slate-400)';
-        return { l: l, t: t, w: w, h: h, d: 'M' + x1 + ' ' + y1 + ' C' + (x1 + mx) + ' ' + y1 + ' ' + (x2 - mx) + ' ' + y2 + ' ' + (x2 - 6) + ' ' + y2, a: 'M' + (x2 - 7) + ' ' + (y2 - 5) + ' L' + x2 + ' ' + y2 + ' L' + (x2 - 7) + ' ' + (y2 + 5) + ' z', c: c,
-          hasLab: !!e[2], lab: e[2], lc: e[2] === 'true' ? 'var(--text-success)' : 'var(--text-danger)', lx: sx + 6, ly: sy - (e[2] === 'true' ? 18 : -4), ran: !!both, ix: (sx + tx) / 2 - 18, iy: (sy + ty) / 2 - 16 }; }).filter(Boolean),
-      pluses: pluses.map(function (p) { return { x: p.x - 12, y: p.y, after: byId[p.from].name, hasLab: !!p.lab, lab: p.lab, lc: p.lab === 'true' ? 'var(--text-success)' : 'var(--text-danger)', lx: p.x - 44, ly: p.y + 4, add: function () { self.setState({ creator: { from: p.from, lab: p.lab }, sel: null, q: '' }); } }; }),
-      openCreator: function () { var leaf = pluses[pluses.length - 1]; self.setState({ creator: leaf ? { from: leaf.from, lab: leaf.lab } : { from: nodes[nodes.length - 1].id, lab: '' }, sel: null, q: '' }); },
-      creatorOpen: !!s.creator && tab === 'editor', ndvOpen: !!sel && !s.creator && tab === 'editor' && !!byId[sel],
-      creatorTitle: 'Add a node', creatorSub: s.creator ? 'After “' + (byId[s.creator.from] || {}).name + '”' + (s.creator.lab ? ' · ' + s.creator.lab + ' branch' : '') : '',
-      closeDrawer: function () { self.setState({ creator: null, sel: null }); },
-      q: s.q || '', onQ: function (e) { self.setState({ q: val(e) }); }
-    };
-    var q = (s.q || '').toLowerCase();
-    v.catalog = CAT.map(function (g) { return { cat: g[0], items: g[1].filter(function (it) { return !q || (it[1] + ' ' + it[2]).toLowerCase().indexOf(q) >= 0; }).filter(function (it) { return g[0] !== 'Triggers'; }).map(function (it) { var t = TY[it[0]]; var tt = it[0]; return { icon: NODE_ICON[tt], n: it[1], d: it[2], bg: t[1], fg: t[2], add: function () { if (s.creator) addAfter(s.creator.from, s.creator.lab, it[0], it[1]); } }; }) }; }).filter(function (g) { return g.items.length; });
-    v.noResults = v.catalog.length === 0;
-    if (sel && byId[sel]) { var n = byId[sel], t = TY[n.ty], hasRun = !!ranSet[n.id];
-      v.sel = { icon: NODE_ICON[n.ty], name: n.name, sub: t[3], bg: t[1], fg: t[2], isIf: n.ty === 'if', inN: n.ty === 'trig' ? 'none' : hasRun ? '1 item' : 'run a test', outN: hasRun ? '1 item' : 'not run yet', ran: hasRun,
-        conds: (n.c || []).map(function (c, i) { function f(k) { return function (e) { upd(n.id, function (m) { m.c[i][k] = val(e); return m; }); }; } return { f: c[0], o: c[1], v: c[2], onF: f(0), onO: f(1), onV: f(2) }; }),
-        addCond: function () { upd(n.id, function (m) { m.c.push(['Field', 'is', 'value']); return m; }); },
-        params: [['Name', n.name, '']].concat((n.p || []).map(function (p) { return [p[0], p[1], p[0] === 'Template' ? 'Approved by WhatsApp · Bangla' : p[0] === 'Wait for' ? 'Customers are never messaged during quiet hours.' : '']; })).map(function (p, i) { return { l: p[0], v: p[1], hasHint: !!p[2], hint: p[2], on: function (e) { upd(n.id, function (m) { if (i === 0) m.name = val(e); else m.p[i - 1][1] = val(e); return m; }); } }; }),
-        hasOut: hasRun, out: OUT[n.id] || '1 item' };
-    } else v.sel = { name: '', sub: '', bg: '', fg: '', icon: '', isIf: false, conds: [], params: [], hasOut: false, out: '', inN: '', outN: '', ran: false };
-    v.testStep = function () { if (!sel) return; var r = (ran || []).slice(); if (r.indexOf(sel) < 0) r.push(sel); self.setState({ ran: r }); toast('Step tested with #ORD-0929-007.'); };
-    v.delNode = function () { if (!sel) return; if (byId[sel].ty === 'trig') { toast('A workflow needs its trigger. Change it instead.', { tone: 'error' }); return; } if (outs(sel).length) { toast('Delete the nodes after this one first.', { tone: 'error' }); return; } var nm = byId[sel].name; self.setState({ nodes: nodes.filter(function (m) { return m.id !== sel; }), edges: edges.filter(function (e) { return e[1] !== sel; }), sel: null }); toast(nm + ' deleted.'); };
-    v.execs = [['29 Sep, 1:40 PM', '#ORD-0929-007', 'Held · WhatsApp · waited · AI call', '30 min 6 s', 'ok'], ['29 Sep, 11:12 AM', '#ORD-0929-003', 'Held · WhatsApp · paid · confirmed', '12 min 40 s', 'ok'], ['28 Sep, 8:05 PM', '#ORD-0928-041', 'Not a big COD order · AI call · courier', '48 s', 'ok'], ['28 Sep, 4:22 PM', '#ORD-0928-030', 'WhatsApp failed: number not on WhatsApp', '2 s', 'fail'], ['28 Sep, 10:15 AM', '#ORD-0928-012', 'Held · WhatsApp · paid · confirmed', '8 min 2 s', 'ok']].map(function (x) { var ok = x[4] === 'ok'; return { t: x[0], o: x[1], p: x[2], d: x[3], s: ok ? 'Succeeded' : 'Failed', bi: ok ? 'check' : 'triangle-alert', tone: ok ? 'success' : 'error' }; });
-    return v;
-  }
+function useWorkflow() {
+  const [st, setSt] = useState({ ready: false, id: '', missing: false, draft: null, saved: '' });
+  const load = (id) => {
+    if (!id || id === 'new') { setSt({ ready: true, id: '', missing: false, draft: null, saved: '' }); return; }
+    const r = ruleBy(id);
+    if (!r) { setSt({ ready: true, id, missing: true, draft: null, saved: '' }); return; }
+    const d = toDraft(r);
+    setSt({ ready: true, id, missing: false, draft: d, saved: key(d) });
+  };
+  useEffect(() => { load(new URLSearchParams(window.location.search).get('id') || ''); }, []);
+  return [st, setSt, load];
 }
 
 // ---- styles ----
@@ -176,10 +145,21 @@ const CSS = `
 .wf-hint{display:block;margin-top:4px;font-size:var(--text-xs);color:var(--text-muted)}
 .wf-out{margin:0;padding:10px 12px;border-radius:var(--radius-lg);background:var(--surface-subtle);font-family:var(--font-code);font-size:var(--text-xs);line-height:18px;color:var(--text-heading);white-space:pre-wrap}
 .wf-id{font-family:var(--font-data)}
+.wf-pick__head{padding:var(--space-4) var(--space-4) var(--space-2)}
+.wf-pick__head h2{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.wf-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:0 0 var(--space-3)}
+.wf-pick__item{min-height:56px}
+.wf-sample{width:auto;max-width:260px;height:32px}
+.wf-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.wf-x{justify-self:start}
+.wf-check{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-body)}
+.wf-check input{width:18px;height:18px;accent-color:var(--primary)}
 /* phones: the toolbar wraps; the canvas opens at 100% and pans inside a box at most 70% of the screen tall (never
    taller than the drawing); the node panel sits under the canvas */
 .wf-pan{display:none}
 @media (max-width:640px){
+  .wf-pick{grid-template-columns:minmax(0,1fr)}
+  .wf-sample{max-width:100%;flex:1 1 100%}
   .wf-note{flex:1 1 100%;text-align:left}
   .canvas{height:min(70vh,var(--wf-ch,640px));overflow:auto;-webkit-overflow-scrolling:touch}
   .zoom{bottom:auto;top:calc(min(70vh,var(--wf-ch,640px)) - 46px)}
@@ -190,173 +170,415 @@ const CSS = `
 
 // ---- markup ----
 
-export default class WorkflowBuilderScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    const st = this.state || {};
-    const renaming = !!st.renaming;
-    return (
-      <div className="dc-screen ds" data-screen="WorkflowBuilder">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell">
-          <Sidebar sticky="" active="auto-builder" />
-          <main className="gc-shell__main">
-            <Topbar crumb="Automation" page="Workflow builder" />
-            <div className="gc-shell__content">
-              <div className="ix-page">
-                <RecordHeader back="/automations" backLabel="Rules" title={v.name || 'Workflow builder'}
-                  badges={v.active ? <StatusBadge tone="success">Active</StatusBadge> : <StatusBadge tone="neutral">Inactive</StatusBadge>}
-                  meta={v.nodeCount}
-                  about="Build a workflow on the canvas: a trigger, IF branches and actions. Test it on a real order (nothing is sent to the customer), then save it and turn it on. Executions lists every run."
-                  secondary={[{ label: v.active ? 'Turn off' : 'Turn on', onClick: v.toggleActive }]}
-                  more={[{ label: 'Rename', onClick: () => this.setState({ renaming: !renaming }) }, { label: 'Workflow settings', href: '/workflow-settings' }]}
-                  primary={{ label: v.saveL, onClick: v.save }} />
+function TriggerPicker({ onPick }) {
+  return (
+    <section className="ix-card" aria-labelledby="wf-pick">
+      <div className="wf-pick__head"><h2 id="wf-pick">What starts this workflow?</h2></div>
+      <div className="wf-pick">
+        {BUILDER_TRIGGERS.map((t) => {
+          const ex = (SAMPLE_EVENTS[t] || [])[0];
+          return (
+            <button key={t} type="button" className="citem wf-pick__item" onClick={() => onPick(t)}>
+              <span className="ico" style={{ background: SOFT.primary[0], color: SOFT.primary[1] }}><Icon name="zap" width="16" height="16" aria-hidden="true" /></span>
+              <span><b>{TRIGGERS[t]}</b>{ex ? <small>e.g. {ex.label}</small> : null}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
+/** The panel for one node. */
+function NodePanel({ node, d, set, test, onClose, onDelete }) {
+  const fields = CONDITION_FIELDS[d.trigger] || [];
+  const tone = SOFT[TY[node.ty][0]];
+  const setCond = (i, patch) => set({ conditions: d.conditions.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
+  const ai = node.key[0] === 'a' ? Number(node.key.slice(1)) : -1;
+  const a = ai >= 0 ? d.actions[ai] : null;
+  const setAct = (patch) => set({ actions: d.actions.map((x, j) => (j === ai ? { ...x, ...patch } : x)) });
+  const tpls = a && a.kind === 'message' ? getTemplates().filter((t) => t.channel === a.channel || t.id === a.template) : [];
+  const tpl = a && a.template ? getTemplates().find((t) => t.id === a.template) : null;
+  const prev = ai > 0 ? d.actions[ai - 1] : null;
+  const result = test ? test.byNode[node.key] : null;
+  return (
+    <div className="drawer" role="region" aria-label="Node panel">
+      <div className="drawer__head">
+        <span className="ico" style={{ background: tone[0], color: tone[1] }}><Icon name={TY[node.ty][2]} width="16" height="16" aria-hidden="true" /></span>
+        <div><div className="drawer__title">{short(node.name, 48)}</div><div className="drawer__sub">{node.sub}</div></div>
+        <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Close panel" onClick={onClose}><Icon name="x" width="16" height="16" aria-hidden="true" /></button>
+      </div>
+      <div className="drawer__body">
+        {node.key === 'trig' ? (<>
+          <div><label className="gc-label" htmlFor="wf-trig">Starts when</label>
+            <select id="wf-trig" className="gc-input gc-select" value={d.trigger} onChange={(e) => { const t = e.target.value; const ok = (CONDITION_FIELDS[t] || []).map((f) => f.field); set({ trigger: t, cat: catOfTrigger(t), conditions: d.conditions.filter((c) => ok.includes(c.field)) }); }}>
+              {(BUILDER_TRIGGERS.includes(d.trigger) ? BUILDER_TRIGGERS : [d.trigger, ...BUILDER_TRIGGERS]).map((t) => <option key={t} value={t}>{TRIGGERS[t]}</option>)}
+            </select>
+            <span className="wf-hint">Changing it removes conditions the new trigger doesn't have.</span>
+          </div>
+          <div><label className="gc-label" htmlFor="wf-cat">Category</label>
+            <select id="wf-cat" className="gc-input gc-select" value={d.cat} onChange={(e) => set({ cat: e.target.value })}>{CATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+          </div>
+        </>) : null}
+
+        {node.key === 'if' ? (<>
+          <span className="gc-label">Conditions · all must match</span>
+          {d.conditions.map((c, i) => {
+            const f = fieldOf(d.trigger, c.field) || fields[0];
+            return (
+              <div key={i} className="cond">
+                <select className="gc-input gc-select" aria-label="Field" value={c.field} onChange={(e) => setCond(i, defaultCond(fieldOf(d.trigger, e.target.value)))}>
+                  {fields.map((x) => <option key={x.field} value={x.field}>{x.label}</option>)}
+                </select>
+                {f && f.type !== 'yesno' ? (
+                  <select className="gc-input gc-select" aria-label="Operator" value={c.op} onChange={(e) => setCond(i, { op: e.target.value })}>{f.ops.map((o) => <option key={o} value={o}>{OP_LABEL[o]}</option>)}</select>
+                ) : null}
+                {f && f.type === 'choice' ? (
+                  <select className="gc-input gc-select" aria-label="Value" value={c.value} onChange={(e) => setCond(i, { value: e.target.value })}>{f.choices.map((o) => <option key={o}>{o}</option>)}</select>
+                ) : f && f.type === 'yesno' ? (
+                  <select className="gc-input gc-select" aria-label="Value" value={c.value ? 'yes' : 'no'} onChange={(e) => setCond(i, { value: e.target.value === 'yes' })}><option value="yes">Yes</option><option value="no">No</option></select>
+                ) : f && f.alert && c.value === 'alert' ? (
+                  <select className="gc-input gc-select" aria-label="Value" value="alert" onChange={(e) => setCond(i, { value: e.target.value === 'alert' ? 'alert' : 5 })}><option value="alert">The alert level</option><option value="n">A number</option></select>
+                ) : (
+                  <input className="gc-input" type="number" min="0" aria-label="Value" value={c.value === '' ? '' : c.value} onChange={(e) => setCond(i, { value: e.target.value === '' ? '' : Number(e.target.value) })} />
+                )}
+                <button type="button" className="ix-btn ix-btn--sm ix-btn--plain wf-x" onClick={() => set({ conditions: d.conditions.filter((_, j) => j !== i) })}>Remove</button>
+              </div>
+            );
+          })}
+          {fields.length ? <button type="button" className="ix-btn ix-btn--sm wf-addcond" onClick={() => set({ conditions: [...d.conditions, defaultCond(fields[0])] })}><Icon name="plus" width="16" height="16" aria-hidden="true" />Add condition</button> : null}
+        </>) : null}
+
+        {node.key === 'wait' ? (
+          <div><label className="gc-label" htmlFor="wf-wait">Wait (hours)</label>
+            <input id="wf-wait" className="gc-input" type="number" min="1" value={d.wait} onChange={(e) => set({ wait: Math.max(0, Number(e.target.value) || 0) })} />
+            <span className="wf-hint">Then the steps after it run. Customers are never messaged in quiet hours.</span>
+          </div>
+        ) : null}
+
+        {a && a.kind === 'message' ? (<>
+          <div className="gc-cols-2 gc-cols--keep wf-two">
+            <div><label className="gc-label" htmlFor="wf-ch">Send by</label>
+              <select id="wf-ch" className="gc-input gc-select" value={a.channel} onChange={(e) => setAct({ channel: e.target.value, template: '' })}>{ACTION_KINDS.filter((k) => k.kind === 'message').map((k) => <option key={k.channel} value={k.channel}>{k.label}</option>)}</select>
+            </div>
+            <div><label className="gc-label" htmlFor="wf-cls">Message type</label>
+              <select id="wf-cls" className="gc-input gc-select" value={a.cls || 'Transactional'} onChange={(e) => setAct({ cls: e.target.value })}>{MESSAGE_CLASSES.map((c) => <option key={c}>{c}</option>)}</select>
+            </div>
+          </div>
+          {a.cls === 'Marketing' ? <span className="wf-hint">Offers go only to customers who agreed, outside quiet hours and within the caps.</span> : null}
+          <div><label className="gc-label" htmlFor="wf-tpl">Template</label>
+            <select id="wf-tpl" className="gc-input gc-select" value={a.template || ''} onChange={(e) => setAct({ template: e.target.value })}>
+              <option value="">Write my own</option>
+              {tpls.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            {a.channel === 'whatsapp' && !a.template ? <span className="wf-hint">{capsOf('whatsapp').text}.</span> : null}
+          </div>
+          {tpl ? <pre className="wf-out">{tpl.body}</pre> : (
+            <div><label className="gc-label" htmlFor="wf-text">Message</label>
+              <textarea id="wf-text" className="gc-input" rows={4} value={a.text || ''} onChange={(e) => setAct({ text: e.target.value })} />
+              <span className="wf-hint">{'Use {{customer_name}}, {{order_id}} and {{store_name}}.'}</span>
+            </div>
+          )}
+          {prev && prev.kind === 'message' ? (
+            <label className="wf-check"><input type="checkbox" checked={!!a.fallback} onChange={() => setAct({ fallback: !a.fallback })} />Only if the message before can't reach them</label>
+          ) : null}
+        </>) : null}
+
+        {a && (a.kind === 'task' || a.kind === 'ai') ? (<>
+          {a.kind === 'task' ? (
+            <div><label className="gc-label" htmlFor="wf-owner">Team</label>
+              <select id="wf-owner" className="gc-input gc-select" value={a.owner || TASK_OWNERS[0]} onChange={(e) => setAct({ owner: e.target.value })}>{[...new Set([...(a.owner ? [a.owner] : []), ...TASK_OWNERS])].map((o) => <option key={o}>{o}</option>)}</select>
+            </div>
+          ) : <span className="wf-hint">Grid AI does this within its agent's tools and limits.</span>}
+          <div><label className="gc-label" htmlFor="wf-label">What to do</label>
+            <input id="wf-label" className="gc-input" value={a.label || ''} onChange={(e) => setAct({ label: e.target.value })} />
+            {a.kind === 'task' ? <span className="wf-hint">The rule asks the team; it can't change an order by itself.</span> : null}
+          </div>
+        </>) : null}
+
+        {node.key === 'stop' ? <p className="wf-hint" style={{ margin: 0 }}>When a condition isn't met, the workflow ends here and nothing is sent.</p> : null}
+
+        {result ? (
+          <div><span className="gc-label">Last test</span><pre className="wf-out">{result}</pre></div>
+        ) : null}
+      </div>
+      {node.key !== 'trig' && node.key !== 'stop' ? (
+        <div className="drawer__foot">
+          <span />
+          <button type="button" className="ix-btn ix-btn--sm ix-btn--danger" onClick={onDelete}>{node.key === 'if' ? 'Remove conditions' : node.key === 'wait' ? 'Remove wait' : 'Delete step'}</button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export default function WorkflowBuilder() {
+  const [wf, setWf, load] = useWorkflow();
+  const [sel, setSel] = useState(null);
+  const [creator, setCreator] = useState(false);
+  const [q, setQ] = useState('');
+  const [tab, setTab] = useState('editor');
+  const [test, setTest] = useState(null);
+  const [sample, setSample] = useState('');
+  const [renaming, setRenaming] = useState(false);
+  const [z, setZ] = useState(1);
+  const [fitZ, setFitZ] = useState(1);
+  const canvasEl = useRef(null);
+  const d = wf.draft;
+
+  const g = useMemo(() => (d ? graph(d) : { nodes: [], edges: [], plus: null }), [d]);
+  // phones: open at 100% so labels stay readable; the % button zooms to fit the whole drawing
+  useEffect(() => {
+    if (!d || !window.matchMedia || !window.matchMedia('(max-width:640px)').matches) return;
+    const w = Math.max(960, Math.max(...g.nodes.map((n) => n.x)) + 116);
+    const cw = canvasEl.current ? canvasEl.current.clientWidth : window.innerWidth - 32;
+    setFitZ(Math.min(1, Math.max(0.3, Math.floor(((cw - 8) / w) * 100) / 100)));
+  }, [!!d]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!wf.ready) return <div className="dc-screen ds" data-screen="WorkflowBuilder" />;
+
+  const isNew = !wf.id;
+  const dirty = !!d && (isNew || key(d) !== wf.saved);
+  const set = (patch) => { setWf((s) => ({ ...s, draft: { ...s.draft, ...patch } })); setTest(null); };
+  const samples = d ? SAMPLE_EVENTS[d.trigger] || [] : [];
+
+  const pick = (t) => { setWf((s) => ({ ...s, draft: { name: 'When ' + TRIGGERS[t].charAt(0).toLowerCase() + TRIGGERS[t].slice(1), trigger: t, cat: catOfTrigger(t), conditions: [], actions: [], wait: 0, on: true, custom: true } })); setCreator(true); setSel(null); };
+  const save = () => {
+    const err = validateRule(labeled(d));
+    if (err) { toast(err, { tone: 'error' }); return; }
+    if (isNew) {
+      const r = createRule(labeled(d));
+      if (r.error) { toast(r.error, { tone: 'error' }); return; }
+      window.history.replaceState(window.history.state, '', '/workflow-builder?id=' + r.rule.id);
+      load(r.rule.id);
+      toast('Workflow saved' + (r.rule.on ? ' and on' : ''));
+      return;
+    }
+    const r = saveWorkflow(wf.id, labeled(d));
+    if (r.error) { toast(r.error, { tone: 'error' }); return; }
+    load(wf.id);
+    toast(`Saved as version ${r.version}`);
+  };
+  const toggleOn = () => {
+    const on = !d.on;
+    if (isNew) { set({ on }); return; }
+    setRuleOn(wf.id, on);
+    setWf((s) => ({ ...s, draft: { ...s.draft, on }, saved: key({ ...JSON.parse(s.saved), on, custom: s.draft.custom }) }));
+    toast(on ? 'Workflow on. It runs from the next matching event.' : 'Workflow off.');
+  };
+  const remove = async () => {
+    const ok = await confirmDialog({ title: 'Delete this workflow?', body: 'It stops running and can\'t be brought back.', confirmLabel: 'Delete', tone: 'danger' });
+    if (!ok) return;
+    const r = deleteRule(wf.id);
+    if (r.error) { toast(r.error, { tone: 'error' }); return; }
+    toast('Workflow deleted');
+    navigate('/automations');
+  };
+  const duplicate = () => {
+    const c = duplicateRule(wf.id);
+    if (!c) return;
+    window.history.pushState(window.history.state, '', '/workflow-builder?id=' + c.id);
+    load(c.id); setSel(null); setTest(null);
+    toast('Copied. The copy is off until you turn it on.');
+  };
+  const runTest = () => {
+    const ev = samples.find((x) => x.id === sample) || samples[0];
+    if (!ev) { toast('There is no sample event for this trigger yet', { tone: 'info' }); return; }
+    if (!d.actions.length) { toast('Add a step first', { tone: 'error' }); return; }
+    const out = simulate({ ...labeled(d), on: true }, ev);
+    const ran = { trig: true };
+    const byNode = { trig: ev.label };
+    const condSteps = out.steps.filter((x) => x.kind === 'condition');
+    if (d.conditions.length) byNode.if = condSteps.map((x) => `${x.ok ? 'Met' : 'Not met'}: ${x.label} (${x.detail})`).join('\n');
+    if (out.matched) {
+      if (d.conditions.length) ran.if = true;
+      if (d.wait) { ran.wait = true; byNode.wait = 'Waited ' + waitText(d.wait); }
+      const acts = out.steps.filter((x) => x.kind === 'action');
+      d.actions.forEach((_, i) => { if (acts[i]) { byNode['a' + i] = acts[i].detail; if (acts[i].ok) ran['a' + i] = true; } });
+    } else { ran.stop = true; byNode.stop = 'A condition is not met, so nothing happens'; }
+    setTest({ ev, out, ran, byNode });
+    setTab('editor');
+  };
+  const addNode = (it) => {
+    setCreator(false); setQ('');
+    if (it.kind === 'if') { if (!d.conditions.length) set({ conditions: [defaultCond((CONDITION_FIELDS[d.trigger] || [])[0])] }); setSel('if'); return; }
+    if (it.kind === 'wait') { if (!d.wait) set({ wait: 24 }); setSel('wait'); return; }
+    const a = it.kind === 'message' ? { kind: 'message', channel: it.channel, cls: 'Transactional', text: '' } : { kind: 'task', owner: TASK_OWNERS[0], label: '' };
+    set({ actions: [...d.actions, a] });
+    setSel('a' + d.actions.length);
+  };
+  const delNode = () => {
+    if (sel === 'if') set({ conditions: [] });
+    else if (sel === 'wait') set({ wait: 0 });
+    else if (sel && sel[0] === 'a') { const i = Number(sel.slice(1)); set({ actions: d.actions.filter((_, j) => j !== i) }); }
+    setSel(null);
+  };
+
+  const catalog = d ? [
+    ['Flow', [
+      (CONDITION_FIELDS[d.trigger] || []).length && !d.conditions.length ? { kind: 'if', ty: 'if', n: 'Condition', s: 'Only go on when it matches' } : null,
+      !d.wait ? { kind: 'wait', ty: 'wait', n: 'Wait', s: 'Hours or days before the next step' } : null,
+    ].filter(Boolean)],
+    ['Messages', ACTION_KINDS.filter((k) => k.kind === 'message').map((k) => ({ kind: 'message', channel: k.channel, ty: k.channel, n: k.label, s: k.about }))],
+    ['Team', ACTION_KINDS.filter((k) => k.kind === 'task').map((k) => ({ kind: 'task', ty: 'task', n: k.label, s: k.about }))],
+  ].map(([cat, items]) => [cat, items.filter((it) => !q || (it.n + ' ' + it.s).toLowerCase().includes(q.toLowerCase()))]).filter(([, items]) => items.length) : [];
+
+  const byKey = Object.fromEntries(g.nodes.map((n) => [n.key, n]));
+  const selNode = sel && byKey[sel] ? byKey[sel] : null;
+  const ran = test ? test.ran : {};
+  const layerW = Math.max(960, Math.max(0, ...g.nodes.map((n) => n.x)) + 200);
+  const canvasH = Math.round(Math.max(520, Math.max(0, ...g.nodes.map((n) => n.y)) + 160) * z + 64) + 'px';
+  const runs = !isNew && tab === 'exec' ? runsOf(wf.id) : [];
+  const lc = (t) => (t ? t.charAt(0).toLowerCase() + t.slice(1) : '');
+  const say = (a) => (a.kind === 'message' ? 'send ' + (a.channel === 'sms' ? 'an SMS' : a.channel === 'email' ? 'an email' : 'a WhatsApp message') : lc(a.label || 'a task'));
+  const summary = d ? `When ${lc(TRIGGERS[d.trigger] || '')}${d.conditions.length ? ' and ' + d.conditions.map((c) => lc(conditionLabel(d.trigger, c))).join(' and ') : ''}${d.wait ? ', wait ' + waitText(d.wait) : ''}, then ${d.actions.length ? d.actions.map(say).join(', then ') : '…'}.` : '';
+
+  const header = (
+    <RecordHeader back="/automations" backLabel="Rules" title={d ? d.name || 'Untitled workflow' : wf.missing ? 'Workflow not found' : 'New workflow'}
+      badges={d ? (d.on ? <StatusBadge tone="success">On</StatusBadge> : <StatusBadge tone="neutral">Off</StatusBadge>) : null}
+      meta={d ? `${d.custom ? 'Custom' : 'Ready-made'} · ${(CATS.find((c) => c[0] === d.cat) || CATS[0])[1]}${dirty ? ' · Unsaved changes' : ''}` : ''}
+      about="Build a workflow from a trigger, conditions and steps. Test it on a sample event (nothing is sent), save it and turn it on. Executions lists its recent runs."
+      secondary={d ? [{ label: d.on ? 'Turn off' : 'Turn on', onClick: toggleOn }] : []}
+      more={d ? [{ label: 'Rename', onClick: () => setRenaming(!renaming) }, ...(!isNew ? [{ label: 'Duplicate', onClick: duplicate }] : []), ...(!isNew && d.custom ? [{ label: 'Delete workflow', onClick: remove }] : []), { label: 'Workflow settings', href: '/workflow-settings' }] : [{ label: 'Workflow settings', href: '/workflow-settings' }]}
+      primary={d ? { label: dirty ? 'Save' : 'Saved', onClick: save, disabled: !dirty } : null} />
+  );
+
+  return (
+    <div className="dc-screen ds" data-screen="WorkflowBuilder">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <div className="gc-shell">
+        <Sidebar sticky="" active="auto-builder" />
+        <main className="gc-shell__main">
+          <Topbar crumb="Automation" page="Workflow builder" />
+          <div className="gc-shell__content">
+            <div className="ix-page">
+              {header}
+
+              {wf.missing ? (
+                <section className="ix-card"><div className="ix-empty"><EmptyState icon="workflow" title="This workflow was deleted or doesn't exist" actionLabel="Back to rules" onAction={() => navigate('/automations')} /></div></section>
+              ) : !d ? <TriggerPicker onPick={pick} /> : (<>
                 {renaming ? (
                   <section className="ix-card ix-card--pad">
                     <div className="wf-rename">
-                      <div><label className="gc-label" htmlFor="wf-name">Workflow name</label><input id="wf-name" className="gc-input" value={v.name} onChange={v.onName} autoFocus /></div>
-                      <button type="button" className="ix-btn" onClick={() => this.setState({ renaming: false })}>Done</button>
+                      <div><label className="gc-label" htmlFor="wf-name">Workflow name</label><input id="wf-name" className="gc-input" value={d.name} onChange={(e) => set({ name: e.target.value })} autoFocus /></div>
+                      <button type="button" className="ix-btn" onClick={() => setRenaming(false)}>Done</button>
                     </div>
                   </section>
                 ) : null}
 
                 <section className="ix-card wf-card" aria-label="Workflow">
                   <div className="wfbar">
-                    <IndexTabs tabs={v.tabs} label="Workflow view" />
-                    <span className="wf-note">{v.runNote}</span>
-                    <button type="button" className="ix-btn ix-btn--sm" onClick={v.openCreator}><Icon name="plus" width="16" height="16" aria-hidden="true" />Add node</button>
-                    <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={v.test}><Icon name="play" width="16" height="16" aria-hidden="true" />Test workflow</button>
+                    <IndexTabs tabs={[['editor', 'Editor'], ['exec', 'Executions']].map(([k, l]) => ({ key: k, label: l, id: 'wf-tab-' + k, on: tab === k, onClick: () => setTab(k) }))} label="Workflow view" />
+                    <span className="wf-note">{test ? `Last test: ${test.ev.label} · ${test.out.matched ? 'runs' : 'stops at a condition'}. Nothing was sent.` : 'Tests run on a sample event. Nothing is sent.'}</span>
+                    {samples.length > 1 ? (
+                      <select className="gc-input gc-select wf-sample" aria-label="Sample event" value={sample || samples[0].id} onChange={(e) => { setSample(e.target.value); setTest(null); }}>{samples.map((x) => <option key={x.id} value={x.id}>{short(x.label, 40)}</option>)}</select>
+                    ) : null}
+                    <button type="button" className="ix-btn ix-btn--sm" onClick={() => { setCreator(true); setSel(null); setTab('editor'); }}><Icon name="plus" width="16" height="16" aria-hidden="true" />Add node</button>
+                    <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={runTest}><Icon name="play" width="16" height="16" aria-hidden="true" />Test workflow</button>
                   </div>
-                  {v.isEditor ? (
-                    <div style={{ position: 'relative', '--wf-ch': v.canvasH }}>
-                      <div className="canvas" ref={(el) => { this.canvasEl = el; }}>
-                        <div className="layer" style={{ width: v.layerW + 'px', transform: 'scale(' + v.zoom + ')' }}>
-                          <div className="sticky" style={{ left: 24, top: 450, width: 300 }}><b>How this works</b><br />Big COD orders going outside Dhaka are held until the customer pays the delivery charge by bKash. If they have not paid after 30 minutes, the AI calls them.</div>
-                          {v.edges.map((e, i) => (
-                            <React.Fragment key={'e' + i}>
-                              <svg width={e.w} height={e.h} style={{ position: 'absolute', left: e.l, top: e.t, overflow: 'visible', pointerEvents: 'none' }} aria-hidden="true">
-                                <path d={e.d} fill="none" strokeWidth="2" strokeDasharray={e.ran ? undefined : '5 4'} style={{ stroke: e.c }} />
-                                <path d={e.a} style={{ fill: e.c }} />
-                              </svg>
-                              {e.hasLab ? <span className="elab" style={{ left: e.lx, top: e.ly, color: e.lc }}>{e.lab}</span> : null}
-                              {e.ran ? <span className="items" style={{ left: e.ix, top: e.iy }}>1 item</span> : null}
-                            </React.Fragment>
-                          ))}
-                          {v.nodes.map((n, i) => (
-                            <React.Fragment key={'n' + i}>
-                              <button type="button" className={n.cls} style={{ left: n.x, top: n.y }} onClick={n.pick} aria-label={n.name}>
-                                <span className="ico" style={{ background: n.bg, color: n.fg }}><Icon name={n.icon} width="20" height="20" aria-hidden="true" /></span>
-                                {n.ok ? <span className="done"><Icon name="check" width="12" height="12" role="img" aria-label="Ran in the last test" /></span> : null}
-                              </button>
-                              <span className="port" style={{ left: n.px, top: n.py, display: n.inDisp }} />
-                              <span className="nlab" style={{ left: n.lx, top: n.ly }}>{n.name}<span className="nsub">{n.sub}</span></span>
-                            </React.Fragment>
-                          ))}
-                          {v.pluses.map((p, i) => (
-                            <React.Fragment key={'p' + i}>
-                              <button type="button" className="plus" style={{ left: p.x, top: p.y }} onClick={p.add} aria-label={`Add a node after ${p.after}${p.hasLab ? ', ' + p.lab + ' branch' : ''}`}><Icon name="plus" width="14" height="14" aria-hidden="true" /></button>
-                              {p.hasLab ? <span className="elab" style={{ left: p.lx, top: p.ly, color: p.lc }}>{p.lab}</span> : null}
-                            </React.Fragment>
-                          ))}
+                  {tab === 'editor' ? (
+                    <div style={{ position: 'relative', '--wf-ch': canvasH }}>
+                      <div className="canvas" ref={canvasEl}>
+                        <div className="layer" style={{ width: layerW + 'px', transform: 'scale(' + z + ')' }}>
+                          <div className="sticky" style={{ left: 24, top: 24, width: 420 }}><b>What it does</b><br />{summary}</div>
+                          {g.edges.map(([fa, fb, lab], i) => {
+                            const A = byKey[fa], B = byKey[fb];
+                            if (!A || !B) return null;
+                            const sx = A.x + NW, sy = A.y + NW / 2 + (lab === 'true' ? -14 : lab === 'false' ? 14 : 0), tx = B.x - 2, ty = B.y + NW / 2;
+                            const l = Math.min(sx, tx) - 10, t = Math.min(sy, ty) - 10, w = Math.abs(tx - sx) + 20, h = Math.abs(ty - sy) + 20;
+                            const x1 = sx - l, y1 = sy - t, x2 = tx - l, y2 = ty - t, mx = (x2 - x1) / 2;
+                            const both = ran[fa] && ran[fb];
+                            const c = both ? 'var(--fill-success)' : 'var(--slate-400)';
+                            return (
+                              <React.Fragment key={'e' + i}>
+                                <svg width={w} height={h} style={{ position: 'absolute', left: l, top: t, overflow: 'visible', pointerEvents: 'none' }} aria-hidden="true">
+                                  <path d={`M${x1} ${y1} C${x1 + mx} ${y1} ${x2 - mx} ${y2} ${x2 - 6} ${y2}`} fill="none" strokeWidth="2" strokeDasharray={both ? undefined : '5 4'} style={{ stroke: c }} />
+                                  <path d={`M${x2 - 7} ${y2 - 5} L${x2} ${y2} L${x2 - 7} ${y2 + 5} z`} style={{ fill: c }} />
+                                </svg>
+                                {lab ? <span className="elab" style={{ left: sx + 6, top: sy - (lab === 'true' ? 18 : -4), color: lab === 'true' ? 'var(--text-success)' : 'var(--text-danger)' }}>{lab}</span> : null}
+                              </React.Fragment>
+                            );
+                          })}
+                          {g.nodes.map((n) => {
+                            const tone = SOFT[TY[n.ty][0]];
+                            const ok = !!ran[n.key];
+                            return (
+                              <React.Fragment key={n.key}>
+                                <button type="button" className={'node' + (n.ty === 'trig' ? ' trig' : '') + (ok ? ' ok' : '') + (sel === n.key ? ' sel' : '')} style={{ left: n.x, top: n.y }} onClick={() => { setSel(n.key); setCreator(false); }} aria-label={n.name}>
+                                  <span className="ico" style={{ background: tone[0], color: tone[1] }}><Icon name={TY[n.ty][2]} width="20" height="20" aria-hidden="true" /></span>
+                                  {ok ? <span className="done"><Icon name="check" width="12" height="12" role="img" aria-label="Ran in the last test" /></span> : null}
+                                </button>
+                                {n.ty !== 'trig' ? <span className="port" style={{ left: n.x - 6, top: n.y + NW / 2 - 5 }} /> : null}
+                                <span className="nlab" style={{ left: n.x + NW / 2 - 65, top: n.y + NW + 6 }}>{short(n.name)}<span className="nsub">{n.sub}</span></span>
+                              </React.Fragment>
+                            );
+                          })}
+                          {g.plus ? (<>
+                            <button type="button" className="plus" style={{ left: g.plus.x, top: g.plus.y }} onClick={() => { setCreator(true); setSel(null); }} aria-label={`Add a step after ${g.plus.after}`}><Icon name="plus" width="14" height="14" aria-hidden="true" /></button>
+                            {g.plus.lab ? <span className="elab" style={{ left: g.plus.x - 2, top: g.plus.y - 20, color: 'var(--text-success)' }}>{g.plus.lab}</span> : null}
+                          </>) : null}
                         </div>
                       </div>
                       <span className="wf-pan" aria-hidden="true">Swipe to move around</span>
                       <div className="zoom">
-                        <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" onClick={v.zOut} aria-label="Zoom out"><Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
-                        <button type="button" className="ix-btn ix-btn--sm" onClick={v.zFit} aria-label="Fit to view">{v.zoomL}</button>
-                        <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" onClick={v.zIn} aria-label="Zoom in"><Icon name="plus" width="16" height="16" aria-hidden="true" /></button>
+                        <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" onClick={() => setZ(Math.max(Math.min(0.6, fitZ), +(z - 0.1).toFixed(1)))} aria-label="Zoom out"><Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
+                        <button type="button" className="ix-btn ix-btn--sm" onClick={() => setZ(fitZ)} aria-label="Fit to view">{Math.round(z * 100) + '%'}</button>
+                        <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" onClick={() => setZ(Math.min(1.2, +(z + 0.1).toFixed(1)))} aria-label="Zoom in"><Icon name="plus" width="16" height="16" aria-hidden="true" /></button>
                       </div>
-                      {v.creatorOpen ? (
+                      {creator ? (
                         <div className="drawer" role="region" aria-label="Node panel">
                           <div className="drawer__head">
-                            <div><div className="drawer__title">{v.creatorTitle}</div><div className="drawer__sub">{v.creatorSub}</div></div>
-                            <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Close panel" onClick={v.closeDrawer}><Icon name="x" width="16" height="16" aria-hidden="true" /></button>
+                            <div><div className="drawer__title">Add a step</div><div className="drawer__sub">{g.plus ? `After “${short(g.plus.after, 40)}”` : ''}</div></div>
+                            <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Close panel" onClick={() => setCreator(false)}><Icon name="x" width="16" height="16" aria-hidden="true" /></button>
                           </div>
-                          <div className="drawer__search"><input className="gc-input" aria-label="Search nodes" placeholder="Search nodes" value={v.q} onChange={v.onQ} /></div>
+                          <div className="drawer__search"><input className="gc-input" aria-label="Search steps" placeholder="Search steps" value={q} onChange={(e) => setQ(e.target.value)} /></div>
                           <div className="drawer__list">
-                            {v.catalog.map((g) => (
-                              <React.Fragment key={g.cat}>
-                                <div className="drawer__cat">{g.cat}</div>
-                                {g.items.map((it) => (
-                                  <button key={it.n} type="button" className="citem" onClick={it.add}>
-                                    <span className="ico" style={{ background: it.bg, color: it.fg }}><Icon name={it.icon} width="16" height="16" aria-hidden="true" /></span>
-                                    <span><b>{it.n}</b><small>{it.d}</small></span>
-                                  </button>
-                                ))}
+                            {catalog.map(([cat, items]) => (
+                              <React.Fragment key={cat}>
+                                <div className="drawer__cat">{cat}</div>
+                                {items.map((it) => {
+                                  const tone = SOFT[TY[it.ty][0]];
+                                  return (
+                                    <button key={it.n} type="button" className="citem" onClick={() => addNode(it)}>
+                                      <span className="ico" style={{ background: tone[0], color: tone[1] }}><Icon name={TY[it.ty][2]} width="16" height="16" aria-hidden="true" /></span>
+                                      <span><b>{it.n}</b><small>{it.s}</small></span>
+                                    </button>
+                                  );
+                                })}
                               </React.Fragment>
                             ))}
-                            {v.noResults ? <div className="drawer__none">No node matches that search.</div> : null}
+                            {!catalog.length ? <div className="drawer__none">No step matches that search.</div> : null}
                           </div>
                         </div>
                       ) : null}
-                      {v.ndvOpen ? (
-                        <div className="drawer" role="region" aria-label="Node panel">
-                          <div className="drawer__head">
-                            <span className="ico" style={{ background: v.sel.bg, color: v.sel.fg }}><Icon name={v.sel.icon} width="16" height="16" aria-hidden="true" /></span>
-                            <div><div className="drawer__title">{v.sel.name}</div><div className="drawer__sub">{v.sel.sub}</div></div>
-                            <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Close panel" onClick={v.closeDrawer}><Icon name="x" width="16" height="16" aria-hidden="true" /></button>
-                          </div>
-                          <div className="drawer__pills">
-                            <span className="wf-pill">Input · {v.sel.inN}</span>
-                            <span className={'wf-pill' + (v.sel.ran ? ' is-ok' : '')}>Output · {v.sel.outN}</span>
-                          </div>
-                          <div className="drawer__body">
-                            {v.sel.isIf ? (<>
-                              <span className="gc-label">Conditions · all must match</span>
-                              {v.sel.conds.map((c, i) => (
-                                <div key={i} className="cond">
-                                  <input className="gc-input" aria-label="Field" value={c.f} onChange={c.onF} />
-                                  <input className="gc-input" aria-label="Operator" value={c.o} onChange={c.onO} />
-                                  <input className="gc-input" aria-label="Value" value={c.v} onChange={c.onV} />
-                                </div>
-                              ))}
-                              <button type="button" className="ix-btn ix-btn--sm wf-addcond" onClick={v.sel.addCond}><Icon name="plus" width="16" height="16" aria-hidden="true" />Add condition</button>
-                            </>) : null}
-                            {v.sel.params.map((p, i) => (
-                              <div key={i}>
-                                <label className="gc-label" htmlFor={`wf-param-${i}`}>{p.l}</label>
-                                <input className="gc-input" id={`wf-param-${i}`} value={p.v} onChange={p.on} />
-                                {p.hasHint ? <span className="wf-hint">{p.hint}</span> : null}
-                              </div>
+                      {!creator && selNode ? <NodePanel node={selNode} d={d} set={set} test={test} onClose={() => setSel(null)} onDelete={delNode} /> : null}
+                    </div>
+                  ) : (
+                    isNew || !runs.length ? <div className="ix-empty"><EmptyState icon="workflow" title={isNew ? 'Save the workflow to see its runs' : 'No runs yet'} /></div> : (
+                      <div className="ix-table-wrap ix-table-wrap--show">
+                        <table className="ix-table ix-table--static gc-table--keep">
+                          <caption className="sr-only">Executions</caption>
+                          <thead><tr><th scope="col">Started</th><th scope="col">Event</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+                          <tbody>
+                            {runs.map((x) => (
+                              <tr key={x.at}>
+                                <td className="ix-muted">{formatDate(x.at)}, {formatTime(x.at)}</td>
+                                <td className="ix-strong">{x.label}</td>
+                                <td className="ix-muted">{x.detail}</td>
+                                <td>{x.ok ? <StatusBadge tone="success" icon="check">Done</StatusBadge> : <StatusBadge tone="warning" icon="triangle-alert">Handed over</StatusBadge>}</td>
+                              </tr>
                             ))}
-                            {v.sel.hasOut ? (
-                              <div><span className="gc-label">Last test output</span><pre className="wf-out">{v.sel.out}</pre></div>
-                            ) : null}
-                          </div>
-                          <div className="drawer__foot">
-                            <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={v.testStep}>Test step</button>
-                            <button type="button" className="ix-btn ix-btn--sm ix-btn--danger" onClick={v.delNode}>Delete</button>
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {v.isExec ? (
-                    <div className="ix-table-wrap ix-table-wrap--show">
-                      <table className="ix-table ix-table--static gc-table--keep">
-                        <caption className="sr-only">Executions</caption>
-                        <thead><tr><th scope="col">Started</th><th scope="col">Order</th><th scope="col">Path</th><th scope="col">Took</th><th scope="col">Status</th></tr></thead>
-                        <tbody>
-                          {v.execs.map((x) => (
-                            <tr key={x.t + x.o}>
-                              <td className="ix-muted">{x.t}</td>
-                              <td className="ix-strong wf-id">{x.o}</td>
-                              <td className="ix-muted">{x.p}</td>
-                              <td>{x.d}</td>
-                              <td><StatusBadge tone={x.tone} icon={x.bi}>{x.s}</StatusBadge></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : null}
+                          </tbody>
+                        </table>
+                      </div>
+                    )
+                  )}
                 </section>
-              </div>
+              </>)}
             </div>
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
-    );
-  }
+    </div>
+  );
 }

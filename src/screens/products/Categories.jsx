@@ -9,113 +9,139 @@ import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { Dialog as __Dialog, EmptyState as __EmptyState, Sheet as __Sheet, StatusBadge as __StatusBadge, InfoTip as __InfoTip } from '@/components/ui';
 import { ShopHeader, SearchField, LearnMore } from '@/components/ui/IndexKit';
-import { toast as __toast } from '@/runtime/ui';
+import { toast as __toast, confirmDialog } from '@/runtime/ui';
 import { TEMPLATES, tplBy, categoryDefaults, setCategoryTemplate, templateOfCategory, businessTemplate } from '@/lib/productTemplates';
+import { getCategories, productsIn, addCategory, saveCategory, deleteCategory, importCategories, CATEGORIES_EVENT, CATEGORY_SEED, categoryHandle } from '@/lib/productCategories';
+import SeoPanel, { SEO_PANEL_CSS } from '@/components/seo/SeoPanel';
+import { readSeo } from '@/lib/seo';
+import { contextOf } from '@/lib/seoItems';
+import { toHandle, cleanHandleInput } from '@/lib/handles';
+import { allProducts, getSavedProducts } from '@/lib/products';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
+// The tree is the shop's saved categories (lib/productCategories.js; the demo tree on the first render, the saved one
+// after mount). Product counts come from the product list. A new name or "Inside" moves the category's products with it;
+// only an empty category can be deleted.
 
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 function toast(self, m, bad) { __toast(m, bad ? { tone: 'error' } : undefined); }
 function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-var T = [
-  { id: 'ph', name: 'Phones', lv: 0, n: 46, kids: ['sm', 'fp'], tax: 'Standard VAT 15%', wp: '1 year official brand warranty', sg: 'No size guide', track: 'IMEI', unit: 'Piece', comm: '6%' },
-  { id: 'sm', name: 'Smartphones', lv: 1, n: 38, p: 'ph' }, { id: 'fp', name: 'Feature phones', lv: 1, n: 8, p: 'ph' },
-  { id: 'acc', name: 'Accessories', lv: 0, n: 142, kids: ['cse', 'chg', 'scr', 'hld', 'bat'], tax: 'Standard VAT 15%', wp: '6 months shop warranty', sg: 'Case sizes by model', track: 'No tracking', unit: 'Piece', comm: '15%' },
-  { id: 'cse', name: 'Cases & covers', lv: 1, n: 54, p: 'acc', kids: ['sil', 'arm'] }, { id: 'sil', name: 'Silicone cases', lv: 2, n: 30, p: 'cse' }, { id: 'arm', name: 'Rugged cases', lv: 2, n: 24, p: 'cse' },
-  { id: 'chg', name: 'Chargers & cables', lv: 1, n: 41, p: 'acc' }, { id: 'scr', name: 'Screen protection', lv: 1, n: 22, p: 'acc' }, { id: 'hld', name: 'Holders & stands', lv: 1, n: 17, p: 'acc' }, { id: 'bat', name: 'Batteries', lv: 1, n: 8, p: 'acc', hidden: true },
-  { id: 'aud', name: 'Audio', lv: 0, n: 28, kids: ['ebd', 'eph'], tax: 'Standard VAT 15%', wp: '6 months shop warranty', sg: 'No size guide', track: 'Serial number', unit: 'Piece', comm: '10%' },
-  { id: 'ebd', name: 'Earbuds', lv: 1, n: 16, p: 'aud' }, { id: 'eph', name: 'Earphones', lv: 1, n: 12, p: 'aud' },
-  { id: 'wr', name: 'Wearables', lv: 0, n: 14, kids: [], tax: 'Standard VAT 15%', wp: '1 year official brand warranty', sg: 'Strap sizes', track: 'Serial number', unit: 'Piece', comm: '8%' },
-  { id: 'pb', name: 'Power banks', lv: 0, n: 11, kids: [], tax: 'Standard VAT 15%', wp: '6 months shop warranty', sg: 'No size guide', track: 'No tracking', unit: 'Piece', comm: '10%' }
-];
-var BY = {}; T.forEach(function (t) { BY[t.id] = t; });
 var FIELDS = { ph: [['RAM', 'dropdown', true], ['Storage', 'dropdown', true], ['Network', 'dropdown', true], ['Display size', 'number', false], ['Battery', 'number', false], ['Official / unofficial', 'dropdown', true]], acc: [['Compatible models', 'text', true], ['Material', 'text', false], ['Colour', 'dropdown', false]], aud: [['Connection', 'dropdown', true], ['Battery life', 'number', false], ['Noise cancelling', 'yes / no', false]], wr: [['Display', 'text', false], ['Strap size', 'dropdown', true]], pb: [['Capacity (mAh)', 'number', true], ['Output', 'text', true]] };
-// A category name: required, 2 to 60 letters, and not already used next to it.
-function nameError(name, siblings) {
-  var n = String(name || '').trim();
-  if (!n) return 'Enter a category name.';
-  if (n.length < 2) return 'Use at least 2 letters.';
-  if (n.length > 60) return 'Keep the name under 60 letters.';
-  if (siblings.some(function (x) { return x.toLowerCase() === n.toLowerCase(); })) return 'There is already a category called “' + n + '” here.';
-  return '';
-}
+var SEED_TREE = getCategories(CATEGORY_SEED);
 function focusId(id) { setTimeout(function () { var el = document.getElementById(id); if (el) el.focus(); }, 0); }
 class Component extends DCLogic {
-  // saved category templates are read after mount (localStorage), so the first render matches the server
-  componentDidMount() { this.setState({ tplTick: 1 }); }
+  // saved categories, templates and products are read after mount (localStorage), so the first render matches the server
+  componentDidMount() {
+    var self = this;
+    this.reload = function () { self.setState({ cats: getCategories(), products: allProducts(getSavedProducts()), tplTick: Date.now() }); };
+    window.addEventListener(CATEGORIES_EVENT, this.reload); window.addEventListener('storage', this.reload);
+    this.reload();
+    // ?id=<category> opens that category (Online Store › SEO links here)
+    var want = new URLSearchParams(window.location.search).get('id');
+    if (want && getCategories().some(function (c) { return c.id === want; })) this.setState({ sel: want, edit: true });
+  }
+  componentWillUnmount() { if (this.reload) { window.removeEventListener(CATEGORIES_EVENT, this.reload); window.removeEventListener('storage', this.reload); } }
   renderVals() {
     var self = this, s = this.state || {}, open = s.open || { ph: true, acc: true, aud: true, cse: false };
-    var names = s.names || {}, all = T.concat(s.extra || []), by = {};
+    var all = s.cats || SEED_TREE, by = {}, ready = !!s.products;
     all.forEach(function (t) { by[t.id] = t; });
-    var nm = function (t) { return names[t.id] || t.name; };
     var kidsOf = function (id) { return all.filter(function (x) { return x.p === id; }); };
-    var root = function (t) { while (t.p) t = by[t.p]; return t; };
-    var sel = by[s.sel || 'ph'] || by.ph;
-    // Keep the tree in parent-then-children order so added categories sit under their parent.
-    var ordered = []; var walk = function (pid) { all.filter(function (x) { return (x.p || null) === pid; }).forEach(function (x) { ordered.push(x); walk(x.id); }); }; walk(null);
+    var root = function (t) { while (t.p && by[t.p]) t = by[t.p]; return t; };
+    var count = function (t) { return ready ? productsIn(t.path, s.products).length : null; };
+    var sel = by[s.sel] || all[0] || { id: '', name: '', lv: 0, p: '', path: '' };
     var cq = (s.cq || '').trim().toLowerCase();
-    var visible = cq ? ordered.filter(function (t) { return nm(t).toLowerCase().indexOf(cq) >= 0; })
-      : ordered.filter(function (t) { var p = t.p; while (p) { if (!open[p]) return false; p = by[p].p; } return true; });
+    var visible = cq ? all.filter(function (t) { return t.name.toLowerCase().indexOf(cq) >= 0; })
+      : all.filter(function (t) { var p = t.p; while (p) { if (!open[p]) return false; p = by[p] ? by[p].p : ''; } return true; });
     var R = root(sel);
-    var path = []; var q = sel.p; while (q) { path.unshift(nm(by[q])); q = by[q].p; }
-    var name = s.name != null ? s.name : nm(sel);
-    var sibNames = function (parentId, exceptId) { return all.filter(function (x) { return (x.p || null) === (parentId || null) && x.id !== exceptId; }).map(nm); };
+    var path = sel.p ? sel.path.split(' › ').slice(0, -1) : [];
+    var name = s.name != null ? s.name : sel.name;
+    var parentId = s.parent != null ? s.parent : sel.p;
     var add = s.add || null, imp = s.imp || null;
-    var parents = ordered.filter(function (t) { return t.lv < 2; });
+    var parents = all.filter(function (t) { return t.lv < 2; });
+    // where the open category can go: not inside itself, at most three levels deep
+    var depthBelow = function (id) { var k = kidsOf(id); return k.length ? 1 + Math.max.apply(null, k.map(function (x) { return depthBelow(x.id); })) : 0; };
+    var under = function (t) { return t.id === sel.id || (t.path + ' › ').indexOf(sel.path + ' › ') === 0; };
+    var homes = all.filter(function (t) { return !under(t) && t.lv + 1 + depthBelow(sel.id) <= 2; });
+    var n = count(sel);
     return assign({
-      rows: visible.map(function (t) { var on = t.id === sel.id, hk = kidsOf(t.id).length > 0, label = nm(t);
-        return { name: label, n: t.n, pad: (10 + (cq ? 0 : t.lv) * 26) + 'px', hasKids: hk && !cq, leaf: !hk || !!cq, isOpen: !!open[t.id], rot: open[t.id] ? '90deg' : '0deg', initial: label.charAt(0), fw: t.lv ? 500 : 600, fg: on ? '#003087' : '#0f172a', bg: on ? 'rgba(0,48,135,.07)' : 'transparent', ibg: on ? '#003087' : (t.lv ? '#eef2f6' : '#e0f3fb'), ifg: on ? '#fff' : '#003087', hidden: !!t.hidden, on: on,
-          fold: function () { var o = assign({}, open); o[t.id] = !open[t.id]; self.setState({ open: o }); }, pick: function () { self.setState({ sel: t.id, desc: null, name: null, nameErr: '', inMenu: null, featured: null }); } }; }),
+      rows: visible.map(function (t) { var on = t.id === sel.id, hk = kidsOf(t.id).length > 0, label = t.name, c = count(t);
+        return { id: t.id, name: label, n: c == null ? '' : c, pad: (10 + (cq ? 0 : t.lv) * 26) + 'px', hasKids: hk && !cq, leaf: !hk || !!cq, isOpen: !!open[t.id], initial: label.charAt(0), hidden: !!t.hidden, on: on,
+          fold: function () { var o = assign({}, open); o[t.id] = !open[t.id]; self.setState({ open: o }); }, pick: function () { self.setState({ sel: t.id, desc: null, name: null, parent: null, nameErr: '', inMenu: null, featured: null, handle: null, seoC: null }); } }; }),
       noRows: !visible.length, cq: s.cq || '', typeCq: function (e) { self.setState({ cq: e.target.value }); }, clearCq: function () { self.setState({ cq: '' }); },
       noRowsTitle: 'No category matches “' + (s.cq || '').trim() + '”',
       allLbl: Object.keys(open).some(function (k) { return open[k]; }) ? 'Close all' : 'Open all',
       toggleAll: function () { var any = Object.keys(open).some(function (k) { return open[k]; }); var o = {}; all.forEach(function (t) { if (kidsOf(t.id).length) o[t.id] = !any; }); self.setState({ open: o }); },
       // the category's product template (productTemplates.js): products in it get it unless they pick their own
-      tplOwn: s.tplTick ? (categoryDefaults()[path.concat(nm(sel)).join(' › ')] || {}).template || '' : '',
+      tplOwn: s.tplTick ? (categoryDefaults()[sel.path] || {}).template || '' : '',
       tplFrom: path.length ? tplBy(templateOfCategory(path[0])).name : tplBy(businessTemplate()).name,
-      setTpl: function (e) { var pth = path.concat(nm(sel)).join(' › '); setCategoryTemplate(pth, e.target.value); self.setState({ tplTick: Date.now() }); toast(self, e.target.value ? 'New products in ' + nm(sel) + ' use ' + tplBy(e.target.value).name + '.' : nm(sel) + ' uses the template above it.'); },
+      setTpl: function (e) { setCategoryTemplate(sel.path, e.target.value); self.setState({ tplTick: Date.now() }); toast(self, e.target.value ? 'New products in ' + sel.name + ' use ' + tplBy(e.target.value).name + '.' : sel.name + ' uses the template above it.'); },
       templates: TEMPLATES,
-      sel: { id: sel.id, name: nm(sel), initial: nm(sel).charAt(0), n: sel.n, path: path.length ? path.join(' › ') + ' ›' : 'Top level', parent: path.length ? path[path.length - 1] : 'Top level', tax: R.tax || 'Standard VAT 15%', wp: R.wp || 'No warranty', sg: R.sg || 'No size guide', track: R.track || 'No tracking', unit: R.unit || 'Piece', comm: R.comm || '10%', slug: '/collections/' + nm(sel).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') },
+      sel: { id: sel.id, name: sel.name, initial: sel.name.charAt(0), n: n == null ? '' : n, path: path.length ? path.join(' › ') + ' ›' : 'Top level', tax: R.tax || 'Standard VAT 15%', wp: R.wp || 'No warranty', sg: R.sg || 'No size guide', track: R.track || 'No tracking', unit: R.unit || 'Piece', comm: R.comm || '10%', slug: '/collections/' + sel.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+        productsHref: '/all-products' },
       name: name, nameErr: s.nameErr || '', typeName: function (e) { self.setState({ name: e.target.value, nameErr: '' }); },
-      desc: s.desc != null ? s.desc : '', typeDesc: function (e) { self.setState({ desc: e.target.value }); },
-      aiDesc: function () { self.setState({ desc: 'Shop the latest ' + nm(sel).toLowerCase() + ' in Bangladesh — official products, honest prices and fast delivery all over the country.' }); },
+      parentId: parentId || '', homes: homes.map(function (t) { return { id: t.id, label: (t.lv ? '— '.repeat(t.lv) : '') + t.name }; }),
+      setParent: function (e) { self.setState({ parent: e.target.value, nameErr: '' }); },
+      desc: s.desc != null ? s.desc : sel.desc || '', typeDesc: function (e) { self.setState({ desc: e.target.value }); },
+      aiDesc: function () { self.setState({ desc: 'Shop the latest ' + sel.name.toLowerCase() + ' in Bangladesh — official products, honest prices and fast delivery all over the country.' }); },
       fields: (FIELDS[R.id] || []).map(function (f) { return { l: f[0], t: f[1], req: f[2] }; }),
-      inMenu: mkSw(this, 'inMenu', !sel.hidden), featured: mkSw(this, 'featured', false),
+      inMenu: mkSw(this, 'inMenu', !sel.hidden), featured: mkSw(this, 'featured', !!sel.featured),
+      // address and search engine listing (the shared SEO panel); the address follows the name until it is edited
+      handle: s.handle != null ? s.handle : (sel.handle || toHandle(name)), handleOwn: s.handle != null || !!sel.handle,
+      typeHandle: function (e) { self.setState({ handle: cleanHandleInput(e.target.value) }); },
+      autoHandle: function () { self.setState({ handle: '' }); },
+      seo: s.seoC || readSeo('category', sel), setSeo: function (patch) { self.setState({ seoC: assign(assign({}, s.seoC || readSeo('category', sel)), patch) }); },
+      seoCtx: contextOf('category', assign(assign({}, sel), { name: name, desc: s.desc != null ? s.desc : sel.desc || '', handle: s.handle != null ? s.handle : sel.handle, hidden: s.inMenu == null ? sel.hidden : !s.inMenu })),
       // ---- edit form ----
       save: function (e) {
         if (e && e.preventDefault) e.preventDefault();
-        var err = nameError(name, sibNames(sel.p, sel.id));
-        if (err) { self.setState({ nameErr: err }); focusId('cat-name'); return; }
-        var n2 = assign({}, names); n2[sel.id] = name.trim();
-        self.setState({ names: n2, name: null, nameErr: '' }); toast(self, name.trim() + ' saved.');
+        var r = saveCategory(sel.id, { name: name, parent: parentId || '', desc: s.desc != null ? s.desc : undefined, hidden: s.inMenu == null ? undefined : !s.inMenu, featured: s.featured == null ? undefined : !!s.featured, handle: s.handle != null ? toHandle(s.handle) : undefined, seo: s.seoC || undefined });
+        if (!r.ok) { self.setState({ nameErr: r.error }); focusId('cat-name'); return; }
+        self.setState({ name: null, parent: null, desc: null, inMenu: null, featured: null, nameErr: '', handle: null, seoC: null }); self.reload();
+        toast(self, r.cat.name + ' saved.' + (r.moved ? ' ' + (r.moved === 1 ? '1 product moved with it.' : r.moved + ' products moved with it.') : ''));
       },
-      del: function () { toast(self, 'Move the ' + sel.n + ' products to another category first.', true); },
+      del: async function () {
+        var kids = kidsOf(sel.id).length, c = count(sel) || 0;
+        if (kids || c) { var why = deleteCategory(sel.id); __toast('Can’t delete ' + sel.name + '. ' + why.error, { tone: 'info' }); return; }
+        var ok = await confirmDialog({ title: 'Delete ' + sel.name + '?', body: 'It has no products. It leaves the product form and the shop menu.', confirmLabel: 'Delete', tone: 'danger' });
+        if (!ok) return;
+        var r = deleteCategory(sel.id);
+        if (!r.ok) { __toast(r.error, { tone: 'info' }); return; }
+        self.setState({ sel: sel.p || null, edit: false }); self.reload();
+        toast(self, sel.name + ' deleted.');
+      },
       // ---- add category dialog ----
       addOpen: !!add, addName: add ? add.name : '', addParent: add ? add.parent : '', addErr: add ? add.err || '' : '',
-      parents: parents.map(function (t) { return { id: t.id, label: (t.lv ? '— ' : '') + nm(t) }; }),
+      parents: parents.map(function (t) { return { id: t.id, label: (t.lv ? '— ' : '') + t.name }; }),
       addCat: function () { self.setState({ add: { name: '', parent: sel.lv < 2 ? sel.id : (sel.p || ''), err: '' } }); },
       closeAdd: function () { self.setState({ add: null }); },
       typeAddName: function (e) { self.setState({ add: assign(assign({}, add), { name: e.target.value, err: '' }) }); },
       setAddParent: function (e) { self.setState({ add: assign(assign({}, add), { parent: e.target.value, err: '' }) }); },
       submitAdd: function (e) {
         if (e && e.preventDefault) e.preventDefault();
-        var err = nameError(add.name, sibNames(add.parent || null, null));
-        if (err) { self.setState({ add: assign(assign({}, add), { err: err }) }); focusId('cat-add-name'); return; }
-        var par = add.parent ? by[add.parent] : null, id = 'new' + ((s.extra || []).length + 1);
-        var item = { id: id, name: add.name.trim(), lv: par ? par.lv + 1 : 0, n: 0 }; if (par) item.p = par.id;
-        var o = assign({}, open); if (par) { o[par.id] = true; var pp = par.p; while (pp) { o[pp] = true; pp = by[pp].p; } }
-        self.setState({ extra: (s.extra || []).concat([item]), open: o, sel: id, add: null, cq: '', desc: null, name: null, nameErr: '', inMenu: null, featured: null });
-        toast(self, item.name + ' added' + (par ? ' inside ' + nm(par) : ' at the top level') + '.');
+        var r = addCategory({ name: add.name, parent: add.parent || '' });
+        if (!r.ok) { self.setState({ add: assign(assign({}, add), { err: r.error }) }); focusId('cat-add-name'); return; }
+        var par = r.cat.p ? by[r.cat.p] : null;
+        var o = assign({}, open); if (par) { o[par.id] = true; var pp = par.p; while (pp && by[pp]) { o[pp] = true; pp = by[pp].p; } }
+        self.setState({ open: o, sel: r.cat.id, add: null, cq: '', desc: null, name: null, parent: null, nameErr: '', inMenu: null, featured: null }); self.reload();
+        toast(self, r.cat.name + ' added' + (par ? ' inside ' + par.name : ' at the top level') + '.');
       },
       // ---- import dialog ----
       impOpen: !!imp, impFile: imp ? imp.file || '' : '', impErr: imp ? imp.err || '' : '',
       openImport: function () { self.setState({ imp: { file: '', err: '' } }); }, closeImport: function () { self.setState({ imp: null }); },
-      pickFile: function (e) { var fl = e.target.files && e.target.files[0]; self.setState({ imp: { file: fl ? fl.name : '', err: fl && !/\.csv$/i.test(fl.name) ? 'Choose a .csv file.' : '' } }); },
+      pickFile: function (e) {
+        var fl = e.target.files && e.target.files[0];
+        self.setState({ imp: { file: fl ? fl.name : '', text: '', err: fl && !/\.csv$/i.test(fl.name) ? 'Choose a .csv file.' : '' } });
+        if (fl && /\.csv$/i.test(fl.name)) { var rd = new FileReader(); rd.onload = function () { self.setState({ imp: { file: fl.name, text: String(rd.result || ''), err: '' } }); }; rd.readAsText(fl); }
+      },
+      // the file is read in the browser and each row added (lib/productCategories.js › importCategories)
       submitImport: function (e) {
         if (e && e.preventDefault) e.preventDefault();
         if (!imp.file) { self.setState({ imp: { file: '', err: 'Choose a CSV file first.' } }); focusId('cat-import-file'); return; }
         if (!/\.csv$/i.test(imp.file)) { self.setState({ imp: { file: imp.file, err: 'Choose a .csv file.' } }); focusId('cat-import-file'); return; }
-        self.setState({ imp: null }); toast(self, 'Importing categories from ' + imp.file + '. New ones appear in the tree when it finishes.');
+        var r = importCategories(imp.text || '');
+        if (!r.added && !r.skipped) { self.setState({ imp: assign(assign({}, imp), { err: r.errors[0] || 'No categories found in this file.' }) }); focusId('cat-import-file'); return; }
+        self.setState({ imp: null }); self.reload();
+        __toast('Added ' + r.added + (r.added === 1 ? ' category' : ' categories') + (r.skipped ? ', skipped ' + r.skipped : ''), r.errors.length ? { tone: 'info' } : undefined);
       },
       downloadTemplate: function () {
         var csv = 'name,parent,description,show_in_menu\nPhones,,Smartphones and feature phones,yes\nSmartphones,Phones,Android and iPhone,yes\n';
@@ -150,6 +176,7 @@ const CSS = `
 .ct-chip>b{font-weight:var(--weight-medium);color:var(--text-heading)}
 .ct-chip>span{color:var(--text-muted)}
 .ct-chip>em{font-style:normal;color:var(--text-danger)}
+.ct-prefix{display:flex;align-items:center;gap:6px;font-size:var(--text-sm);color:var(--text-muted)}.ct-prefix .gc-input{flex:1;min-width:0}
 .ct-banner{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-xs);color:var(--text-muted)}
 .ct-banner>span:first-child{display:grid;flex:none;place-items:center;width:96px;height:56px;border:1px dashed var(--border-strong);border-radius:var(--radius-lg)}
 .ct-switch{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
@@ -176,7 +203,7 @@ export default class CategoriesScreen extends Component {
     const submitAdd = (e) => { v.submitAdd(e); setTimeout(() => { if (!(this.state || {}).add) this.setState({ edit: true }); }, 0); };
     return (
       <div className="dc-screen ds" data-screen="Categories">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        <style dangerouslySetInnerHTML={{ __html: CSS + SEO_PANEL_CSS }} />
         <div className="gc-shell">
           <__Sidebar sticky="" active="products-cats" />
           <main className="gc-shell__main">
@@ -239,7 +266,7 @@ export default class CategoriesScreen extends Component {
             <div className="ct-head">
               <span>{v.sel?.path}</span>
               <span>·</span>
-              <span>{v.sel?.n} products</span>
+              {v.sel?.n === '' ? null : <span>{v.sel?.n === 1 ? '1 product' : `${v.sel?.n} products`}</span>}
               <__Link href="/all-products">See products</__Link>
             </div>
             <h3 className="ct-sec">Basics</h3>
@@ -251,12 +278,9 @@ export default class CategoriesScreen extends Component {
               </div>
               <label className="ct-field">
                 <span className="gc-label">Inside</span>
-                <select className="gc-input gc-select" aria-label="Parent category">
-                  <option>{v.sel?.parent}</option>
-                  <option>Top level</option>
-                  <option>Phones</option>
-                  <option>Accessories</option>
-                  <option>Audio</option>
+                <select className="gc-input gc-select" aria-label="Parent category" value={v.parentId} onChange={v.setParent}>
+                  <option value="">Top level</option>
+                  {__list(v.homes).map((h) => (<option key={h.id} value={h.id}>{h.label}</option>))}
                 </select>
               </label>
             </div>
@@ -267,6 +291,12 @@ export default class CategoriesScreen extends Component {
               </div>
               <textarea id="cat-desc" className="gc-input" rows="3" value={v.desc} onInput={v.typeDesc} onChange={v.typeDesc} aria-label="Category description" />
             </div>
+            <div className="ct-field">
+              <label className="gc-label" htmlFor="cat-handle">Address</label>
+              <span className="ct-prefix"><span aria-hidden="true">/collections/</span><input id="cat-handle" className="gc-input" value={v.handle} onChange={v.typeHandle} placeholder="made-from-the-name" style={{ fontFamily: "var(--font-data)" }} /></span>
+              <p className="gc-help" style={{ margin: 0 }}>{v.handleOwn ? 'Changing it later keeps the old address working (a redirect is made).' : 'Made from the name.'}</p>
+            </div>
+            <SeoPanel kind="category" idPrefix="cat-seo" seo={v.seo} onChange={v.setSeo} ctx={v.seoCtx} />
             <div className="ct-banner">
               <span><__Icon name="image" width="20" height="20" aria-hidden="true" /></span>
               <span>Banner or icon for the menu. 1200 × 400.</span>

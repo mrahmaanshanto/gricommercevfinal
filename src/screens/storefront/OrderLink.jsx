@@ -9,8 +9,9 @@ import { formatBDT } from '@/lib/format';
 import { getOrderLink, submitLinkOrder, DELIVERY_RATES, BD_MOBILE, cleanPhone } from '@/lib/orderLinks';
 import { saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
 import { announceNewOrder } from '@/lib/orderFlow';
+import { billVat, loadVat } from '@/lib/vat';
+import { getCatalog } from '@/lib/stock';
 
-const VAT_RATE = 0.05;
 const TERMS = [
   { id: 'cod', label: 'Cash on delivery', note: 'Pay the rider when the parcel arrives' },
   { id: 'partial', label: 'Pay delivery charge now', note: 'Advance by bKash or Nagad, the rest on delivery' },
@@ -91,8 +92,11 @@ export default function OrderLink() {
   const rate = DELIVERY_RATES.find((r) => r.id === form.area);
   const subtotal = link.lines.reduce((s, l) => s + l.price * l.qty, 0);
   const discount = link.discount || 0;
-  const tax = link.vat ? Math.round((subtotal - discount) * VAT_RATE) : 0;
-  const total = subtotal - discount + rate.fee + tax;
+  // VAT follows the shop's setup (Accounts › Setup › VAT): prices include it by default (MRP), so it is shown, not added
+  const cat = getCatalog();
+  const vatBill = link.vat ? billVat(link.lines.map((l) => { const c = cat.find((x) => (l.sku && x.sku === l.sku) || x.name === l.name) || {}; return { ...l, cat: l.cat || c.cat, vatRate: l.vatRate != null ? l.vatRate : c.vatRate }; }), subtotal ? (subtotal - discount) / subtotal : 0, loadVat()) : { tax: 0, included: true };
+  const tax = Math.round(vatBill.tax);
+  const total = subtotal - discount + rate.fee + (vatBill.included ? 0 : tax);
   const payNow = form.terms === 'full' ? total : form.terms === 'partial' ? rate.fee : 0;
   const set = (key) => (e) => { setForm({ ...form, [key]: e.target.value }); setErrors({ ...errors, [key]: undefined }); };
 
@@ -186,7 +190,7 @@ export default function OrderLink() {
                 <span>Subtotal</span><span>{formatBDT(subtotal)}</span>
                 {discount ? <><span>Discount</span><span>−{formatBDT(discount)}</span></> : null}
                 <span>Delivery · {rate.label}</span><span>{rate.fee ? formatBDT(rate.fee) : 'Free'}</span>
-                {link.vat ? <><span>VAT 5%</span><span>{formatBDT(tax)}</span></> : null}
+                {link.vat && tax ? <><span>{vatBill.included ? 'VAT included' : 'VAT'}</span><span>{formatBDT(tax)}</span></> : null}
                 <div className="ol__total"><span>Total</span><span>{formatBDT(total)}</span></div>
               </div>
             </section>

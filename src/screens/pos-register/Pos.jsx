@@ -48,27 +48,31 @@ import { getLocale, setLocale } from '@/runtime/ui';
 import { Sidebar } from '@/shell/Shell';
 import { PaymentLogo } from '@/components/PaymentLogo';
 import { POS_KEYS as KEYS, load, save, getCounters, getCash, saveCash, getShifts, saveShifts, getSettings, shiftReport, nextId, EMPLOYEES, MANAGERS, CASH_PLACES, CASH_LABEL, DEFAULT_SETTINGS, postCashMove, postVariance, claimCounter, counterBusy, releaseCounter, addDrawerOpen } from '@/lib/posStore';
-import { commitSale, queueSale, newOpId, saleForOp, getQueue, pendingQueue, queuedQty, syncQueue, resolveConflict, holdSale, releaseHeld, expireHeld } from '@/lib/posSale';
+import { commitSale, queueSale, newOpId, saleForOp, getQueue, pendingQueue, queuedQty, syncQueue, resolveConflict, holdSale, releaseHeld, expireHeld, nextSaleNo } from '@/lib/posSale';
 import { trackingOf, checkSerial, serialsAt, getSerials } from '@/lib/serials';
 import { decodeScale, isWeighed, kgText, r3 } from '@/lib/scaleBarcode';
 import { devicesAt, setDeviceState, testDevice, payAccounts, TERMINALS } from '@/lib/hardware';
 import { accountBy } from '@/lib/ledger';
 import { SerialSheet, WeighSheet, FulfilSheet, HardwareSheet, NoSaleSheet, SyncSheet } from './PosSheets';
-import { loadVat, vatRateFor } from '@/lib/vat';
-import { getCustomers, findCustomer, tierOf, tierPrice, phoneDigits } from '@/lib/customers';
+import { loadVat, billVat } from '@/lib/vat';
+import { getCustomers, findCustomer, phoneDigits } from '@/lib/customers';
+import { priceFor, pricingLabel, isBusinessBuyer, creditCheck, unitsFor, parseQty, packText, dueByTerms, termsOf } from '@/lib/wholesalePrice';
+import { resolveScan } from '@/lib/identifiers';
 import { wholesaleOn } from '@/lib/edition';
 import { dueForPhone, challanNo } from '@/lib/invoices';
-import { CATALOG, getCatalog, productBy, stockAt, getMoves, allowNegative } from '@/lib/stock';
+import { CATALOG, getCatalog, productBy, stockAt, getMoves, allowNegative, isUntracked } from '@/lib/stock';
 import { isStatusSellable } from '@/lib/sellable';
 import { getHolds } from '@/lib/stockHolds';
 import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
 import { usePlaceList } from '@/lib/usePlaces';
 import { navigate } from '@/runtime/routes';
 import { ManagerPin } from '@/components/ManagerPin';
+import { currentUser } from '@/lib/team';
+import { posLimitsOf } from '@/lib/shopUsers';
 import { freezeLine } from '@/lib/productCost';
 import { logAudit } from '@/lib/auditLog';
 import { getMembers as getLoyaltyMembers, getLoyaltySettings, getProductPoints, pointsForSale, DEFAULT_SETTINGS as LOYALTY_DEFAULTS } from '@/lib/loyalty';
-import { applyCode, getOffers, commit as commitPromo } from '@/lib/promotions';
+import { applyCode, evaluate, commit as commitPromo } from '@/lib/promotions';
 import { checkOrder } from '@/lib/restrictions';
 import { getCreditRules, limitFor, dueDateFor, checkDue, DEFAULT_CREDIT_RULES, CREDIT_RULES_EVENT } from '@/lib/creditRules';
 import { POS_CSS } from './posStyles';
@@ -98,7 +102,7 @@ const ITEMS = [
 const posProducts = (catalog) => catalog.map((c) => {
   const it = ITEMS.find((p) => p.name === c.name || (c.aka && p.name === c.aka) || p.code === c.barcode);
   const stock = Object.values(c.on || {}).reduce((a, n) => a + n, 0);
-  return { id: it ? it.id : c.sku, sku: c.sku, name: c.name, meta: c.variant || (it ? it.meta : ''), brand: (it && it.brand) || c.brand || '', cat: c.cat, price: c.price, stock, code: c.barcode || c.sku, moq: c.moq || 0, track: trackingOf(c.sku), weighed: isWeighed(c.sku) };
+  return { id: it ? it.id : c.sku, sku: c.sku, name: c.name, meta: c.variant || (it ? it.meta : ''), brand: (it && it.brand) || c.brand || '', cat: c.cat, price: c.price, stock, code: c.barcode || c.sku, moq: c.moq || 0, track: trackingOf(c.sku), weighed: isWeighed(c.sku), untracked: isUntracked(c), format: c.format || 'physical', vatRate: c.vatRate != null ? c.vatRate : null };
 });
 const BASE_PRODUCTS = posProducts(CATALOG);   // the first render, before this browser's saved products are read
 const WAREHOUSES = STOCK_PLACES;
@@ -144,28 +148,35 @@ const num = (v) => Math.max(0, Number(v) || 0);
 const r2 = (n) => Math.round(n * 100) / 100;
 const focusId = (id) => window.setTimeout(() => { const el = document.getElementById(id); if (el) { el.focus(); if (el.select) el.select(); } }, 0);
 
-// `vat` is the saved VAT setup (Accounts > VAT): each line is taxed at the rate of its category,
-// on its share of what is left after every discount.
+// `vat` is the saved VAT setup (Accounts › VAT): each line is taxed at the rate of its category, on its share of
+// what is left after every discount. With "Prices include VAT (MRP)" on (the default) the VAT is inside the price:
+// the customer pays the shelf price and the bill shows the VAT it holds; off, VAT is added on top (lib/vat).
 // `loy` is the loyalty settings: value of a point, the least points that can be used, and the most of
 // the bill points can pay.
-// A POS cart for the promotion engine: each line at its price after the line and cart discounts.
-function couponResult(code, lines, cartDisc, member) {
+// Offers: the one promotion engine (lib/promotions) prices the cart, on what is left after the cashier's discounts:
+// the coupon typed in, and every automatic offer that runs at the POS (Buy X get Y, quantity tiers, a free gift,
+// flash prices, payment offers such as bKash 10% off) with the payment method really chosen at checkout.
+const PAY_KEY = { Cash: 'cash', Card: 'card', bKash: 'bkash', Nagad: 'nagad', Rocket: 'rocket', Wallet: 'wallet', 'Due / credit': 'credit' };
+function promoCart(lines, cartDisc, payment) {
   const base = lines.reduce((s, l) => s + l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0), 0);
   const keep = base ? (base - cartDisc) / base : 1;
-  const cart = { lines: lines.map((l) => ({ sku: l.sku, name: l.name, cat: l.cat, qty: l.qty, price: l.qty ? ((l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0)) * keep) / l.qty : 0 })), payment: 'cash' };
-  // the register gives its own member and cashier discounts, so a coupon is checked against the other coupons only
-  const offers = getOffers().filter((o) => o.activation === 'code');
-  return applyCode(code, cart, member ? { phone: member.phone, tier: String(member.tier || '').toLowerCase() } : null, 'pos', { offers });
+  return { lines: lines.map((l) => ({ sku: l.sku, name: l.name, cat: l.cat, qty: l.qty, price: l.qty ? ((l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0)) * keep) / l.qty : 0 })), payment: PAY_KEY[payment] || String(payment || '').toLowerCase() };
 }
-function totalsOf(lines, discount, coupon, member, redeem, vat, loy = LOYALTY_DEFAULTS) {
+const promoCustomer = (member) => (member ? { phone: member.phone, tier: String(member.tier || '').toLowerCase() } : null);
+/** Try a coupon code on this cart (for the coupon box). */
+function couponResult(code, lines, cartDisc, member, payment) {
+  return applyCode(code, promoCart(lines, cartDisc, payment), promoCustomer(member), 'pos');
+}
+function totalsOf(lines, discount, coupon, member, redeem, vat, loy = LOYALTY_DEFAULTS, payment = 'Cash') {
   const gross = lines.reduce((s, l) => s + l.price * l.qty, 0);
   const lineDisc = lines.reduce((s, l) => s + Math.min(l.price * l.qty, l.disc || 0), 0);
   let left = gross - lineDisc;
   const cartDisc = !discount ? 0 : Math.min(left, discount.type === 'percent' ? Math.round(left * discount.value / 100) : discount.value);
   left -= cartDisc;
-  // the coupon goes through the one promotion engine (lib/promotions), on what is left after the cashier's discounts
-  const promo = coupon ? couponResult(coupon, lines, cartDisc, member) : null;
-  const couponDisc = promo && promo.ok ? Math.min(left, promo.result.discount) : 0;
+  // the coupon and the automatic offers go through the one promotion engine, on what is left after the cashier's discounts
+  const promo = lines.length ? evaluate({ ...promoCart(lines, cartDisc, payment), codes: coupon ? [coupon] : [] }, promoCustomer(member), 'pos') : null;
+  const applied = promo ? promo.applied.filter((a) => a.discount > 0 || a.gifts.length) : [];
+  const couponDisc = promo ? r2(Math.min(left, promo.discount)) : 0;   // every offer's discount (coupons and automatic)
   left -= couponDisc;
   const memberDisc = member ? Math.round(left * member.tierPct) / 100 : 0;
   left -= memberDisc;
@@ -176,10 +187,18 @@ function totalsOf(lines, discount, coupon, member, redeem, vat, loy = LOYALTY_DE
   left -= pointsDisc;
   const base = gross - lineDisc;
   const share = base ? left / base : 0;
-  const tax = r2(lines.reduce((s, l) => s + (l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0)) * share * vatRateFor(l.cat || (BASE_PRODUCTS.find((p) => p.id === pidOf(l)) || {}).cat, vat) / 100, 0));
-  // a weighed line counts as one unit, whatever it weighs
-  return { gross: r2(gross), lineDisc, cartDisc, couponDisc, promo: promo && promo.ok ? promo.result : null, memberDisc, pointsUsed, pointsDisc, taxable: r2(left), tax, total: r2(left + tax), units: lines.reduce((s, l) => s + (l.unit === 'kg' ? 1 : l.qty), 0) };
+  const { tax, included } = billVat(lines.map((l) => { const bp = BASE_PRODUCTS.find((p) => p.id === pidOf(l)) || {}; return { ...l, cat: l.cat || bp.cat, vatRate: l.vatRate != null ? l.vatRate : bp.vatRate }; }), share, vat);
+  // offers that did not apply only because of the payment or a few more pieces: said at checkout
+  const offerHints = promo ? [...(coupon && promo.codeErrors[coupon] ? [`Coupon ${coupon}: ${promo.codeErrors[coupon]}`] : []), ...promo.skipped.filter((x) => !x.code).filter((x) => /^Pay by /.test(x.reason)).map((x) => `${x.name}: ${x.reason.charAt(0).toLowerCase() + x.reason.slice(1)}`), ...promo.hints.filter((h) => /^Add \d+ more to get/.test(h.text)).map((h) => h.text)].slice(0, 3) : [];
+  return {
+    gross: r2(gross), lineDisc, cartDisc, couponDisc, promo: applied.length ? promo : null, offers: applied.map((a) => ({ id: a.id, name: a.name, code: a.code, kind: a.kind, label: a.label, discount: a.discount })),
+    gifts: promo ? promo.gifts : [], offerHints, memberDisc, pointsUsed, pointsDisc,
+    // a weighed line counts as one unit, whatever it weighs
+    taxable: r2(included ? left - tax : left), tax, vatIncluded: included, total: r2(included ? left : left + tax), units: lines.reduce((s, l) => s + (l.unit === 'kg' ? 1 : l.qty), 0),
+  };
 }
+/** "Coupon EID300" or the offer's name, for a bill line. */
+const offerText = (o) => (o.code ? `Coupon ${o.code}` : o.name);
 
 export default function Pos() {
   const [ready, setReady] = useState(false);
@@ -305,14 +324,25 @@ export default function Pos() {
   // A wholesale customer is detected the same way: their price list loads on its own and the sale
   // may be completed without payment, as an unpaid invoice.
   const buyer = useMemo(() => findCustomer(book, phoneKey), [book, phoneKey]);
-  // wholesale price lists only while wholesale is on (edition.js; off for now): every buyer pays retail prices
-  const tier = wholesaleOn() ? tierOf(buyer) : null;
+  // business prices only while wholesale is on (edition.js): the buyer's price list, quantity slabs, the product's
+  // wholesale price or their group % (lib/wholesalePrice › priceFor, the same rule as quotes, Create order and returns)
+  const tier = ready && buyer && wholesaleOn() && isBusinessBuyer(buyer) ? { id: buyer.id || buyer.phone, label: pricingLabel(buyer) } : null;
   // a customer who buys both retail and wholesale (Maa Fatema Mobile) can be sold at retail price
   const atRetail = !!tier && retailFor === buyer.phone;
   const priceTier = atRetail ? null : tier;             // the price list the lines are charged at
   const priceTierId = priceTier ? priceTier.id : '';
+  // the price of a product for this sale at this quantity: { price, source, note }
+  const priceOf = (p, qty = 1) => (priceTier ? priceFor({ customer: buyer, sku: p.sku, qty, channel: 'wholesale', retail: p.price }) : { price: p.price, source: 'retail' });
+  // a line's price follows its quantity (slabs), unless a person set it by hand
+  const repriced = (l, qty) => {
+    if (l.priceBy || l.gift || l.unit === 'kg') return {};
+    const p = products.find((x) => x.id === pidOf(l));
+    if (!p) return {};
+    const r = priceOf(p, qty);
+    return { price: r.price, priceSrc: r.source, priceNote: r.note || '' };
+  };
   useEffect(() => {
-    setLines((cur) => cur.map((l) => { const p = products.find((x) => x.id === pidOf(l)); return p ? { ...l, price: tierPrice(p.price, priceTier), priceBy: '' } : l; }));
+    setLines((cur) => cur.map((l) => { const p = products.find((x) => x.id === pidOf(l)); if (!p) return l; const r = priceOf(p, l.qty); return { ...l, price: r.price, priceSrc: r.source, priceNote: r.note || '', priceBy: '' }; }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priceTierId]);
   // what the customer already owes on unpaid invoices, for the credit limit check
@@ -345,7 +375,8 @@ export default function Pos() {
   // "Allow negative stock" at this place (Warehouses / Branches): sell past what is available, with a warning
   const negOk = useMemo(() => ready && allowNegative(warehouse), [ready, warehouse]);
   const overToast = (name, avail) => toast(`${name}: selling past the ${avail} available at ${warehouse}. Negative stock is allowed here.`, { tone: 'info' });
-  const t = totalsOf(lines, discount, coupon, member, redeem, vat, loy);
+  // the payment offers follow the method really chosen: the first part taken, else the one picked now
+  const t = totalsOf(lines, discount, coupon, member, redeem, vat, loy, (tenders[0] || tender).method);
   // points this sale earns: each line after its share of the discounts, by the product's points setting
   const earnShare = t.gross - t.lineDisc ? t.taxable / (t.gross - t.lineDisc) : 0;
   const earnNow = member ? pointsForSale(lines.map((l) => ({ sku: l.sku || (productBy(l.name) || {}).sku, amount: (l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0)) * earnShare })), { mult: member.mult || 1 }, loy, ptModes) : 0;
@@ -356,7 +387,8 @@ export default function Pos() {
   const pending = due ? (tender.amount === '' ? due : num(tender.amount)) : 0;   // what the amount field adds
   const stillDue = Math.max(0, r2(due - pending));
   const change = Math.max(0, r2(paid + pending - t.total));
-  const orderNo = 'ORD-20260907-' + String(sales.length + queue.length + 1).padStart(4, '0');
+  // one number per sale (posSale.js › nextSaleNo): today's date, the counter and the next number there
+  const orderNo = ready && shift ? nextSaleNo(counterOf(shift.counter) || { id: shift.counterId, name: shift.counter }, Date.now(), [...sales, ...queue]) : '';
   // the account or card terminal the chosen method pays into (lib/hardware › payAccounts, from the ledger)
   const counterRow0 = shift ? counterOf(shift.counter) || { id: shift.counterId } : null;
   const acctOptions = shift ? payAccounts(tender.method, counterRow0, devices) : [];
@@ -365,11 +397,16 @@ export default function Pos() {
   // money this sale would leave unpaid, and whether that takes the customer over their credit limit
   const tendersNow = pending ? [...tenders, tenderOf(tender.method, pending, acct)] : tenders;
   const owedNow = r2((requireFull ? 0 : stillDue) + tendersNow.filter((x) => x.method === CREDIT).reduce((s, x) => s + x.amount, 0));
-  // a wholesale buyer's own limit; a retail customer's limit, else the shop's default (creditRules.js)
-  const creditLimit = tier ? (buyer ? buyer.creditLimit || 0 : 0) : limitFor(buyer, dueRules);
-  const creditOver = creditLimit > 0 && owedNow > 0 && r2(owedBefore + owedNow) > creditLimit;
+  // the credit check (lib/wholesalePrice › creditCheck): the credit limit (a wholesale buyer's own; a retail
+  // customer's, else the shop's default) and the overdue hold (invoices more than N days past due). Over either,
+  // a manager approves with their PIN, or the sale is refused (Settings › Customers › Credit & dues).
+  const credit = useMemo(() => (ready && phoneKey ? creditCheck(buyer || phoneKey, owedNow, { owedBefore, phone: phoneKey, rules: dueRules }) : null), [ready, buyer, phoneKey, owedNow, owedBefore, dueRules, sales]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const creditLimit = credit ? credit.limit : 0;
+  const creditOver = !!credit && credit.needPin;
   // wholesale lines below the product's minimum order: allowed, but shown
-  const isWholesaleLine = (l) => !!priceTier && l.price === tierPrice(retailOf(l), priceTier);
+  const isWholesaleLine = (l) => !!priceTier && !!l.priceSrc && l.priceSrc !== 'retail';
+  // "3 cartons + 4 pcs" under a line once its quantity reaches a pack (units.js packs)
+  const packLine = (l) => { if (l.unit === 'kg' || !l.sku) return ''; const u = unitsFor(l.sku); return u.length > 1 && l.qty >= u[u.length - 1].per ? packText(l.sku, l.qty) : ''; };
   const moqShort = lines.filter((l) => isWholesaleLine(l) && moqOf(l) && l.qty < moqOf(l));
   // a wholesale sale: does the customer take the goods now? Yes when paid in full, no when money is left
   // unpaid, unless the cashier changes it. No: the goods are held at this place for the invoice.
@@ -383,10 +420,10 @@ export default function Pos() {
     const avail = from ? (elsewhere(p.id).find((o) => o.place === from) || { available: 0 }).available : stockOf(p.id).available;
     const lineId = from ? `${p.id}@${from}` : p.id;
     const have = (lines.find((l) => l.id === lineId) || {}).qty || 0;
-    const step = extra && extra.kg ? extra.kg : 1;
+    const step = extra && extra.kg ? extra.kg : extra && extra.qty ? extra.qty : 1;
     if (!from && (!avail || have + step > avail) && !negOk) {
       const other = elsewhere(p.id);
-      if (other.length) { setFulfil({ p, options: other, kg: extra && extra.kg }); return; }
+      if (other.length) { setFulfil({ p, options: other, kg: extra && extra.kg, qty: extra && extra.qty }); return; }
       toast(!avail ? `${p.name} is out of stock at ${warehouse}` : `Only ${p.weighed ? kgText(avail) : avail} of ${p.name} available at ${warehouse}`, { tone: 'error' });
       return;
     }
@@ -399,10 +436,12 @@ export default function Pos() {
       const qty = (inCart ? inCart.qty : 0) + step;
       if (from && qty > avail) { window.setTimeout(() => toast(`Only ${avail} of ${p.name} at ${from}`, { tone: 'error' }), 0); return cur; }
       const serials = extra && extra.serial ? [...((inCart && inCart.serials) || []), extra.serial] : inCart && inCart.serials;
-      const patch = { qty: p.weighed ? r3(qty) : qty, stock: avail, ...(serials ? { serials } : {}) };
-      if (!inCart) return [...cur, { id: lineId, ...(from ? { pid: p.id, from } : {}), sku: p.sku, name: p.name, meta: p.meta, cat: p.cat, price: tierPrice(p.price, priceTier), basePrice: p.price, disc: 0, ...(p.weighed ? { unit: 'kg' } : {}), ...(p.track && !from ? { track: p.track } : {}), ...patch }];
+      const patch = { qty: p.weighed ? r3(qty) : qty, stock: avail, ...(serials ? { serials } : {}), ...(inCart ? repriced(inCart, qty) : {}) };
+      const pr = priceOf(p, qty);
+      if (!inCart) return [...cur, { id: lineId, ...(from ? { pid: p.id, from } : {}), sku: p.sku, name: p.name, meta: p.meta, cat: p.cat, vatRate: p.vatRate, price: pr.price, priceSrc: pr.source, priceNote: pr.note || '', basePrice: p.price, disc: 0, ...(p.weighed ? { unit: 'kg' } : {}), ...(p.track && !from ? { track: p.track } : {}), ...patch }];
       return cur.map((l) => (l.id === lineId ? { ...l, ...patch } : l));
     });
+    return true;
   };
   // the serial sheet checks a number against the register and this sale
   const takenSerials = lines.flatMap((l) => l.serials || []);
@@ -415,7 +454,7 @@ export default function Pos() {
       if (!negOk || line.from) toast(`Only ${line.stock} of ${line.name} available at ${line.from || warehouse}`, { tone: 'error' });
       else if (line.qty <= line.stock) overToast(line.name, line.stock);
     }
-    setLines((cur) => cur.flatMap((l) => (l.id !== id ? [l] : qty <= 0 ? [] : [{ ...l, qty: negOk && !l.from ? qty : Math.min(qty, l.stock), ...(l.serials ? { serials: l.serials.slice(0, Math.min(qty, l.serials.length)) } : {}) }])));
+    setLines((cur) => cur.flatMap((l) => { if (l.id !== id) return [l]; if (qty <= 0) return []; const q = negOk && !l.from ? qty : Math.min(qty, l.stock); return [{ ...l, qty: q, ...repriced(l, q), ...(l.serials ? { serials: l.serials.slice(0, Math.min(qty, l.serials.length)) } : {}) }]; }));
   };
   // fit cart lines to what a place has: each line learns its limit, too many is cut down.
   // A line shipped from another place is checked there.
@@ -441,6 +480,16 @@ export default function Pos() {
     const hits = products.filter((p) => p.code.toLowerCase() === q || p.sku.toLowerCase() === q || p.id === q || p.name.toLowerCase().includes(q));
     const exact = hits.find((p) => p.code.toLowerCase() === q || p.sku.toLowerCase() === q);
     if (exact) { add(exact); setCode(''); return; }
+    // a carton / box barcode (units.js packs, identifiers.resolveScan): the whole pack goes in at once
+    const packHit = resolveScan(raw);
+    if (packHit && packHit.pack) {
+      const p = products.find((x) => x.sku === packHit.sku);
+      setCode('');
+      if (!p) { toast(`No product for ${packHit.pack.name} on this counter`, { tone: 'error' }); return; }
+      if (p.track || p.weighed) { toast(`${p.name}: scan each unit’s ${p.track === 'imei' ? 'IMEI' : 'number'}`, { tone: 'error' }); return; }
+      if (add(p, { qty: packHit.qty })) toast(`${packHit.pack.name} · ${packHit.qty} × ${p.name} added`);
+      return;
+    }
     // a serial or IMEI in stock: its product, with that unit
     const unit = getSerials().find((u) => u.serial === raw.toUpperCase() && u.state !== 'sold');
     const tracked = unit && products.find((p) => p.sku === unit.sku);
@@ -537,17 +586,20 @@ export default function Pos() {
   const closeCheckout = () => { setPanel(''); setReceipt(null); focusId('pos-scan'); };
   const setDisc = (patch) => {
     const next = { type: 'amount', value: 0, ...(discount || {}), ...patch };
-    const cap = next.type === 'percent' ? cfg.maxDiscount : Math.floor((t.gross - t.lineDisc) * cfg.maxDiscount / 100);
+    // the signed-in person's role may allow less than the register (Settings › Users & roles › POS limits)
+    const lim = posLimitsOf(currentUser());
+    const maxPct = lim ? Math.min(cfg.maxDiscount, lim.maxDiscount) : cfg.maxDiscount;
+    const cap = next.type === 'percent' ? maxPct : Math.floor((t.gross - t.lineDisc) * maxPct / 100);
     if (next.value > cap) {
       next.value = cap;
-      toast(`A cashier can give up to ${cfg.maxDiscount}% discount${next.type === 'percent' ? '' : ` (${formatBDT(cap)} on this sale)`}`, { tone: 'error' });
+      toast(`${lim && lim.maxDiscount < cfg.maxDiscount ? 'Your role can' : 'A cashier can'} give up to ${maxPct}% discount${next.type === 'percent' ? '' : ` (${formatBDT(cap)} on this sale)`}`, { tone: 'error' });
     }
     setDiscount(next.value > 0 ? next : (patch.type ? { ...next, value: 0 } : null));
   };
   const applyCoupon = () => {
     const code = couponText.trim().toUpperCase();
     if (!code) { setCoupon(''); return; }
-    const res = couponResult(code, lines, t.cartDisc, member);
+    const res = couponResult(code, lines, t.cartDisc, member, (tenders[0] || tender).method);
     if (!res.ok) { toast(`${code}: ${res.reason}`, { tone: 'error' }); return; }
     setCoupon(code); setCouponText(code); toast(`Coupon ${code} applied`);
   };
@@ -601,11 +653,11 @@ export default function Pos() {
     if (missingSerial) { startPay(); return; }
     const away = lines.filter((l) => l.from);
     if (away.length && !phoneDigits(customer.phone)) { toast('Add the customer’s mobile number for the delivery', { tone: 'error' }); focusId('pos-mobile'); return; }
-    const dueCheck = checkDue({ phone: customer.phone, customer: buyer, owedNow, owedBefore, wholesale: !!tier }, dueRules);
+    const dueCheck = phoneDigits(customer.phone) ? creditCheck(buyer || customer.phone, owedNow, { owedBefore, phone: customer.phone, rules: dueRules }) : checkDue({ phone: customer.phone, customer: buyer, owedNow, owedBefore, wholesale: !!tier }, dueRules);
     if (!dueCheck.ok) { toast(dueCheck.reason, { tone: 'error' }); if (/mobile/.test(dueCheck.reason)) focusId('pos-mobile'); return; }
     const creditBy = typeof approver === 'string' ? approver : '';
-    if (creditOver && !creditBy) {
-      setPin({ kind: 'credit', reason: `${buyer.name} would owe ${money(r2(owedBefore + owedNow))}, over the ${formatBDT(creditLimit)} credit limit. A manager approves leaving ${money(owedNow)} unpaid on this sale.` });
+    if (dueCheck.needPin && !creditBy) {
+      setPin({ kind: 'credit', reason: `${dueCheck.reason || 'Over the credit limit.'} A manager approves ${owedNow > 0 ? `leaving ${money(owedNow)} unpaid on this sale` : 'this sale'}.` });
       return;
     }
     const onAccount = list.filter((x) => x.method === CREDIT).reduce((s, x) => s + x.amount, 0);
@@ -614,17 +666,19 @@ export default function Pos() {
     doneRef.current = opId;
     const who = { name: customer.name || (member ? member.name : buyer ? buyer.name : ''), phone: customer.phone };
     const owed = r2(stillDue + onAccount);
-    // each line keeps its sku, category and buying price as they are today
-    const soldLines = lines.map(freezeLine);
+    // each line keeps its sku, category and buying price as they are today; a free gift from an offer is a line at ৳0
+    const giftLines = (t.gifts || []).map((g, i) => { const p = productBy(g.sku) || {}; return { id: `gift-${i + 1}`, sku: g.sku, name: g.name || p.name, cat: p.cat || '', qty: g.qty, price: 0, basePrice: p.price || 0, disc: 0, gift: true, offer: (t.offers.find((o) => o.id === g.offerId) || {}).name || 'Free gift' }; });
+    const soldLines = [...lines, ...giftLines].map(freezeLine);
     // Stock: a retail sale, or a wholesale customer taking the goods now, takes them out of this place.
     // A wholesale customer who does not take them now gets them held here for the invoice.
     const stockOut = !tier || takesNow;
-    const sale = { id: orderNo, opId, wholesale: !!tier, tier: tier ? tier.label : '', atRetail, invoice: !!(who.name || who.phone), rev: 1, payments: [], at: Date.now(), lines: soldLines, customer: who, member, earned: earnNow, totals: t, coupon: t.couponDisc ? coupon : '', tenders: list, change, due: owed, creditBy, printed: printReceipt, cashier: shift.cashier, salesperson: soldBy || shift.cashier, counter: shift.counter, counterId: shift.counterId, place: warehouse, offline, returned: {}, stockOut, deliveries: [], ...(away.length ? { ship: { address: shipTo } } : {}) };
+    const sale = { id: nextSaleNo(counterRow0, Date.now(), [...load(KEYS.sales, []), ...getQueue()]), opId, wholesale: !!tier, tier: tier ? tier.label : '', atRetail, invoice: !!(who.name || who.phone), rev: 1, payments: [], at: Date.now(), lines: soldLines, customer: who, member, earned: earnNow, totals: t, coupon: t.offers.some((o) => o.code === coupon) ? coupon : '', tenders: list, change, due: owed, creditBy, printed: printReceipt, cashier: shift.cashier, salesperson: soldBy || shift.cashier, counter: shift.counter, counterId: shift.counterId, place: warehouse, offline, returned: {}, stockOut, deliveries: [], ...(away.length ? { ship: { address: shipTo } } : {}) };
     // online: the sale is posted now (orders, stock, money, serials). Offline: it waits in the queue.
     if (owed > 0 && !tier) sale.dueAt = dueDateFor(sale.at, dueRules);   // when the customer has to pay (Credit & dues)
+    if (owed > 0 && tier) { const tm = termsOf(buyer); const at = dueByTerms(buyer, sale.at); if (at) sale.dueAt = at; if (tm) sale.terms = tm.terms; }   // the buyer's payment terms (Net 7, Net 30 …)
     const res = offline ? queueSale(sale) : commitSale(sale);
     if (res.already) { toast(`Already completed · ${res.sale.id}`, { tone: 'info' }); setReceipt(res.sale); return; }
-    if (t.promo) commitPromo(sale.id, t.promo, { customer: member ? { phone: member.phone } : null });   // the coupon's use is counted once per sale
+    if (t.promo) commitPromo(sale.id, t.promo, { customer: member ? { phone: member.phone } : null });   // each offer's use is counted once per sale
     setSales(load(KEYS.sales, [])); setQueue(getQueue());
     setStockTick((n) => n + 1);
     if (res.bookChanged) setBook(getCustomers());
@@ -760,7 +814,7 @@ export default function Pos() {
 
   // ---- line editor (keypad) ---------------------------------------------------------------------
   // a weighed line's quantity is its weight (decimals); a tracked line's quantity follows its serial numbers
-  const openEdit = (l) => { setEdit({ id: l.id, name: l.name, field: l.track ? 'price' : 'qty', qty: String(l.qty), price: String(l.price), disc: String(l.disc || 0), stock: l.from ? l.stock : stockOf(pidOf(l)).available, kg: l.unit === 'kg', track: !!l.track, fresh: true }); setPanel('edit'); };
+  const openEdit = (l) => { setEdit({ id: l.id, name: l.name, field: l.track ? 'price' : 'qty', qty: String(l.qty), price: String(l.price), disc: String(l.disc || 0), stock: l.from ? l.stock : stockOf(pidOf(l)).available, kg: l.unit === 'kg', track: !!l.track, sku: l.sku || '', packs: '', fresh: true }); setPanel('edit'); };
   const press = (k) => setEdit((cur) => {
     const v = cur.fresh ? '' : cur[cur.field];
     if (k === '.') return cur.field === 'qty' && cur.kg && !v.includes('.') ? { ...cur, qty: (v || '0') + '.', fresh: false } : cur;
@@ -781,7 +835,10 @@ export default function Pos() {
     const lower = price < line.price;
     const moreDisc = disc > (line.disc || 0);
     const by = typeof approver === 'string' ? approver : '';
-    if ((lower || moreDisc) && !by) {
+    // a custom role may change prices freely, only with a manager PIN (the default) or not at all (Users & roles)
+    const lim = posLimitsOf(currentUser());
+    if (lower && lim && lim.priceChange === 'no') { toast('Your role can’t lower a price. Ask a manager.', { tone: 'error' }); return; }
+    if ((lower || moreDisc) && !by && !(lim && lim.priceChange === 'yes' && (!moreDisc || disc <= price * qty * lim.maxDiscount / 100))) {
       const what = [lower && `lower the price of ${line.name} from ${money(line.price)} to ${money(price)}`, moreDisc && `give ${money(disc)} discount on ${lower ? 'the line' : line.name}`].filter(Boolean).join(' and ');
       setPin({ kind: 'edit', reason: `A manager approves this change: ${what}.` });
       return;
@@ -791,6 +848,7 @@ export default function Pos() {
       ...l, qty, price, disc,
       priceBy: lower ? by : price === l.price ? l.priceBy || '' : '',
       discBy: moreDisc ? by : disc ? l.discBy || '' : '',
+      ...(price === l.price && !l.priceBy && qty !== l.qty ? repriced(l, qty) : {}),   // a new quantity may reach a slab price
     })));
     if (by) toast(`${line.name} updated · approved by ${by}`);
     done();
@@ -1003,7 +1061,8 @@ export default function Pos() {
               <span className="pos-line__thumb" aria-hidden="true">{l.name[0]}</span>
               <button type="button" className="pos-line__main" onClick={() => openEdit(l)} aria-label={`Edit ${l.name}: quantity, price, discount`}>
                 <span className="pos-line__name">{l.name}</span>
-                <span className="pos-line__meta">{l.meta ? l.meta + ' · ' : ''}{money(l.price)}{l.unit === 'kg' ? '/kg' : ''}{isWholesaleLine(l) ? ' wholesale' : ''}{l.disc ? ` · −${money(l.disc)}` : ''}</span>
+                <span className="pos-line__meta">{l.meta ? l.meta + ' · ' : ''}{money(l.price)}{l.unit === 'kg' ? '/kg' : ''}{isWholesaleLine(l) ? ' · ' + (l.priceNote || 'wholesale') : ''}{l.disc ? ` · −${money(l.disc)}` : ''}</span>
+                {packLine(l) ? <span className="pos-line__note"><Icon name="package" width="12" height="12" aria-hidden="true" />{packLine(l)}</span> : null}
                 {l.track ? <span className={(l.serials || []).length < l.qty ? 'pos-line__warn' : 'pos-line__note'}><Icon name="barcode" width="12" height="12" aria-hidden="true" />{(l.serials || []).length ? (l.track === 'imei' ? 'IMEI ' : 'SN ') + l.serials.map(last4).join(', ') : ''}{(l.serials || []).length < l.qty ? `${(l.serials || []).length ? ' · ' : ''}${l.qty - (l.serials || []).length} to scan` : ''}</span> : null}
                 {l.from ? <span className="pos-line__note"><Icon name="truck" width="12" height="12" aria-hidden="true" />Ships from {l.from}</span> : null}
                 {moqShort.includes(l) ? <span className="pos-line__warn"><Icon name="triangle-alert" width="12" height="12" aria-hidden="true" />MOQ {moqOf(l)} · only {l.qty} in cart</span> : null}
@@ -1028,7 +1087,7 @@ export default function Pos() {
       <div className="pos-totals">
         <div className="pos-sumline"><span>Subtotal · {t.units} unit{t.units === 1 ? '' : 's'}</span><b>{money(t.gross - t.lineDisc)}</b></div>
         {t.cartDisc + t.couponDisc + t.memberDisc + t.pointsDisc ? <div className="pos-sumline"><span>Discounts</span><b>− {money(t.cartDisc + t.couponDisc + t.memberDisc + t.pointsDisc)}</b></div> : null}
-        <div className="pos-sumline"><span>VAT</span><b>{money(t.tax)}</b></div>
+        <div className="pos-sumline"><span>{t.vatIncluded ? 'VAT included' : 'VAT'}</span><b>{money(t.tax)}</b></div>
         <div className="pos-grand"><span className="pos-cap">Total</span><span className="pos-grand__total"><b>{money(t.total)}</b></span></div>
       </div>
 
@@ -1106,7 +1165,7 @@ export default function Pos() {
             </button>
             <button type="button" className="pos-sel" title="Customer (F9)" onClick={openCustomer}>
               <span className="pos-sel__ico pos-sel__ico--sky" aria-hidden="true">{customer.name || member || buyer ? (customer.name || (member || buyer).name).split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() : <Icon name="user-plus" width="16" height="16" />}</span>
-              <span><span className="pos-sel__label">{tier ? tier.label + ' · ' + (atRetail ? 'at retail price' : tier.off + '% below retail') : member ? `${member.tier} member · ${member.points} points` : 'Customer'}</span><span className="pos-sel__value">{customer.name || member || buyer ? (customer.name || (member || buyer).name) + (customer.phone ? ' — ' + customer.phone : '') : customer.phone || 'Walk-in customer'}</span></span>
+              <span><span className="pos-sel__label">{tier ? tier.label + (atRetail ? ' · at retail price' : '') : member ? `${member.tier} member · ${member.points} points` : 'Customer'}</span><span className="pos-sel__value">{customer.name || member || buyer ? (customer.name || (member || buyer).name) + (customer.phone ? ' — ' + customer.phone : '') : customer.phone || 'Walk-in customer'}</span></span>
               <Icon name="chevron-down" width="16" height="16" aria-hidden="true" className="pos-sel__chev" />
             </button>
           </div>
@@ -1137,12 +1196,12 @@ export default function Pos() {
                     const s = stockOf(p.id);
                     const heldNote = s.held ? ` · ${s.held} held` : '';
                     const n = (v) => (p.weighed ? kgText(v) : v);
-                    const stock = !s.available ? [(s.transit ? `Out · ${s.transit} on the way` : 'Out of stock') + heldNote, 'is-out'] : s.available <= 6 ? [`Low · ${n(s.available)} left${heldNote}`, 'is-low'] : [`${n(s.available)} in stock${heldNote}`, ''];
+                    const stock = p.untracked ? [p.format === 'service' ? 'Service' : 'Download', ''] : !s.available ? [(s.transit ? `Out · ${s.transit} on the way` : 'Out of stock') + heldNote, 'is-out'] : s.available <= 6 ? [`Low · ${n(s.available)} left${heldNote}`, 'is-low'] : [`${n(s.available)} in stock${heldNote}`, ''];
                     // low or out here: the place with the most of it ("12 at Mirpur branch"); out here, it can ship from there
-                    const best = s.available <= 6 ? elsewhere(p.id)[0] : null;
+                    const best = !p.untracked && s.available <= 6 ? elsewhere(p.id)[0] : null;
                     const blocked = !s.available && !negOk && !best;
                     return (
-                      <button key={p.id} type="button" className={'pos-card' + (inCart ? ' is-in' : '')} disabled={blocked} onClick={() => add(p)} aria-label={`${p.name}, ${money(tierPrice(p.price, priceTier))}${p.weighed ? ' per kg' : ''}${priceTier ? ' wholesale' : ''}, ${stock[0]} at ${warehouse}${best ? `, ${best.available} at ${best.place}` : ''}${inCart ? `, ${qtyText(inCart)} in cart` : ''}`}>
+                      <button key={p.id} type="button" className={'pos-card' + (inCart ? ' is-in' : '')} disabled={blocked} onClick={() => add(p)} aria-label={`${p.name}, ${money(priceOf(p).price)}${p.weighed ? ' per kg' : ''}${priceTier ? ' wholesale' : ''}, ${stock[0]} at ${warehouse}${best ? `, ${best.available} at ${best.place}` : ''}${inCart ? `, ${qtyText(inCart)} in cart` : ''}`}>
                         <span className="pos-card__pic" aria-hidden="true">
                           <span className="pos-card__letter">{p.name[0]}</span>
                           <span className={'pos-card__stock ' + stock[1]}>{stock[0]}</span>
@@ -1152,7 +1211,7 @@ export default function Pos() {
                         <span className="pos-card__meta">{p.track ? <span className="pos-tag">{p.track === 'imei' ? 'IMEI' : 'Serial'}</span> : null}{p.weighed ? <span className="pos-tag">By weight</span> : null}{p.meta}<span className="pos-card__liststock"> · {stock[0]}</span></span>
                         {best ? <span className="pos-card__else"><Icon name="map-pin" width="12" height="12" aria-hidden="true" />{best.available} at {best.place}</span> : null}
                         <span className="pos-card__row">
-                          <span className="pos-card__price">{money(tierPrice(p.price, priceTier))}{p.weighed ? '/kg' : ''}{priceTier ? <s>{formatBDT(p.price)}</s> : null}</span>
+                          <span className="pos-card__price">{money(priceOf(p).price)}{p.weighed ? '/kg' : ''}{priceTier && priceOf(p).price !== p.price ? <s>{formatBDT(p.price)}</s> : null}</span>
                           <span className={'pos-card__add' + (inCart ? ' is-in' : '')}><Icon name={blocked ? 'ban' : !s.available && !negOk ? 'truck' : inCart ? 'check' : 'plus'} width="16" height="16" /></span>
                         </span>
                       </button>
@@ -1202,7 +1261,7 @@ export default function Pos() {
                 <div className="pos-member" role="status">
                   <div className="pos-member__head">
                     <span className="pos-sel__ico" aria-hidden="true"><Icon name="store" width="16" height="16" /></span>
-                    <span><b>{buyer.name} · wholesale customer</b><small>{atRetail ? 'Retail prices on this sale.' : `${tier.label} prices loaded (${tier.off}% below retail).`} Payment can wait: choose “Unpaid invoice”.</small></span>
+                    <span><b>{buyer.name} · wholesale customer</b><small>{atRetail ? 'Retail prices on this sale.' : `${tier.label} loaded.`} Payment can wait: choose “Unpaid invoice”.</small></span>
                   </div>
                   <div className="pos-switches">
                     {retailSwitch('pos-retail-pay')}
@@ -1280,12 +1339,14 @@ export default function Pos() {
                 <span>Subtotal</span><b>{money(t.gross)}</b>
                 {t.lineDisc ? <><span>Item discounts</span><b className="is-minus">− {money(t.lineDisc)}</b></> : null}
                 {t.cartDisc ? <><span>Discount{discount && discount.type === 'percent' ? ` · ${discount.value}%` : ''}</span><b className="is-minus">− {money(t.cartDisc)}</b></> : null}
-                {t.couponDisc ? <><span>Coupon <span className="pos-code">{coupon}</span></span><b className="is-minus">− {money(t.couponDisc)}</b></> : null}
+                {t.offers.map((o) => o.discount ? <React.Fragment key={o.id}><span>{o.code ? <>Coupon <span className="pos-code">{o.code}</span></> : o.name}</span><b className="is-minus">− {money(o.discount)}</b></React.Fragment> : null)}
+                {(t.gifts || []).map((g) => <React.Fragment key={'g' + g.sku}><span>Free gift · {g.name} × {g.qty}</span><b>Free</b></React.Fragment>)}
                 {t.memberDisc ? <><span>Membership · {member.tier} {member.tierPct}%</span><b className="is-minus">− {money(t.memberDisc)}</b></> : null}
                 {t.pointsDisc ? <><span>Points · {t.pointsUsed} used</span><b className="is-minus">− {money(t.pointsDisc)}</b></> : null}
-                <span>VAT</span><b>{money(t.tax)}</b>
+                <span>{t.vatIncluded ? 'VAT included' : 'VAT'}</span><b>{money(t.tax)}</b>
               </div>
               <div className="pos-remain"><span className="pos-cap">Total</span><b>{money(t.total)}</b></div>
+              {t.offerHints.length ? <ul className="pos-warnlist" aria-label="Offers">{t.offerHints.map((h) => <li key={h}><Icon name="tag" width="14" height="14" aria-hidden="true" /><span>{h}</span></li>)}</ul> : null}
               {tenders.length ? (
                 <ul className="pos-tenderlist">
                   {tenders.map((x, i) => <li key={i}><span><b>{x.method}</b><small>{x.via ? x.via + ' · ' : ''}Part payment</small></span><span className="pos-line__amt">{money(x.amount)}</span><button type="button" className="pos-line__x" aria-label={`Remove ${x.method} ${money(x.amount)}`} onClick={() => setTenders(tenders.filter((_, j) => j !== i))}><Icon name="x" width="16" height="16" /></button></li>)}
@@ -1300,7 +1361,7 @@ export default function Pos() {
               {creditOver ? (
                 <div className="pos-warnbox" role="alert">
                   <Icon name="shield-alert" width="18" height="18" aria-hidden="true" />
-                  <span><b>Over the credit limit</b>{buyer.name} already owes {money(owedBefore)}. With {money(owedNow)} unpaid on this sale that is {money(r2(owedBefore + owedNow))}, {money(r2(owedBefore + owedNow - creditLimit))} over the {formatBDT(creditLimit)} limit. A manager approves it with their PIN before the sale completes.</span>
+                  <span><b>{credit.hold && !credit.over ? 'Credit hold · overdue invoices' : credit.hold ? 'Over the limit and overdue' : 'Over the credit limit'}</b>{credit.reason} A manager approves it with their PIN before the sale completes.</span>
                 </div>
               ) : null}
               <div className="pos-payactions">
@@ -1344,18 +1405,20 @@ export default function Pos() {
                 <span>{receipt.customer.name || 'Walk-in customer'}{receipt.member ? ` · ${receipt.member.tier} member` : ''}</span>
                 <hr />
                 {receipt.lines.map((l) => <React.Fragment key={l.id}>
-                  <div><span>{l.unit === 'kg' ? `${kgText(l.qty)} × ${money(l.price)}/kg ` : `${l.qty} × `}{l.name}</span><span>{money(l.price * l.qty - (l.disc || 0))}</span></div>
+                  <div><span>{l.unit === 'kg' ? `${kgText(l.qty)} × ${money(l.price)}/kg ` : `${l.qty} × `}{l.name}</span><span>{l.gift ? 'Free' : money(l.price * l.qty - (l.disc || 0))}</span></div>
+                  {l.gift ? <span className="pos-receipt__sn">Free gift · {l.offer}</span> : null}
                   {(l.serials || []).map((sn) => <span key={sn} className="pos-receipt__sn">{/^\d{15}$/.test(sn) ? 'IMEI' : 'SN'} {sn}</span>)}
                   {l.from ? <span className="pos-receipt__sn">Ships from {l.from}</span> : null}
                 </React.Fragment>)}
                 <hr />
                 <div><span>Subtotal</span><span>{money(receipt.totals.gross - receipt.totals.lineDisc)}</span></div>
                 {receipt.totals.cartDisc ? <div><span>Discount</span><span>− {money(receipt.totals.cartDisc)}</span></div> : null}
-                {receipt.totals.couponDisc ? <div><span>Coupon</span><span>− {money(receipt.totals.couponDisc)}</span></div> : null}
+                {receipt.totals.offers ? receipt.totals.offers.map((o) => (o.discount ? <div key={o.id}><span>{offerText(o)}</span><span>− {money(o.discount)}</span></div> : null)) : receipt.totals.couponDisc ? <div><span>Coupon</span><span>− {money(receipt.totals.couponDisc)}</span></div> : null}
                 {receipt.totals.memberDisc ? <div><span>Membership</span><span>− {money(receipt.totals.memberDisc)}</span></div> : null}
                 {receipt.totals.pointsDisc ? <div><span>Points</span><span>− {money(receipt.totals.pointsDisc)}</span></div> : null}
-                <div><span>VAT</span><span>{money(receipt.totals.tax)}</span></div>
+                {receipt.totals.vatIncluded ? null : <div><span>VAT</span><span>{money(receipt.totals.tax)}</span></div>}
                 <div className="pos-receipt__total"><span>Total</span><span>{money(receipt.totals.total)}</span></div>
+                {receipt.totals.vatIncluded && receipt.totals.tax ? <div><span>VAT included in total</span><span>{money(receipt.totals.tax)}</span></div> : null}
                 <hr />
                 {receipt.tenders.map((x, i) => <div key={i}><span>{x.method === CREDIT ? 'Unpaid' : x.method}{x.via ? ` · ${x.via}` : ''}</span><span>{money(x.amount)}</span></div>)}
                 {receipt.change ? <div><span>Change</span><span>{money(receipt.change)}</span></div> : null}
@@ -1381,7 +1444,7 @@ export default function Pos() {
               <ul className="pos-list pos-list--pick" aria-label="Saved customers">
                 {hits.map((c) => (
                   <li key={c.phone}>
-                    <div><b>{c.name}</b><span className="pos-muted">{c.phone} · {c.types.join(', ')}{wholesaleOn() && tierOf(c) ? ' · ' + tierOf(c).label : ''}</span></div>
+                    <div><b>{c.name}</b><span className="pos-muted">{c.phone} · {c.types.join(', ')}{wholesaleOn() && pricingLabel(c) ? ' · ' + pricingLabel(c) : ''}</span></div>
                     <button type="button" className="pos-softbtn" onClick={() => { setCustomer({ name: c.name, phone: c.phone }); setRedeem(false); setPanel(''); }} aria-label={`Choose ${c.name}`}>Choose</button>
                   </li>
                 ))}
@@ -1457,6 +1520,17 @@ export default function Pos() {
               <button type="button" onClick={() => press('0')}>0</button>
               <button type="button" aria-label="Delete last digit" onClick={() => press('back')}><Icon name="delete" width="22" height="22" /></button>
             </div>
+            {!edit.kg && !edit.track && edit.sku && unitsFor(edit.sku).length > 1 ? (() => {
+              const pq = edit.packs.trim() ? parseQty(edit.sku, edit.packs) : null;
+              return (
+                <div className="gc-field pos-packs">
+                  <label htmlFor="pos-packs">Quantity in packs</label>
+                  <input id="pos-packs" className="gc-input" value={edit.packs} placeholder="e.g. 3 ctn + 4 pcs" autoComplete="off"
+                    onChange={(e) => { const v = e.target.value; const r = v.trim() ? parseQty(edit.sku, v) : null; setEdit({ ...edit, packs: v, ...(r && !r.error ? { qty: String(r.pieces), field: 'qty', fresh: true } : {}) }); }} />
+                  <small className={pq && pq.error ? 'pos-line__warn' : 'pos-muted'}>{pq ? (pq.error || `= ${pq.pieces} pcs`) : unitsFor(edit.sku).slice(1).map((u) => u.label).join(' · ')}</small>
+                </div>
+              );
+            })() : null}
             <p className="pos-muted">{edit.kg ? kgText(edit.stock) : edit.stock} available at {(lines.find((l) => l.id === edit.id) || {}).from || warehouse}.{negOk ? ' Negative stock is allowed here.' : ''}{edit.track ? ' Add or remove units with + and − (each needs its number).' : ''} Lowering the price or giving a discount needs a manager’s PIN.</p>
           </>
         ) : null}
@@ -1569,7 +1643,7 @@ export default function Pos() {
       {/* serial / IMEI, weighed item, fulfil from another place, hardware, drawer without a sale, sync */}
       <SerialSheet open={!!serialAsk && !pin} product={serialAsk && serialAsk.p} kind={serialAsk && serialAsk.p.track} units={serialAsk ? serialsAt(serialAsk.p.sku, warehouse).filter((u) => !takenSerials.includes(u.serial)) : []} check={serialAsk ? checkSn(serialAsk.p) : () => ({})} onAdd={(sn) => { const p = serialAsk.p; setSerialAsk(null); add(p, { serial: sn }); focusId('pos-scan'); }} onClose={() => { setSerialAsk(null); focusId('pos-scan'); }} />
       <WeighSheet open={!!weigh} item={weigh} onAdd={(kg) => { const p = weigh.p; setWeigh(null); add(p, { kg }); focusId('pos-scan'); }} onClose={() => { setWeigh(null); focusId('pos-scan'); }} />
-      <FulfilSheet open={!!fulfil} product={fulfil && fulfil.p} here={warehouse} options={fulfil ? fulfil.options : []} address={shipTo} onPick={(place, addr) => { const p = fulfil.p, kg = fulfil.kg; setFulfil(null); setShipTo(addr); add(p, { from: place, ...(kg ? { kg } : {}) }); toast(`${p.name} will ship from ${place}`); }} onClose={() => setFulfil(null)} />
+      <FulfilSheet open={!!fulfil} product={fulfil && fulfil.p} here={warehouse} options={fulfil ? fulfil.options : []} address={shipTo} onPick={(place, addr) => { const p = fulfil.p, kg = fulfil.kg, n = fulfil.qty; setFulfil(null); setShipTo(addr); add(p, { from: place, ...(kg ? { kg } : {}), ...(n ? { qty: n } : {}) }); toast(`${p.name} will ship from ${place}`); }} onClose={() => setFulfil(null)} />
       <HardwareSheet open={panel === 'hardware'} counter={shift.counter} devices={devices} onTest={onTest} onState={onDeviceState} onNoSale={() => setPanel('nosale')} onClose={() => setPanel('')} />
       <NoSaleSheet open={panel === 'nosale' && !pin} allowed={isManager} onDone={(why) => openNoSale(why)} onClose={() => setPanel('')} />
       <SyncSheet open={panel === 'sync' && !pin} result={syncResult} review={reviewList} offline={offline} onResolve={resolve} onSync={runSync} onClose={() => setPanel('')} />

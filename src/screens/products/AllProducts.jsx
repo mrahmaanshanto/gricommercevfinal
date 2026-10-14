@@ -9,13 +9,20 @@ import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import { EmptyState as __EmptyState, StatusBadge as __StatusBadge, Dialog as __Dialog } from '@/components/ui';
 import { ShopHeader, IndexTabs, SearchField, LearnMore, Menu } from '@/components/ui/IndexKit';
-import { toast as __toast } from '@/runtime/ui';
+import { toast as __toast, confirmDialog } from '@/runtime/ui';
 import { useRouter } from 'next/navigation';
 import { formatBDT } from '@/lib/format';
-import { allProducts, getSavedProducts, DEMO_PRODUCTS, sellLabel, duplicateProduct } from '@/lib/products';
+import { allProducts, getSavedProducts, DEMO_PRODUCTS, sellLabel, duplicateProduct, saveProduct } from '@/lib/products';
+import { categoryDefaults } from '@/lib/productTemplates';
 import ImportProducts from './ImportProducts';
 import { freeKeys } from '@/lib/licenceKeys';
-import { stockAt } from '@/lib/stock';
+import { stockAt, getCatalog, getMoves, STOCK_EVENT } from '@/lib/stock';
+import { getHolds } from '@/lib/stockHolds';
+import { getTransfers } from '@/lib/transfers';
+import { productStock, skusOf } from '@/lib/productStock';
+import { navigate as __navigate } from '@/runtime/routes';
+import { REORDER_EVENT } from '@/lib/reorder';
+import { categoryPaths } from '@/lib/productCategories';
 import { getStockSetup } from '@/lib/stockSetup';
 import { hasModule } from '@/lib/edition';
 import { CHANNELS_EVENT, channelMap, getChannels, setPublished, retryMany, STATUS, ISSUES, channelBy, PRODUCT_CHS } from '@/lib/channels';
@@ -42,7 +49,6 @@ function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#
 var FL = { 'IMEI': ['#e0f2fe', '#075985', 'Tracked by IMEI'], 'Serial': ['#e0f2fe', '#075985', 'Tracked by serial number'], 'Warranty': ['#e7f8f1', '#047857', 'Has a warranty policy'], 'Expiry': ['#fff4e0', '#a14f06', 'Has an expiry date'], 'Size guide': ['#eef2f6', '#334155', 'Has a size guide'], 'No description': ['#f3e8ff', '#6d28d9', 'Missing — fill with AI'], 'No photo': ['#ffece6', '#b83210', 'Missing photo'] };
 var ST = { active: ['Active', 'badge b-received'], draft: ['Draft', 'badge b-draft'], archived: ['Archived', 'badge b-closed'], deleted: ['Deleted', 'badge b-cancelled'] };
 var TABS = [{ k: 'all', label: 'All' }, { k: 'active', label: 'Active' }, { k: 'draft', label: 'Draft' }, { k: 'archived', label: 'Archived' }, { k: 'missing', label: 'Missing info' }, { k: 'deleted', label: 'Deleted' }];
-var AIC = ['Short description', 'Long description', 'SEO title', 'SEO description', 'Tags', 'Product FAQ', 'Image alt text'];
 var UNTAGGED = [['', 'All tags'], ['nosku', 'No SKU'], ['nobarcode', 'No barcode'], ['nocat', 'No category'], ['nows', 'No wholesale price']];
 var UNTAGGED_RETAIL = UNTAGGED.filter(function (x) { return x[0] !== 'nows'; });
 var UNTAGGED_TEST = { nosku: function (p) { return !p.sku; }, nobarcode: function (p) { return !p.barcode; }, nocat: function (p) { return !p.cat; }, nows: function (p) { return p.wholesale == null || p.wholesale === ''; } };
@@ -63,13 +69,28 @@ function wsText(p) {
   return (p.sell === 'wholesale' ? 'Wholesale · ' : 'Wholesale ' + formatBDT(p.wholesale) + ' · ') + 'min ' + (p.moq || 1) + ' pcs';
 }
 function csvCell(c) { var t = c == null ? '' : String(c); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }
+// Save a change to several products (status, category). A demo product gets a saved copy in this browser, the same
+// way the product page saves it (products.js). Returns how many changed.
+function saveMany(list, patch, note, force) {
+  var n = 0;
+  list.forEach(function (p) {
+    var rec = JSON.parse(JSON.stringify(p));
+    ['savedAt', 'version', 'savedNew', 'vars'].forEach(function (k) { delete rec[k]; });
+    var ch = force || Object.keys(patch).some(function (k) { return rec[k] !== patch[k]; });
+    if (!ch) return;
+    saveProduct(assign(rec, patch), { note: note });
+    n++;
+  });
+  return n;
+}
+function plural(n, one) { return n + ' ' + (n === 1 ? one : one + 's'); }
 function downloadCsv(name, rows) {
   var blob = new Blob(['﻿' + rows.map(function (r) { return r.map(csvCell).join(','); }).join('\n')], { type: 'text/csv;charset=utf-8' });
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
 }
 class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); if (this.onCh) window.removeEventListener(CHANNELS_EVENT, this.onCh); clearInterval(this.chTick); }
+  componentWillUnmount() { clearTimeout(this.t); if (this.onCh) window.removeEventListener(CHANNELS_EVENT, this.onCh); clearInterval(this.chTick); if (this.onStock) { window.removeEventListener(STOCK_EVENT, this.onStock); window.removeEventListener(REORDER_EVENT, this.onStock); } }
   // The status tab lives in the URL (?status=draft), so a reload or Back keeps the same list.
   // Products added or edited in this browser are read after mount (localStorage).
   componentDidMount() {
@@ -85,13 +106,16 @@ class Component extends DCLogic {
       this.chTick = setInterval(this.onCh, 4000);
     }
     if (st && TABS.some(function (t) { return t.k === st; })) p.tab = st;
+    // the Inventory column is live stock (stock moves, holds, transfers): read again when stock or an alert level changes
+    this.onStock = function () { self.setState({ stockTick: Date.now() }); };
+    window.addEventListener(STOCK_EVENT, this.onStock); window.addEventListener(REORDER_EVENT, this.onStock);
     this.setState(p);
   }
   setTab(k) {
     var url = new URL(window.location.href);
     if (k === 'all') url.searchParams.delete('status'); else url.searchParams.set('status', k);
     window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
-    this.setState({ tab: k, sel: {}, aiOpen: false });
+    this.setState({ tab: k, sel: {} });
   }
   // Channel actions for the selected products (publish / remove on Meta or Google, or retry the failed ones).
   bulkCh(ch, on) {
@@ -110,8 +134,28 @@ class Component extends DCLogic {
     this.setState({ chMenu: false, sel: {}, chm: channelMap() });
     toast(this, msg);
   }
+  // Archive, unarchive, delete or restore the selected products: a status change saved in this browser.
+  // Archive and restore offer Undo; Delete asks first.
+  async bulkStatus(to) {
+    var s = this.state || {}, sel = s.sel || {}, all = s.saved ? allProducts(s.saved) : DEMO_PRODUCTS, self = this;
+    var picked = all.filter(function (p) { return sel[p.id]; });
+    var from = { archive: ['active', 'draft'], unarchive: ['archived'], restore: ['deleted'], delete: ['active', 'draft', 'archived'] }[to];
+    var list = picked.filter(function (p) { return from.indexOf(p.st) >= 0; });
+    if (!list.length) return;
+    if (to === 'delete') {
+      var ok = await confirmDialog({ title: 'Delete ' + plural(list.length, 'product') + '?', body: 'They leave the stock list, the POS and new orders, and move to the Deleted tab. You can restore them from there.', confirmLabel: 'Delete', tone: 'danger' });
+      if (!ok) return;
+    }
+    var st = { archive: 'archived', unarchive: 'draft', restore: 'draft', delete: 'deleted' }[to];
+    var before = list.map(function (p) { return JSON.parse(JSON.stringify(p)); });
+    var n = saveMany(list, { st: st }, { archive: 'Archived', unarchive: 'Unarchived', restore: 'Restored', delete: 'Deleted' }[to] + ' from the product list');
+    this.setState({ saved: getSavedProducts(), sel: {} });
+    var msg = { archive: 'Archived ', unarchive: 'Unarchived as draft: ', restore: 'Restored as draft: ', delete: 'Moved to Deleted: ' }[to] + plural(n, 'product');
+    var undo = function () { saveMany(before, {}, 'Undo', true); self.setState({ saved: getSavedProducts() }); };
+    __toast(msg, to === 'delete' ? undefined : { undo: undo });
+  }
   renderVals() {
-    var self = this, s = this.state || {}, tab = s.tab || 'all', sel = s.sel || {}, aic = s.aic || { 'Short description': true, 'Long description': true };
+    var self = this, s = this.state || {}, tab = s.tab || 'all', sel = s.sel || {};
     var q = (s.q || '').trim().toLowerCase();
     var wsOn = s.wsOn !== false;
     var fCat = s.fCat || '', fBrand = s.fBrand || '', fTag = s.fTag || '', fSell = wsOn ? s.fSell || '' : '';
@@ -131,10 +175,24 @@ class Component extends DCLogic {
       .filter(function (p) { return !q || (p.name + ' ' + p.sku + ' ' + p.barcode + ' ' + p.brand + ' ' + p.cat).toLowerCase().indexOf(q) >= 0; })
       .filter(function (p) { return (!fCat || p.cat === fCat || p.cat.indexOf(fCat + ' ›') === 0) && (!fBrand || p.brand === fBrand) && (!fTag || UNTAGGED_TEST[fTag](p)) && (!fSell || p.sell === fSell) && (!fCh || CH_TEST[fCh](p)); });
     var n = list.filter(function (p) { return sel[p.id]; }).length;
-    var cnt = { all: 412, active: 386, draft: 14, archived: 12, missing: 34, deleted: 9 };
-    // Products added in this browser come on top of the shop's counts.
-    all.filter(function (p) { return !DEMO_PRODUCTS.some(function (d) { return d.id === p.id; }); }).forEach(function (p) { if (p.st !== 'deleted') cnt.all++; if (cnt[p.st] != null) cnt[p.st]++; });
+    // the tab counts, from the same products the tabs list
+    var cnt = { all: 0, active: 0, draft: 0, archived: 0, missing: 0, deleted: 0 };
+    all.filter(function (p) { return wsOn || p.sell !== 'wholesale'; }).forEach(function (p) { if (p.st !== 'deleted') cnt.all++; if (cnt[p.st] != null) cnt[p.st]++; if (p.missing) cnt.missing++; });
+    var picked = list.filter(function (p) { return sel[p.id]; });
+    var hasSt = function (sts) { return picked.some(function (p) { return sts.indexOf(p.st) >= 0; }); };
     var cats = uniq(all.map(function (p) { return p.cat.split(' › ')[0]; }).concat(all.map(function (p) { return p.cat; })));
+    var catChoices = s.catOpen ? uniq(cats.concat(Object.keys(categoryDefaults()), categoryPaths())) : [];
+    // live stock per product (after mount: it reads this browser's stock moves), out / low against its alert level
+    var sdata = s.saved ? { catalog: getCatalog(), holds: getHolds(), moves: getMoves(), transfers: getTransfers() } : null, stockMemo = {};
+    var stockOf = function (p) { if (!sdata) return null; if (!stockMemo[p.id]) stockMemo[p.id] = productStock(p, sdata); return stockMemo[p.id]; };
+    var invOf = function (p) {
+      if (p.format === 'digital' || p.format === 'service') return { t: 'Not tracked', tone: '' };
+      if (p.format === 'licence') return { t: (s.saved ? freeKeys(p.sku) : 0) + ' keys free', tone: '' };
+      if (!sdata) return { t: '—', tone: 'ix-muted' };
+      if (p.bundle && p.bundle.type !== 'kit') return { t: stockAt(p.sku, '').available + ' from parts', tone: '' };
+      var ps = stockOf(p);
+      return ps.out ? { t: 'Out of stock', tone: 'ix-bad', n: Math.min(0, ps.available) } : { t: ps.available + ' in stock', tone: ps.low ? 'ix-warn' : '', n: ps.available };
+    };
     return assign({
       tabs: pTabs(this, TABS, tab, 'tab', cnt).map(function (x, i) { x.k = TABS[i].k; x.id = 'ptab-' + TABS[i].k; x.tabIndex = x.on ? 0 : -1; x.pick = function () { self.setTab(TABS[i].k); }; return x; }),
       tabKey: function (e) {
@@ -162,7 +220,7 @@ class Component extends DCLogic {
       clearEmpty: function () { if (q) self.setState({ q: '' }); else if (filtered) self.setState({ fCat: '', fBrand: '', fTag: '', fSell: '', fCh: '' }); else self.setTab('all'); },
       rows: list.map(function (p) { var on = !!sel[p.id], href = editHref(p);
         return { id: p.id, name: p.name, sku: p.sku || 'No SKU', skuColor: p.sku ? 'var(--text-muted)' : 'var(--text-warning)', vars: p.vars, initial: p.name.charAt(0), tbg: p.tbg, sel: on, bg: on ? '#f2f6fc' : 'transparent', st: ST[p.st][0], stCls: ST[p.st][1],
-          inv: p.format === 'digital' || p.format === 'service' ? 'Not tracked' : p.format === 'licence' ? freeKeys(p.sku) + ' keys free' : p.bundle && p.bundle.type !== 'kit' ? (s.saved ? stockAt(p.sku, '').available : 0) + ' from parts' : p.inv === 0 ? 'Out of stock' : p.inv + ' in stock', invSub: p.loc ? 'at ' + p.loc + (p.loc > 1 ? ' places' : ' place') : 'not tracked', invColor: p.inv === 0 ? '#b83210' : p.low ? '#a14f06' : '#0f172a',
+          inv: invOf(p).t, invTone: invOf(p).tone,
           cat: p.cat || 'No category', catColor: p.cat ? '#334155' : 'var(--text-warning)', brand: p.brand || '—',
           sell: sellLabel(p.sell), sellCls: SELL_CLS[p.sell] || SELL_CLS.retail, price: priceText(p), ws: wsText(p), wsColor: p.sell !== 'retail' && (p.wholesale == null || p.wholesale === '') ? 'var(--text-warning)' : 'var(--text-muted)',
           flags: p.flags.filter(function (f) { return FL[f]; }).map(function (f) { return { l: f, bg: FL[f][0], fg: FL[f][1], t: FL[f][2] }; }),
@@ -178,10 +236,8 @@ class Component extends DCLogic {
       empty: !list.length, shown: list.length, total: q || filtered ? list.length : cnt[tab],
       allSel: list.length > 0 && n === list.length, toggleAll: function () { var o = {}; if (n !== list.length) list.forEach(function (p) { o[p.id] = true; }); self.setState({ sel: o }); },
       hasSel: n > 0, selCount: n,
-      aiOpen: !!s.aiOpen && n > 0, openAi: function () { self.setState({ aiOpen: true }); }, closeAi: function () { self.setState({ aiOpen: false }); },
-      aiCols: AIC.map(function (c) { var on = !!aic[c]; return { label: c, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var o = assign({}, aic); o[c] = !on; self.setState({ aic: o }); } }; }),
-      aiTotal: n * AIC.filter(function (c) { return aic[c]; }).length,
-      runAi: function () { self.setState({ aiOpen: false }); toast(self, 'AI is writing ' + n * AIC.filter(function (c) { return aic[c]; }).length + ' fields. They will wait in “Review AI text” before going live.'); },
+      // AI for many products at once is not built yet: say so, and point to the product page's own AI writing
+      openAi: function () { __toast('Coming soon: AI for many products at once. Open a product and use Write with AI.', { tone: 'info' }); },
       // Import: upload a CSV, match the columns, check every row (dry run), import the good ones (ImportProducts.jsx)
       importCsv: function () { self.setState({ impOpen: true }); },
       closeImport: function () { self.setState({ impOpen: false }); },
@@ -202,13 +258,33 @@ class Component extends DCLogic {
       exportCsv: function () {
         if (!list.length) { toast(self, 'Nothing to export. Change the filters first.', true); return; }
         var rows = [['Name', 'SKU', 'Barcode', 'Status', 'Stock', 'Category', 'Brand'].concat(wsOn ? ['Sell to', 'Retail price', 'Wholesale price', 'Wholesale MOQ'] : ['Price'], ['Variants'])].concat(list.map(function (p) {
-          return [p.name, p.sku, p.barcode, ST[p.st][0], p.inv, p.cat, p.brand].concat(wsOn ? [sellLabel(p.sell), p.sell === 'wholesale' ? '' : p.price, p.wholesale == null ? '' : p.wholesale, p.moq == null ? '' : p.moq] : [p.price], [p.variants.length || 1]);
+          var iv = invOf(p);
+          return [p.name, p.sku, p.barcode, ST[p.st][0], iv.n != null ? iv.n : iv.t, p.cat, p.brand].concat(wsOn ? [sellLabel(p.sell), p.sell === 'wholesale' ? '' : p.price, p.wholesale == null ? '' : p.wholesale, p.moq == null ? '' : p.moq] : [p.price], [p.variants.length || 1]);
         }));
         downloadCsv('products-' + tab + '.csv', rows);
         toast(self, 'Exported ' + list.length + (list.length === 1 ? ' product' : ' products') + ' as CSV.');
       },
-      bulkCat: function () { toast(self, 'Pick a new category for ' + n + ' products.'); }, bulkLbl: function () { toast(self, 'Barcode labels ready to print for ' + n + ' products.'); },
-      bulkArchive: function () { toast(self, n + ' products archived.'); }, bulkDelete: function () { toast(self, n + ' products moved to Deleted. You can restore them for 30 days.', true); }
+      // Change category: pick one, saved on every selected product
+      catOpen: !!s.catOpen && n > 0, catChoices: catChoices, newCat: s.newCat == null ? '' : s.newCat,
+      bulkCat: function () { self.setState({ catOpen: true, newCat: '' }); },
+      closeCat: function () { self.setState({ catOpen: false }); },
+      pickCat: function (e) { self.setState({ newCat: e.target.value }); },
+      applyCat: function () {
+        var c = s.newCat || '';
+        if (!c) { toast(self, 'Pick a category first.', true); return; }
+        var k = saveMany(picked, { cat: c }, 'Category changed to ' + c);
+        self.setState({ saved: getSavedProducts(), sel: {}, catOpen: false });
+        toast(self, k ? 'Category changed to ' + c + ' for ' + plural(k, 'product') : 'These products are already in ' + c);
+      },
+      // Print labels: the label page opens with every SKU (each variant) of the picked products, one label each
+      bulkLbl: function () {
+        var skus = []; picked.forEach(function (p) { skusOf(p).forEach(function (k) { if (skus.indexOf(k) < 0) skus.push(k); }); });
+        if (!skus.length) { toast(self, 'These products have nothing to label (downloads and services have no stock).', true); return; }
+        __navigate('/barcode-labels?skus=' + encodeURIComponent(skus.join(',')));
+      },
+      canArchive: hasSt(['active', 'draft']), canUnarchive: hasSt(['archived']), canRestore: hasSt(['deleted']), canDelete: hasSt(['active', 'draft', 'archived']),
+      bulkArchive: function () { self.bulkStatus('archive'); }, bulkUnarchive: function () { self.bulkStatus('unarchive'); },
+      bulkRestore: function () { self.bulkStatus('restore'); }, bulkDelete: function () { self.bulkStatus('delete'); }
     }, msgV(s));
   }
 }
@@ -239,7 +315,7 @@ class AllProductsView extends Component {
     const find = !!(s.find || v.q || v.filtered);
     const openFind = () => this.setState({ find: true });
     const closeFind = () => this.setState({ find: false, q: '', fCat: '', fBrand: '', fTag: '', fSell: '', fCh: '' });
-    const tabs = v.tabs.map((t) => ({ key: t.k, id: t.id, label: t.label, on: t.on, onClick: t.pick }));
+    const tabs = v.tabs.map((t) => ({ key: t.k, id: t.id, label: t.label, count: t.count, on: t.on, onClick: t.pick }));
     return (
       <div className="dc-screen ds" data-screen="AllProducts">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -266,7 +342,7 @@ class AllProductsView extends Component {
                       <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkLbl}><__Icon name="scan-barcode" width="16" height="16" aria-hidden="true" />Print labels</button>
                       <button type="button" className="ix-btn ix-btn--sm" onClick={v.openAi}><__Icon name="sparkles" width="16" height="16" aria-hidden="true" />Fill with AI</button>
                       {v.chOn && v.chActs.length ? <Menu label="Channels" icon="radio-tower" cls="ix-btn ix-btn--sm" align="start" items={v.chActs.map((a) => ({ label: a.l, onClick: a.run }))} /> : null}
-                      <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[v.selCount === 1 ? { label: 'Duplicate', onClick: v.duplicate } : null, { label: 'Archive', onClick: v.bulkArchive }, { label: 'Delete', onClick: v.bulkDelete, tone: 'danger' }].filter(Boolean)} />
+                      <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[v.selCount === 1 ? { label: 'Duplicate', onClick: v.duplicate } : null, v.canArchive ? { label: 'Archive', onClick: v.bulkArchive } : null, v.canUnarchive ? { label: 'Unarchive', onClick: v.bulkUnarchive } : null, v.canRestore ? { label: 'Restore', onClick: v.bulkRestore } : null, v.canDelete ? { label: 'Delete', onClick: v.bulkDelete, tone: 'danger' } : null].filter(Boolean)} />
                     </div>
                   ) : (
                     <div className="ix-bar">
@@ -314,7 +390,7 @@ class AllProductsView extends Component {
                           <__Link href={r.href} className="ix-pitem ix-pitem--thumb">
                             <span className="ix-thumb" style={{ background: r.tbg }} aria-hidden="true">{r.initial}</span>
                             <span className="ix-pitem__top"><b>{r.name}</b><__StatusBadge tone={STATUS_TONE[r.st] || 'neutral'} icon="circle">{r.st}</__StatusBadge></span>
-                            <span className="ix-pitem__mid"><span className={r.inv === 'Out of stock' ? 'ix-bad' : ''}>{r.inv}</span> · {r.cat}</span>
+                            <span className="ix-pitem__mid"><span className={r.invTone}>{r.inv}</span> · {r.cat}</span>
                           </__Link>
                         </li>
                       ))}
@@ -343,7 +419,7 @@ class AllProductsView extends Component {
                                 </span>
                               </td>
                               <td><__StatusBadge tone={STATUS_TONE[r.st] || 'neutral'} icon="circle">{r.st}</__StatusBadge></td>
-                              <td className={r.inv === 'Out of stock' ? 'ix-bad' : r.invColor === '#a14f06' ? 'ix-warn' : ''}>{r.inv}{r.vars > 1 ? <span className="ix-muted"> for {r.vars} variants</span> : null}</td>
+                              <td className={r.invTone}>{r.inv}{r.vars > 1 ? <span className="ix-muted"> for {r.vars} variants</span> : null}</td>
                               <td className={r.cat === 'No category' ? 'ix-warn' : 'ix-muted'}>{r.cat}</td>
                               {v.chOn ? (
                                 <td>
@@ -375,23 +451,17 @@ class AllProductsView extends Component {
 
         <ImportProducts open={!!s.impOpen} onClose={v.closeImport} onDone={v.imported} />
 
-        <__Dialog open={!!v.aiOpen} title={'Fill with AI for ' + v.selCount + ' products'} onClose={v.closeAi} width={520} footer={<>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeAi}>Cancel</button>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.runAi}><__Icon name="sparkles" width="16" height="16" aria-hidden="true" />Generate {v.aiTotal} fields</button>
+        <__Dialog open={!!v.catOpen} title={'Change category for ' + (v.selCount === 1 ? '1 product' : v.selCount + ' products')} onClose={v.closeCat} width={440} footer={<>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeCat}>Cancel</button>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.applyCat} disabled={!v.newCat}>Change category</button>
         </>}>
-          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-            <p className="gc-help" style={{ margin: 0 }}>AI fills only empty fields unless you tick Replace. You check everything before it goes live.</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-              {__list(v.aiCols).map((c) => (
-                <button key={c.label} type="button" className={'ix-filter' + (c.on ? ' is-set' : '')} aria-pressed={c.on} onClick={c.pick} style={{ backgroundImage: 'none', paddingRight: 10 }}>{c.label}</button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <select className="ix-pick" aria-label="Language"><option>English</option><option>বাংলা</option><option>English + বাংলা</option></select>
-              <select className="ix-pick" aria-label="Tone"><option>Friendly</option><option>Premium</option><option>Simple and short</option></select>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)' }}><input type="checkbox" style={{ width: 16, height: 16 }} />Replace existing text</label>
-            </div>
-          </div>
+          <label style={{ display: 'grid', gap: 'var(--space-1)' }}>
+            <span className="gc-label">New category</span>
+            <select id="ap-newcat" className="gc-input gc-select" value={v.newCat} onChange={v.pickCat} autoFocus>
+              <option value="">Choose a category</option>
+              {__list(v.catChoices).map((c) => (<option key={c} value={c}>{c}</option>))}
+            </select>
+          </label>
         </__Dialog>
       </div>
     );

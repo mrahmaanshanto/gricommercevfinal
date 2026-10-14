@@ -119,6 +119,23 @@ export function sellSerials(sale) {
 /** Units of one sale that are sold now (used by the offline sync to find a number sold meanwhile). */
 export const soldElsewhere = (serial, saleId) => { const u = serialBy(serial); return u && u.state === 'sold' && u.saleId !== saleId ? u : null; };
 
+/** Units that arrived from a supplier (Receive goods): each number goes on the shelf at `place`, ready for the POS.
+ *  units: [{ serial, sku, product, kind }]. Numbers already in the list are left as they are (the caller checks first). */
+export function receiveSerials(units, { place, ref = '', supplier = '', by = 'Staff' } = {}) {
+  const list = read().slice();
+  const have = new Set(list.map((x) => x.serial));
+  const made = [];
+  units.forEach((u) => {
+    const serial = norm(u.serial);
+    if (!serial || have.has(serial)) return;
+    have.add(serial);
+    const row = { serial, sku: u.sku, product: u.product, kind: u.kind === 'imei' ? 'imei' : 'serial', place, state: 'stock', at: Date.now(), added: ref, supplier, by };
+    list.unshift(row); made.push(row);
+  });
+  if (made.length) write(list);
+  return made;
+}
+
 /** A unit came back (a return, or a voided sale): it can be sold again at `place`. */
 export function returnSerial(serial, { ref = '', place } = {}) {
   const s = norm(serial);

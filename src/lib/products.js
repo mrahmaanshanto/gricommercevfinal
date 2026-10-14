@@ -22,12 +22,15 @@
 import { wholesaleOn } from './edition';
 import { CATALOG } from './stock';
 import { recordVersion } from './productVersions';
+import { toHandle } from './handles';
+import { autoRedirect } from './redirects';
 
 const SAVED = 'gc.products.saved';
 
 const SELL_ALL = [['retail', 'Retail'], ['wholesale', 'Wholesale'], ['both', 'Both']];
-// 'Wholesale only' is offered only while wholesale is on (edition.js; off for now)
-export const SELL_TO = SELL_ALL.filter((x) => x[0] !== 'wholesale' || wholesaleOn());
+// 'Wholesale only' is offered only while wholesale is on (edition.js; off for now). A function, read when it is
+// used (after mount), never at import time: the server and an edition preview in the browser may differ.
+export const sellToChoices = () => SELL_ALL.filter((x) => x[0] !== 'wholesale' || wholesaleOn());
 export const sellLabel = (k) => (SELL_ALL.find((x) => x[0] === k) || SELL_ALL[0])[1];
 
 // ---- variants -----------------------------------------------------------------------------------
@@ -143,6 +146,8 @@ const DEMO = [
 ];
 
 export const DEMO_PRODUCTS = DEMO.map(normalize);
+/** A product's web address: its own handle, else made from its name (dazzleshop.com.bd/products/<handle>). */
+export const productHandle = (p) => (p && (p.handle || toHandle(p.name))) || '';
 const DEMO_IDS = new Set(DEMO_PRODUCTS.map((p) => p.id));
 
 // ---- saved in this browser ----------------------------------------------------------------------
@@ -158,6 +163,12 @@ export const getSavedProducts = () => read();
  *  (productVersions.js); `opts.note` says why ("Bulk edit JOB-0003", "Restored version 4"), `opts.by` who. */
 export function saveProduct(product, opts = {}) {
   const rec = normalize({ ...product, savedAt: Date.now() });
+  // a live product whose address changed (renamed, or the handle edited) keeps its old address working
+  const prev = read().find((p) => p.id === rec.id) || DEMO_PRODUCTS.find((p) => p.id === rec.id);
+  if (prev && prev.st === 'active') {
+    const was = productHandle(prev), now = productHandle(rec);
+    if (was && now && was !== now) autoRedirect('/products/' + was, '/products/' + now, prev.name !== rec.name ? 'Product renamed' : 'Product address changed');
+  }
   const list = [rec, ...read().filter((p) => p.id !== rec.id)];
   try { window.localStorage.setItem(SAVED, JSON.stringify(list)); } catch { /* ignore */ }
   try { rec.version = recordVersion(rec, opts); } catch { /* ignore */ }
@@ -181,11 +192,13 @@ export function duplicateProduct(id, saved = getSavedProducts()) {
 
 export const newProductId = () => 'p-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
+/** A draft scheduled to go live (goLiveAt, set in its Search engine listing) is active once that time has passed. */
+const due = (p) => (p.goLiveAt && p.st === 'draft' && new Date(p.goLiveAt).getTime() <= Date.now() ? { ...p, st: 'active' } : p);
 /** Demo rows with saved edits applied, and new products at the top (newest first). */
 export function allProducts(saved = getSavedProducts()) {
   const byId = new Map(saved.map((p) => [p.id, p]));
   const added = saved.filter((p) => !DEMO_IDS.has(p.id)).sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
-  return added.map(normalize).concat(DEMO_PRODUCTS.map((p) => (byId.has(p.id) ? normalize({ ...p, ...byId.get(p.id) }) : p)));
+  return added.map(normalize).concat(DEMO_PRODUCTS.map((p) => (byId.has(p.id) ? normalize({ ...p, ...byId.get(p.id) }) : p))).map(due);
 }
 
 /** A stock catalogue item shaped as a product, for items that are not in the demo list. */

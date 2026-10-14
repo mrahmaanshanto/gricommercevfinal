@@ -10,6 +10,11 @@
 //   report is kept in this browser (gc.receive.reports). Wrong items go back from Supplier return.
 // - Saving also adds the supplier's bill for the delivery (src/lib/supplierBills.js): accepted pieces ×
 //   order price + extra costs, due after the supplier's credit terms.
+// - IMEI / serial and batch (PR-F3): a product kept by IMEI or serial number asks for one number per piece added to
+//   stock (scan or type; the count must match before saving); a product kept by batch asks for the batch no. and
+//   expiry date. Saving puts the numbers in the serial register (lib/serials.js, so the POS offers them and the IMEI
+//   trace shows where they came from) and the batch in Damaged & expired › Expiry (lib/batches.js).
+// - Any order that is approved, sent or partly received can be received (lib/poFlow.js keeps what arrived).
 // Front end only.
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -24,8 +29,13 @@ import { DAMAGED_PLACE, getReceivingPlaces, placeName } from '@/lib/locations';
 import { usePlaceList } from '@/lib/usePlaces';
 import { productBy, addMove } from '@/lib/stock';
 import { addHolds, closeHold } from '@/lib/stockHolds';
-import { getPOs, getPO, updatePO, unitCost, lineCost, PO_STATUS_TONE } from '@/lib/purchaseOrders';
+import { unitCost, lineCost } from '@/lib/purchaseOrders';
+import { poOf, allPOs, recordDelivery, PO_TONE } from '@/lib/poFlow';
 import { addBill, findSupplier } from '@/lib/supplierBills';
+import { trackOf, checkIncoming } from '@/lib/receiveTracking';
+import { receiveSerials } from '@/lib/serials';
+import { recordSerial } from '@/lib/serialTrace';
+import { addBatches } from '@/lib/batches';
 
 const ASKS = ['Send replacements', 'Give a credit note', 'Refund the money', 'Take the items back'];
 const REPORT_KEY = 'gc.receive.reports';
@@ -49,10 +59,19 @@ const nameOf = (code) => productBy(code)?.name || KNOWN[code] || '';
 const sum = (list) => list.reduce((a, b) => a + (b || 0), 0);
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
+const RECEIVABLE = ['approved', 'ordered', 'partial'];
+const TRACK_WORD = { imei: 'IMEI', serial: 'Serial number' };
+const TRACK_PL = { imei: 'IMEIs', serial: 'Serial numbers' };
+/** The order to receive: the one asked for when it can be received, else the demo order PO-2609-0020. The demo order
+ *  starts with its usual scans (DEMO_GOT) until something has been received on it here. */
 function orderFrom(no) {
-  const po = no && no !== DEMO.no ? getPO(no) : null;
-  if (!po) return DEMO;
-  return { no: po.no, supplier: po.supplier, place: po.place, status: po.status, stored: true, lines: po.lines.map((l) => ({ name: l.name, code: l.code, cost: l.cost, pending: Math.max(0, l.qty - (l.received || 0)) })) };
+  let po = no ? poOf(no) : null;
+  if (!po || !RECEIVABLE.includes(po.s)) po = poOf(DEMO.no);
+  const fresh = po.no === DEMO.no && po.got === 140;
+  return {
+    no: po.no, supplier: po.supplier, place: po.place, status: po.label, s: po.s, stored: true, demoStart: fresh,
+    lines: po.lines.map((l) => ({ name: l.name, code: l.code, sku: l.sku, cost: l.cost, pending: Math.max(0, l.qty - (l.received || 0)), track: trackOf(l.sku || l.code || l.name) })),
+  };
 }
 
 const CSS = `
@@ -124,6 +143,12 @@ const CSS = `
 .rg-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .rg-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
 .rg-qty{width:72px}
+.rg-nums{display:inline-flex;align-items:center;gap:6px;margin-top:6px;height:28px;padding:0 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--fill-success-soft);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-success);cursor:pointer}
+.rg-nums.is-missing{background:var(--fill-warning-soft);color:var(--text-warning);border-color:var(--fill-warning)}
+.rg-lot{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.rg-lot .gc-input{flex:1 1 120px;min-width:0}
+.rg-numlist{display:flex;flex-direction:column;gap:2px;max-height:220px;margin:0;padding:0 0 0 20px;overflow:auto;font-size:var(--text-sm)}
+.rg-numlist li>*{vertical-align:middle}
 @media (max-width:640px){.rg-cost{grid-template-columns:minmax(0,1fr) 110px 36px}.rg-two{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){.rg-flash td{animation:none}}
 `;
@@ -160,15 +185,23 @@ export default function ReceiveGoods() {
   const [report, setReport] = useState(null);    // saved report
   const [done, setDone] = useState(null);        // summary after saving
   const [picking, setPicking] = useState(false);
+  const [nums, setNums] = useState({});          // line index -> [IMEI / serial numbers] for tracked products
+  const [lots, setLots] = useState({});          // line index -> { lot, expiry (yyyy-mm-dd) } for products kept by batch
+  const [numFor, setNumFor] = useState(null);    // the line whose numbers are being scanned
+  const [numIn, setNumIn] = useState('');
+  const [numErr, setNumErr] = useState('');
+  const [choices, setChoices] = useState([]);
   const timer = useRef(null);
 
   const load = (no) => {
     const o = orderFrom(no);
-    setOrder(o); setGot(o === DEMO ? DEMO_GOT.slice() : o.lines.map(() => 0)); setExtra({});
+    setOrder(o); setGot(o.demoStart ? DEMO_GOT.slice() : o.lines.map(() => 0)); setExtra({});
+    setNums({}); setLots({}); setNumFor(null); setNumIn(''); setNumErr('');
+    setChoices(allPOs().filter((p) => RECEIVABLE.includes(p.s)));
     setPlace(getReceivingPlaces().includes(placeName(o.place)) ? placeName(o.place) : 'Central Warehouse');
     setN(0); setFlash(null); setMsg(''); setCode(''); setStray(null); setAside([]);
-    setCosts(o === DEMO ? DEMO_COSTS : [{ label: 'Transport (van from supplier)', amt: 0, hint: '' }]);
-    setChallan(o === DEMO ? 'NF-2231-B' : ''); setPhoto(false); setRep(null); setReport(null); setDone(null);
+    setCosts(o.demoStart ? DEMO_COSTS : [{ label: 'Transport (van from supplier)', amt: 0, hint: '' }]);
+    setChallan(o.demoStart ? 'NF-2231-B' : ''); setPhoto(false); setRep(null); setReport(null); setDone(null);
     return o;
   };
   useEffect(() => {
@@ -189,7 +222,11 @@ export default function ReceiveGoods() {
     else if (g < l.pending) state = [`${l.pending - g} short`, 'warning'];
     else if (g === l.pending) state = ['All here', 'success'];
     else state = [`${over} extra`, 'error'];
-    return { ...l, i, got: g, over, returned, dmg, wrong, toStock: Math.max(0, g - returned - dmg - wrong), state };
+    const toStock = Math.max(0, g - returned - dmg - wrong);
+    const have = (nums[i] || []).length;
+    const lot = lots[i] || { lot: '', expiry: '' };
+    const missing = l.track === 'imei' || l.track === 'serial' ? (have !== toStock ? 'nums' : '') : l.track === 'batch' && toStock ? (!lot.lot.trim() || !lot.expiry ? 'lot' : '') : '';
+    return { ...l, i, got: g, over, returned, dmg, wrong, toStock, state, have, lot, missing };
   });
   const total = sum(got);
   const pend = sum(order.lines.filter((l) => !l.added).map((l) => l.pending));
@@ -218,7 +255,7 @@ export default function ReceiveGoods() {
     const base = order.lines.map((l, i) => (l.added ? -1 : i)).filter((i) => i >= 0);
     setN(n + 1);
     if (n % 6 === 5) { handleCode(STRAYS[Math.floor(n / 6) % STRAYS.length]); return; }
-    const seq = order === DEMO ? [4, 0, 1, 2, 3, 4] : base;
+    const seq = order.demoStart ? [4, 0, 1, 2, 3, 4] : base;
     bump(seq[n % seq.length]);
   };
   const onCodeKey = (e) => { if (e.key === 'Enter') { e.preventDefault(); handleCode(code); setCode(''); } };
@@ -293,7 +330,13 @@ export default function ReceiveGoods() {
   // ---- save the delivery
   const save = () => {
     if (!total) { toast('Scan at least one item first', { tone: 'error' }); return; }
-    const grn = 'GRN-' + String(121 + getPOs().reduce((a, p) => a + (p.deliveries || []).length, 0)).padStart(4, '0');
+    const gap = rows.find((r) => r.missing);
+    if (gap) {
+      if (gap.missing === 'nums') { toast(`${gap.name}: ${gap.have} of ${gap.toStock} ${TRACK_PL[gap.track]} scanned. Each piece needs its own.`, { tone: 'error' }); setNumFor(gap.i); }
+      else { toast(`${gap.name}: enter the batch no. and expiry date.`, { tone: 'error' }); setTimeout(() => { const el = document.getElementById('rg-lot-' + gap.i); if (el) el.focus(); }, 0); }
+      return;
+    }
+    const grn = 'GRN-' + String(121 + allPOs().reduce((a, p) => a + (p.deliveries || []).length, 0)).padStart(4, '0');
     const who = by.replace(/ \(.*\)$/, '');
     rows.forEach((r) => {
       const sku = productBy(r.name)?.sku || r.code;
@@ -301,13 +344,25 @@ export default function ReceiveGoods() {
       // reported pieces are in the building too, at the damaged bay, and held there
       if (r.dmg + r.wrong) addMove({ sku, place: DAMAGED_PLACE, qty: r.dmg + r.wrong, kind: 'receive', reason: 'Damaged or wrong on arrival', by: who, ref: order.no });
     });
-    if (order.stored) {
-      updatePO(order.no, (p) => {
-        const lines = p.lines.map((l, i) => ({ ...l, received: (l.received || 0) + (rows[i] ? rows[i].toStock : 0) }));
-        rows.slice(p.lines.length).forEach((r) => lines.push({ name: r.name, code: r.code, sku: productBy(r.name)?.sku || '', qty: r.toStock, cost: unitCost(r.name), received: r.toStock }));
-        return { lines, status: lines.every((l) => l.received >= l.qty) ? 'Received' : 'Partly received', deliveries: [{ grn, at: Date.now(), qty: toStock, place, by: who }, ...(p.deliveries || [])] };
-      });
-    }
+    // the order keeps what arrived (made here or demo alike) and moves on to Partly received / Received
+    const known = rows.filter((r) => !r.added);
+    recordDelivery(order.no, {
+      add: known.map((r) => r.toStock),
+      extraLines: rows.filter((r) => r.added).map((r) => ({ name: r.name, code: r.code, sku: productBy(r.name)?.sku || '', qty: r.toStock, cost: unitCost(r.name), received: r.toStock })),
+      delivery: { grn, at: Date.now(), qty: toStock, place, by: who },
+    });
+    // each IMEI / serial goes on the shelf (POS register, IMEI trace); each batch gets its expiry date
+    let nNums = 0;
+    rows.forEach((r) => {
+      if ((r.track === 'imei' || r.track === 'serial') && r.toStock) {
+        const sku = productBy(r.sku || r.name)?.sku || r.sku || r.code;
+        const list = (nums[r.i] || []).slice(0, r.toStock);
+        list.forEach((sn) => recordSerial(sn, { kind: 'receive', place, ref: grn + ' · ' + order.no, who: order.supplier, by: who }, { sku, name: r.name, type: r.track === 'imei' ? 'IMEI' : 'Serial' }));
+        nNums += receiveSerials(list.map((sn) => ({ serial: sn, sku, product: r.name, kind: r.track })), { place, ref: grn + ' · ' + order.no, supplier: order.supplier, by: who }).length;
+      }
+    });
+    const batchRows = rows.filter((r) => r.track === 'batch' && r.toStock && r.lot.expiry);
+    const made = addBatches(batchRows.map((r) => ({ sku: productBy(r.sku || r.name)?.sku || r.sku, name: r.name, qty: r.toStock, expiry: new Date(r.lot.expiry + 'T00:00:00').getTime(), lot: r.lot.lot })), { place, ref: grn, supplier: order.supplier });
     // the supplier's bill for this delivery: what was accepted at the order's price, plus the extra costs
     const billLines = rows.filter((r) => r.toStock).map((r) => ({ name: r.name, qty: r.toStock, cost: r.cost || lineCost(order.no, r.name) }));
     const value = billLines.reduce((a, l) => a + l.qty * l.cost, 0) + ctot;
@@ -316,17 +371,18 @@ export default function ReceiveGoods() {
       extra: ctot, notes: costs.filter((c) => +c.amt).map((c) => `${c.label || 'Extra cost'} ${formatBDT(+c.amt)}`).join(' · '),
     }) : null;
     const sup = bill ? findSupplier(bill.supplier) : null;
-    setDone({ grn, place, toStock, nd, nw, back: goingBack.map((r) => ({ name: r.name, qty: r.returned })), aside: aside.slice(), ctot, short: shortBy, bill, supId: sup ? sup.id : '' });
+    // the labels page opens with what went to stock, one label per piece
+    const lbl = rows.filter((r) => r.toStock && productBy(r.sku || r.code || r.name)).map((r) => productBy(r.sku || r.code || r.name).sku + ':' + r.toStock);
+    setDone({ labels: lbl.length ? '/barcode-labels?skus=' + encodeURIComponent(lbl.join(',')) : '', grn, place, toStock, nNums, nBatches: made.length, nd, nw, back: goingBack.map((r) => ({ name: r.name, qty: r.returned })), aside: aside.slice(), ctot, short: shortBy, bill, supId: sup ? sup.id : '' });
     setStray(null);
     toast(`${plural(toStock, 'piece')} added to ${place} stock`);
   };
 
   const pick = (no) => {
     load(no);
-    try { const u = new URL(window.location.href); if (no === DEMO.no) u.searchParams.delete('po'); else u.searchParams.set('po', no); window.history.replaceState(window.history.state, '', u.pathname + u.search); } catch { /* ignore */ }
+    try { const u = new URL(window.location.href); u.searchParams.set('po', no); window.history.replaceState(window.history.state, '', u.pathname + u.search); } catch { /* ignore */ }
     setPicking(false);
   };
-  const choices = [...getPOs().filter((p) => p.status !== 'Received'), null];
 
   const pct = pend ? Math.min(100, Math.round((total / pend) * 100)) : 100;
 
@@ -346,7 +402,7 @@ export default function ReceiveGoods() {
                 <div className="ix-main">
                   <section className="ix-card" aria-labelledby="rg-order">
                     <div className="ix-card__head">
-                      <h2 id="rg-order" className="rg-h"><span className="rg-id">{order.no}</span><StatusBadge tone={PO_STATUS_TONE[order.status] || 'warning'}>{order.status}</StatusBadge></h2>
+                      <h2 id="rg-order" className="rg-h"><span className="rg-id">{order.no}</span><StatusBadge tone={PO_TONE[order.s] || 'warning'}>{order.status}</StatusBadge></h2>
                       <button type="button" className="ix-btn ix-btn--sm" onClick={() => setPicking(true)}>Choose another order</button>
                     </div>
                     <div className="ix-card__body"><span className="ix-muted">{order.supplier} · deliver to {order.place} · {plural(pend, 'piece')} still coming</span></div>
@@ -391,7 +447,21 @@ export default function ReceiveGoods() {
                         <tbody>
                           {rows.map((r) => (
                             <tr key={r.code + r.i} className={flash === r.i ? 'rg-flash' : ''}>
-                              <td><span className="ix-strong">{r.name}</span><span className="rg-sub rg-id">{r.code}</span></td>
+                              <td>
+                                <span className="ix-strong">{r.name}</span><span className="rg-sub rg-id">{r.code}</span>
+                                {(r.track === 'imei' || r.track === 'serial') && r.got ? (
+                                  <button type="button" className={'rg-nums' + (r.missing ? ' is-missing' : '')} disabled={!!done} onClick={() => { setNumFor(r.i); setNumIn(''); setNumErr(''); }}>
+                                    <Icon name={r.missing ? 'scan-barcode' : 'circle-check'} width="16" height="16" aria-hidden="true" />
+                                    <span>{TRACK_PL[r.track]} · {r.have} of {r.toStock}</span>
+                                  </button>
+                                ) : null}
+                                {r.track === 'batch' && r.toStock ? (
+                                  <span className="rg-lot">
+                                    <input id={'rg-lot-' + r.i} className="gc-input" placeholder="Batch no." aria-label={'Batch no. of ' + r.name} value={r.lot.lot} disabled={!!done} onChange={(e) => setLots({ ...lots, [r.i]: { ...r.lot, lot: e.target.value } })} />
+                                    <input className="gc-input" type="date" aria-label={'Expiry date of ' + r.name} value={r.lot.expiry} disabled={!!done} onChange={(e) => setLots({ ...lots, [r.i]: { ...r.lot, expiry: e.target.value } })} />
+                                  </span>
+                                ) : null}
+                              </td>
                               <td className="ix-num">{r.added ? '—' : r.pending}</td>
                               <td>
                                 <span className="rg-stepper">
@@ -525,12 +595,14 @@ export default function ReceiveGoods() {
                           {done.nd + done.nw ? <li><Icon name="package-x" width="16" height="16" aria-hidden="true" className="rg-bad" /><span>{plural(done.nd + done.nw, 'reported piece')} kept at {DAMAGED_PLACE}{done.nw ? `; ${done.nw} wrong to go back to the supplier` : ''}.</span></li> : null}
                           {done.back.map((b) => <li key={b.name}><Icon name="undo-2" width="16" height="16" aria-hidden="true" className="ix-muted" /><span>{b.qty} extra × {b.name} going back to {order.supplier}.</span></li>)}
                           {done.aside.length ? <li><Icon name="archive" width="16" height="16" aria-hidden="true" className="ix-muted" /><span>{plural(sum(done.aside.map((a) => a.qty)), 'item')} set aside, not in stock.</span></li> : null}
+                          {done.nNums ? <li><Icon name="smartphone" width="16" height="16" aria-hidden="true" className="rg-ok" /><span>{done.nNums === 1 ? '1 IMEI / serial number' : done.nNums + ' IMEI / serial numbers'} added. The POS offers them when the product is sold.</span></li> : null}
+                          {done.nBatches ? <li><Icon name="calendar-clock" width="16" height="16" aria-hidden="true" className="rg-ok" /><span>{done.nBatches === 1 ? '1 batch' : done.nBatches + ' batches'} added with the expiry date.</span></li> : null}
                           <li><Icon name="receipt" width="16" height="16" aria-hidden="true" className="ix-muted" /><span>Real cost updated with {formatBDT(done.ctot)} extra costs.</span></li>
                           {done.bill ? <li><Icon name="file-text" width="16" height="16" aria-hidden="true" className="rg-pri" /><span>Bill {done.bill.no} for {formatBDT(done.bill.amount)} added to {order.supplier}’s payables, due {formatDate(done.bill.due)}.</span></li> : null}
                           {done.short ? <li><Icon name="truck" width="16" height="16" aria-hidden="true" className="rg-warnc" /><span>{plural(done.short, 'piece')} still to come.</span></li> : null}
                         </ul>
                         <div className="rg-grn"><Barcode /><div>{done.grn}</div></div>
-                        <button type="button" className="gc-btn gc-btn--solid gc-btn--block" onClick={() => toast(`${plural(done.toStock, 'barcode label')} sent to the printer`)}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print barcode labels ({done.toStock})</button>
+                        {done.labels ? <Link href={done.labels} className="gc-btn gc-btn--solid gc-btn--block"><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print barcode labels ({done.toStock})</Link> : null}
                         <button type="button" className="gc-btn gc-btn--neutral gc-btn--block" onClick={() => load(order.no)}>Receive another delivery</button>
                         {done.supId ? <Link href={`/supplier-detail?id=${encodeURIComponent(done.supId)}`} className="gc-btn gc-btn--neutral gc-btn--block">Open supplier ledger</Link> : null}
                         <Link href={`/po-detail?no=${encodeURIComponent(order.no)}`} className="gc-btn gc-btn--neutral gc-btn--block">Back to order</Link>
@@ -546,18 +618,49 @@ export default function ReceiveGoods() {
 
       <Dialog open={picking} title="Choose an order to receive" onClose={() => setPicking(false)} width={560}>
         <div className="rg-pick">
-          {choices.map((p) => {
-            const o = p ? { no: p.no, supplier: p.supplier, place: p.place, status: p.status, coming: sum(p.lines.map((l) => Math.max(0, l.qty - (l.received || 0)))) } : { ...DEMO, coming: sum(DEMO.lines.map((l) => l.pending)) };
-            return (
-              <button key={o.no} type="button" aria-current={o.no === order.no} onClick={() => pick(o.no)}>
-                <Icon name="file-text" width="16" height="16" aria-hidden="true" />
-                <span><span className="ix-strong rg-id">{o.no}</span><span className="rg-sub">{o.supplier} · {o.place} · {plural(o.coming, 'piece')} still coming</span></span>
-                <StatusBadge tone={PO_STATUS_TONE[o.status] || 'warning'}>{o.status}</StatusBadge>
-              </button>
-            );
-          })}
+          {choices.map((o) => (
+            <button key={o.no} type="button" aria-current={o.no === order.no} onClick={() => pick(o.no)}>
+              <Icon name="file-text" width="16" height="16" aria-hidden="true" />
+              <span><span className="ix-strong rg-id">{o.no}</span><span className="rg-sub">{o.supplier} · {o.place} · {plural(Math.max(0, o.pieces - o.got), 'piece')} still coming</span></span>
+              <StatusBadge tone={o.tone}>{o.label}</StatusBadge>
+            </button>
+          ))}
         </div>
       </Dialog>
+
+      {numFor != null && rows[numFor] ? (() => {
+        const r = rows[numFor], list = nums[r.i] || [], word = TRACK_WORD[r.track];
+        const add = (raw) => {
+          const all = Object.values(nums).flat();   // every number in this delivery, any product
+          const c = checkIncoming(raw, { kind: r.track, taken: all });
+          if (!c.ok) { setNumErr(c.error); return; }
+          if (list.length >= r.toStock) { setNumErr(`All ${r.toStock} pieces have a number. Remove one to change it.`); return; }
+          setNums({ ...nums, [r.i]: [...list, c.serial] }); setNumIn(''); setNumErr('');
+        };
+        return (
+          <Dialog open title={`${TRACK_PL[r.track]} · ${r.name}`} onClose={() => setNumFor(null)} width={520}>
+            <div className="rg-form">
+              <p className="gc-help" style={{ margin: 0 }}>Scan or type the {r.track === 'imei' ? 'IMEI' : 'serial number'} of each piece going to stock: {list.length} of {r.toStock}.</p>
+              <div>
+                <label className="gc-label" htmlFor="rg-num">{word}</label>
+                <input id="rg-num" className="gc-input" autoFocus inputMode={r.track === 'imei' ? 'numeric' : 'text'} placeholder={r.track === 'imei' ? '15 digits' : 'Serial number'} value={numIn} aria-invalid={numErr ? 'true' : undefined} aria-describedby={numErr ? 'rg-num-err' : undefined}
+                  onChange={(e) => { setNumIn(e.target.value); setNumErr(''); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(numIn); } }} />
+                {numErr ? <span id="rg-num-err" className="gc-help" style={{ color: 'var(--text-danger)' }}>{numErr}</span> : null}
+              </div>
+              {list.length ? (
+                <ol className="rg-numlist">
+                  {list.map((n) => <li key={n}><span className="rg-id">{n}</span><button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={'Remove ' + n} onClick={() => setNums({ ...nums, [r.i]: list.filter((x) => x !== n) })}><Icon name="x" width="16" height="16" aria-hidden="true" /></button></li>)}
+                </ol>
+              ) : null}
+              {list.length > r.toStock ? <p className="gc-help" style={{ margin: 0, color: 'var(--text-danger)' }}>Only {r.toStock} pieces go to stock. Remove {list.length - r.toStock}.</p> : null}
+              <div className="gc-modal__foot" style={{ marginTop: 0 }}>
+                <button type="button" className="gc-btn gc-btn--neutral" onClick={() => add(numIn)}>Add</button>
+                <button type="button" className="gc-btn gc-btn--solid" onClick={() => setNumFor(null)}>Done</button>
+              </div>
+            </div>
+          </Dialog>
+        );
+      })() : null}
 
       <Dialog open={!!rep} title="Report damaged or wrong items" onClose={() => setRep(null)} width={620}>
         {rep ? (

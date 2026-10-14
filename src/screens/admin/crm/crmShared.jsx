@@ -91,7 +91,7 @@ const EMPTY = (me, t) => ({
   software: SOFTWARE[0], orders: '', modules: [], ladder: 'online', plan: 'growth', value: '', owner: SALES_NAMES.includes(me) ? me : SALES_NAMES[0],
   nextAt: toInput(t + 2 * 3600e3), nextWhat: 'First call', note: '',
 });
-const ladderFor = (type) => (type === 'Retail' ? 'retail' : type === 'Wholesale' ? 'wholesale' : 'online');
+const ladderFor = (type) => (type === 'Mixed' ? 'retail-online' : type === 'Retail' || type === 'Wholesale' ? 'retail' : 'online');
 
 /** The Add lead (lead = null) or Edit lead sheet. onDone(lead) after a save. */
 export function LeadFormSheet({ open, lead, me, t, onClose, onDone }) {

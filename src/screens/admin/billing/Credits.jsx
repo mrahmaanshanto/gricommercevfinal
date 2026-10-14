@@ -20,7 +20,8 @@ import { dmy, taka } from '@/lib/platform/util';
 import { REASON_LABEL, can } from '@/lib/platform/catalogue';
 import { staff } from '@/lib/platform/store';
 import { shopOf, subOf, decideAdjustment, askAboutAdjustment, subState } from '@/lib/platform/billing';
-import { walletOf, addCredits } from '@/lib/admin/merchants';
+import { walletOf } from '@/lib/admin/merchants';
+import { ask, rightOf } from '@/lib/admin/actionRights';
 import { AdminShell, usePlatform } from '../AdminShell';
 import { BILL_CSS, Skeleton, money, plural, when, packageOf, Field, ctl, Effect, AdjustSheet, FormSheet, ADJ_TYPE_LABEL } from './billingShared';
 
@@ -158,9 +159,13 @@ function CreditsSheet({ db, t, close }) {
   const submit = () => {
     if (!f.shopId) { setErr({ field: 'shopId', text: 'Pick the store.' }); return; }
     if (!f.why) { setErr({ field: 'why', text: 'Pick why.' }); return; }
-    const r = addCredits(f.shopId, f.amount, [f.why, f.note.trim()].filter(Boolean).join(' · '));
+    const n = Math.round(Number(f.amount) || 0);
+    if (n <= 0) { setErr({ field: 'amount', text: 'Enter an amount.' }); return; }
+    // credits the owner paid for are not free; free credits above the Security › Approvals amount need a second person
+    const free = f.why !== 'Paid by the owner';
+    const r = ask({ action: 'credits', shopIds: [f.shopId], value: free ? n : 0, params: { amount: n }, reason: [f.why, f.note.trim()].filter(Boolean).join(' · '), db });
     if (!r || !r.ok) { setErr({ field: /amount/i.test((r && r.error) || '') ? 'amount' : 'form', text: (r && r.error) || 'The credits could not be added.' }); return; }
-    toast(`${taka(Number(f.amount))} credits added to ${shopOf(db, f.shopId).name}`);
+    toast(r.pending ? `Sent to ${r.request.approver} for a second approval` : `${taka(n)} credits added to ${shopOf(db, f.shopId).name}`);
     close();
   };
   const e = (k) => (err && err.field === k ? err.text : null);
@@ -370,7 +375,7 @@ export default function Credits() {
     approved: ['No approved adjustments yet.', 'New adjustment', () => setSheet({ kind: 'adjust', n: Date.now() })],
     rejected: ['No rejected requests.', 'See waiting requests', () => go('pending')],
     notes: ['No credit notes yet.', 'New adjustment', () => setSheet({ kind: 'adjust', n: Date.now() })],
-    topups: ['No top-ups yet.', 'Add credits', () => setSheet({ kind: 'credits', n: Date.now() })],
+    topups: rightOf('credits').ok ? ['No top-ups yet.', 'Add credits', () => setSheet({ kind: 'credits', n: Date.now() })] : ['No top-ups yet.'],
   };
 
   let body;
@@ -416,7 +421,7 @@ export default function Credits() {
       <div className="ix-page">
         <ShopHeader icon="receipt-text" title="Credits & adjustments"
           about="Every change to what a store pays: credit notes on a bill, discounts and extra charges on the next bill, and waivers. Each has a reason code; above the limit a second person approves it, never the one who asked. The Credits top-ups tab lists the prepaid GridCommerce credits stores spend on SMS, WhatsApp, email, AI replies and calls."
-          secondary={[{ label: 'Add credits', icon: 'wallet', onClick: () => setSheet({ kind: 'credits', n: Date.now() }) }, { label: 'Export', icon: 'download', onClick: exportCsv }]}
+          secondary={[rightOf('credits').ok ? { label: 'Add credits', icon: 'wallet', onClick: () => setSheet({ kind: 'credits', n: Date.now() }) } : null, { label: 'Export', icon: 'download', onClick: exportCsv }].filter(Boolean)}
           primary={{ label: 'New adjustment', icon: 'plus', onClick: () => setSheet({ kind: 'adjust', n: Date.now() }) }} />
         {body}
       </div>

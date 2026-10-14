@@ -4,7 +4,7 @@
 //   Orders    new online orders waiting (On hold / Processing / Pending), orders ready for the courier, and in the
 //             Retail edition the latest counter sales (lib/orders.js)
 //   Stock     low stock per place (reports/dailySummary › low, the same list as Home and the 8 PM summary)
-//   Payments  late payouts, payouts that arrived, the evening check (lib/settlements.js › duePrompts, the bell's
+//   Payments  payment proofs to review (lib/paymentProof.js), late payouts, payouts that arrived, the evening check (lib/settlements.js › duePrompts, the bell's
 //             "Did the expected money reach your bank?"), supplier bills past due (lib/supplierBills.js)
 //   also      unread chats (lib/inbox.js), meetings starting soon or waiting for a note (lib/meetings.js › staffAlerts,
 //             the bell's meeting rows), support tickets past their reply time (lib/supportTickets.js), money requests
@@ -30,6 +30,7 @@ import { getBills, billLeft, billStatus, supplierById } from '@/lib/supplierBill
 import { getConvs, lastLine, channelName } from '@/lib/inbox';
 import { staffAlerts } from '@/lib/meetings';
 import { waitingRequests } from '@/lib/approvals';
+import { ordersToReview, proofToReview, methodLabel } from '@/lib/paymentProof';
 import { listItems } from '@/lib/actionItems';
 import { getTickets, slaOf, ref as ticketRef } from '@/lib/supportTickets';
 import { getNotify, NOTIFY_TYPES } from './settings/settingsData';
@@ -61,6 +62,7 @@ const APP_OF = [
   [/^\/(purchase-orders|purchases)(\?|$)/, () => '/m-purchase'],
   [/^\/support-tickets(\?|$)/, () => '/m-tickets'],
   [/^\/tasks(\?|$)/, () => '/m-tasks'],
+  [/^\/money-approvals(\?|$)/, () => '/m-finance'],
   [/^\/(all-products|products)(\?|$)/, () => '/m-products'],
 ];
 /** The app's screen for a web address when the person can use it, else the web address. */
@@ -85,8 +87,10 @@ export function buildNotifications(ctx, { prefs = getNotify() } = {}) {
   const add = (n) => out.push({ at: now, ...n });
   const d = safe(() => dailySummary(startOfDay(now), now), null);
 
-  // ---- orders ----
-  if (prefs.orders && has('commerce')) {
+  // ---- orders (only for people who work on orders: a seller doesn't get the shop's orders) ----
+  const onlineOrders = sees('orders-all') || sees('orders-online');
+  const counterOrders = sees('orders-all') || sees('orders-pos');
+  if (prefs.orders && has('commerce') && (has('online') ? onlineOrders : counterOrders)) {
     const orders = safe(() => getOrders(), []);
     if (has('online')) {
       orders.filter((o) => !isCounterSale(o) && NEW_KEYS.includes(o.statusKey) && o.at > now - 3 * DAY).sort((a, b) => b.at - a.at).slice(0, 6).forEach((o) => {
@@ -112,6 +116,13 @@ export function buildNotifications(ctx, { prefs = getNotify() } = {}) {
   }
 
   // ---- payments ----
+  // a customer's bKash / Nagad payment waiting for review (lib/paymentProof.js; reviewed on the order page)
+  if (prefs.payouts && has('online') && onlineOrders) {
+    safe(() => ordersToReview(), []).slice(0, 4).forEach((o) => {
+      const p = safe(() => proofToReview(o), null);
+      if (p) add({ key: 'proof:' + o.id + ':' + p.id, cat: 'payments', kind: 'payouts', icon: 'wallet', title: `Payment to review: ${o.id}`, sub: `${safe(() => methodLabel(p.method), p.method)} ${money(p.amount)} · ${o.customer}`, at: p.at, href: orderHref(o.id, ctx) });
+    });
+  }
   if (prefs.payouts && has('money') && sees('acc-settle')) {
     const prompts = safe(() => duePrompts(now), { count: 0, pays: [] });
     if (prompts.count) {
@@ -161,7 +172,7 @@ export function buildNotifications(ctx, { prefs = getNotify() } = {}) {
   // ---- approvals ----
   if (prefs.approvals && has('money') && sees('acc-home')) {
     safe(() => waitingRequests(), []).filter((r) => !user || r.by !== user.id).slice(0, 4).forEach((r) => add({
-      key: 'approval:' + r.id, cat: 'payments', kind: 'approvals', icon: 'check', title: `Approve: ${r.title}`, sub: `${money(r.amount)} · asked by ${r.byName}`, at: r.at, href: '/money-approvals',
+      key: 'approval:' + r.id, cat: 'payments', kind: 'approvals', icon: 'check', title: `Approve: ${r.title}`, sub: `${money(r.amount)} · asked by ${r.byName}`, at: r.at, href: appHref('/money-approvals', ctx),
     }));
   }
 

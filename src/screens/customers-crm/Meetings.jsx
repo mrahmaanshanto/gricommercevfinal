@@ -9,6 +9,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
+import { ProviderLogo, ProviderTag } from '@/components/MeetingProvider';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { Sheet, EmptyState, StatusBadge } from '@/components/ui';
 import { MetricStrip, IndexTabs, KV } from '@/components/ui/IndexKit';
@@ -169,7 +170,7 @@ export default function Meetings() {
         <span className="mt-when"><b>{clock(x.at)}</b><span>{isToday(x, now) ? 'Today' : formatDate(x.at)}</span></span>
         <span style={{ minWidth: 0 }}><span className="mt-title">{x.title}</span><span className="mt-sub">{x.with.name}{x.with.company ? ' · ' + x.with.company : ''} · {x.mins} min · {x.host}</span></span>
         <span className="mt-tags">
-          <StatusBadge tone="neutral" icon={p.icon}>{p.label}</StatusBadge>
+          <ProviderTag id={x.provider} label={p.label} />
           {late ? <StatusBadge tone="warning">Needs a note</StatusBadge> : <StatusBadge tone={STATUS[x.status].tone}>{STATUS[x.status].label}</StatusBadge>}
         </span>
       </button>
@@ -204,7 +205,7 @@ export default function Meetings() {
                 return (
                   <div key={d} className={'mt-col' + (d === dayStart(now) ? ' is-today' : '')}>
                     <header>{new Date(d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</header>
-                    {list.length ? list.map((x) => <button key={x.id} type="button" className="mt-chip" onClick={() => openM(x)}><b>{clock(x.at)}</b><span>{x.with.name}</span><span className="mt-sub">{providerOf(x.provider).label}</span></button>) : <span className="mt-sub">Free</span>}
+                    {list.length ? list.map((x) => <button key={x.id} type="button" className="mt-chip" onClick={() => openM(x)}><b>{clock(x.at)}</b><span>{x.with.name}</span><span className="mt-sub" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><ProviderLogo id={x.provider} size={12} alt={providerOf(x.provider).label} />{x.provider === 'zoom' ? null : providerOf(x.provider).label}</span></button>) : <span className="mt-sub">Free</span>}
                   </div>
                 );
               })}
@@ -240,7 +241,7 @@ export default function Meetings() {
             </div>
             <div><span className="gc-label">Where</span>
               <div className="mt-opts" role="group" aria-label="Where">
-                {providers.map((p) => <button key={p.id} type="button" className="mt-opt" aria-pressed={form.provider === p.id} onClick={() => setForm({ ...form, provider: p.id })}><Icon name={p.icon} width="16" height="16" aria-hidden="true" />{p.label}</button>)}
+                {providers.map((p) => <button key={p.id} type="button" className="mt-opt" aria-pressed={form.provider === p.id} onClick={() => setForm({ ...form, provider: p.id })}><ProviderLogo id={p.id} size={18} alt={p.id === 'zoom' ? p.label : ''} />{p.id === 'zoom' ? <span className="sr-only">{p.label}</span> : p.label}</button>)}
               </div>
               {providers.length < PROVIDERS.length ? <p className="gc-help">Zoom or Google Meet is not connected. <Link href="/connections?group=meetings">Connect it</Link> to make video links.</p> : null}
             </div>
@@ -263,7 +264,7 @@ export default function Meetings() {
           <>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
               {needsNote(m, now) ? <StatusBadge tone="warning">Needs a note</StatusBadge> : <StatusBadge tone={STATUS[m.status].tone}>{STATUS[m.status].label}</StatusBadge>}
-              <StatusBadge tone="neutral" icon={providerOf(m.provider).icon}>{providerOf(m.provider).label}</StatusBadge>
+              <ProviderTag id={m.provider} label={providerOf(m.provider).label} />
             </div>
             <KV rows={[
               ['With', <span key="w">{m.with.kind === 'lead' ? <Link href="/sales-leads">{m.with.name}</Link> : <Link href={'/customer-crm?phone=' + encodeURIComponent(m.with.phone)}>{m.with.name}</Link>}{m.with.company ? ' · ' + m.with.company : ''}</span>],

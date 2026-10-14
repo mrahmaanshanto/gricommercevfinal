@@ -10,6 +10,7 @@
 
 import { DAY, startOfDay, startOfMonth, addMonths, monthOf } from '@/lib/platform/util';
 import { subOf, subState, isPaying, isLiveStore, mrrOf, openInvoices, balance } from '@/lib/platform/billing';
+import { LADDERS as EDITION_LADDERS } from '@/lib/platform/catalogue';
 import { attention } from '@/lib/platform/views';
 import { otherIncome } from './company';
 import { ops, services, serverLoad } from './ops';
@@ -47,18 +48,19 @@ export function range(period, t) {
   return { from, to: t, prevFrom: from - len, prevTo: from, days: Math.max(1, Math.round(len / DAY)) };
 }
 
-const LADDERS = [['online', 'Online'], ['retail', 'Retail'], ['wholesale', 'Wholesale']];
+// the editions a store buys (Online · Retail · Retail + Online · Connect), as [key, name]
+const LADDERS = EDITION_LADDERS.map((l) => [l.id, l.label]);
 
-/** Monthly recurring revenue at a moment, split by ladder. */
+/** Monthly recurring revenue at a moment, split by edition. */
 function mrrAt(db, x) {
-  const by = { online: 0, retail: 0, wholesale: 0 };
+  const by = Object.fromEntries(LADDERS.map(([k]) => [k, 0]));
   for (const s of db.shops) {
     if (s.createdAt > x) continue;
     const sub = subOf(db, s.id);
     if (!sub || !isPaying(subState(db, s.id, x))) continue;
     by[sub.ladder] = (by[sub.ladder] || 0) + mrrOf(db, sub, x);
   }
-  return { ...by, total: by.online + by.retail + by.wholesale };
+  return { ...by, total: LADDERS.reduce((a, [k]) => a + (by[k] || 0), 0) };
 }
 function payingAt(db, x) {
   return db.shops.filter((s) => s.createdAt <= x && isPaying(subState(db, s.id, x))).length;
@@ -159,7 +161,7 @@ export function executive(db, t, period = 'month') {
       newStores, trialEnded: trial.ended, trialWon: trial.won, trialRate: trial.ended ? trial.won / trial.ended : null,
       ladders: LADDERS.map(([k, name]) => ({ key: k, name, value: live.filter((s) => (subOf(db, s.id) || {}).ladder === k).length })),
     },
-    mrr: { ...mrr, arr: mrr.total * 12, months, ladders: LADDERS.map(([, n]) => n) },
+    mrr: { ...mrr, arr: mrr.total * 12, months, ladders: LADDERS.map(([, n]) => n), split: LADDERS.map(([k, name]) => ({ key: k, name, value: mrr[k] || 0 })) },
     unit: { arpa, ltv, cac, spend },
     funnel: f, funnelPrev: fPrev,
     support: desk,

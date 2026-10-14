@@ -21,6 +21,9 @@ import { accountsForMethod, balanceOf, getEntries } from '@/lib/ledger';
 import { getReceivingPlaces, onlinePlace } from '@/lib/locations';
 import { getStockSetup } from '@/lib/stockSetup';
 import { addBatches } from '@/lib/batches';
+import { trackOf, checkIncoming } from '@/lib/receiveTracking';
+import { receiveSerials } from '@/lib/serials';
+import { recordSerial } from '@/lib/serialTrace';
 
 const DAY = 864e5;
 const METHODS = ['Cash', 'bKash', 'Nagad', 'Bank'];
@@ -39,6 +42,8 @@ const CSS = `
 .bg-lines{display:flex;flex-direction:column}
 .bg-line{display:grid;grid-template-columns:minmax(0,1fr) 72px 104px 140px auto 32px;gap:var(--space-2);align-items:end;padding:var(--space-2) 0;border-top:1px solid var(--border-subtle)}
 .bg-line:first-child{border-top:0}
+.bg-track{grid-column:1 / -1}
+.bg-track textarea{font-family:var(--font-data)}
 .bg-name{display:flex;flex-direction:column;min-width:0;align-self:center}
 .bg-name b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bg-name small{font-size:var(--text-xs);color:var(--text-muted);font-family:var(--font-data)}
@@ -99,7 +104,7 @@ export default function BuyGoods() {
   const addLine = (p) => {
     setFind('');
     if (lines.some((l) => l.sku === p.sku)) { setLines(lines.map((l) => (l.sku === p.sku ? { ...l, qty: String((Number(l.qty) || 0) + 1) } : l))); return; }
-    setLines([...lines, { key: p.sku + Date.now(), sku: p.sku, name: p.name, qty: '1', cost: String(Math.round(productCostOf(p.sku) || productCostOf(p.name) || 0)), expiry: '' }]);
+    setLines([...lines, { key: p.sku + Date.now(), sku: p.sku, name: p.name, qty: '1', cost: String(Math.round(productCostOf(p.sku) || productCostOf(p.name) || 0)), expiry: '', lot: '', nums: '', track: trackOf(p.sku) }]);
   };
   const setLine = (key, patch) => setLines(lines.map((l) => (l.key === key ? { ...l, ...patch } : l)));
 
@@ -114,6 +119,20 @@ export default function BuyGoods() {
   if (!sup || (sup === 'new' && !supName.trim())) errs.sup = 'Choose a supplier.';
   if (!lines.length) errs.lines = 'Add at least one product.';
   else if (lines.some((l) => !(Number(l.qty) > 0) || !(Number(l.cost) > 0))) errs.lines = 'Enter quantity and price for every product.';
+  // IMEI / serial per piece and batch + expiry (PR-F3), the same rules as Receive goods
+  const numsOf = (l) => String(l.nums || '').split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
+  if (!errs.lines) {
+    const taken = [];
+    lines.forEach((l) => {
+      if (errs.lines) return;
+      if (l.track === 'imei' || l.track === 'serial') {
+        const list = numsOf(l);
+        if (list.length !== Number(l.qty)) { errs.lines = `${l.name}: ${list.length} of ${l.qty} ${l.track === 'imei' ? 'IMEIs' : 'serial numbers'} entered.`; return; }
+        list.forEach((n) => { if (errs.lines) return; const c = checkIncoming(n, { kind: l.track, taken }); if (!c.ok) errs.lines = `${l.name} · ${n}: ${c.error}`; else taken.push(c.serial); });
+      }
+      if (!errs.lines && l.track === 'batch' && (!String(l.lot || '').trim() || !l.expiry)) errs.lines = `${l.name}: enter the batch no. and expiry date.`;
+    });
+  }
   if (payWhen === 'part' && !(paid > 0 && paid < total)) errs.paid = `Enter an amount below ${money(total)}.`;
   if (paid > 0 && !account) errs.account = 'Choose where the money is paid from.';
   if (left > 0 && !fromIso(due)) errs.due = 'Choose a date.';
@@ -124,13 +143,18 @@ export default function BuyGoods() {
     if (!ok) { toast(Object.values(errs)[0], { tone: 'error' }); return; }
     const s = sup === 'new' ? ensureSupplier(supName.trim()) : supplier;
     const at = fromIso(date) || Date.now();
-    const clean = lines.map((l) => ({ sku: l.sku, name: l.name, qty: Number(l.qty), cost: Number(l.cost), expiry: fromIso(l.expiry) }));
-    const bill = addBill({ supplier: s.id, ref: invoice.trim(), at, amount: total, lines: clean.map(({ expiry, ...l }) => l), extra: Number(extra) || 0, discount: Number(discount) || 0, due: left > 0 ? dayStart(fromIso(due)) : dayStart(at), direct: true, place, returnable });
+    const clean = lines.map((l) => ({ sku: l.sku, name: l.name, qty: Number(l.qty), cost: Number(l.cost), expiry: fromIso(l.expiry), lot: String(l.lot || '').trim() }));
+    const bill = addBill({ supplier: s.id, ref: invoice.trim(), at, amount: total, lines: clean.map(({ expiry, lot, ...l }) => l), extra: Number(extra) || 0, discount: Number(discount) || 0, due: left > 0 ? dayStart(fromIso(due)) : dayStart(at), direct: true, place, returnable });
     clean.forEach((l) => {
       addMove({ sku: l.sku, place, qty: l.qty, kind: 'receive', reason: `Bought from ${s.name}`, by: 'Staff', ref: bill.no });
       setBuyingPrice(l.sku, l.name, l.cost);
     });
     addBatches(clean.filter((l) => l.expiry), { place, ref: bill.no, supplier: s.name });
+    lines.filter((l) => l.track === 'imei' || l.track === 'serial').forEach((l) => {
+      const list = numsOf(l).map((n) => checkIncoming(n, { kind: l.track }).serial);
+      list.forEach((n) => recordSerial(n, { kind: 'receive', place, ref: bill.no, who: s.name, by: 'Staff' }, { sku: l.sku, name: l.name, type: l.track === 'imei' ? 'IMEI' : 'Serial' }));
+      receiveSerials(list.map((n) => ({ serial: n, sku: l.sku, product: l.name, kind: l.track })), { place, ref: bill.no, supplier: s.name });
+    });
     if (paid > 0) paySupplier({ supplier: s.id, bills: [bill.no], amount: paid, method, account, ref: invoice.trim() });
     toast('Purchase saved');
     navigate('/purchases');
@@ -190,6 +214,12 @@ export default function BuyGoods() {
                               <div><label className="gc-label" htmlFor={'x' + l.key}>Expires</label><input id={'x' + l.key} className="gc-input" type="date" value={l.expiry} onChange={(e) => setLine(l.key, { expiry: e.target.value })} /></div>
                               <span className="bg-amt">{money((Number(l.qty) || 0) * (Number(l.cost) || 0))}</span>
                               <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain bg-x" aria-label={'Remove ' + l.name} onClick={() => setLines(lines.filter((x) => x.key !== l.key))}><Icon name="x" width="16" height="16" aria-hidden="true" /></button>
+                              {l.track === 'imei' || l.track === 'serial' ? (
+                                <div className="bg-track"><label className="gc-label" htmlFor={'n' + l.key}>{l.track === 'imei' ? 'IMEIs' : 'Serial numbers'} · {numsOf(l).length} of {Number(l.qty) || 0}</label><textarea id={'n' + l.key} className="gc-input" rows="2" placeholder="Scan each one; a new line after each" value={l.nums} onChange={(e) => setLine(l.key, { nums: e.target.value })} /></div>
+                              ) : null}
+                              {l.track === 'batch' ? (
+                                <div className="bg-track"><label className="gc-label" htmlFor={'b' + l.key}>Batch no.</label><input id={'b' + l.key} className="gc-input" value={l.lot} onChange={(e) => setLine(l.key, { lot: e.target.value })} /></div>
+                              ) : null}
                             </div>
                           ))}
                         </div>

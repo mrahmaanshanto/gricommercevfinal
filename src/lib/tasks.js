@@ -8,6 +8,7 @@
 // Finishing a repeating task makes the next one. IT requests go to the IT team ("Ask IT").
 
 import { USERS } from './team';
+import { perDay, shiftPast, shiftKey } from './demoClock';
 
 export const TASKS_KEY = 'gc.tasks.v2';
 export const TEAMS_KEY = 'gc.tasks.teams';
@@ -119,7 +120,12 @@ const SEED = [
 const ssr = () => typeof window === 'undefined';
 const read = (k, fb) => { if (ssr()) return fb; try { return JSON.parse(window.localStorage.getItem(k)) || fb; } catch { return fb; } };
 const write = (k, v) => { try { window.localStorage.setItem(k, JSON.stringify(v)); window.dispatchEvent(new CustomEvent(TASKS_EVENT)); } catch { /* ignore */ } };
-export const getTasks = () => read(TASKS_KEY, SEED).map((t) => plain(norm(t)));
+// the seed is written as of 1 Oct; in the browser its dates move with the clock (demoClock.js)
+const rebased = perDay((days) => SEED.map((t) => ({
+  ...t, due: shiftKey(t.due, days), start: shiftKey(t.start, days), at: shiftPast(t.at, days), doneAt: shiftPast(t.doneAt, days),
+  history: (t.history || []).map((h) => ({ ...h, at: shiftPast(h.at, days) })), comments: (t.comments || []).map((c) => ({ ...c, at: shiftPast(c.at, days) })),
+})));
+export const getTasks = () => (ssr() ? SEED : read(TASKS_KEY, null) || rebased()).map((t) => plain(norm(t)));
 export const getTeams = () => read(TEAMS_KEY, TEAM_SEED);
 export const getTags = () => read(TAGS_KEY, TAG_SEED);
 export const teamBy = (id, teams = getTeams()) => teams.find((t) => t.id === id) || null;

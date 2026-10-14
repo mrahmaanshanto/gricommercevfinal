@@ -1,52 +1,79 @@
 // platform/catalogue — what GridCommerce sells and who works in the console.
-//   MODULES · SETS        the module catalogue (codes as in the console's Module catalogue), grouped in sets
-//   LADDERS · PLAN_IDS    one plan ladder per segment (Online, Retail, Wholesale); prices and limits live in the
-//                         versioned plan catalogue (db().plans, seeded from basePlans())
+//   LADDERS               what a store buys first: one of the product's editions (lib/edition.js: Online, Retail,
+//                         Retail + Online, Connect). Each has the product's three plans (lib/plans.js: Starter,
+//                         Growth, Business); prices and limits live in the versioned plan catalogue (db().plans,
+//                         seeded from basePlans())
+//   SETS · MODULES        the product's modules (lib/edition.js › MODULES) and the console's feature codes (M01 …),
+//                         each feature filed under the product module it belongs to. Wholesale is hidden while
+//                         edition.js › WHOLESALE is off.
 //   ADDONS                modules and items billed on their own (Merchant page › Add a module or item)
 //   STAFF · ROLES · can() console staff, their role and what the role may do (Staff and roles screen)
 //   REASONS · METHODS · VIA · SOURCES · CATEGORIES · DISTRICTS   the lists the forms offer
+// The editions and plans are read from the merchant product as plain data (names and module lists) so the super
+// admin sells exactly what the product is; nothing else of the merchant panel is read here.
 
 import { startOfMonth } from './util';
+import { EDITIONS, MODULES as PRODUCT_MODULES, WHOLESALE } from '../edition';
+import { PLANS as PRODUCT_PLANS, PLAN_IDS as PRODUCT_PLAN_IDS, entitled } from '../plans';
 
+// ---- editions (ladders) --------------------------------------------------------------------------------------------
+const shortName = (ed) => String(EDITIONS[ed].name).replace(/^GridCommerce\s*/, '') || EDITIONS[ed].short;
+/** The editions a store can buy. `id` is the console's key (kept short), `edition` the product's edition id. */
+export const LADDERS = [
+  { id: 'online', edition: 'online', label: shortName('online') },
+  { id: 'retail', edition: 'retail-wholesale', label: shortName('retail-wholesale') },
+  { id: 'retail-online', edition: 'retail-online', label: shortName('retail-online') },
+  { id: 'connect', edition: 'comms', label: shortName('comms') },
+];
+export const LADDER_IDS = LADDERS.map((l) => l.id);
+export const ladderLabel = (id) => (LADDERS.find((l) => l.id === id) || {}).label || id;
+/** The product edition id of a ladder ('retail' → 'retail-wholesale'). */
+export const editionOf = (id) => (LADDERS.find((l) => l.id === id) || {}).edition || id;
+/** What a store on this ladder sells through (the edition's channels): ['Online'] · ['Retail'] · ['Retail', 'Online'] … */
+export const channelsOf = (id) => (EDITIONS[editionOf(id)] || { channels: [] }).channels.slice();
+/** Does the edition use this product module? */
+export const inEdition = (id, module) => ((EDITIONS[editionOf(id)] || { modules: [] }).modules).includes(module);
+
+// ---- plans -----------------------------------------------------------------------------------------------------------
+export const PLAN_IDS = PRODUCT_PLAN_IDS.slice();
+export const PLAN_NAME = Object.fromEntries(PLAN_IDS.map((p) => [p, PRODUCT_PLANS[p].name]));
+export const planIdByName = (name) => PLAN_IDS.find((p) => PLAN_NAME[p] === name) || null;
+
+// ---- modules ---------------------------------------------------------------------------------------------------------
+/** The product's modules on sale (wholesale only while it is switched on). */
+export const PRODUCT_MODULE_IDS = Object.keys(PRODUCT_MODULES).filter((k) => k !== 'wholesale' || WHOLESALE);
 export const SETS = [
   { id: 'platform', label: 'Platform core', sub: 'Runs in every store', always: true },
-  { id: 'everyday', label: 'Everyday core', sub: 'Every segment, every plan', always: true },
-  { id: 'online', label: 'Online set', sub: 'Online segment', ladder: 'online' },
-  { id: 'retail', label: 'Retail set', sub: 'Retail segment', ladder: 'retail' },
-  { id: 'wholesale', label: 'Wholesale set', sub: 'Wholesale segment', ladder: 'wholesale' },
-  { id: 'grow', label: 'Grow set', sub: 'Offers, loyalty, recovery, analytics' },
-  { id: 'scale', label: 'Scale set', sub: 'Locations, people, custom plans' },
+  ...PRODUCT_MODULE_IDS.map((k) => ({ id: k, label: PRODUCT_MODULES[k].label, sub: PRODUCT_MODULES[k].desc, product: true })),
   { id: 'credits', label: 'Credit add-ons', sub: 'Bought as credits' },
   { id: 'service', label: 'Service add-on', sub: 'Managed service' },
 ];
+export const setLabelOf = (id) => (SETS.find((s) => s.id === id) || {}).label || id;
 
+// feature code · name · the product module it belongs to ('platform' = runs everywhere, 'service' = a paid service)
 export const MODULES = [
   ['F1', 'Multi-tenancy', 'platform'], ['F3', 'Plans', 'platform'], ['F2', 'Billing', 'platform'], ['B1', 'Design system', 'platform'],
   ['S4', 'Roles', 'platform'], ['S8', 'Onboarding', 'platform'], ['S9', 'Merchant notices', 'platform'], ['S3', 'Notifications', 'platform'],
-  ['M01', 'Dashboard', 'everyday'], ['S2', 'Reports', 'everyday'], ['M07', 'Products', 'everyday'], ['M15', 'Stock ledger', 'everyday'],
-  ['S1', 'Customer record', 'everyday'], ['M22', 'Customer CRM', 'everyday'], ['M17', 'Payments', 'everyday'], ['M24', 'Staff access', 'everyday'],
-  ['M18', 'Returns', 'everyday'], ['S7', 'Support tickets', 'everyday'],
-  ['M06', 'Checkout', 'online'], ['M02', 'Online orders', 'online'], ['M25', 'Manual order', 'online'], ['M23', 'Quick order link', 'online'],
-  ['M26', 'Bulk actions', 'online'], ['M08', 'Courier and COD', 'online'], ['M11', 'Themes', 'online'], ['M12', 'Landing pages', 'online'],
-  ['M10', 'SEO', 'online'], ['M09', 'Reviews', 'online'], ['G1', 'Server tracking', 'online'],
-  ['M04', 'POS', 'retail'], ['M03', 'Counter sales', 'retail'], ['M16', 'Cash and expenses', 'retail'], ['M28', 'Warranty', 'retail'],
-  ['M13', 'Purchasing', 'wholesale'], ['M14', 'Wholesale dues', 'wholesale'], ['M27', 'Partners', 'wholesale'],
-  ['M21', 'Promotions', 'grow'], ['M20', 'Loyalty', 'grow'], ['G4', 'Cart recovery', 'grow'], ['G2', 'Analytics', 'grow'],
-  ['M05', 'Warehouse', 'scale'], ['M19', 'HR and payroll', 'scale'],
-  ['G3', 'Inbox', 'credits'], ['G6', 'Blasts', 'credits'], ['G5', 'AI products', 'credits'],
+  ['M01', 'Dashboard', 'core'], ['S1', 'Customer record', 'core'], ['M22', 'Customer CRM', 'core'], ['M24', 'Staff access', 'core'],
+  ['M07', 'Products', 'catalog'], ['M15', 'Stock ledger', 'catalog'], ['M28', 'Warranty', 'catalog'],
+  ['M05', 'Warehouse', 'places'], ['M13', 'Purchasing', 'purchasing'],
+  ['M17', 'Payments', 'money'], ['M16', 'Cash and expenses', 'money'],
+  ['S2', 'Reports', 'reports'], ['G2', 'Analytics', 'reports'],
+  ['M19', 'HR and payroll', 'hr'],
+  ['M25', 'Manual order', 'commerce'], ['M18', 'Returns', 'commerce'], ['M26', 'Bulk actions', 'commerce'],
+  ['M21', 'Promotions', 'marketing'], ['M20', 'Loyalty', 'marketing'],
+  ['M04', 'POS', 'pos'], ['M03', 'Counter sales', 'pos'],
+  ['M14', 'Wholesale dues', 'wholesale'], ['M27', 'Partners', 'wholesale'],
+  ['M06', 'Checkout', 'online'], ['M02', 'Online orders', 'online'], ['M23', 'Quick order link', 'online'], ['M08', 'Courier and COD', 'online'],
+  ['M11', 'Themes', 'online'], ['M12', 'Landing pages', 'online'], ['M10', 'SEO', 'online'], ['M09', 'Reviews', 'online'],
+  ['G1', 'Server tracking', 'online'], ['G4', 'Cart recovery', 'online'],
+  ['M29', 'Product sync', 'channels'],
+  ['G3', 'Inbox', 'comms'], ['G6', 'Blasts', 'comms'], ['S7', 'Support tickets', 'comms'],
+  ['G5', 'AI products', 'gridai'],
+  ['M30', 'Automation rules', 'automation'],
   ['S6', 'Migration', 'service'],
-].map(([code, name, set]) => ({ code, name, set }));
+].filter(([, , set]) => set !== 'wholesale' || WHOLESALE).map(([code, name, set]) => ({ code, name, set }));
 export const moduleBy = (code) => MODULES.find((m) => m.code === code) || null;
-
-export const LADDERS = [
-  { id: 'online', label: 'Online', set: 'online' },
-  { id: 'retail', label: 'Retail', set: 'retail' },
-  { id: 'wholesale', label: 'Wholesale', set: 'wholesale' },
-];
-export const ladderLabel = (id) => (LADDERS.find((l) => l.id === id) || {}).label || id;
-export const PLAN_IDS = ['growth', 'business', 'enterprise'];
-export const PLAN_NAME = { growth: 'Growth', business: 'Business', enterprise: 'Enterprise' };
-export const planIdByName = (name) => PLAN_IDS.find((p) => PLAN_NAME[p] === name) || null;
 
 /** What a set does in a plan: 'Included' · 'Locked · upgrade' · 'Add-on' · 'Hidden'. */
 export const SET_STATES = ['Included', 'Locked · upgrade', 'Add-on', 'Hidden'];
@@ -57,39 +84,65 @@ export const LIMIT_KEYS = [
 ];
 export const UNLIMITED = 999999;
 
-/** The plan catalogue as first published: one entry per ladder, each with its versions. */
+/** Modules sold on their own when the plan does not include them (the add-on that brings it). */
+const ADDON_FOR = { places: 'M05', hr: 'M19' };
+/** What a product module does in a plan of an edition, from the product's own plan list (lib/plans.js). */
+export function ruleFor(ladder, plan, set) {
+  if (set === 'platform') return 'Included';
+  if (set === 'credits' || set === 'service') return 'Add-on';
+  if (!inEdition(ladder, set)) return 'Hidden';
+  if (entitled(set, plan)) return 'Included';
+  return ADDON_FOR[set] ? 'Add-on' : 'Locked · upgrade';
+}
+
+// Prices per edition (৳ a month · a year). Yearly is about ten months' price.
+const PRICES = {
+  online: { starter: [1000, 10000], growth: [2500, 25000], business: [5000, 50000] },
+  retail: { starter: [1000, 10000], growth: [2500, 25000], business: [5000, 50000] },
+  'retail-online': { starter: [1500, 15000], growth: [3500, 35000], business: [7000, 70000] },
+  connect: { starter: [800, 8000], growth: [1800, 18000], business: [3500, 35000] },
+};
+const TAGLINE = {
+  starter: 'Sell with the everyday core of the edition.',
+  growth: 'Adds stock places, purchase orders, marketing, sales channels and automation.',
+  business: 'Every module of the edition, Staff & HR included.',
+};
+
+/** The plan catalogue as first published: one entry per edition, each with its versions. */
 export function basePlans(anchor) {
-  const sets = (ladder, grow, scale) => ({ platform: 'Included', everyday: 'Included', [ladder]: 'Included', grow, scale, credits: 'Add-on' });
-  const plans = (ladder, v) => ({
-    growth: {
-      name: 'Growth', price: 1000, yearly: 10000, setup: 0, trialDays: 15, visibility: 'Public',
-      tagline: 'Start selling in one segment with the everyday core.',
-      sets: sets(ladder, 'Locked · upgrade', 'Locked · upgrade'),
-      limits: { orders: 500, products: 200, seats: 2, storage: 5, couriers: 1, pages: 2, sms: 500, ai: 0 },
-      warnAt: 80, topup: 300, atLimit: 'block',
-    },
-    business: {
-      name: 'Business', price: 2500, yearly: v >= 3 ? 27000 : 25000, setup: 0, trialDays: 15, visibility: 'Public',
-      tagline: 'Adds offers, loyalty, cart recovery and analytics.',
-      sets: sets(ladder, 'Included', 'Locked · upgrade'),
-      limits: { orders: v >= 3 ? 2500 : 2000, products: 2000, seats: 5, storage: 25, couriers: 3, pages: 10, sms: 1000, ai: 100 },
-      warnAt: 80, topup: 300, atLimit: 'block',
-    },
-    enterprise: {
-      name: 'Enterprise', price: 5000, yearly: 50000, setup: 0, trialDays: 15, visibility: 'Public',
-      tagline: 'Adds warehouses, payroll and custom terms.',
-      sets: sets(ladder, 'Included', 'Included'),
-      limits: { orders: 10000, products: UNLIMITED, seats: 15, storage: 100, couriers: UNLIMITED, pages: 50, sms: 5000, ai: 500 },
-      warnAt: 80, topup: 300, atLimit: 'block',
-    },
-  });
+  const sets = (ladder, plan) => Object.fromEntries(SETS.filter((s) => s.id !== 'service').map((s) => [s.id, ruleFor(ladder, plan, s.id)]));
+  const plans = (ladder, v) => {
+    const pr = PRICES[ladder];
+    return {
+      starter: {
+        name: PLAN_NAME.starter, price: pr.starter[0], yearly: pr.starter[1], setup: 0, trialDays: 15, visibility: 'Public',
+        tagline: TAGLINE.starter, sets: sets(ladder, 'starter'),
+        limits: { orders: 500, products: 200, seats: 2, storage: 5, couriers: 1, pages: 2, sms: 500, ai: 0 },
+        warnAt: 80, topup: 300, atLimit: 'block',
+      },
+      growth: {
+        name: PLAN_NAME.growth, price: pr.growth[0], yearly: ladder === 'online' && v >= 3 ? 27000 : pr.growth[1], setup: 0, trialDays: 15, visibility: 'Public',
+        tagline: TAGLINE.growth, sets: sets(ladder, 'growth'),
+        limits: { orders: ladder === 'online' && v >= 3 ? 2500 : 2000, products: 2000, seats: 5, storage: 25, couriers: 3, pages: 10, sms: 1000, ai: 100 },
+        warnAt: 80, topup: 300, atLimit: 'block',
+      },
+      business: {
+        name: PLAN_NAME.business, price: pr.business[0], yearly: pr.business[1], setup: 0, trialDays: 15, visibility: 'Public',
+        tagline: TAGLINE.business, sets: sets(ladder, 'business'),
+        limits: { orders: 10000, products: UNLIMITED, seats: 15, storage: 100, couriers: UNLIMITED, pages: 50, sms: 5000, ai: 500 },
+        warnAt: 80, topup: 300, atLimit: 'block',
+      },
+    };
+  };
   const sep1 = startOfMonth(anchor);
-  const v = (n, liveFrom, ladder) => ({ v: n, liveFrom, plans: plans(ladder, n), by: 'Mahin Khan', approvedBy: 'Nusrat Islam', note: n === 1 ? 'First prices' : 'Business orders 2,000 → 2,500; yearly ৳25,000 → ৳27,000' });
+  const NOTE = { 1: 'First prices', 2: 'Prices checked, no change', 3: 'Growth orders 2,000 → 2,500; yearly ৳25,000 → ৳27,000' };
+  const v = (n, liveFrom, ladder, note) => ({ v: n, liveFrom, plans: plans(ladder, n), by: 'Mahin Khan', approvedBy: 'Nusrat Islam', note: note || NOTE[n] });
   const year = 365 * 864e5;
   return {
     online: { live: 3, versions: [v(1, sep1 - 2 * year, 'online'), v(2, sep1 - year, 'online'), v(3, sep1, 'online')] },
     retail: { live: 2, versions: [v(1, sep1 - 2 * year, 'retail'), v(2, sep1 - 200 * 864e5, 'retail')] },
-    wholesale: { live: 1, versions: [v(1, sep1 - 2 * year, 'wholesale')] },
+    'retail-online': { live: 1, versions: [v(1, sep1 - 2 * year, 'retail-online', 'First prices for Retail + Online')] },
+    connect: { live: 1, versions: [v(1, sep1 - 2 * year, 'connect', 'First prices for Connect')] },
   };
 }
 

@@ -89,7 +89,7 @@ const keyOf = (phone, lines, total) => [String(phone || '').replace(/\D/g, ''), 
 /** Adds an order row (the shape the orders list uses) and returns it. The lines are kept so the
  *  order page can show them (frozen as sold, see freezeLines). Returns the earlier order, marked
  *  { duplicate: true }, when the same order was just added. */
-export function addOrder({ lines, customer, phone, zone, total, status = 'New', payment = 'COD', channel = 'Manual order', address = '', shipping = 0, paid, source, method, discount = 0, discountReason = '', vat = 0, vatRate = 0, note = '', tags = [] }) {
+export function addOrder({ id, lines, customer, phone, zone, total, status = 'New', payment = 'COD', channel = 'Manual order', address = '', shipping = 0, paid, source, method, discount = 0, discountReason = '', vat = 0, vatRate = 0, vatIncluded = false, note = '', tags = [] }) {
   const list = read(ORDERS, []);
   const count = lines.reduce((n, l) => n + l.qty, 0);
   const now = new Date();
@@ -104,20 +104,22 @@ export function addOrder({ lines, customer, phone, zone, total, status = 'New', 
   if (status === 'Approved' || status === 'Delivered') times.approved = t;
   if (STATUS_TIME[status]) times[STATUS_TIME[status]] = t;
   const row = {
-    // own number range: the live online orders (liveOrders.js) number on from #136813 day after day
-    id: '#' + (Math.max(MADE_FROM, ...list.map((o) => Number(String(o.id).replace(/\D/g, '')) || 0).filter((n) => n > MADE_FROM)) + 1),
+    // own number range: the live online orders (liveOrders.js) number on from #136813 day after day.
+    // A counter sale brings its own number (posSale.js › nextSaleNo), so the order and the sale match.
+    id: id || '#' + (Math.max(MADE_FROM, ...list.filter((o) => /^#\d+$/.test(String(o.id))).map((o) => Number(String(o.id).slice(1)) || 0).filter((n) => n > MADE_FROM)) + 1),
     at: t, placed: stamp(now), channel, customer, address, shipping, times,
     source: source || (counter ? '' : channel === 'Order link' ? 'Order link' : 'Phone'),
     method: method || (counter ? '' : METHOD_OF_PAYMENT[payment] || ''),
     lines: freezeLines(lines, discount, vat, vatRate), key,
     ...(discount ? { discount: Math.round(discount), discountReason: discountReason || '' } : {}),
-    ...(vat ? { vat: Math.round(vat), vatRate: Number(vatRate) || 0 } : {}),
+    ...(vat ? { vat: Math.round(vat * 100) / 100, vatRate: Number(vatRate) || 0, ...(vatIncluded ? { vatIncluded: true } : {}) } : {}),
     ...(note ? { note } : {}), ...(tags && tags.length ? { tags } : {}),
     initials: customer.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase(),
     phone, zone,
     itemTitle: lines[0].name + (lines.length > 1 ? ` + ${lines.length - 1} more` : ''),
     itemMeta: `${count} item${count > 1 ? 's' : ''} · ${formatBDT(lines.reduce((s, l) => s + l.price * l.qty, 0))}`,
-    courier: 'Not assigned', consignment: '—', status, payment, total: formatBDT(total),
+    // the total is kept to the poisha (the list formats it), so a paid sale of ৳1,903.70 is not ৳0.30 short
+    courier: 'Not assigned', consignment: '—', status, payment, total: Math.round((Number(total) || 0) * 100) / 100,
     ...(paid != null ? { paid } : {}),
   };
   write(ORDERS, [row, ...list]);

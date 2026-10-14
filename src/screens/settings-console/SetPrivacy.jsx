@@ -11,8 +11,9 @@ import { SettingsLogic, SetIn, SetErr, SetSw } from '@/screens/settings-console/
 import SetFrame from '@/screens/settings-console/SetFrame';
 import { CONSENT_TYPES, versionsOf, currentVersion, bumpVersion, acceptedCounts } from '@/lib/consents';
 import { whoNow } from '@/lib/settingsHistory';
+import { pageByHandle, handleFromUrl, storefrontHref, STORE_PAGES_EVENT } from '@/lib/storePages';
 
-const URL_OK = (x) => (/^(https?:\/\/[^\s]+|\/[^\s]*)$/.test(x) ? '' : 'Enter a page address like /pages/terms or https://….');
+const URL_OK = (x) => (/^(https?:\/\/[^\s]+|\/[^\s]*)$/.test(x) ? '' : 'Enter a page address like /pages/terms-of-service or https://….');
 
 const CSS = `
 .sp-body{display:flex;flex-direction:column;gap:14px;padding:12px 16px 16px}
@@ -47,8 +48,9 @@ class Component extends SettingsLogic {
     mkt_text: { l: 'Marketing consent text', d: CONSENT_TYPES.marketing.text, req: true, k: 'area' },
     legal_required: { l: 'Customers must accept to place an order', d: true },
     legal_text: { l: 'Terms consent text', d: CONSENT_TYPES.legal.text, req: true, k: 'area' },
-    terms_url: { l: 'Terms of service page', d: '/pages/terms', req: true, check: URL_OK },
-    privacy_url: { l: 'Privacy policy page', d: '/pages/privacy', req: true, check: URL_OK },
+    // the store's own pages (Online Store › Pages, lib/storePages.js); old '/pages/terms' and '/pages/privacy' still find them
+    terms_url: { l: 'Terms of service page', d: '/pages/terms-of-service', req: true, check: URL_OK },
+    privacy_url: { l: 'Privacy policy page', d: '/pages/privacy-policy', req: true, check: URL_OK },
     cookie_banner: { l: 'Show the cookie banner', d: true },
     cookie_analytics: { l: 'Analytics cookies', d: true },
     cookie_ads: { l: 'Ads cookies', d: true },
@@ -111,6 +113,27 @@ const Text = ({ f, n }) => (
   </div>
 );
 
+/** Under a page address: whether the store has that page (Online Store › Pages), with View / Edit or Create. */
+function PageLink({ url, tpl }) {
+  const [st, setSt] = React.useState(null);
+  React.useEffect(() => {
+    const load = () => { const h = handleFromUrl(url); const p = h ? pageByHandle(h) : null; setSt({ h, p, local: /^\//.test(String(url || '').trim()) }); };
+    load();
+    window.addEventListener(STORE_PAGES_EVENT, load);
+    return () => window.removeEventListener(STORE_PAGES_EVENT, load);
+  }, [url]);
+  if (!st || !st.local) return null;
+  const { p } = st;
+  if (!p) return <p className="sp-note set-help--keep">No store page at this address yet. <__Link href={`/store-page-edit?template=${tpl}`}>Create it from a template</__Link></p>;
+  return (
+    <p className="sp-note set-help--keep">
+      {p.status === 'published' ? 'Store page: ' : `Store page (${p.status === 'draft' ? 'draft, not on the website' : 'hidden, not on the website'}): `}
+      <__Link href={`/store-page-edit?id=${p.id}`}>{p.title}</__Link>{' · '}
+      <a href={storefrontHref(p.handle, p.status !== 'published')} target="_blank" rel="noopener noreferrer">{p.status === 'published' ? 'View' : 'Preview'}</a>
+    </p>
+  );
+}
+
 export default class SetPrivacy extends Component {
   render() {
     const { f } = this.renderVals();
@@ -136,7 +159,7 @@ export default class SetPrivacy extends Component {
           <div className="sp-body">
             <Row f={f} n="legal_required" />
             <Area f={f} n="legal_text" />
-            <div className="sp-grid"><Text f={f} n="terms_url" /><Text f={f} n="privacy_url" /></div>
+            <div className="sp-grid"><div className="sp-fld"><Text f={f} n="terms_url" /><PageLink url={f.get('terms_url', '')} tpl="terms" /></div><div className="sp-fld"><Text f={f} n="privacy_url" /><PageLink url={f.get('privacy_url', '')} tpl="privacy" /></div></div>
             <p className="sp-note set-help set-help--keep">A new text is a new version. Customers who accepted an older one are asked again at their next checkout.</p>
             <Versions type="legal" />
           </div>

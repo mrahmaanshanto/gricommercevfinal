@@ -4,7 +4,9 @@
 //   sessions   active sessions (sign out one, or every other one)
 //   history    sign-in history (time, person, result, IP in Bangladesh ranges, device, browser, Dhaka / Chattogram)
 //   events     security events (failed sign-ins, new device, 2FA turned off, password reset, IP blocked): review, block IP
-//   approvals  which actions need a second person (on / off, amount above, who approves) — one Save
+//   approvals  which actions need a second person (on / off, amount above, who approves) — one Save; the store actions
+//              waiting for a second person (access/StoreRequests.jsx)
+//   access     every support access session to a store (access/StoreAccess.jsx › AccessTable)
 //   policy     password policy and session timeout — one Save
 //   ip         IP allow-list (on / off, office addresses) and blocked addresses
 // Data: lib/admin/admin.js (setTwoFa, remindTwoFa, signOutSession, signOutOthers, reviewEvent, blockIp, unblockIp,
@@ -24,8 +26,10 @@ import {
 import { staff as currentStaff } from '@/lib/platform/store';
 import { AdminShell } from '../AdminShell';
 import { ADX_CSS, useAdmin, useTab, Skeleton, Field, CardHead, Person, Note, SaveBar, Switch, plural, clone } from './admShared';
+import { AccessTable } from '../access/StoreAccess';
+import { StoreRequests } from '../access/StoreRequests';
 
-const TABS = [['people', 'People & 2FA'], ['sessions', 'Sessions'], ['history', 'Sign-in history'], ['events', 'Security events'], ['approvals', 'Approvals'], ['policy', 'Password & sessions'], ['ip', 'IP addresses']];
+const TABS = [['people', 'People & 2FA'], ['sessions', 'Sessions'], ['history', 'Sign-in history'], ['events', 'Security events'], ['approvals', 'Approvals'], ['access', 'Store access'], ['policy', 'Password & sessions'], ['ip', 'IP addresses']];
 const TAB_KEYS = TABS.map((x) => x[0]);
 const PAGE = 25;
 const EV_ICON = { failed: 'shield-alert', device: 'smartphone', '2fa-off': 'key-round', reset: 'rotate-ccw', ip: 'ban' };
@@ -322,12 +326,14 @@ export default function Security() {
   } else if (tab === 'approvals') {
     body = (
       <>
-        <div style={{ padding: 'var(--space-3) var(--space-4) 0' }}><Note>These are the company’s rules. The platform already asks a second person for credits above {taka(defaults.adjThreshold)} and for every plan version; changing a rule here records it for when the super admin has a server.</Note></div>
+        <div style={{ padding: 'var(--space-3) var(--space-4) 0' }}><Note>Store controls, grace, free credits and licence revokes follow these rules now. Bill adjustments use the platform’s own limit ({taka(defaults.adjThreshold)}) and every plan version needs a second person.</Note></div>
+        <p className="adx-sec" style={{ padding: 'var(--space-3) var(--space-4) 0', margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Waiting for a second person</p>
+        <StoreRequests card={false} />
         <ul className="sc-rows" aria-label="Approval rules">
           {rules.map((r) => (
             <li key={r.id} className="sc-rule">
               <Switch on={r.on} label={r.label} onToggle={() => setRule(r.id, { on: !r.on })} />
-              <span>{r.label}<small>{r.on ? 'Needs a second person, never the one who asked' : 'One person can do it'}{r.live === 'adjThreshold' ? ` · platform now: above ${taka(defaults.adjThreshold)}` : r.live === 'plans' ? ' · platform now: always' : ''}</small></span>
+              <span>{r.label}<small>{r.on ? 'Needs a second person, never the one who asked' : 'One person can do it'}{r.live === 'adjThreshold' ? ` · platform now: above ${taka(defaults.adjThreshold)}` : r.live === 'plans' ? ' · platform now: always' : r.live === 'store' ? ' · checked on every store action' : ''}</small></span>
               <span className="sc-span">
                 {r.threshold !== null ? (
                   <span className="sc-money"><input className={'gc-input adx-fig' + (errs[r.id] ? ' gc-input--error' : '')} inputMode="numeric" aria-label={r.label + ': amount above'} value={r.threshold} disabled={!r.on}
@@ -342,6 +348,13 @@ export default function Security() {
             </li>
           ))}
         </ul>
+      </>
+    );
+  } else if (tab === 'access') {
+    body = (
+      <>
+        <div style={{ padding: 'var(--space-3) var(--space-4) 0' }}><Note>Staff open a store only in a session the owner approved, with a scope and a time limit. Ask from a support ticket or the store’s page.</Note></div>
+        <AccessTable />
       </>
     );
   } else if (tab === 'policy') {

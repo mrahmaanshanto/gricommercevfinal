@@ -7,10 +7,12 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { getLocale } from '@/runtime/ui';
+import { websiteOffers, promoLine } from '@/lib/storeOffers';
+import { PROMO_EVENT } from '@/lib/promotions';
+import { clockNow } from '@/lib/settlements';
 
-// The promo bar follows the shopper's language (Bangla only when it is chosen).
-var PROMO = { en: 'Weekend Mega Sale — up to 40% off! Code: EID300', bn: 'উইকেন্ড মেগা সেল — ৪০% পর্যন্ত ছাড়! কোড: EID300' };
-function PromoText() {
+// The promo bar follows the shopper's language (Bangla only when it is chosen) and the offers running now.
+function PromoText({ promo }) {
   var st = React.useState('en'), loc = st[0], setLoc = st[1];
   React.useEffect(function () {
     var on = function () { setLoc(getLocale()); };
@@ -18,74 +20,69 @@ function PromoText() {
     window.addEventListener('gc:locale', on);
     return function () { window.removeEventListener('gc:locale', on); };
   }, []);
-  return <span className={loc === 'bn' ? 'bn' : undefined} lang={loc}>{PROMO[loc]}</span>;
+  if (!promo) return <span>&nbsp;</span>;
+  return <span className={loc === 'bn' ? 'bn' : undefined} lang={loc}>{promo[loc] || promo.en}</span>;
 }
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+// ---- logic ----
+// The offers come from the promotion engine (lib/promotions.js through lib/storeOffers.js): Marketing › Offers,
+// Coupons and Flash sales, with the real clock. They are read after mount (the server has no clock to match).
 
-var NOW0 = Date.UTC(2026, 8, 18, 12, 14, 0); // 18 Sep 2026, 6:14 PM Dhaka
-function T(d, h, m) { return Date.UTC(2026, d[1] - 1, d[0], (h || 0) - 6, m || 0, 0); }
 function pad(n) { return (n < 10 ? '0' : '') + n; }
 function parts(ms) { if (ms < 0) ms = 0; var s = Math.floor(ms / 1000); return { d: Math.floor(s / 86400), h: Math.floor(s % 86400 / 3600), m: Math.floor(s % 3600 / 60), s: s % 60 }; }
-function dk(t) { return Math.floor((t + 6 * 3600000) / 86400000); }
-function dayOf(o, now) { var tot = dk(o.end) - dk(o.start) + 1; var d = Math.max(1, Math.min(tot, dk(now) - dk(o.start) + 1)); return { d: d, tot: tot, pct: +Math.max(0, Math.min(100, (now - o.start) / (o.end - o.start) * 100)).toFixed(1) }; }
-var O = [
-  { id: 'mega', kind: 'flash', type: 'FLASH SALE', title: 'Weekend Mega Sale', blurb: 'Up to 40% off 12 best sellers. Limited pieces at the sale price.', big: 'UP TO 40% OFF', start: T([18, 9], 18), end: T([20, 9], 23, 59), posted: 'Posted 17 Sep 2026', cover: 'linear-gradient(135deg, #b83210, #f59e0b)', feat: true },
-  { id: 'eid', kind: 'code', type: 'DISCOUNT CODE', code: 'EID300', title: '৳300 off on ৳2,000 or more', blurb: 'Festival offer on everything in the shop — website and shop counter.', big: '৳300 OFF', start: T([5, 9]), end: T([20, 9], 23, 59), posted: 'Posted 5 Sep 2026', cover: 'linear-gradient(135deg, #012169, #0a5bd0)' },
-  { id: 'bkash', kind: 'pay', type: 'BKASH OFFER', code: 'BKASH10', title: 'Pay with bKash, get 10% off', blurb: 'Up to ৳150 off on bills of ৳500 or more when you pay by bKash.', big: '10% OFF', start: T([10, 9]), end: T([30, 9], 23, 59), posted: 'Posted 10 Sep 2026', cover: 'linear-gradient(135deg, #b0145a, #e2136e)' },
-  { id: 'pay', kind: 'pay', type: 'PAYMENT OFFER', code: 'PAYSAVE', title: 'Pay first, save more', blurb: 'Card 12%, shop wallet 10%, bKash and Nagad 8%, cash on delivery 3% — up to ৳500.', big: 'UP TO 12% OFF', start: T([15, 9]), end: T([15, 10], 23, 59), posted: 'Posted 15 Sep 2026', cover: 'linear-gradient(135deg, #075985, #0ea5e9)' },
-  { id: 'skin', kind: 'code', type: 'DISCOUNT CODE', code: 'CASE15', title: '15% off all accessories', blurb: 'Cases, chargers, cables and more. Phones are not included.', big: '15% OFF', start: T([10, 9]), end: T([25, 9], 23, 59), posted: 'Posted 10 Sep 2026', cover: 'linear-gradient(135deg, #047857, #10b981)' },
-  { id: 'first', kind: 'code', type: 'NEW CUSTOMERS', code: 'FIRST20', title: '20% off your first order', blurb: 'New here? Up to ৳400 off your very first order with us.', big: '20% OFF', start: T([1, 9]), end: T([30, 9], 23, 59), posted: 'Posted 1 Sep 2026', cover: 'linear-gradient(135deg, #6b21a8, #a855f7)' },
-  { id: 'skinweek', kind: 'flash', type: 'FLASH SALE', title: 'Audio week', blurb: '25% off 8 earbuds and earphones for one week. Limited pieces at the sale price.', big: '25% OFF', start: T([22, 9]), end: T([28, 9], 23, 59), posted: 'Posted 18 Sep 2026', cover: 'linear-gradient(135deg, #065f46, #10b981)', feat: true },
-  { id: 'puja', kind: 'code', type: 'DISCOUNT CODE', code: 'PUJA10', title: 'Puja offer — 10% off', blurb: 'Up to ৳250 off during Puja. Website and shop counter.', big: '10% OFF', start: T([25, 9]), end: T([5, 10], 23, 59), posted: 'Posted 18 Sep 2026', cover: 'linear-gradient(135deg, #7c2d12, #db2777)' },
-  { id: 'ship', kind: 'code', type: 'FREE DELIVERY', code: 'FREESHIP', title: 'Free delivery on ৳1,500+', blurb: 'Free delivery anywhere in Bangladesh on bills of ৳1,500 or more.', big: 'FREE DELIVERY', start: T([8, 9]), end: T([14, 9], 23, 59), posted: 'Posted 8 Sep 2026', cover: 'linear-gradient(135deg, #334155, #64748b)' },
-  { id: 'clear', kind: 'flash', type: 'FLASH SALE', title: 'Month-end Clearance', blurb: 'Up to 50% off 20 items to clear the shelves.', big: 'UP TO 50% OFF', start: T([28, 8]), end: T([31, 8], 23, 59), posted: 'Posted 27 Aug 2026', cover: 'linear-gradient(135deg, #334155, #64748b)' }
-];
+function dk(t) { var d = new Date(t); d.setHours(0, 0, 0, 0); return Math.round(d.getTime() / 86400000); }
+var FAR = 365 * 86400000;
+function endOf(o, now) { return o.end || now + FAR; }
+function dayOf(o, now) { var end = endOf(o, now); var tot = dk(end) - dk(o.start) + 1; var d = Math.max(1, Math.min(tot, dk(now) - dk(o.start) + 1)); return { d: d, tot: tot, pct: +Math.max(0, Math.min(100, (now - o.start) / (end - o.start) * 100)).toFixed(1) }; }
 var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function dstr(t) { var d = new Date(t + 6 * 3600000); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
-var FEAT_SKIN = [
-  { name: 'Anker 20W USB-C Charger', price: '৳940', mrp: '৳1,250', off: '−25%', sold: 0, bg: '#fff4e0' },
-  { name: 'Type-C Wired Earphones', price: '৳670', mrp: '৳890', off: '−25%', sold: 0, bg: '#e7f8f1' },
-  { name: 'Micro-USB Cable 1m', price: '৳520', mrp: '৳690', off: '−25%', sold: 0, bg: '#e0f3fb' }
-];
+function dstr(t) { var d = new Date(t); return d.getDate() + ' ' + MON[d.getMonth()]; }
 var WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-function whenStr(t) { var d = new Date(t + 6 * 3600000), h = d.getUTCHours(), m = d.getUTCMinutes(), ap = h < 12 ? 'am' : 'pm', h12 = h % 12 || 12; return WD[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()] + ', ' + h12 + ':' + pad(m) + ' ' + ap; }
-var FEAT = [
-  { name: 'Baseus Car Phone Holder', price: '৳1,290', mrp: '৳1,890', off: '−32%', sold: 72, bg: '#e0f3fb' },
-  { name: 'Liquid Silicone Case · Navy', price: '৳990', mrp: '৳1,450', off: '−32%', sold: 55, bg: '#eef2f6' },
-  { name: 'Anker 20W USB-C Charger', price: '৳890', mrp: '৳1,250', off: '−29%', sold: 81, bg: '#fff4e0' }
-];
+function whenStr(t) { var d = new Date(t), h = d.getHours(), m = d.getMinutes(), ap = h < 12 ? 'am' : 'pm', h12 = h % 12 || 12; return WD[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()] + ', ' + h12 + ':' + pad(m) + ' ' + ap; }
+var offerHref = function (o) { return '/offer-detail?id=' + encodeURIComponent(o.id); };
 class Component extends DCLogic {
-  componentDidMount() { var self = this; this.iv = setInterval(function () { self.setState({ tick: ((self.state && self.state.tick) || 0) + 1 }); }, 1000); }
-  componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.t); }
+  componentDidMount() {
+    var self = this;
+    var load = function () { var now = clockNow(); var list = websiteOffers(now); self.setState({ offers: list, promo: promoLine(list), ready: true, now: now }); };
+    this.load = load;
+    load();
+    window.addEventListener(PROMO_EVENT, load);
+    this.iv = setInterval(function () { self.setState({ now: clockNow() }); }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.t); window.removeEventListener(PROMO_EVENT, this.load); }
   renderVals() {
-    var self = this, s = this.state || {}, now = NOW0 + (s.tick || 0) * 1000, f = s.f || 'all';
-    var st = function (o) { return now < o.start ? 'soon' : now > o.end ? 'ended' : 'live'; };
+    var self = this, s = this.state || {}, now = s.now || 0, f = s.f || 'all', O = s.offers || [];
+    var st = function (o) { return o.state === 'ended' || (o.end && now > o.end) ? 'ended' : now < o.start ? 'soon' : 'live'; };
     var mk = function (o) {
-      var S = st(o), dd = dayOf(o, now), p = parts(S === 'soon' ? o.start - now : o.end - now), ended = S === 'ended';
-      var left = S === 'live' ? (p.d >= 1 ? p.d + (p.d > 1 ? ' days' : ' day') + ' left' : pad(p.h) + ':' + pad(p.m) + ':' + pad(p.s)) : S === 'soon' ? 'Starts in ' + (p.d >= 1 ? p.d + (p.d > 1 ? ' days' : ' day') : pad(p.h) + ':' + pad(p.m)) : 'Ended ' + dstr(o.end);
-      return { title: o.title, blurb: o.blurb, big: o.big, type: o.type, posted: o.posted + ' · ' + dstr(o.start) + ' – ' + dstr(o.end), cover: ended ? 'linear-gradient(135deg, #475569, #94a3b8)' : o.cover,
+      var S = st(o), dd = dayOf(o, now), p = parts(S === 'soon' ? o.start - now : endOf(o, now) - now), ended = S === 'ended';
+      var left = S === 'live' ? (!o.end ? 'No end date' : p.d >= 1 ? p.d + (p.d > 1 ? ' days' : ' day') + ' left' : pad(p.h) + ':' + pad(p.m) + ':' + pad(p.s)) : S === 'soon' ? 'Starts in ' + (p.d >= 1 ? p.d + (p.d > 1 ? ' days' : ' day') : pad(p.h) + ':' + pad(p.m)) : o.endedHow === 'used' ? 'All used up' : 'Ended ' + dstr(o.end || now);
+      return { id: o.id, href: offerHref(o), title: o.title, blurb: o.blurb, big: o.big, type: o.type, posted: o.posted + ' · ' + dstr(o.start) + (o.end ? ' – ' + dstr(o.end) : ', no end date'), cover: ended ? 'linear-gradient(135deg, #475569, #94a3b8)' : o.cover,
         status: S === 'live' ? 'ACTIVE' : S === 'soon' ? 'COMING SOON' : 'INACTIVE', sBg: S === 'live' ? '#e7f8f1' : S === 'soon' ? '#e0f2fe' : '#e2e8f0', sFg: S === 'live' ? '#047857' : S === 'soon' ? '#075985' : '#475569',
-        dayText: S === 'live' ? 'Day ' + dd.d + ' of ' + dd.tot : S === 'soon' ? 'Runs ' + dd.tot + ' days' : 'Ran ' + dd.tot + ' days',
-        left: left, leftColor: S === 'live' ? (p.d < 3 ? '#b83210' : '#047857') : S === 'soon' ? '#075985' : '#64748b',
-        pct: (S === 'live' ? dd.pct : S === 'ended' ? 100 : 0) + '%', barColor: S === 'live' ? (p.d < 3 ? '#ef4444' : '#10b981') : '#cbd5e1',
-        hasCode: !!o.code, noCode: !o.code, code: o.code || '', canCopy: S === 'live', codeBorder: ended ? '#cbd5e1' : '#003087', codeColor: ended ? '#94a3b8' : '#003087', codeDeco: ended ? 'line-through' : 'none',
-        noCodeText: S === 'live' ? 'No code needed — sale prices are on the products.' : S === 'soon' ? 'No code needed. Prices drop when it starts.' : 'This sale has ended.',
+        dayText: S === 'live' ? (o.end ? 'Day ' + dd.d + ' of ' + dd.tot : 'Running') : S === 'soon' ? (o.end ? 'Runs ' + dd.tot + ' days' : 'No end date') : 'Ran ' + dd.tot + ' days',
+        left: left, leftColor: S === 'live' ? (o.end && p.d < 3 ? '#b83210' : '#047857') : S === 'soon' ? '#075985' : '#64748b',
+        pct: (S === 'live' ? (o.end ? dd.pct : 0) : S === 'ended' ? 100 : 0) + '%', barColor: S === 'live' ? (o.end && p.d < 3 ? '#ef4444' : '#10b981') : '#cbd5e1',
+        hasCode: !!o.code, noCode: !o.code, code: o.code || '', canCopy: S === 'live', codeBorder: ended ? '#cbd5e1' : '#003087', codeColor: ended ? 'var(--text-muted)' : '#003087', codeDeco: ended ? 'line-through' : 'none',
+        noCodeText: S === 'live' ? (o.kind === 'flash' ? 'No code needed — sale prices are on the products.' : 'No code needed — taken off at checkout.') : S === 'soon' ? 'No code needed. Prices drop when it starts.' : 'This offer has ended.',
         op: ended ? 0.72 : 1,
-        copy: function () { clearTimeout(self.t); self.setState({ msg: o.code + ' copied. Paste it at checkout — or just pick it there.' }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2600); } };
+        copy: function () {
+          try { if (navigator.clipboard) navigator.clipboard.writeText(o.code); } catch (e) { /* ignore */ }
+          clearTimeout(self.t); self.setState({ msg: o.code + ' copied. Paste it at checkout — or just pick it there.' }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2600);
+        } };
     };
     var match = function (o) { return f === 'all' || f === 'ended' || o.kind === f; };
-    var liveL = O.filter(function (o) { return st(o) !== 'ended' && !o.feat && match(o); }).sort(function (a, b) { return (st(a) === 'soon') - (st(b) === 'soon') || a.end - b.end; });
-    var endL = O.filter(function (o) { return st(o) === 'ended'; });
+    var postersOf = O.filter(function (o) { return o.kind === 'flash' && o.feat && st(o) !== 'ended'; }).slice(0, 2);
+    var posterIds = postersOf.map(function (o) { return o.id; });
+    var liveL = O.filter(function (o) { return st(o) !== 'ended' && posterIds.indexOf(o.id) < 0 && match(o); }).sort(function (a, b) { return (st(a) === 'soon') - (st(b) === 'soon') || endOf(a, now) - endOf(b, now); });
+    var endL = O.filter(function (o) { return st(o) === 'ended'; }).sort(function (a, b) { return (b.end || 0) - (a.end || 0); }).slice(0, 6);
     var offs = s.offs || {}, rem = s.rem || {};
+    var st2 = function (o, t) { return o.end && t > o.end ? 'ended' : t < o.start ? 'soon' : 'live'; };
     var poster = function (o, items) {
       var nw = now + (offs[o.id] || 0), S = st2(o, nw), live = S === 'live', soon = S === 'soon';
-      var p = parts(soon ? o.start - nw : o.end - nw), dd = dayOf(o, nw), fg = o.id === 'mega' ? '#b83210' : '#065f46';
-      var runs = dk(o.end) - dk(o.start) + 1;
-      return { id: o.id, title: o.title, blurb: o.blurb, cover: o.cover, isLive: live, isSoon: soon, ended: S === 'ended',
+      var p = parts(soon ? o.start - nw : endOf(o, nw) - nw), dd = dayOf(o, nw), fg = '#b83210';
+      var runs = dk(endOf(o, nw)) - dk(o.start) + 1;
+      return { id: o.id, href: offerHref(o), title: o.title, blurb: o.blurb, cover: o.cover, isLive: live, isSoon: soon, ended: S === 'ended',
         pill: live ? 'LIVE NOW' : 'COMING SOON', pillCls: live ? 'pulse' : '', pillFg: fg,
         aria: o.title + (live ? ', flash sale running now' : ', flash sale starting soon'),
-        whenLine: soon ? 'Starts ' + whenStr(o.start) + ' · runs ' + runs + ' days' : 'Ends ' + whenStr(o.end),
+        whenLine: soon ? 'Starts ' + whenStr(o.start) + ' · runs ' + runs + ' days' : o.end ? 'Ends ' + whenStr(o.end) : 'No end date',
         clockLabel: soon ? 'STARTS IN' : 'ENDS IN',
         clockAria: (soon ? 'Starts in ' : 'Ends in ') + p.d + ' days ' + p.h + ' hours ' + p.m + ' minutes',
         clock: [{ v: pad(p.d), l: 'DAYS' }, { v: pad(p.h), l: 'HOURS' }, { v: pad(p.m), l: 'MIN' }, { v: pad(p.s), l: 'SEC' }],
@@ -100,17 +97,18 @@ class Component extends DCLogic {
           tagBg: live ? fg : '#334155', priceFg: live ? fg : '#0f172a', soldPct: (live ? Math.max(q.sold, 6) : 0) + '%',
           left: live ? (q.sold ? q.sold + '% sold — hurry' : 'Just started') : '', lockText: 'Sale price from ' + dstr(o.start) } }) };
     };
-    var st2 = function (o, t) { return t < o.start ? 'soon' : t > o.end ? 'ended' : 'live'; };
-    var posters = [poster(O[0], FEAT), poster(O.filter(function (o) { return o.id === 'skinweek'; })[0], FEAT_SKIN)].filter(function (x) { return !x.ended; });
-    var cnt = { all: O.filter(function (o) { return st(o) !== 'ended'; }).length, code: 0, flash: 0, pay: 0, ended: endL.length };
+    var posters = postersOf.map(function (o) { return poster(o, o.items); }).filter(function (x) { return !x.ended; });
+    var cnt = { all: O.filter(function (o) { return st(o) !== 'ended'; }).length, code: 0, flash: 0, pay: 0, auto: 0, ended: endL.length };
     O.forEach(function (o) { if (st(o) !== 'ended') cnt[o.kind]++; });
-    var CH = [{ k: 'all', label: 'All offers' }, { k: 'code', label: 'Coupons' }, { k: 'flash', label: 'Flash sales' }, { k: 'pay', label: 'bKash & card offers' }, { k: 'ended', label: 'Ended' }];
+    var CH = [{ k: 'all', label: 'All offers' }, { k: 'code', label: 'Coupons' }, { k: 'flash', label: 'Flash sales' }, { k: 'pay', label: 'bKash & card offers' }, { k: 'auto', label: 'No code needed' }, { k: 'ended', label: 'Ended' }];
     return {
-      chips: CH.map(function (c) { var on = c.k === f; return { label: c.label, on: on, cls: on ? 'chip on' : 'chip', count: cnt[c.k], cBg: on ? 'rgba(0,48,135,.14)' : '#eef2f6', pick: function () { self.setState({ f: c.k }); } }; }),
+      ready: !!s.ready, promo: s.promo || null,
+      chips: CH.filter(function (c) { return c.k === 'all' || c.k === 'ended' || cnt[c.k] > 0; }).map(function (c) { var on = c.k === f; return { label: c.label, on: on, cls: on ? 'chip on' : 'chip', count: cnt[c.k], cBg: on ? 'rgba(0,48,135,.14)' : '#eef2f6', pick: function () { self.setState({ f: c.k }); } }; }),
       showFeat: (f === 'all' || f === 'flash') && posters.length > 0,
       posters: posters,
       showLive: f !== 'ended', liveTitle: f === 'all' ? 'Running now and coming soon' : 'Running now',
-      live: liveL.map(mk), showEnded: f === 'all' || f === 'ended', ended: endL.map(mk),
+      live: liveL.map(mk), showEnded: (f === 'all' || f === 'ended') && endL.length > 0, ended: endL.map(mk),
+      noneLive: !!s.ready && f !== 'ended' && liveL.length === 0 && posters.length === 0,
       hasMsg: !!s.msg, msg: s.msg || ''
     };
   }
@@ -198,7 +196,7 @@ export default class OffersScreen extends Component {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
             </svg>
-            <PromoText />
+            <PromoText promo={v.promo} />
           </div>
           <header className="sf-header sf-pad" style={{ minHeight: "76px", background: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "32px", padding: "0 64px" }}>
             <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
@@ -296,10 +294,10 @@ export default class OffersScreen extends Component {
                           </div>
                           <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{o?.day}</span>
                         </div>
-                        <a href="#" className="btn big" style={__sx(`align-self: flex-start; background: #ffffff; color: ${o?.pillFg ?? ""}; margin-top: 4px;`)}>Shop the sale <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <__Link href={o?.href} className="btn big" style={__sx(`align-self: flex-start; background: #ffffff; color: ${o?.pillFg ?? ""}; margin-top: 4px;`)}>Shop the sale <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M5 12h14" />
   <path d="m12 5 7 7-7 7" />
-</svg></a>
+</svg></__Link>
                       </>) : null}
                       {o?.isSoon ? (<>
                         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "4px" }}>
@@ -310,7 +308,7 @@ export default class OffersScreen extends Component {
                             </svg>
                             <span>{o?.remindText}</span>
                           </button>
-                          <a href="#" className="btn big" style={{ background: "rgba(255,255,255,.16)", color: "#fff", border: "1px solid rgba(255,255,255,.5)" }}>See what’s included</a>
+                          <__Link href={o?.href} className="btn big" style={{ background: "rgba(255,255,255,.16)", color: "#fff", border: "1px solid rgba(255,255,255,.5)" }}>See what’s included</__Link>
                         </div>
                         <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", opacity: ".9" }}>{o?.remindNote}</div>
                       </>) : null}
@@ -361,7 +359,10 @@ export default class OffersScreen extends Component {
               </React.Fragment>))}
           </>) : null}
           <section className="sf-pad" style={{ padding: "32px 64px 0", display: "flex", flexDirection: "column", gap: "18px" }}>
-            {v.showLive ? (<>
+            {v.noneLive ? (
+              <div role="status" style={{ padding: "28px", borderRadius: "var(--radius-xl)", background: "#ffffff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", fontSize: "var(--text-base)", color: "#475569" }}>No offers are running right now. New offers show here as soon as they start.</div>
+            ) : null}
+            {v.showLive && !v.noneLive ? (<>
               <h2 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{v.liveTitle}</h2>
               <div className="sf-grid3 gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "20px" }}>
                 {__list(v.live).map((o, $index) => (<React.Fragment key={$index}>
@@ -404,7 +405,7 @@ export default class OffersScreen extends Component {
                           {o?.noCode ? (<>
                             <span style={{ flexGrow: "1", fontSize: "var(--text-sm)", color: "#475569" }}>{o?.noCodeText}</span>
                           </>) : null}
-                          <__Link href="/offer-detail" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#003087", whiteSpace: "nowrap" }}>Terms <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <__Link href={o?.href} style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#003087", whiteSpace: "nowrap" }}>Terms <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="m9 18 6-6-6-6" />
 </svg></__Link>
                         </div>
@@ -459,7 +460,7 @@ export default class OffersScreen extends Component {
                           {o?.noCode ? (<>
                             <span style={{ flexGrow: "1", fontSize: "var(--text-sm)", color: "#475569" }}>{o?.noCodeText}</span>
                           </>) : null}
-                          <__Link href="/offer-detail" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#003087", whiteSpace: "nowrap" }}>Terms <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <__Link href={o?.href} style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#003087", whiteSpace: "nowrap" }}>Terms <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="m9 18 6-6-6-6" />
 </svg></__Link>
                         </div>

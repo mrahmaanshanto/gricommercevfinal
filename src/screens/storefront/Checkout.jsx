@@ -1,58 +1,149 @@
 'use client';
 // Generated from design/templates/storefront/Checkout.dc.html by scripts/convert-design.mjs.
 // Checkout — Storefront checkout: details, delivery zone, payment (cash on delivery, bKash offer, Nagad, card), coupon and live order summary, then confirmation.
+// "Place order" makes a real order (see the logic note below).
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
 import __Link from 'next/link';
 import { PaymentLogo } from '@/components/PaymentLogo';
-import { evaluate, applyCode as tryCode } from '@/lib/promotions';
+import { evaluate, applyCode as tryCode, commit, reserve } from '@/lib/promotions';
+import { orderableItems, canAdd } from '@/lib/sellable';
+import { addOrder, prettyPhone } from '@/lib/orderLinks';
+import { announceNewOrder } from '@/lib/orderFlow';
+import { saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
+import { settingValue } from '@/lib/settingsStore';
+import { onlinePlace } from '@/lib/locations';
+import { createLink } from '@/lib/paymentLinks';
+import { findOrder } from '@/lib/orders';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+// ---- logic ----
+// The storefront checkout (review ON-U3): the cart holds real products from the one catalogue (sellable.js, price and
+// free stock at the online place), the delivery zones and charges come from Settings › Delivery (charge + extra per
+// unit after the first), and "Place order" makes a real order through orderLinks.addOrder, as the order link page
+// does, so it shows in Orders with its own number. Cash on delivery starts On hold; bKash, Nagad, Rocket or card
+// start as Pending ("Payment pending") with a payment link, and only become paid when the payment is confirmed (the
+// shop records it, or the link is paid). Front end only: a real store sends the customer to the gateway's payment
+// page here and is told by the gateway when the money arrives; that needs a server.
 
 function bdt(n) { n = Math.round(n); var s = String(Math.abs(n)), last = s.slice(-3), rest = s.slice(0, -3); if (rest) last = ',' + last; rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); return '৳' + rest + last; }
 function val(e) { return e && e.target ? e.target.value : e; }
-var ITEMS = [ { k: 'd', cat: 'Accessories', n: 'Baseus Car Phone Holder', v: 'Black', p: 1290, was: 1890, i: 'B', bg: '#e0f2fe' }, { k: 'm', cat: 'Accessories', n: 'Liquid Silicone Case · Navy', v: 'iPhone 15', p: 990, was: 1450, i: 'M', bg: '#eef2f7' }, { k: 's', sku: 'AC-CHG-20', cat: 'Accessories', n: 'Anker 20W USB-C Charger', v: 'White', p: 890, was: 1250, i: 'A', bg: '#fff4e0' } ];
-var ZONES = [ ['in', 'Inside Dhaka', '1–2 days · Pathao', 70], ['sub', 'Sub-Dhaka', 'Savar, Gazipur, Narayanganj · 2–3 days', 110], ['out', 'Outside Dhaka', '3–5 days · Steadfast', 150] ];
-var PAYS = [ ['cod', 'Cash on delivery', 'Pay the rider when it arrives', ''], ['bkash', 'bKash', 'Pay now from your bKash account', '10% off · up to ৳150'], ['nagad', 'Nagad', 'Pay now from your Nagad account', ''], ['rocket', 'Rocket', 'Pay now from your Rocket account', ''], ['card', 'Card', 'Visa, Mastercard or Amex · secured by SSLCOMMERZ', ''] ];
+/** The variant, unless the product's name already says it ('Single' for products without variants). */
+function variantOf(it) { var v = it.variant || ''; return !v || v === 'Single' || it.name.indexOf(v) >= 0 ? '' : v; }
+// the demo cart: three accessories, looked up in the catalogue by SKU (a product that can't be sold drops out)
+var START = [['AC-HLD-CAR'], ['AC-CSE-SIL', 'Navy'], ['AC-CHG-20']];
+var TILE = ['#e0f2fe', '#eef2f7', '#fff4e0', '#e7f8f1', '#f3e8ff', '#fef9c3'];
+// Settings › Delivery fields per zone, with the settings page's own defaults
+var ZONE_DEF = [['in', 'inside_dhaka', 'Inside Dhaka', 70, 10, 1, 2, ''], ['sub', 'sub_dhaka', 'Sub-Dhaka', 110, 15, 2, 3, 'Savar, Gazipur, Narayanganj'], ['out', 'outside_dhaka', 'Outside Dhaka', 150, 20, 3, 5, '']];
+function readZones() {
+  return ZONE_DEF.map(function (d) {
+    var get = function (f, def) { return settingValue('delivery', d[1] + '_' + f, def); };
+    var num = function (f, def) { return parseFloat(String(get(f, def)).replace(/,/g, '')) || 0; };
+    var unit = String(get('delivery_time_unit', 'Days')).toLowerCase();
+    var time = get('delivery_time', String(d[5])) + '–' + get('delivery_time_to', String(d[6])) + ' ' + unit;
+    return { k: d[0], label: d[2], fee: num('delivery_charge', d[3]), extra: num('extra_per_unit', d[4]), note: (d[7] ? d[7] + ' · ' : '') + time };
+  });
+}
+var DEFAULT_ZONES = ZONE_DEF.map(function (d) { return { k: d[0], label: d[2], fee: d[3], extra: d[4], note: (d[7] ? d[7] + ' · ' : '') + d[5] + '–' + d[6] + ' days' }; });
+var PAYS = [['cod', 'Cash on delivery', 'Pay the rider when it arrives', ''], ['bkash', 'bKash', 'Pay now from your bKash account', '10% off · up to ৳150'], ['nagad', 'Nagad', 'Pay now from your Nagad account', ''], ['rocket', 'Rocket', 'Pay now from your Rocket account', ''], ['card', 'Card', 'Visa, Mastercard or Amex · secured by SSLCOMMERZ', '']];
 // Provider marks shown on the payment options.
 var PAY_LOGO = { bkash: 'bkash', nagad: 'nagad', rocket: 'rocket', card: 'sslcommerz' };
 class Component extends DCLogic {
+  componentDidMount() {
+    // the catalogue, stock and saved settings live in this browser: read after mount (the page is prerendered)
+    // a shop sells its services (repairs) at the counter, not in the online cart
+    var items = orderableItems({ channel: 'online', place: onlinePlace() }).filter(function (it) { return it.format !== 'service'; });
+    var cart = START.map(function (x) {
+      var sku = x[0], like = x[1] || '';
+      var all = items.filter(function (it) { return it.sku === sku || it.sku.indexOf(sku + '-') === 0; });
+      return all.find(function (it) { return like && String(it.variant).indexOf(like) >= 0 && canAdd(it, 1).ok; }) || all.find(function (it) { return canAdd(it, 1).ok; }) || all[0];
+    })
+      .filter(function (it) { return it && canAdd(it, 1).ok; }).map(function (it) { return { sku: it.sku, qty: 1 }; });
+    this.setState({ ready: true, items: items, cart: cart, zones: readZones() });
+  }
   renderVals() {
     var self = this, s = this.state || {};
-    var qty = s.qty || { d: 1, m: 1, s: 1 }, zone = s.zone || 'in', pay = s.pay || 'cod';
-    var lines = ITEMS.filter(function (it) { return (qty[it.k] || 0) > 0; });
-    var sub = lines.reduce(function (a, it) { return a + it.p * qty[it.k]; }, 0);
-    var z = ZONES.filter(function (x) { return x[0] === zone; })[0];
+    var items = s.items || [], cart = s.cart || [], zones = s.zones || DEFAULT_ZONES, zone = s.zone || 'in', pay = s.pay || 'cod';
+    var byS = function (sku) { return items.find(function (it) { return it.sku === sku; }); };
+    var lines = cart.map(function (c, i) { var it = byS(c.sku); return it && c.qty > 0 ? { it: it, qty: c.qty, i: i } : null; }).filter(Boolean);
+    var units = lines.reduce(function (a, l) { return a + l.qty; }, 0);
+    var sub = lines.reduce(function (a, l) { return a + l.it.price * l.qty; }, 0);
+    var z = zones.filter(function (x) { return x.k === zone; })[0] || zones[0];
+    var feeOf = function (x) { return x.fee + x.extra * Math.max(0, units - 1); };
     // discounts come from the one promotion engine (lib/promotions): the coupon, payment offers and automatic offers
-    var fee = lines.length ? z[3] : 0;
-    var cart = { lines: lines.map(function (it) { return { sku: it.sku || 'WEB-' + it.k.toUpperCase(), name: it.n, cat: it.cat, price: it.p, qty: qty[it.k] }; }), delivery: fee, payment: pay, codes: s.coupon ? [s.coupon] : [] };
-    var promo = evaluate(cart, null, 'online');
+    var fee = lines.length ? feeOf(z) : 0;
+    var cartIn = { lines: lines.map(function (l) { return { sku: l.it.sku, name: l.it.name, cat: l.it.cat, price: l.it.price, qty: l.qty }; }), delivery: fee, payment: pay, codes: s.coupon ? [s.coupon] : [] };
+    var promo = evaluate(cartIn, null, 'online');
     var disc = promo.applied.map(function (a) { return { l: a.code ? 'Coupon ' + a.code : a.name, v: bdt(a.discount + a.delivery) }; });
-    var total = Math.max(0, promo.total);
-    var phone = (s.phone || '').replace(/\D/g, ''), phoneBad = !!s.tried && !/^01[3-9]\d{8}$/.test(phone);
-    function setQ(k, d) { var n = Object.assign({}, qty); n[k] = Math.max(0, (n[k] || 0) + d); self.setState({ qty: n }); }
+    var total = Math.max(0, Math.round(promo.total));
+    var phone = (s.phone || '').replace(/\D/g, '').replace(/^88/, ''), phoneBad = !!s.tried && !/^01[3-9]\d{8}$/.test(phone);
+    function setQ(sku, d) {
+      var it = byS(sku), row = cart.find(function (c) { return c.sku === sku; }), next = Math.max(0, (row ? row.qty : 0) + d);
+      if (d > 0 && it && !canAdd(it, next).ok) { self.setState({ stockMsg: { sku: sku, text: 'Only ' + Math.max(0, it.stock) + ' in stock' } }); return; }
+      self.setState({ cart: cart.map(function (c) { return c.sku === sku ? { sku: sku, qty: next } : c; }).filter(function (c) { return c.qty > 0; }), stockMsg: null });
+    }
     var payL = PAYS.filter(function (p) { return p[0] === pay; })[0][1];
+    var placed = s.placed || null;
     var v = {
-      notPlaced: !s.placed, placed: !!s.placed, itemCount: String(lines.reduce(function (a, it) { return a + qty[it.k]; }, 0)),
+      ready: !!s.ready, notPlaced: !placed, placed: !!placed, itemCount: String(units),
       name: s.name || '', phone: s.phone || '', addr: s.addr || '', note: s.note || '', code: s.code || '',
       onName: function (e) { self.setState({ name: val(e) }); }, onPhone: function (e) { self.setState({ phone: val(e) }); }, onAddr: function (e) { self.setState({ addr: val(e) }); }, onNote: function (e) { self.setState({ note: val(e) }); }, onCode: function (e) { self.setState({ code: val(e) }); },
       nameCls: s.tried && !(s.name || '').trim() ? 'ck-in bad' : 'ck-in', phoneCls: phoneBad ? 'ck-in bad' : 'ck-in', addrCls: s.tried && !(s.addr || '').trim() ? 'ck-in bad' : 'ck-in', phoneBad: phoneBad,
-      zones: ZONES.map(function (x) { var on = x[0] === zone; return { l: x[1], s: x[2], fee: bdt(x[3]), on: on, cls: on ? 'ck-opt on' : 'ck-opt', pick: function () { self.setState({ zone: x[0] }); } }; }),
+      zones: zones.map(function (x) { var on = x.k === zone; return { l: x.label, s: x.note, fee: bdt(lines.length ? feeOf(x) : x.fee), on: on, cls: on ? 'ck-opt on' : 'ck-opt', pick: function () { self.setState({ zone: x.k }); } }; }),
       pays: PAYS.map(function (x) { var on = x[0] === pay; return { l: x[1], s: x[2], tag: x[3], hasTag: !!x[3], logo: PAY_LOGO[x[0]] || null, logoFull: x[0] === 'card', on: on, cls: on ? 'ck-opt on' : 'ck-opt', pick: function () { self.setState({ pay: x[0] }); } }; }),
-      lines: lines.map(function (it) { return { n: it.n, v: it.v, was: bdt(it.was), i: it.i, bg: it.bg, q: String(qty[it.k]), amt: bdt(it.p * qty[it.k]), inc: function () { setQ(it.k, 1); }, dec: function () { setQ(it.k, -1); } }; }),
-      empty: lines.length === 0,
-      applyCode: function () { var c = (s.code || '').trim().toUpperCase(); var r = tryCode(c, Object.assign({}, cart, { codes: [] }), null, 'online'); if (!r.ok) { self.setState({ codeMsg: r.reason, codeOk: false, coupon: '' }); return; } self.setState({ coupon: c, code: c, codeOk: true, codeMsg: c + ' applied · ' + bdt(r.offer.discount + r.offer.delivery) + ' off' }); },
+      lines: lines.map(function (l) {
+        var it = l.it, more = canAdd(it, l.qty + 1).ok;
+        return { n: it.name, v: variantOf(it), was: it.mrp && Number(it.mrp) > it.price ? bdt(it.mrp) : '', i: it.name[0], bg: TILE[l.i % TILE.length], q: String(l.qty), amt: bdt(it.price * l.qty), canInc: more,
+          stock: s.stockMsg && s.stockMsg.sku === it.sku ? s.stockMsg.text : '', inc: function () { setQ(it.sku, 1); }, dec: function () { setQ(it.sku, -1); } };
+      }),
+      // more products from the catalogue (the ones not in the cart yet that can be sold now)
+      addable: items.filter(function (it) { return !cart.some(function (c) { return c.sku === it.sku; }) && canAdd(it, 1).ok; }).map(function (it) { return { sku: it.sku, l: it.name + (variantOf(it) ? ' · ' + variantOf(it) : '') + ' · ' + bdt(it.price) }; }),
+      addItem: function (e) { var sku = val(e); if (!sku) return; self.setState({ cart: cart.concat([{ sku: sku, qty: 1 }]), stockMsg: null }); },
+      empty: !!s.ready && lines.length === 0,
+      applyCode: function () { var c = (s.code || '').trim().toUpperCase(); var r = tryCode(c, Object.assign({}, cartIn, { codes: [] }), null, 'online'); if (!r.ok) { self.setState({ codeMsg: r.reason, codeOk: false, coupon: '' }); return; } self.setState({ coupon: c, code: c, codeOk: true, codeMsg: c + ' applied · ' + bdt(r.offer.discount + r.offer.delivery) + ' off' }); },
       hasCodeMsg: !!s.codeMsg, codeMsg: s.codeMsg || '', codeC: s.codeOk ? '#047857' : '#b83210',
-      sub: bdt(sub), discounts: disc, zoneL: z[1], fee: bdt(fee), total: bdt(total), payL: payL,
+      sub: bdt(sub), discounts: disc, zoneL: z.label, fee: bdt(fee), total: bdt(total), payL: payL,
       placeL: pay === 'cod' ? 'Place order · ' + bdt(total) : 'Pay ' + bdt(total) + ' with ' + payL,
       hasErr: !!s.err, err: s.err || '',
-      place: function () { var miss = []; if (!lines.length) miss.push('add an item'); if (!(s.name || '').trim()) miss.push('your name'); if (!/^01[3-9]\d{8}$/.test(phone)) miss.push('a valid mobile number'); if (!(s.addr || '').trim()) miss.push('your address');
-        if (miss.length) { self.setState({ tried: true, err: 'Please add ' + miss.join(', ') + '.' }); return; } self.setState({ placed: true, err: '' }); },
-      orderNo: '#ORD-0929-015',
-      doneNote: pay === 'cod' ? 'Keep ' + bdt(total) + ' ready for the rider. We’ll call ' + (s.phone || '') + ' to confirm before it ships.' : 'Payment received. We’ll message ' + (s.phone || '') + ' when it ships.',
-      again: function () { self.setState({ placed: false, tried: false, err: '', coupon: '', codeMsg: '', code: '' }); }
+      place: function () {
+        var miss = []; if (!lines.length) miss.push('add an item'); if (!(s.name || '').trim()) miss.push('your name'); if (!/^01[3-9]\d{8}$/.test(phone)) miss.push('a valid mobile number'); if (!(s.addr || '').trim()) miss.push('your address');
+        if (miss.length) { self.setState({ tried: true, err: 'Please add ' + miss.join(', ') + '.' }); return; }
+        var name = s.name.trim(), addr = s.addr.trim(), pretty = prettyPhone(phone);
+        var row = addOrder({
+          lines: lines.map(function (l) { return { name: l.it.name, qty: l.qty, price: l.it.price, listPrice: l.it.price, sku: l.it.sku, cat: l.it.cat, variant: l.it.variant, productId: l.it.productId }; }),
+          customer: name, phone: pretty, zone: z.label, address: addr, shipping: fee, total: total, status: 'New',
+          payment: pay === 'cod' ? 'COD' : 'Unpaid', channel: 'Online store', source: 'Website', method: pay === 'cod' ? 'COD' : payL,
+          discount: Math.max(0, Math.round(sub + fee - total)), discountReason: promo.applied.map(function (a) { return a.code || a.name; }).join(', '), note: (s.note || '').trim(),
+        });
+        if (!row.duplicate) {
+          announceNewOrder(row.id);
+          // the shop's customer book keeps the customer (matched by mobile number, never twice)
+          saveCustomerOnce({ name: name, phone: phone, address: addr, types: ['Online'], addedFrom: ADDED_FROM.order });
+          if (pay === 'cod') commit(row.id, promo, { customer: { phone: phone } });
+          else {
+            // the offer is held for the order while the payment is pending; the link is what the customer pays
+            reserve(promo, { ref: row.id, customer: { phone: phone }, ttlMin: 24 * 60 });
+            createLink({ ref: row.id, refKind: 'order', customer: name, phone: pretty, amount: total, days: 1 }, { name: 'Website checkout' });
+          }
+        }
+        // the same order sent twice within seconds is one order (orderLinks.addOrder): show the one already made
+        self.setState({ placed: row.duplicate ? { id: row.id, total: row.amount || total, pay: row.payment === 'COD' ? 'cod' : 'online', payL: row.method || payL, phone: row.phone, dup: true } : { id: row.id, total: total, pay: pay, payL: payL, phone: pretty }, err: '', checked: '' });
+        if (typeof window !== 'undefined') window.scrollTo(0, 0);
+      },
+      orderNo: placed ? placed.id : '',
+      paidNow: !!placed && placed.pay !== 'cod',
+      doneTitle: !placed ? '' : placed.dup ? 'Order already placed' : placed.pay === 'cod' ? 'Order placed' : 'Payment pending',
+      doneLine: placed ? bdt(placed.total) + ' · ' + placed.payL : '',
+      doneNote: !placed ? '' : placed.dup ? 'You placed this order a moment ago, so it wasn’t made twice.' : placed.pay === 'cod' ? 'Keep ' + bdt(placed.total) + ' ready for the rider. We’ll call ' + placed.phone + ' to confirm before it ships.'
+        : 'Your order is saved but not paid yet. We sent a payment link to ' + placed.phone + '. The order goes ahead once your ' + placed.payL + ' payment is confirmed.',
+      checkMsg: s.checked || '',
+      checkPay: function () {
+        var o = placed ? findOrder(placed.id) : null;
+        var paid = o ? Number(o.paid) || 0 : 0;
+        self.setState({ checked: !o ? 'We couldn’t find this order.' : paid >= (o.amount || 0) && paid > 0 ? 'Payment confirmed. Thank you!' : paid > 0 ? 'Part paid: ' + bdt(paid) + ' received.' : 'Not paid yet. Finish the payment from the link we sent, then check again.' });
+      },
+      again: function () { self.setState({ placed: null, tried: false, err: '', coupon: '', codeMsg: '', code: '', checked: '' }); }
     };
     return v;
   }
@@ -281,16 +372,23 @@ export default class CheckoutScreen extends Component {
                         <span style={__sx(`width: 52px; height: 52px; border-radius: var(--radius-lg); background: ${l?.bg ?? ""}; color: #003087; display: flex; align-items: center; justify-content: center; font-size: var(--text-lg); font-weight: var(--weight-semibold); flex-shrink: 0;`)}>{l?.i}</span>
                         <div style={{ flexGrow: "1", minWidth: "0" }}>
                           <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{l?.n}</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{l?.v} · <s>{l?.was}</s></div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{l?.v}{l?.v && l?.was ? ' · ' : null}{l?.was ? <s>{l.was}</s> : null}</div>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "6px" }}>
                             <button type="button" className="ck-q" aria-label="One less" onClick={l?.dec}>−</button>
                             <span style={{ minWidth: "18px", textAlign: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{l?.q}</span>
-                            <button type="button" className="ck-q" aria-label="One more" onClick={l?.inc}>+</button>
+                            <button type="button" className="ck-q" aria-label="One more" onClick={l?.inc} aria-disabled={l?.canInc ? undefined : "true"}>+</button>
+                            {l?.stock ? <span role="status" style={{ fontSize: "var(--text-xs)", color: "#b83210" }}>{l.stock}</span> : null}
                           </div>
                         </div>
                         <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{l?.amt}</span>
                       </div>
                     </React.Fragment>))}
+                  {v.ready && v.addable.length ? (
+                    <select className="ck-in" aria-label="Add a product" value="" onChange={v.addItem} style={{ height: "42px" }}>
+                      <option value="">+ Add a product</option>
+                      {v.addable.map((a) => <option key={a.sku} value={a.sku}>{a.l}</option>)}
+                    </select>
+                  ) : null}
                   {v.empty ? (<>
                     <div style={{ padding: "14px", borderRadius: "var(--radius-lg)", background: "#f1f5f9", fontSize: "var(--text-sm)", color: "#475569" }}>Your cart is empty. <__Link href="/offers">See today’s offers</__Link>.</div>
                   </>) : null}
@@ -328,16 +426,18 @@ export default class CheckoutScreen extends Component {
             </>) : null}
             {v.placed ? (<>
               <section className="card" style={{ maxWidth: "640px", margin: "24px auto 0", padding: "40px", display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", textAlign: "center" }}>
-                <span style={{ width: "64px", height: "64px", borderRadius: "var(--radius-full)", background: "#e7f8f1", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <span style={{ width: "64px", height: "64px", borderRadius: "var(--radius-full)", background: v.paidNow ? "#fff4e0" : "#e7f8f1", color: v.paidNow ? "#a14f06" : "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {v.paidNow ? <__Icon name="clock" width="30" height="30" aria-hidden="true" /> : <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M20 6 9 17l-5-5" />
-                  </svg>
+                  </svg>}
                 </span>
-                <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Order placed</h1>
-                <p style={{ margin: "0", fontSize: "var(--text-base)", color: "#475569" }}>Order <b>{v.orderNo}</b> · {v.total} · {v.payL}</p>
+                <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{v.doneTitle}</h1>
+                <p style={{ margin: "0", fontSize: "var(--text-base)", color: "#475569" }}>Order <b className="mono">{v.orderNo}</b> · {v.doneLine}</p>
                 <p style={{ margin: "0", fontSize: "var(--text-sm)", lineHeight: "21px", color: "var(--text-muted)" }}>{v.doneNote}</p>
-                <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
-                  <__Link href="/offers" className="btn" style={{ background: "#003087", color: "#fff" }}>Back to offers</__Link>
+                {v.checkMsg ? <p role="status" style={{ margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{v.checkMsg}</p> : null}
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", marginTop: "8px" }}>
+                  {v.paidNow ? <button type="button" className="btn" onClick={v.checkPay} style={{ background: "#003087", color: "#fff" }}>Check payment</button> : null}
+                  <__Link href="/offers" className="btn" style={v.paidNow ? { background: "#fff", color: "#003087", border: "1px solid #cbd5e1" } : { background: "#003087", color: "#fff" }}>Back to offers</__Link>
                   <button type="button" className="btn" onClick={v.again} style={{ background: "#fff", color: "#003087", border: "1px solid #cbd5e1" }}>Start again</button>
                 </div>
               </section>

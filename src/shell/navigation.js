@@ -18,6 +18,7 @@ export const NAV = [
       { id: 'inbox', icon: 'message-circle', label: 'Chats', live: 'chats', to: 'merchant-inbox/MerchantInbox.dc.html' },
       { id: 'inbox-comments', icon: 'messages-square', label: 'Comments', live: 'comments', to: 'merchant-inbox/MerchantInbox.dc.html', q: 'view=comments' },
       { id: 'inbox-mentions', icon: 'at-sign', label: 'Mentions', live: 'mentions', to: 'merchant-inbox/MerchantInbox.dc.html', q: 'view=mentions' },
+      { id: 'inbox-email', icon: 'mail', label: 'Email', live: 'email', to: 'merchant-inbox/EmailInbox.dc.html' },
       { id: 'tickets', icon: 'life-buoy', label: 'Support tickets', tab: 'Tickets', count: 5, to: 'support-tickets/SupportTickets.dc.html' },
       { id: 'calls', icon: 'phone', label: 'Calls', to: 'merchant-calls/MerchantCalls.dc.html' },
       { id: 'comm-ai', icon: 'phone-call', label: 'AI calls', count: 1, to: 'ai-call/AiCalls.dc.html' },
@@ -40,6 +41,10 @@ export const NAV = [
     { id: 'area-orders', icon: 'shopping-cart', label: 'Orders', children: [
       { id: 'orders-all', icon: 'inbox', label: 'All orders', to: 'merchant-orders/MerchantOrders.dc.html' },
       { id: 'orders-wholesale', icon: 'truck', label: 'Wholesale orders', to: 'sales/WholesaleOrders.dc.html' },
+      { id: 'orders-quotes', icon: 'file-text', label: 'Quotes', to: 'merchant-orders/Quotes.dc.html' },
+      { id: 'orders-sales-new', icon: 'file-plus', label: 'New sales order', to: 'sales/SalesOrder.dc.html', hidden: true, under: 'orders-wholesale' },
+      { id: 'orders-collections', icon: 'hand-coins', label: 'Collections', to: 'wholesale/Collections.dc.html' },
+      { id: 'orders-price-lists', icon: 'tags', label: 'Price lists', to: 'sales/PriceLists.dc.html' },
       { id: 'sales-invoices', icon: 'file-text', label: 'Invoices', to: 'sales/SalesInvoices.dc.html' },
       { id: 'sales-return', icon: 'undo-2', label: 'Returns & exchanges', to: 'sales/ReturnExchange.dc.html' },
       { id: 'orders-rto', icon: 'package-x', label: 'Courier returns', to: 'merchant-orders/CourierReturns.dc.html' },
@@ -134,8 +139,16 @@ export const NAV = [
       { id: 'ch-gbp', icon: 'map-pin', label: 'Google Business', to: 'channels/GoogleBusiness.dc.html' },
     ] },
     { id: 'area-store', icon: 'store', label: 'Online Store', children: [
-      { id: 'storefront', icon: 'store', label: 'Online store', to: 'landing-page-builder/LandingPageBuilder.dc.html' },
-      { id: 'promo-page', icon: 'newspaper', label: 'Offers page', to: 'storefront/Offers.dc.html' },
+      // Landing pages: the list (/landing-pages); the builder (/landing-page-builder?id=) opens from it
+      { id: 'storefront', icon: 'layout-template', label: 'Landing pages', to: 'online-store/LandingPages.dc.html' },
+      { id: 'store-pages', icon: 'file-text', label: 'Pages', to: 'online-store/StorePages.dc.html' },
+      { id: 'store-menus', icon: 'menu', label: 'Menus', to: 'online-store/StoreMenus.dc.html' },
+      { id: 'store-reviews', icon: 'star', label: 'Reviews', to: 'online-store/ProductReviews.dc.html' },
+      // SEO: health, redirects, not found, sitemap, robots.txt (/seo); the bulk editor opens from it
+      { id: 'store-seo', icon: 'search-check', label: 'SEO', to: 'online-store/SeoTools.dc.html' },
+      { id: 'store-seo-bulk', icon: 'table-properties', label: 'SEO bulk editor', to: 'online-store/SeoBulk.dc.html', hidden: true, under: 'store-seo' },
+      // the customer's offers page: opens in a new tab (`newTab`), so the merchant keeps the admin
+      { id: 'promo-page', icon: 'external-link', label: 'View offers page', to: 'storefront/Offers.dc.html', newTab: true },
       { id: 'blog-posts', icon: 'newspaper', label: 'Blog posts', to: 'integrations/BlogPosts.dc.html' },
       { id: 'blog-new', icon: 'square-pen', label: 'New post', to: 'integrations/BlogEditor.dc.html', hidden: true, under: 'blog-posts' },
       { id: 'blog-cats', icon: 'folder-tree', label: 'Blog categories', to: 'integrations/BlogCategories.dc.html' },
@@ -155,6 +168,7 @@ export const NAV = [
     { id: 'area-pos', icon: 'scan-line', label: 'POS', children: [
       { id: 'pos-register', icon: 'scan-line', label: 'New sale', to: 'pos-register/Pos.dc.html' },
       { id: 'pos-counters', icon: 'store', label: 'POS manage', to: 'pos-register/PosManage.dc.html' },
+      { id: 'pos-book', icon: 'book-open', label: 'Sales book', to: 'sales/SalesBook.dc.html' },
     ] },
   ] },
   { label: 'Team & settings', items: [
@@ -179,9 +193,22 @@ export const NAV = [
       { id: 'tasks', icon: 'list-checks', label: 'Tasks', to: 'team/Tasks.dc.html' },
       { id: 'team-chat', icon: 'messages-square', label: 'Team chat', to: 'team/TeamChat.dc.html' },
     ] },
+    // expert help the shop buys from GridCommerce (Module B; lib/platform/services.js, shared with the super admin)
+    { id: 'area-services', icon: 'briefcase-business', label: 'Services', children: [
+      { id: 'svc-shop', icon: 'briefcase-business', label: 'Get expert help', tab: 'Expert help', to: 'services/Services.dc.html' },
+      { id: 'svc-detail', icon: 'briefcase-business', label: 'Service', to: 'services/ServiceDetail.dc.html', hidden: true, under: 'svc-shop' },
+      { id: 'svc-order', icon: 'shopping-bag', label: 'Order a service', to: 'services/ServiceOrder.dc.html', hidden: true, under: 'svc-shop' },
+      { id: 'svc-mine', icon: 'clipboard-list', label: 'My services', to: 'services/MyServices.dc.html' },
+      { id: 'svc-view', icon: 'clipboard-list', label: 'Service order', to: 'services/MyService.dc.html', hidden: true, under: 'svc-mine' },
+    ] },
     // every outside app and service, connected from one place (src/lib/connections.js)
     { id: 'area-settings', icon: 'settings', label: 'Settings', children: [
       { id: 'set-store', icon: 'sliders-horizontal', label: 'Store settings', to: 'settings-console/SetGeneral.dc.html' },
+      // who can sign in and their roles (every plan, with or without Staff & HR); bringing data from another system
+      { id: 'set-users', icon: 'user-cog', label: 'Users & roles', to: 'settings-console/SetUsers.dc.html' },
+      { id: 'set-import', icon: 'file-up', label: 'Import data', to: 'settings-console/ImportData.dc.html' },
+      // name@yourshop.com mailboxes (Module D; lib/platform/mail.js, shared with the super admin)
+      { id: 'set-email', icon: 'mail', label: 'Business email', to: 'settings-console/BusinessEmail.dc.html' },
       { id: 'connections', icon: 'plug', label: 'Connections', to: 'connections/Connections.dc.html' },
       { id: 'set-wallet', icon: 'wallet', label: 'Wallet & credits', to: 'billing/CreditWallet.dc.html' },
       { id: 'set-billing', icon: 'receipt', label: 'Subscription & billing', to: 'billing/Subscription.dc.html' },
@@ -199,7 +226,7 @@ export const NAV_ALIAS = {
   'products-collections': 'products-cats', 'products-inventory': 'stock-list', 'products-low': 'stock-list', 'products-barcodes': 'stock-labels',
   'rep-sales': 'rep-all', 'rep-online': 'rep-all', 'rep-wholesale': 'rep-all', 'rep-customers': 'rep-all', 'rep-inventory': 'rep-all',
   'rep-purchase': 'rep-all', 'rep-finance': 'rep-all', 'rep-pos': 'rep-all', 'rep-hr': 'rep-all', 'rep-marketing': 'rep-all',
-  'storefront-theme': 'storefront-pages', 'storefront-nav': 'storefront-pages', 'set-all': 'set-store',
+  'storefront-theme': 'storefront-pages', 'storefront-nav': 'store-menus', 'set-all': 'set-store',
   // the old menu's parents (Oct 2026, areas with page tabs): each opens its first page
   orders: 'orders-all', products: 'products-all', 'stock-more': 'stock-adjust', 'stock-places': 'stock-wh',
   'hr-people': 'hr-staff', 'hr-time': 'hr-attendance', 'hr-pay': 'hr-payroll', 'promo-offers': 'promo-home', loyalty: 'loy-home',

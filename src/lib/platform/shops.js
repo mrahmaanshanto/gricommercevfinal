@@ -4,7 +4,7 @@
 
 import { commit, staff } from './store';
 import { invoice as newInvoice } from './seed';
-import { STAGES, PLAN_NAME, ladderLabel, addonBy, TRIAL_DAYS } from './catalogue';
+import { STAGES, PLAN_NAME, PLAN_IDS, LADDER_IDS, ladderLabel, channelsOf, addonBy, TRIAL_DAYS } from './catalogue';
 import { pad4, DAY, at, dayOfMonth, periodOf, hash } from './util';
 
 const who = () => staff().name;
@@ -86,14 +86,18 @@ export function provisionStore(f) {
     if (phone.length < 8 && !/X/.test(f.phone || '')) return { ok: false, field: 'phone', error: 'Enter the owner’s mobile number.' };
     const free = subdomainFree(db, f.sub);
     if (!free.ok) return { ok: false, field: 'sub', error: `${f.sub}.gridcommerce.com.bd: ${free.why}` };
-    if (!f.segs || !f.segs.length) return { ok: false, field: 'segs', error: 'Pick at least one segment.' };
+    // the edition the store buys (Online · Retail · Retail + Online · Connect); old callers may still pass segments
+    const ladder = LADDER_IDS.includes(f.ladder) ? f.ladder
+      : f.segs && f.segs.includes('Online') && f.segs.includes('Retail') ? 'retail-online' : f.segs && f.segs.includes('Online') ? 'online' : f.segs && (f.segs.includes('Retail') || f.segs.includes('Wholesale')) ? 'retail' : null;
+    if (!ladder) return { ok: false, field: 'ladder', error: 'Pick the edition the store buys.' };
+    if (!PLAN_IDS.includes(f.plan)) return { ok: false, field: 'plan', error: 'Pick a plan.' };
+    const segs = ladder === 'connect' ? ['Connect'] : channelsOf(ladder);
     const ids = db.shops.map((s) => Number(s.id));
     const id = pad4(Math.max(...ids) + 1);
-    const ladder = f.segs.includes('Online') ? 'online' : f.segs.includes('Retail') ? 'retail' : 'wholesale';
     const shop = {
       id, name, legal: f.legal || name, cat: f.cat, dist: f.dist, address: f.address || '',
       owner: { name: f.owner.trim(), phone: '+880 ' + (f.phone || '').trim(), email: f.email || '', lang: f.lang || 'বাংলা' },
-      sub: f.sub.toLowerCase().trim(), dom: f.domain ? f.domain.trim().toLowerCase() : null, segs: f.segs, createdAt: t,
+      sub: f.sub.toLowerCase().trim(), dom: f.domain ? f.domain.trim().toLowerCase() : null, segs, createdAt: t,
       src: f.src, by: f.by, helper: f.helper && f.helper !== 'Unassigned' ? f.helper : null, campaign: f.campaign || null,
       ref: refFrom(db, f.refCode), refCode: f.refCode || null, am: f.by, mods: [], h0: 75, orders0: 0, every: 1, lastDays0: null,
       status: 'setup', control: null, resetAt: f.sendLogin ? t : null, resetBy: f.sendLogin ? 'System' : null, migrate: f.migrate || 'empty',
@@ -101,7 +105,7 @@ export function provisionStore(f) {
     };
     const ladderV = db.plans[ladder].live;
     const sub = {
-      shopId: id, ladder, plan: f.plan, version: ladderV, cycle: 'monthly', billDay: Math.min(dayOfMonth(t), 28),
+      shopId: id, ladder, plan: f.plan, version: ladderV, cycle: f.cycle === 'yearly' ? 'yearly' : 'monthly', billDay: Math.min(dayOfMonth(t), 28),
       status: 'setup', trialStart: null, trialDays: f.trial ? TRIAL_DAYS : 0, nextDue: null, autoCharge: false, payMethod: 'bKash',
       items: [], moduleTrials: [], pausedAt: null, cancelledAt: null, cancelReason: null, archivedAt: null,
     };

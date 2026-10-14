@@ -17,6 +17,7 @@ import { RESTRICTION_TYPES } from './restrictions';
 import { getFieldDefs } from './customFields';
 import { quickSignals } from './customerSignals';
 import { CUSTOMER_STATUSES, CUSTOMER_TYPES } from './customers';
+import { paidWithOf, hasOf, PAY_METHODS, HAS_FACTS } from './customerFacts';
 
 export const SEGMENTS_KEY = 'gc.crm.segments';
 export const SEGMENTS_EVENT = 'gc:crm-segments';
@@ -32,6 +33,8 @@ const BASE_FIELDS = [
   { key: 'lastOrder', label: 'Last order', group: 'Orders', type: 'days', get: (c) => daysSince(c.lastAt) },
   { key: 'returns', label: 'Returned orders', group: 'Orders', type: 'number', get: (c) => c.returns || 0 },
   { key: 'due', label: 'Due', group: 'Orders', type: 'money', get: (c) => c.due },
+  { key: 'paidWith', label: 'Paid with', group: 'Orders', type: 'tags', options: PAY_METHODS, get: (c) => paidWithOf(c) },
+  { key: 'has', label: 'Has', group: 'Orders', type: 'tags', options: HAS_FACTS, get: (c) => hasOf(c) },
   { key: 'signup', label: 'Signed up', group: 'Customer', type: 'days', get: (c) => daysSince(c.signupAt) },
   { key: 'city', label: 'Area', group: 'Customer', type: 'text', get: (c) => [c.city, c.address].join(' ') },
   { key: 'kind', label: 'Customer type', group: 'Customer', type: 'choice', options: [['person', 'Person'], ['company', 'Company']], get: (c) => c.kind },

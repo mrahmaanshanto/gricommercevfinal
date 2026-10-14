@@ -22,6 +22,7 @@ import { downloadCsv } from '@/lib/reports/period';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { AdminShell, usePlatform } from '../AdminShell';
 import { BILL_CSS, Skeleton, money, plural, when, packageOf, payLink, PaySheet, CallSheet, GraceSheet } from './billingShared';
+import { rightOf } from '@/lib/admin/actionRights';
 
 const CSS = `
 .col-group .ix-card__head h2{display:flex;align-items:center;gap:var(--space-2)}
@@ -146,7 +147,7 @@ export default function Collections() {
   const actions = (r) => [
     { label: 'Record payment', onClick: () => open('pay', r.shopId) },
     { label: 'Send pay link', onClick: () => payLink(r.shopId) },
-    r.od > 0 ? { label: 'Extend grace', onClick: () => open('grace', r.shopId), tone: 'danger' } : null,
+    r.od > 0 && rightOf('grace').ok ? { label: 'Extend grace', onClick: () => open('grace', r.shopId), tone: 'danger' } : null,
     { label: 'Open profile', href: '/admin/merchant?id=' + r.shopId + '&tab=billing' },
   ].filter(Boolean);
 

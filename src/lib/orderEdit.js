@@ -1,5 +1,5 @@
 // orderEdit — change an order after it is placed (Nayeem's Sales & Orders brief #4 › Order editing): add, remove or
-// change lines, quantity and price, and the delivery (zone, charge, address). The effects are shown before saving:
+// change lines, quantity and price, the delivery (zone, charge, address) and the order's discount. The effects are shown before saving:
 //   previewEdit(o, draft)  { changes, stock, money, courier, repack, error }
 //     stock    per product: hold more / release (stock held for the order), take out / put back (Online edition:
 //              taken at approval), or nothing yet (a new order holds at approval)
@@ -13,7 +13,7 @@
 //   listed in Order work › Edits to review (editRequestOf · applyEditRequest · discardEditRequest).
 // Only orders that haven't shipped can be edited; after that it's Return & exchange.
 // Draft: { lines: [{ name, qty, price, orig (index in o.lines) | undefined, variant, sku }], shipping, zone, address,
-//          reason, baseVersion }.
+//          discount (the order's whole discount; left out = unchanged), reason, baseVersion }.
 // Front end only: the courier's booking update is simulated (a server would call the courier's API).
 
 import { patchOrder, logOrder, setOrderStatus, findOrder, getOrders, holdPlaceOf, isCounterSale } from './orders';
@@ -43,9 +43,14 @@ export const canEdit = (o) => !whyNoEdit(o);
 export function draftOf(o) {
   return {
     lines: o.lines.map((l, i) => ({ name: l.name, qty: l.qty, price: l.price, listPrice: l.listPrice != null ? l.listPrice : l.price, orig: i, variant: l.variant || '', sku: l.sku || '' })),
-    shipping: o.shipping || 0, zone: o.zone || '', address: o.address || '', reason: '', baseVersion: versionOf(o),
+    shipping: o.shipping || 0, zone: o.zone || '', address: o.address || '', discount: Math.round(Number(o.discount) || 0), reason: '', baseVersion: versionOf(o),
   };
 }
+// the order's discount in a draft: left out (older drafts, edit requests) = unchanged
+const discountOf = (o, draft) => {
+  const was = Math.round(Number(o.discount) || 0);
+  return draft.discount == null || draft.discount === '' ? was : Math.max(0, Math.round(Number(draft.discount) || 0));
+};
 
 const qtyBy = (lines) => { const m = {}; lines.forEach((l) => { m[l.name] = (m[l.name] || 0) + (Number(l.qty) || 0); }); return m; };
 const stockMode = (o) => (o.stockOut ? 'taken' : holdsFor(o.id).some((h) => h.type === 'online') ? 'held' : 'none');
@@ -69,6 +74,9 @@ export function previewEdit(o, draft) {
   if (!same(draft.zone, o.zone) || shipping !== (o.shipping || 0)) changes.push(`Delivery: ${o.zone || '—'} ${formatBDT(o.shipping || 0)} → ${draft.zone || '—'} ${formatBDT(shipping)}`);
   const addressChanged = !same(draft.address, o.address);
   if (addressChanged) changes.push('Address changed');
+  const discBefore = Math.round(Number(o.discount) || 0);
+  const discount = discountOf(o, draft);
+  if (discount !== discBefore) changes.push(`Discount ${formatBDT(discBefore)} → ${formatBDT(discount)}`);
 
   // stock
   const mode = stockMode(o);
@@ -84,10 +92,11 @@ export function previewEdit(o, draft) {
     return { name, delta, action, place, known, free, short: delta > 0 && known && free < delta };
   }).filter(Boolean);
 
-  // money: VAT, discount and other charges stay as they were
-  const extra = o.amount - o.subtotal - (o.shipping || 0);
+  // money: VAT and other charges stay as they were; a changed discount comes off the total
+  const extra = o.amount - o.subtotal - (o.shipping || 0) + discBefore - discount;
   const subtotal = sum(lines, (l) => (Number(l.price) || 0) * l.qty);
   const total = Math.max(0, Math.round(subtotal + shipping + extra));
+  const discError = discount > subtotal ? 'The discount is more than the items.' : '';
   const paid = o.paid || 0;
   const wasCod = o.payment === 'COD' || o.codAmount != null;
   const dueBefore = Math.max(0, o.amount - paid);
@@ -106,7 +115,7 @@ export function previewEdit(o, draft) {
   const repack = o.statusKey === 'ready' && (itemsChanged || pickup) ? 'Back to Approved: pack it again and print a new slip'
     : o.statusKey === 'approved' && prep.slipPrinted && changes.length ? 'Print a new slip' : '';
 
-  return { changes, itemsChanged, stock, stockMode: mode, place, money, courier, repack, error: error || (!changes.length ? 'Nothing changed yet.' : ''), empty: !changes.length };
+  return { changes, itemsChanged, stock, stockMode: mode, place, money, discount, courier, repack, error: error || discError || (!changes.length ? 'Nothing changed yet.' : ''), empty: !changes.length };
 }
 
 /** Save the edit. Returns { ok, error, conflict, version }. */
@@ -144,11 +153,12 @@ export function applyEdit(o, draft, by = 'Staff') {
 
   const m = pv.money;
   const version = versionOf(fresh) + 1;
-  const entry = { version, at, by, reason: String(draft.reason || '').trim(), changes: pv.changes, before: { lines: fresh.lines, total: fresh.amount, shipping: fresh.shipping || 0, zone: fresh.zone, address: fresh.address } };
+  const entry = { version, at, by, reason: String(draft.reason || '').trim(), changes: pv.changes, before: { lines: fresh.lines, total: fresh.amount, shipping: fresh.shipping || 0, zone: fresh.zone, address: fresh.address, discount: fresh.discount || 0 } };
   const patch = {
     lines, total: m.after, shipping: Math.max(0, Math.round(Number(draft.shipping) || 0)), zone: draft.zone, address: String(draft.address || '').trim(),
     version, edits: [...(fresh.edits || []), entry], editRequest: null,
   };
+  if (pv.discount !== Math.round(Number(fresh.discount) || 0)) patch.discount = pv.discount;
   if (m.paid > 0) patch.payment = m.paid >= m.after ? 'Paid' : 'Partial';
   if (m.wasCod) patch.codAmount = m.codAfter;
   if (m.refund > 0) patch.refundDue = m.refund;

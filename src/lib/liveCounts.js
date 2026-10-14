@@ -3,12 +3,14 @@
 //   chats     chats with unread messages that aren't closed
 //   comments  public comments not answered yet
 //   mentions  new story / post mentions of the shop and notes that @mention you
-//   inbox     the area: chats + comments + mentions
+//   email     unread email in the Inbox folder (lib/emailInbox.js)
+//   inbox     the area: chats + comments + mentions + email
 //   meetings  today's meetings still to happen plus meetings waiting for a note (lib/meetings.js)
 // They change with the `gc:inbox` event.
 
 import { getConvs, unreadCount, getComments, getMentions, openMentions, teamMentions, ME } from './inbox';
 import { getMeetings, needsNote, isToday } from './meetings';
+import { unreadEmail } from './emailInbox';
 
 export const LIVE_EVENT = 'gc:inbox';
 export function liveCount(key) {
@@ -17,8 +19,9 @@ export function liveCount(key) {
     if (key === 'chats') return unreadCount(getConvs());
     if (key === 'comments') return getComments().filter((c) => c.status === 'open').length;
     if (key === 'mentions') return openMentions(getMentions()) + teamMentions(ME).length;
+    if (key === 'email') return unreadEmail();
     if (key === 'meetings') { const now = Date.now(); return getMeetings().filter((m) => needsNote(m, now) || (m.status === 'scheduled' && isToday(m, now) && m.at >= now)).length; }
-    if (key === 'inbox') return liveCount('chats') + liveCount('comments') + liveCount('mentions');
+    if (key === 'inbox') return liveCount('chats') + liveCount('comments') + liveCount('mentions') + liveCount('email');
   } catch { /* storage blocked */ }
   return null;
 }

@@ -6,6 +6,7 @@
 
 import React, { useState } from 'react';
 import { Icon } from '@/runtime/dc';
+import { ProviderLogo, ProviderTag } from '@/components/MeetingProvider';
 import { toast } from '@/runtime/ui';
 import { Sheet, StatusBadge } from '@/components/ui';
 import { STAFF, staffBy } from '@/lib/platform/catalogue';
@@ -142,6 +143,7 @@ export function MeetBadges({ m, t, type = true }) {
     <>
       {late ? <StatusBadge tone="warning" icon="clock-alert">Needs outcome</StatusBadge> : <StatusBadge tone={STATUS[m.status].tone}>{STATUS[m.status].label}</StatusBadge>}
       {type ? <StatusBadge tone="neutral" icon={typeOf(m.type).icon}>{typeOf(m.type).label}</StatusBadge> : null}
+      {m.provider ? <ProviderTag id={m.provider} label={providerOf(m.provider).label} /> : null}
     </>
   );
 }
@@ -224,7 +226,7 @@ export function ScheduleSheet({ onClose, me, t, shops, preset, onDone }) {
         </div>
         <div><span className="gc-label">Where</span>
           <div className="mt-opts" role="group" aria-label="Where">
-            {PROVIDERS.map((x) => <button key={x.id} type="button" className="mt-opt" aria-pressed={f.provider === x.id} onClick={() => set({ provider: x.id })}><Icon name={x.icon} width="16" height="16" aria-hidden="true" />{x.label}</button>)}
+            {PROVIDERS.map((x) => <button key={x.id} type="button" className="mt-opt" aria-pressed={f.provider === x.id} onClick={() => set({ provider: x.id })}><ProviderLogo id={x.id} size={18} alt={x.id === 'zoom' ? x.label : ''} />{x.id === 'zoom' ? <span className="sr-only">{x.label}</span> : x.label}</button>)}
           </div>
           <p className="mt-help" style={{ marginTop: 6 }}>{f.provider === 'zoom' || f.provider === 'meet' ? `A ${p.label} link is made when you save and goes out with the invite.` : f.provider === 'office' ? OFFICE : 'The invite says you will call them.'}</p>
         </div>

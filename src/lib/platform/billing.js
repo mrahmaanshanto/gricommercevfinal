@@ -1,7 +1,9 @@
 // platform/billing — GridCommerce billing its stores (the console's Billing area).
 //
 // Rules (CorePackaging board, brief #19):
-//   · One bill a month on the store's billing day; it is issued 7 days before it falls due.
+//   · One bill a month on the store's billing day; it is issued 7 days before it falls due. Each item is billed on its
+//     own cycle: a monthly plan or add-on on every bill; a yearly plan (sub.cycle 'yearly') or a yearly item the full
+//     yearly price once a year (item.nextBill = the bill it is next due on). A month with nothing due has no bill.
 //   · Collected by hand by default: the owner pays from the merchant panel, or staff call and record the payment with
 //     its transaction ID (each ID is used once). A store can be set to charge automatically (saved bKash or card):
 //     the charge runs on the due day and retries after 1 and 3 days.
@@ -38,21 +40,31 @@ export function planOf(db, sub) {
   const ver = ladder.versions.find((v) => v.v === sub.version) || ladder.versions[ladder.versions.length - 1];
   return { ...ver.plans[sub.plan], id: sub.plan, version: ver.v, ladder: sub.ladder };
 }
-/** Price of a billed item this month. */
+/** Is this item billed once a year? (a plan when the store pays yearly, or an item sold by the year) */
+export const isYearly = (sub, it) => it.period === 'Yearly' || (it.kind === 'plan' && sub.cycle === 'yearly');
+/** What one bill asks for this item: the monthly price, or the full yearly price for a yearly item. */
 export function priceOf(db, sub, it) {
   if (it.kind !== 'plan') return it.price;
   const ladder = db.plans[sub.ladder];
   const ver = ladder.versions.find((v) => v.v === sub.version) || ladder.versions[ladder.versions.length - 1];
   const p = ver.plans[it.code] || ver.plans[sub.plan];
-  return sub.cycle === 'yearly' ? Math.round(p.yearly / 12) : p.price;
+  return sub.cycle === 'yearly' ? p.yearly : p.price;
 }
-export const itemName = (sub, it) => (it.kind === 'plan' ? `${ladderLabel(sub.ladder)} · ${PLAN_NAME[it.code]} plan` : it.name);
+/** The item counted per month (a yearly price ÷ 12): for MRR and "a month" figures, never for a bill. */
+export function monthlyOf(db, sub, it) {
+  if (it.period === 'Once') return 0;
+  const p = priceOf(db, sub, it);
+  return isYearly(sub, it) ? Math.round(p / 12) : p;
+}
+export const itemName = (sub, it) => (it.kind === 'plan' ? `${ladderLabel(sub.ladder)} · ${PLAN_NAME[it.code]} plan${sub.cycle === 'yearly' ? ', yearly' : ''}` : it.name + (it.period === 'Yearly' ? ', yearly' : ''));
 /** Items billed now (not ended). */
 export const billItems = (sub, t) => sub.items.filter((it) => (!it.until || it.until > t) && !(it.period === 'Once' && it.billedIn));
 /** What the store pays each month for plan, modules and credits (yearly counted per month). */
 export function mrrOf(db, sub, t) {
-  return billItems(sub, t).filter((it) => it.period !== 'Once' && it.since <= t + 31 * DAY).reduce((s, it) => s + (it.period === 'Yearly' ? Math.round(it.price / 12) : priceOf(db, sub, it)), 0);
+  return billItems(sub, t).filter((it) => it.period !== 'Once' && it.since <= t + 31 * DAY).reduce((s, it) => s + monthlyOf(db, sub, it), 0);
 }
+/** The plan item a store is billed for now (null when none). */
+export const planItem = (sub, t = Infinity) => sub.items.find((it) => it.kind === 'plan' && (!it.until || it.until > t)) || null;
 
 // ---- invoice math ------------------------------------------------------------------------------------------
 export const paidOn = (db, invId) => db.payments.filter((p) => p.invoiceId === invId && p.status === 'ok').reduce((s, p) => s + p.amount, 0);
@@ -134,7 +146,19 @@ function issueBill(db, sub, due, t) {
       continue;
     }
     if (it.since > due + DAY) continue;
+    // a yearly item is billed in full on the bill its year starts on, then not again for 12 months
+    if (isYearly(sub, it)) {
+      if (it.nextBill && it.nextBill > due + DAY) continue;
+      lines.push({ label: itemName(sub, it), amount: priceOf(db, sub, it), kind: it.kind, yearly: true });
+      it.nextBill = at(addMonths(due, 12, sub.billDay || dayOfMonth(due)), 0, 0);
+      continue;
+    }
     lines.push({ label: itemName(sub, it), amount: priceOf(db, sub, it), kind: it.kind });
+  }
+  // a month with nothing to bill (a yearly store without monthly add-ons) has no bill; discounts wait for the next one
+  if (!lines.some((l) => l.amount > 0)) {
+    for (const it of sub.items) if (it.billedIn === 'pending') it.billedIn = null;
+    return null;
   }
   // discounts approved for the next bill
   for (const a of db.adjustments) {
@@ -213,7 +237,8 @@ export function tick(db, t) {
         const st = subState(db, shop.id, t);
         if (st.key === 'suspended') break;
         issueBill(db, sub, sub.nextDue, t);
-        sub.nextDue = at(addMonths(sub.nextDue, sub.cycle === 'yearly' ? 12 : 1, sub.billDay), 0, 0);
+        // every month: monthly items are billed on each bill, yearly ones only when their year starts (issueBill)
+        sub.nextDue = at(addMonths(sub.nextDue, 1, sub.billDay), 0, 0);
       }
     }
     // demo: owners paying from their own panel. Most bills are paid around the due day; about one in six is
@@ -395,9 +420,10 @@ export function addItem(shopId, { code, name, price, period, startsAt, prorate }
     const per = period === 'One-off' ? 'Once' : period;
     const it = { id: 'IT' + db.seq.item++, kind: a ? a.kind : per === 'Once' ? 'oneoff' : 'module', code: code || 'CUSTOM', name: a ? a.name : name || 'Custom item', price: p, period: per, since, until: null };
     sub.items.push(it);
-    if (prorate && per === 'Monthly' && sub.nextDue) {
+    // the days before the next bill, at the item's own rate (a month's price ÷ 30, or a year's ÷ 365)
+    if (prorate && (per === 'Monthly' || per === 'Yearly') && sub.nextDue) {
       const days = Math.max(0, daysBetween(since, sub.nextDue));
-      const amt = Math.round((p * days) / 30);
+      const amt = Math.round((p * days) / (per === 'Yearly' ? 365 : 30));
       if (amt > 0) sub.items.push({ id: 'IT' + db.seq.item++, kind: 'proration', code: 'PRORATE', name: `${it.name}, ${days} days before the next bill`, price: amt, period: 'Once', since, until: null });
     }
     db.events.push({ id: 'E' + db.seq.ev++, shopId, at: t, kind: 'billing', text: `${it.name} added to the bill at ${taka(p)} ${per === 'Once' ? 'once' : per.toLowerCase()}, by ${who()}` });
@@ -439,24 +465,45 @@ export function changePlan(shopId, plan, cycle) {
     if (plan === sub.plan && (!cycle || cycle === sub.cycle)) return { ok: false, error: 'The store is already on this plan.' };
     const ladder = db.plans[sub.ladder];
     const liveVer = ladder.versions.find((v) => v.v === ladder.live);
-    const oldPrice = planOf(db, sub).price;
-    const newPrice = liveVer.plans[plan].price;
     const oldName = PLAN_NAME[sub.plan];
+    const oldCycle = sub.cycle || 'monthly';
+    const newCycle = cycle || oldCycle;
+    const pr = prorationFor(db, sub, t, liveVer.plans[plan], newCycle);
+    const oldItem = planItem(sub, t);
     for (const it of sub.items) if (it.kind === 'plan' && !it.until) it.until = t;
-    sub.items.push({ id: 'IT' + db.seq.item++, kind: 'plan', code: plan, name: null, price: null, period: 'Monthly', since: t, until: null });
+    // a yearly plan's new year starts on the next bill (billed in full there); the days before it are prorated
+    sub.items.push({ id: 'IT' + db.seq.item++, kind: 'plan', code: plan, name: null, price: null, period: 'Monthly', since: t, until: null, nextBill: newCycle === 'yearly' && sub.nextDue ? sub.nextDue : null });
     sub.plan = plan;
     sub.version = ladder.live;
-    if (cycle) sub.cycle = cycle;
-    let pr = 0;
-    if (sub.status === 'active' && sub.nextDue) {
-      const days = Math.max(0, daysBetween(t, sub.nextDue));
-      pr = Math.round(((newPrice - oldPrice) * days) / 30);
-      if (pr) sub.items.push({ id: 'IT' + db.seq.item++, kind: 'proration', code: 'PRORATE', name: `Plan changed ${oldName} → ${PLAN_NAME[plan]}, prorated`, price: pr, period: 'Once', since: t, until: null });
-    }
-    db.events.push({ id: 'E' + db.seq.ev++, shopId, at: t, kind: 'staff', text: `Plan changed ${oldName} → ${PLAN_NAME[plan]}${pr ? ', prorated ' + taka(pr) : ''}, by ${who()}` });
-    return { ok: true, prorated: pr };
+    sub.cycle = newCycle;
+    if (pr.amount && sub.status === 'active') sub.items.push({ id: 'IT' + db.seq.item++, kind: 'proration', code: 'PRORATE', name: pr.label, price: pr.amount, period: 'Once', since: t, until: null });
+    const what = oldName === PLAN_NAME[plan] ? `Billing changed ${oldCycle} → ${newCycle}` : `Plan changed ${oldName} → ${PLAN_NAME[plan]}${newCycle !== oldCycle ? `, ${newCycle}` : ''}`;
+    db.events.push({ id: 'E' + db.seq.ev++, shopId, at: t, kind: 'staff', text: `${what}${pr.amount && sub.status === 'active' ? ', prorated ' + taka(pr.amount) : ''}, by ${who()}` });
+    return { ok: true, prorated: sub.status === 'active' ? pr.amount : 0, oldItem: oldItem ? oldItem.id : null };
   });
 }
+/** What a plan change costs or gives back now, by cycle. The store paid the old plan up to the next bill (monthly) or
+ *  to the end of its year (yearly): the unused part comes back; the new plan is charged for the days before the next
+ *  bill (a month's price ÷ 30 or a year's ÷ 365). From the next bill the new plan is billed on its own cycle.
+ *  Returns { amount (+ owed, − credit), days, label }. */
+export function prorationFor(db, sub, t, newPlan, newCycle) {
+  if (sub.status !== 'active' || !sub.nextDue) return { amount: 0, days: 0, label: '' };
+  const days = Math.max(0, daysBetween(t, sub.nextDue));
+  const old = planOf(db, sub);
+  const oldCycle = sub.cycle || 'monthly';
+  const it = planItem(sub, t);
+  let unused;
+  if (oldCycle === 'yearly') {
+    const paidTo = it && it.nextBill && it.nextBill > t ? it.nextBill : null;   // the end of the year already billed
+    unused = paidTo ? Math.round((old.yearly * Math.max(0, daysBetween(t, paidTo))) / 365) : 0;
+  } else unused = Math.round((old.price * days) / 30);
+  const cost = newCycle === 'yearly' ? Math.round((newPlan.yearly * days) / 365) : Math.round((newPlan.price * days) / 30);
+  const amount = cost - unused;
+  const from = `${old.name}${oldCycle === 'yearly' ? ' yearly' : ''}`;
+  const to = `${newPlan.name}${newCycle === 'yearly' ? ' yearly' : ''}`;
+  return { amount, days, unused, cost, label: amount < 0 ? `Plan changed ${from} → ${to}, unused time credited` : `Plan changed ${from} → ${to}, prorated` };
+}
+
 /** Give a module trial. One trial per module per store. */
 export function startModuleTrial(shopId, { code, label, days, startsAt, reason, autoAdd, price }) {
   return commit((db, t) => {

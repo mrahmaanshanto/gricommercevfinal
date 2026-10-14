@@ -15,10 +15,11 @@ import {
   CATEGORIES, DISTRICTS, STAFF,
 } from '@/lib/platform/catalogue';
 import {
-  recordPayment, changePlan, extendTrial, startModuleTrial, addItem, requestAdjustment, setControl, pauseStore,
-  cancelStore, logCall, openInvoices, balance, planOf, priceOf, mrrOf, billItems, outcomeLabel,
+  recordPayment, changePlan, extendTrial, startModuleTrial, addItem, requestAdjustment,
+  logCall, openInvoices, balance, planOf, monthlyOf, mrrOf, billItems, outcomeLabel, prorationFor,
 } from '@/lib/platform/billing';
-import { editMerchant, activateTrial, extendGrace, setModule, addCredits, assignManager, ownerOf, usageOf } from '@/lib/admin/merchants';
+import { editMerchant, activateTrial, assignManager, ownerOf, usageOf } from '@/lib/admin/merchants';
+import { ask, rightOf, ruleFor, figureOf } from '@/lib/admin/actionRights';
 import { Field, ctl } from './profileShared';
 
 const ok = (r) => r && r.ok;
@@ -70,18 +71,19 @@ export function simulate(db, shop, sub, t, plan, cycle) {
   const ladder = db.plans[sub.ladder];
   const live = ladder.versions.find((v) => v.v === ladder.live) || ladder.versions[ladder.versions.length - 1];
   const cur = planOf(db, sub);
-  const curPlan = priceOf(db, sub, { kind: 'plan', code: sub.plan });
+  // per month: a yearly plan counts as its yearly price ÷ 12 (it is billed in full once a year)
+  const curPlan = monthlyOf(db, sub, { kind: 'plan', code: sub.plan });
   const onBill = billItems(sub, t).some((it) => it.kind === 'plan');
   const others = Math.max(0, mrrOf(db, sub, t) - (onBill ? curPlan : 0));
   const np = live.plans[plan];
   const newPlan = cycle === 'yearly' ? Math.round(np.yearly / 12) : np.price;
   const before = others + curPlan;
   const after = others + newPlan;
-  const days = sub.status === 'active' && sub.nextDue ? Math.max(0, daysBetween(t, sub.nextDue)) : 0;
-  const prorated = plan === sub.plan ? 0 : Math.round(((np.price - cur.price) * days) / 30);
+  const same = plan === sub.plan && cycle === (sub.cycle || 'monthly');
+  const pr = same ? { amount: 0, days: 0 } : prorationFor(db, sub, t, np, cycle);
   const used = usageOf(db, shop, t).resources;
   const limits = LIMIT_KEYS.slice(0, 4).map(([k, label]) => ({ k, label, from: cur.limits[k], to: np.limits[k], used: (used.find((x) => x.key === k) || {}).used || 0 }));
-  return { before, after, diff: after - before, prorated, days, same: plan === sub.plan && cycle === sub.cycle, limits, name: PLAN_NAME[plan], up: np.price > cur.price };
+  return { before, after, diff: after - before, prorated: pr.amount, days: pr.days, same, limits, name: PLAN_NAME[plan], up: np.price > cur.price, yearly: cycle === 'yearly', yearPrice: np.yearly };
 }
 const lim = (n) => (n >= UNLIMITED ? 'Unlimited' : Number(n).toLocaleString('en-IN'));
 
@@ -110,7 +112,7 @@ export function PlanSimulator({ ctx, initial, onDone, idp = 'ps' }) {
         </Field>
         <Field id={idp + '-c'} label="Billing">
           <select id={idp + '-c'} {...ctl(null, true)} value={cycle} onChange={(e) => { setCycle(e.target.value); setErr(null); }}>
-            <option value="monthly">Monthly</option><option value="yearly">Yearly (counted a month)</option>
+            <option value="monthly">Monthly</option><option value="yearly">Yearly (billed once a year)</option>
           </select>
         </Field>
       </div>
@@ -118,6 +120,7 @@ export function PlanSimulator({ ctx, initial, onDone, idp = 'ps' }) {
         <dt>Now</dt><dd>{taka(s.before)} a month</dd>
         <dt>On {s.name}</dt><dd>{taka(s.after)} a month</dd>
         <dt className="is-total">Difference</dt><dd className="is-total">{s.diff > 0 ? '+' : ''}{taka(s.diff)}</dd>
+        {s.yearly ? <><dt>Billed once a year</dt><dd>{taka(s.yearPrice)}</dd></> : null}
         {s.prorated ? <><dt>Next bill, for the {s.days} days left</dt><dd>{s.prorated > 0 ? '+' : ''}{taka(s.prorated)}</dd></> : null}
         {s.limits.map((l) => (l.from === l.to ? null : <React.Fragment key={l.k}><dt>{l.label}</dt><dd>{lim(l.from)} → {lim(l.to)}</dd></React.Fragment>))}
       </dl>
@@ -250,18 +253,21 @@ function GraceSheet({ ctx, close }) {
   const [err, setErr] = useState(null);
   const [reasonEl, reason, check] = useReason(GRACE_REASONS, 'gr', err);
   const late = openInvoices(db, shop.id).filter((i) => i.dueAt < t + DAY);
+  const owed = figureOf(db, shop.id, 'owed', t);
+  const rule = ruleFor('grace', owed);
   const submit = () => {
     const c = check(); if (c) { setErr(c); return; }
-    const r = extendGrace(shop.id, days, reason);
+    const r = ask({ action: 'grace', shopIds: [shop.id], value: owed, params: { days: Number(days) }, reason, db });
     if (!ok(r)) { setErr({ field: 'form', text: r.error }); return; }
-    toast(`Grace extended by ${r.days} days`);
+    toast(r.pending ? `Sent to ${r.request.approver} for a second approval` : `Grace extended by ${(r.result.results[0] || {}).days || days} days`);
     close();
   };
   return (
-    <FormSheet id="mp-grace" title="Extend grace" close={close} onSubmit={submit} submit="Extend grace" danger error={err}>
+    <FormSheet id="mp-grace" title="Extend grace" close={close} onSubmit={submit} submit={rule ? 'Ask for approval' : 'Extend grace'} danger error={err}>
       <p className="mp-danger">{late.length ? `${late.map((i) => i.id).join(', ')} move${late.length === 1 ? 's' : ''} their due date on, so read-only and suspension come later. The money is still owed.` : 'Nothing is overdue.'}</p>
       <Field id="gr-d" label="Days"><select id="gr-d" {...ctl(null, true)} value={days} onChange={(e) => setDays(e.target.value)}>{['3', '7', '14'].map((d) => <option key={d} value={d}>{d} days</option>)}</select></Field>
       {reasonEl}
+      {rule ? <p className="mp-warn">{taka(owed)} is owed, above {taka(rule.threshold)}: {rule.approver} approves this, never you.</p> : null}
     </FormSheet>
   );
 }
@@ -272,17 +278,21 @@ function CreditsSheet({ ctx, close }) {
   const [amount, setAmount] = useState('');
   const [err, setErr] = useState(null);
   const [reasonEl, reason, check] = useReason(CREDIT_REASONS, 'cr', err);
+  // credits the owner paid for are not free: only free credits (goodwill, promotion …) can need a second person
+  const free = !/^Paid by the owner/.test(reason);
+  const n0 = Math.round(Number(amount) || 0);
+  const rule = free ? ruleFor('credits', n0) : null;
   const submit = () => {
-    const n = Math.round(Number(amount) || 0);
+    const n = n0;
     if (n <= 0) { setErr({ field: 'amount', text: 'Enter an amount.' }); return; }
     const c = check(); if (c) { setErr(c); return; }
-    const r = addCredits(shop.id, n, reason);
+    const r = ask({ action: 'credits', shopIds: [shop.id], value: free ? n : 0, params: { amount: n }, reason, db: ctx.db });
     if (!ok(r)) { setErr({ field: fieldFor(r.error, [[/amount/i, 'amount']]), text: r.error }); return; }
-    toast(`${taka(n)} credits added`);
+    toast(r.pending ? `Sent to ${r.request.approver} for a second approval` : `${taka(n)} credits added`);
     close();
   };
   return (
-    <FormSheet id="mp-credits" title="Add credits" close={close} onSubmit={submit} submit="Add credits" error={err}>
+    <FormSheet id="mp-credits" title="Add credits" close={close} onSubmit={submit} submit={rule ? 'Ask for approval' : 'Add credits'} error={err}>
       <Field id="cr-a" label="Amount (৳)" error={errOf(err, 'amount')} hint="SMS, WhatsApp, email and AI replies are paid from these credits.">
         <input id="cr-a" type="number" inputMode="numeric" min="1" {...ctl(errOf(err, 'amount'))} value={amount} onChange={(e) => { setAmount(e.target.value); setErr(null); }} />
       </Field>
@@ -290,6 +300,7 @@ function CreditsSheet({ ctx, close }) {
         {[500, 1000, 2000, 5000].map((n) => <button key={n} type="button" className="ix-chip" aria-pressed={Number(amount) === n} onClick={() => setAmount(String(n))}>{taka(n)}</button>)}
       </div>
       {reasonEl}
+      {rule ? <p className="mp-warn">Free credits above {taka(rule.threshold)}: {rule.approver} approves this, never you.</p> : null}
     </FormSheet>
   );
 }
@@ -323,7 +334,7 @@ function ModuleSheet({ ctx, close, code, name, on }) {
   const [reasonEl, reason, check] = useReason(MODULE_REASONS, 'md', err);
   const submit = () => {
     const c = check(); if (c) { setErr(c); return; }
-    const r = setModule(shop.id, code, on, reason);
+    const r = ask({ action: 'module', shopIds: [shop.id], params: { code, on, name }, reason, db: ctx.db });
     if (!ok(r)) { setErr({ field: 'form', text: r.error }); return; }
     toast(`${name} turned ${on ? 'on' : 'off'} for ${shop.name}`);
     close();
@@ -381,27 +392,35 @@ function ItemSheet({ ctx, close }) {
 
 // ---- store controls --------------------------------------------------------------------------------------------------------
 const CONTROLS = {
-  suspend: { title: 'Suspend store', submit: 'Suspend', danger: true, warn: 'The admin and the storefront go off at once. Nothing is deleted; reactivate any time.', reasons: CONTROL_REASONS, done: 'Store suspended', run: (id, r) => setControl(id, 'suspended', r) },
-  unsuspend: { title: 'Reactivate store', submit: 'Reactivate', warn: 'The admin and the storefront come back at once.', reasons: ['Paid', 'Issue solved', 'Suspended by mistake', 'Other'], done: 'Store reactivated', run: (id, r) => setControl(id, null, r) },
-  pause: { title: 'Pause store', submit: 'Pause', danger: true, warn: 'The storefront closes and no bills are issued until the store is resumed.', reasons: CONTROL_REASONS, done: 'Store paused', run: (id, r) => pauseStore(id, r) },
-  cancel: { title: 'Cancel store', submit: 'Cancel store', danger: true, warn: 'Billing stops and the store closes. The data is kept and the owner can export it; you can restore it later.', reasons: CONTROL_REASONS, done: 'Store cancelled', run: (id, r) => cancelStore(id, r) },
-  revoke: { title: 'Revoke licence', submit: 'Revoke licence', danger: true, warn: 'The licence stops working: the store is suspended (admin and storefront off) until it is reactivated.', reasons: CONTROL_REASONS, done: 'Licence revoked · store suspended', run: (id, r) => setControl(id, 'suspended', 'Licence revoked · ' + r) },
+  suspend: { title: 'Suspend store', submit: 'Suspend', danger: true, warn: 'The admin and the storefront go off at once. Nothing is deleted; reactivate any time.', reasons: CONTROL_REASONS, done: 'Store suspended' },
+  unsuspend: { title: 'Reactivate store', submit: 'Reactivate', warn: 'The admin and the storefront come back at once.', reasons: ['Paid', 'Issue solved', 'Suspended by mistake', 'Other'], done: 'Store reactivated' },
+  pause: { title: 'Pause store', submit: 'Pause', danger: true, warn: 'The storefront closes and no bills are issued until the store is resumed.', reasons: CONTROL_REASONS, done: 'Store paused' },
+  cancel: { title: 'Cancel store', submit: 'Cancel store', danger: true, warn: 'Billing stops and the store closes. The data is kept and the owner can export it; you can restore it later.', reasons: CONTROL_REASONS, done: 'Store cancelled' },
+  revoke: { title: 'Revoke licence', submit: 'Revoke licence', danger: true, warn: 'The licence stops working: the store is suspended (admin and storefront off) until it is reactivated.', reasons: CONTROL_REASONS, done: 'Licence revoked · store suspended' },
 };
+/** Suspend, reactivate, pause, cancel or revoke: checks the person's rights, and above the Security › Approvals amount
+ *  it becomes a request for a second person (lib/admin/actionRights.js). */
 function ControlSheet({ ctx, close, action }) {
   const c = CONTROLS[action] || CONTROLS.suspend;
   const [err, setErr] = useState(null);
   const [reasonEl, reason, check] = useReason(c.reasons, 'ct', err);
+  const key = CONTROLS[action] ? action : 'suspend';
+  const right = rightOf(key);
+  const bill = figureOf(ctx.db, ctx.shop.id, 'bill', ctx.t);
+  const rule = ruleFor(key, bill);
   const submit = () => {
     const x = check(); if (x) { setErr(x); return; }
-    const r = c.run(ctx.shop.id, reason);
+    const r = ask({ action: key, shopIds: [ctx.shop.id], value: bill, reason, db: ctx.db });
     if (!ok(r)) { setErr({ field: 'reason', text: r.error }); return; }
-    toast(c.done);
+    toast(r.pending ? `Sent to ${r.request.approver} for a second approval` : c.done);
     close();
   };
   return (
-    <FormSheet id="mp-ctl" title={c.title} close={close} onSubmit={submit} submit={c.submit} danger={c.danger} error={err}>
+    <FormSheet id="mp-ctl" title={c.title} close={close} onSubmit={submit} submit={rule ? 'Ask for approval' : c.submit} danger={c.danger} error={err}>
       <p className={c.danger ? 'mp-danger' : 'mp-warn'}>{c.warn}</p>
+      {!right.ok ? <p className="mp-formerr" role="alert">{right.reason}</p> : null}
       {reasonEl}
+      {rule ? <p className="mp-warn">{rule.threshold != null ? `The store’s bill is ${taka(bill)} a month, above ${taka(rule.threshold)}: ` : ''}{rule.approver} approves this, never you.</p> : null}
     </FormSheet>
   );
 }

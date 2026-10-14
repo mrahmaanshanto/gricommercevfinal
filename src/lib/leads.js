@@ -2,11 +2,13 @@
 // dashboards). Front end only: kept in this browser.
 //   lead: { id, name, company, phone, email, source, kind ('Retail'|'Wholesale'|'Corporate'), interest, value (৳),
 //           stage, owner (user id from lib/team.js), next: { at (ms), what } | null, area,
-//           log: [{ at, by, kind ('note'|'call'|'message'|'meeting'|'stage'|'quote'), text }], lost, customer, at }
+//           log: [{ at, by, kind ('note'|'call'|'message'|'meeting'|'stage'|'quote'), text, quoteId? }], lost, customer, at,
+//           quoteId (the latest quote made for the lead in quotes.js; the "Quote sent" stage links to it) }
 // Winning a lead adds them to the customer book (lib/customers.js).
 
 import { saveCustomerOnce } from './customers';
 import { wholesaleOn } from './edition';
+import { perDay, shiftTime, shiftPast } from './demoClock';
 
 export const LEADS_KEY = 'gc.leads';
 export const LEADS_EVENT = 'gc:leads';
@@ -20,8 +22,12 @@ export const STAGES = [
 ];
 export const OPEN_STAGES = ['new', 'contacted', 'qualified', 'quote'];
 export const SOURCES = ['Facebook', 'Instagram', 'WhatsApp', 'Website', 'Phone call', 'Walk-in', 'Referral', 'Trade fair'];
-// 'Wholesale' only while wholesale is on (edition.js; off for now): business buyers are 'Corporate'
-export const KINDS = ['Retail', 'Wholesale', 'Corporate'].filter((k) => k !== 'Wholesale' || wholesaleOn());
+// 'Wholesale' only while wholesale is on (edition.js; off for now): business buyers are 'Corporate'. A function, read
+// after mount (never at import time): the server and an edition preview in the browser may differ.
+export const ALL_KINDS = ['Retail', 'Wholesale', 'Corporate'];
+export const leadKinds = () => ALL_KINDS.filter((k) => k !== 'Wholesale' || wholesaleOn());
+/** A business buyer (wholesale or corporate) can be sent a quote. */
+export const isBusinessLead = (l) => !!l && (l.kind === 'Wholesale' || l.kind === 'Corporate' || !!String(l.company || '').trim());
 /** A lead's kind as shown: a wholesale lead reads 'Corporate' while wholesale is off. */
 export const kindOf = (l) => (l.kind === 'Wholesale' && !wholesaleOn() ? 'Corporate' : l.kind);
 export const LOG_KINDS = { note: ['Note', 'sticky-note'], call: ['Call', 'phone'], message: ['Message', 'message-circle'], meeting: ['Meeting', 'users'], stage: ['Stage', 'git-commit-horizontal'], quote: ['Quote', 'file-text'] };
@@ -55,14 +61,20 @@ const ROWS = [
   ['LD-1018', 'Jamal Uddin', 'Uddin Telecom', '01722-889944', 'Trade fair', 'Wholesale', 'Feature phones, 50 a week', 198000, 'new', 'arafat', [10, 2, 12, 'First call after the trade fair'], 'Keraniganj', [L('note', 9, 19, 17, 'arafat', 'Card from the trade fair stall.')], [9, 19]],
 ];
 const SEED = ROWS.map(([id, name, company, phone, source, kind, interest, value, stage, owner, next, area, log, [cm, cd], lost = '']) => ({
-  id, name, company, phone, email: '', source, kind: kind === 'Wholesale' && !wholesaleOn() ? 'Corporate' : kind, interest, value, stage, owner, area, log, lost, customer: stage === 'won' ? phone : '',
+  id, name, company, phone, email: '', source, kind, interest, value, stage, owner, area, log, lost, customer: stage === 'won' ? phone : '',
   next: next ? { at: at(next[0], next[1], next[2]), what: next[3] } : null, at: at(cm, cd, 10),
 }));
 
+// Hossain Builders' "Quote sent" stage has its quote behind it (quotes.js › QT-0004)
+(() => { const l = SEED.find((x) => x.id === 'LD-1012'); l.quoteId = 'QT-0004'; l.log = l.log.map((x) => (x.kind === 'quote' ? { ...x, text: 'Quote QT-0004 sent · 15 Galaxy A15 at ৳18,900, 30-day credit.', quoteId: 'QT-0004' } : x)); })();
+
 const ssr = () => typeof window === 'undefined';
+// the seed is written as of 1 Oct; in the browser it moves with the clock (demoClock.js), so follow-ups stay ahead
+const rebased = perDay((days) => SEED.map((l) => ({ ...l, at: shiftPast(l.at, days), next: l.next ? { ...l.next, at: shiftTime(l.next.at, days) } : null, log: l.log.map((x) => ({ ...x, at: shiftPast(x.at, days) })) })));
+const shown = (list) => list.map((l) => (l.kind === 'Wholesale' && !wholesaleOn() ? { ...l, kind: 'Corporate' } : l));
 export function getLeads() {
-  if (ssr()) return SEED;
-  try { return JSON.parse(window.localStorage.getItem(LEADS_KEY)) || SEED; } catch { return SEED; }
+  if (ssr()) return shown(SEED);
+  try { return shown(JSON.parse(window.localStorage.getItem(LEADS_KEY)) || rebased()); } catch { return shown(rebased()); }
 }
 const write = (list) => { try { window.localStorage.setItem(LEADS_KEY, JSON.stringify(list)); window.dispatchEvent(new CustomEvent(LEADS_EVENT)); } catch { /* ignore */ } };
 const nextId = (list) => 'LD-' + (list.reduce((m, l) => Math.max(m, Number(String(l.id).slice(3)) || 0), 1000) + 1);
@@ -79,10 +91,11 @@ export function saveLead(lead, by = 'ceo') {
   return lead;
 }
 /** Log a call, message, meeting, quote or note; optionally set the next follow-up. */
-export function logActivity(id, { kind, text, by, next }) {
+export function logActivity(id, { kind, text, by, next, quoteId }) {
   const l = getLeads().find((x) => x.id === id);
   if (!l) return;
-  const patch = { log: [...l.log, { at: Date.now(), by, kind, text }] };
+  const patch = { log: [...l.log, { at: Date.now(), by, kind, text, ...(quoteId ? { quoteId } : {}) }] };
+  if (quoteId) patch.quoteId = quoteId;
   if (next !== undefined) patch.next = next;
   if (l.stage === 'new' && ['call', 'message', 'meeting'].includes(kind)) { patch.stage = 'contacted'; patch.log.push({ at: Date.now(), by, kind: 'stage', text: 'Moved to Contacted' }); }
   if (kind === 'quote' && ['new', 'contacted', 'qualified'].includes(l.stage)) { patch.stage = 'quote'; patch.log.push({ at: Date.now(), by, kind: 'stage', text: 'Moved to Quote sent' }); }

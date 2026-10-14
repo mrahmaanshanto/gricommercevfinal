@@ -29,6 +29,7 @@ import { DEMO_PRODUCTS } from './products';       // read at run time only (prod
 import { packsOf, roundQty } from './units';
 import { takeKeys, releaseKeys, freeKeys } from './licenceKeys';
 import { recordSerial } from './serialTrace';      // called at run time only (serialTrace reads this module too)
+import { levelAt } from './reorder';
 
 const MOVES = 'gc.stock.moves';
 // sku, name, variant, barcode, category, retail price, wholesale price, MOQ for wholesale, sold to, on hand by place, in transit by place
@@ -106,7 +107,8 @@ const metaOf = (p, v) => {
   const ids = idsFor(p, v);
   const bundle = p.bundle && Array.isArray(p.bundle.parts) && p.bundle.parts.length ? p.bundle : null;
   return {
-    st: p.st || 'active', oversell: !!p.oversell, productId: p.id, mrp: num((v && v.mrp) ?? p.mrp), barcodeType: (v && v.barcodeType) || p.barcodeType || '',
+    st: p.st || 'active', oversell: !!p.oversell, productId: p.id, mrp: num((v && v.mrp) ?? p.mrp), barcodeType: (v && v.barcodeType) || p.barcodeType || '', vatRate: p.vatRate != null ? p.vatRate : null,
+    lowAt: num(p.lowAt),   // "Alert me when stock is below" (reorder.js)
     unit: p.unit || 'pc', ...(Array.isArray(p.packs) ? { packs: p.packs } : {}), ids, codes: ids.map((x) => lc(x.value)),
     format: p.format || 'physical', backorder: !!p.backorder, restockAt: p.restockAt || '', giftOnly: !!p.giftOnly, catalogueOnly: p.sellability === 'catalogue', bundle, template: p.template || '',
   };
@@ -233,6 +235,30 @@ export function addMove(move) {
   if (rec.serial && row) { try { recordSerial(rec.serial, { kind: rec.kind, place: rec.place, ref: rec.ref, by: rec.by, note: rec.reason }, { sku: row.sku, name: row.name }); } catch { /* ignore */ } }
   return next;
 }
+/**
+ * Many plain moves in one write (Settings › Import data: opening stock): { sku, place, qty, kind, reason, by, ref, op }.
+ * No packs, bundles or licence keys (the import refuses those rows); an operation key posted before is skipped.
+ * Returns how many were posted.
+ */
+export function addMovesBatch(moves) {
+  if (typeof window === 'undefined' || !moves || !moves.length) return 0;
+  const list = read();
+  const seen = new Set(list.map((m) => m.op));
+  const catalog = getCatalog();
+  const recs = [];
+  moves.forEach((mv) => {
+    if (mv.op && seen.has(mv.op)) return;
+    const row = productBy(mv.sku, catalog);
+    const id = newId();
+    const qty = row ? roundQty(row, Number(mv.qty) || 0) : Number(mv.qty) || 0;
+    const rec = { id, at: Date.now(), status: 'done', ...mv, qty, op: mv.op || id };
+    seen.add(rec.op);
+    recs.push(rec);
+  });
+  if (!recs.length) return 0;
+  try { window.localStorage.setItem(MOVES, JSON.stringify([...recs.reverse(), ...list])); window.dispatchEvent(new CustomEvent(STOCK_EVENT, { detail: recs[0] })); } catch { return 0; }
+  return recs.length;
+}
 /** Moves waiting to be sent (posted while offline). */
 export const getQueue = () => (typeof window === 'undefined' ? [] : read().filter((m) => m.sync === 'queued'));
 /** Send the waiting moves. Each goes once: the server keeps the operation keys (here: the moves are marked sent). */
@@ -320,7 +346,7 @@ function allStockPlaces() {
 // ---- one place at a glance (Warehouses, Branches, Racks) ------------------------------------------
 /** What one piece is worth on the shelf: its cost (buying price) — the purchase cost the shop knows, never a selling price. */
 export const unitValue = (p) => Number(p.cost) || productCostOf(p.sku) || productCostOf(p.name) || 0;
-/** A product counts as low at a place when this many or fewer are free to sell there. */
+/** The starting low-stock level (GridAI and Home's stock alert); a product's own level is reorder.js › levelAt. */
 export const LOW_AT = 5;
 /**
  * Stock at one place, product by product, with totals:
@@ -336,7 +362,7 @@ export function placeStock(place, { holds = getHolds(), moves = getMoves(), tran
     const st = stockAt(p.sku, place, holds, moves, transfers);
     const stocked = names.some((n) => ((p.on || {})[n] || 0) > 0);
     if (!stocked && !st.onHand && !st.held && !st.transit && !st.damaged) return;
-    rows.push({ p, ...st, value: Math.max(0, st.onHand) * unitValue(p), low: place !== DAMAGED_PLACE && st.onHand >= 0 && st.available <= LOW_AT });
+    rows.push({ p, ...st, value: Math.max(0, st.onHand) * unitValue(p), low: place !== DAMAGED_PLACE && st.onHand >= 0 && st.available < levelAt(p, place) });   // below its alert level there
   });
   const add = (k) => rows.reduce((a, r) => a + r[k], 0);
   const out = (transfers || []).filter((t) => t.status === 'way' && names.includes(t.from));

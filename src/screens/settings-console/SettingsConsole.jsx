@@ -7,17 +7,13 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import __SetAi from '@/screens/settings-console/SetAi';
 import __SetDelivery from '@/screens/settings-console/SetDelivery';
 import __SetGeneral from '@/screens/settings-console/SetGeneral';
 import __SetMedia from '@/screens/settings-console/SetMedia';
 import __SetPayments from '@/screens/settings-console/SetPayments';
 import __SetPreference from '@/screens/settings-console/SetPreference';
-import __SetRules from '@/screens/settings-console/SetRules';
 import __SetSecurity from '@/screens/settings-console/SetSecurity';
 import __SetSeo from '@/screens/settings-console/SetSeo';
-import __SetStorage from '@/screens/settings-console/SetStorage';
-import __SetUsage from '@/screens/settings-console/SetUsage';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -108,36 +104,6 @@ export default class SettingsConsoleScreen extends Component {
               <div data-dc-import="SetDelivery" style={{ flex: "1", minWidth: "0" }}><__SetDelivery embedded /></div>
             </div>
           </section>
-          <section data-screen-label="06 AI auto-reply" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
-              <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "var(--text-muted)" }}>06</span>
-              <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>AI Auto-Reply</h2>
-              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Model choice with per-million pricing · channel toggles · budget cap with spend bar</span>
-            </div>
-            <div className="sc-frame" style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "var(--radius-xl)", overflow: "auto", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)", "--set-vh": "880px" }}>
-              <div data-dc-import="SetAi" style={{ flex: "1", minWidth: "0" }}><__SetAi embedded /></div>
-            </div>
-          </section>
-          <section data-screen-label="07 AI usage" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
-              <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "var(--text-muted)" }}>07</span>
-              <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>AI Usage — reporting inside settings</h2>
-              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Month selector · spend against budget · daily trend · usage by model</span>
-            </div>
-            <div className="sc-frame" style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "var(--radius-xl)", overflow: "auto", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)", "--set-vh": "880px" }}>
-              <div data-dc-import="SetUsage" style={{ flex: "1", minWidth: "0" }}><__SetUsage embedded /></div>
-            </div>
-          </section>
-          <section data-screen-label="08 Auto-reply rules" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
-              <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "var(--text-muted)" }}>08</span>
-              <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Auto-Reply Rules — table + edit panel</h2>
-              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Priority-ordered rules with the edit panel open · empty state on the system sheet</span>
-            </div>
-            <div className="sc-frame" style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "var(--radius-xl)", overflow: "auto", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)", "--set-vh": "880px" }}>
-              <div data-dc-import="SetRules" style={{ flex: "1", minWidth: "0" }}><__SetRules embedded /></div>
-            </div>
-          </section>
           <section data-screen-label="09 SEO" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
               <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "var(--text-muted)" }}>09</span>
@@ -148,21 +114,11 @@ export default class SettingsConsoleScreen extends Component {
               <div data-dc-import="SetSeo" style={{ flex: "1", minWidth: "0" }}><__SetSeo embedded /></div>
             </div>
           </section>
-          <section data-screen-label="10 Storage" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
-              <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "var(--text-muted)" }}>10</span>
-              <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Storage — conditional fields, failed test</h2>
-              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Driver choice drives the form · masked secrets · field error · save-failed bar</span>
-            </div>
-            <div className="sc-frame" style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "var(--radius-xl)", overflow: "auto", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)", "--set-vh": "880px" }}>
-              <div data-dc-import="SetStorage" style={{ flex: "1", minWidth: "0" }}><__SetStorage embedded /></div>
-            </div>
-          </section>
           <section data-screen-label="11 API security and backups" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
               <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "var(--text-muted)" }}>11</span>
-              <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>API Security + backups</h2>
-              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Type-to-confirm key regeneration · backup history · run backup now</span>
+              <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>API keys &amp; backups</h2>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Named API keys · backups managed by GridCommerce</span>
             </div>
             <div className="sc-frame" style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "var(--radius-xl)", overflow: "auto", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)", "--set-vh": "880px" }}>
               <div data-dc-import="SetSecurity" style={{ flex: "1", minWidth: "0" }}><__SetSecurity embedded /></div>

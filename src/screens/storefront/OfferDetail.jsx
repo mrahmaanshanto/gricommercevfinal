@@ -7,10 +7,12 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { getLocale } from '@/runtime/ui';
+import { websiteOffers, websiteOffer, promoLine } from '@/lib/storeOffers';
+import { PROMO_EVENT } from '@/lib/promotions';
+import { clockNow } from '@/lib/settlements';
 
-// The promo bar follows the shopper's language (Bangla only when it is chosen).
-var PROMO = { en: 'Weekend Mega Sale — up to 40% off! Code: EID300', bn: 'উইকেন্ড মেগা সেল — ৪০% পর্যন্ত ছাড়! কোড: EID300' };
-function PromoText() {
+// The promo bar follows the shopper's language (Bangla only when it is chosen) and the offers running now.
+function PromoText({ promo }) {
   var st = React.useState('en'), loc = st[0], setLoc = st[1];
   React.useEffect(function () {
     var on = function () { setLoc(getLocale()); };
@@ -18,40 +20,70 @@ function PromoText() {
     window.addEventListener('gc:locale', on);
     return function () { window.removeEventListener('gc:locale', on); };
   }, []);
-  return <span className={loc === 'bn' ? 'bn' : undefined} lang={loc}>{PROMO[loc]}</span>;
+  if (!promo) return <span>&nbsp;</span>;
+  return <span className={loc === 'bn' ? 'bn' : undefined} lang={loc}>{promo[loc] || promo.en}</span>;
 }
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+// ---- logic ----
+// /offer-detail?id=<offer id>: one offer of the promotion engine (lib/promotions.js through lib/storeOffers.js) with the
+// real clock: its figure, dates, countdown, how to use it and its terms. Read after mount (?id= and the clock).
 
-var NOW0 = Date.UTC(2026, 8, 18, 12, 14, 0); // 18 Sep 2026, 6:14 PM Dhaka
-function T(d, h, m) { return Date.UTC(2026, d[1] - 1, d[0], (h || 0) - 6, m || 0, 0); }
 function pad(n) { return (n < 10 ? '0' : '') + n; }
 function parts(ms) { if (ms < 0) ms = 0; var s = Math.floor(ms / 1000); return { d: Math.floor(s / 86400), h: Math.floor(s % 86400 / 3600), m: Math.floor(s % 3600 / 60), s: s % 60 }; }
-function dk(t) { return Math.floor((t + 6 * 3600000) / 86400000); }
-function dayOf(o, now) { var tot = dk(o.end) - dk(o.start) + 1; var d = Math.max(1, Math.min(tot, dk(now) - dk(o.start) + 1)); return { d: d, tot: tot, pct: +Math.max(0, Math.min(100, (now - o.start) / (o.end - o.start) * 100)).toFixed(1) }; }
-var OFF = { start: T([10, 9]), end: T([30, 9], 23, 59) };
+function dk(t) { var d = new Date(t); d.setHours(0, 0, 0, 0); return Math.round(d.getTime() / 86400000); }
+var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function dstr(t, y) { var d = new Date(t); return d.getDate() + ' ' + MON[d.getMonth()] + (y ? ' ' + d.getFullYear() : ''); }
+function tstr(t) { var d = new Date(t), h = d.getHours(), m = d.getMinutes(); return (h % 12 || 12) + ':' + pad(m) + ' ' + (h < 12 ? 'AM' : 'PM'); }
 class Component extends DCLogic {
-  componentDidMount() { var self = this; this.iv = setInterval(function () { self.setState({ tick: ((self.state && self.state.tick) || 0) + 1 }); }, 1000); }
-  componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.t); }
+  componentDidMount() {
+    var self = this;
+    var load = function () {
+      var now = clockNow(), list = websiteOffers(now);
+      var id = new URLSearchParams(window.location.search).get('id') || '';
+      self.setState({ list: list, offer: id ? websiteOffer(id, now, list) : null, asked: id, promo: promoLine(list), ready: true, now: now });
+    };
+    this.load = load;
+    load();
+    window.addEventListener(PROMO_EVENT, load);
+    this.iv = setInterval(function () { self.setState({ now: clockNow() }); }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.t); window.removeEventListener(PROMO_EVENT, this.load); }
   renderVals() {
-    var self = this, s = this.state || {};
-    var ended = (this.props.offerState ?? 'running') === 'ended';
-    var now = ended ? T([1, 10], 9) : NOW0 + (s.tick || 0) * 1000;
-    var p = parts(OFF.end - now), dd = dayOf(OFF, now);
-    var fg = ended ? '#94a3b8' : '#0f172a', bg = ended ? '#f1f5f9' : '#f2f6fc';
+    var self = this, s = this.state || {}, o = s.offer, now = s.now || 0;
+    if (!o) return { ready: !!s.ready, missing: !!s.ready, promo: s.promo || null };
+    var end = o.end || now + 365 * 86400000;
+    var ended = o.state === 'ended' || (o.end && now > o.end), soon = !ended && now < o.start, live = !ended && !soon;
+    var tot = dk(end) - dk(o.start) + 1, day = Math.max(1, Math.min(tot, dk(now) - dk(o.start) + 1));
+    var pct = Math.max(0, Math.min(100, (now - o.start) / (end - o.start) * 100));
+    var p = parts(soon ? o.start - now : end - now);
+    var fg = ended ? 'var(--text-muted)' : '#0f172a', bg = ended ? '#f1f5f9' : '#f2f6fc';
+    var flash = function (msg) { clearTimeout(self.t); self.setState({ note: msg }); self.t = setTimeout(function () { self.setState({ note: '' }); }, 2400); };
+    var copyText = function (text, msg) { try { if (navigator.clipboard) navigator.clipboard.writeText(text); } catch (e) { /* ignore */ } flash(msg); };
+    var more = (s.list || []).filter(function (x) { return x.id !== o.id && x.state !== 'ended' && (!x.end || x.end > now) && x.start <= now; }).slice(0, 3);
     return {
-      ended: ended, live: !ended, status: ended ? 'INACTIVE' : 'ACTIVE', sBg: ended ? '#e2e8f0' : '#e7f8f1', sFg: ended ? '#475569' : '#047857',
-      cover: ended ? 'linear-gradient(135deg, #475569, #94a3b8)' : 'linear-gradient(135deg, #b0145a, #e2136e)',
-      clockTitle: ended ? 'Offer ended' : 'Offer ends in', dayText: ended ? 'Ran 21 days' : 'Day ' + dd.d + ' of ' + dd.tot,
+      ready: true, missing: false, promo: s.promo || null, title: o.title, sub: o.kind === 'flash' ? o.blurb : o.sub, blurb: o.blurb, big: o.big, type: o.type, code: o.code, hasCode: !!o.code,
+      crumb: o.code || o.title,
+      ended: !!ended, live: live, soon: soon, status: ended ? 'INACTIVE' : soon ? 'COMING SOON' : 'ACTIVE', sBg: ended ? '#e2e8f0' : soon ? '#e0f2fe' : '#e7f8f1', sFg: ended ? '#475569' : soon ? '#075985' : '#047857',
+      endedLine: o.endedHow === 'used' ? 'All uses of this offer are taken.' : 'This offer ended on ' + dstr(o.end || now, true) + '.',
+      cover: ended ? 'linear-gradient(135deg, #475569, #94a3b8)' : o.cover,
+      posted: o.posted, runs: o.end ? 'Runs ' + dstr(o.start) + ' – ' + dstr(o.end) + ' · ' + tot + (tot === 1 ? ' day' : ' days') : 'From ' + dstr(o.start) + ' · no end date',
+      clockTitle: ended ? 'Offer ended' : soon ? 'Offer starts in' : o.end ? 'Offer ends in' : 'Running now', showClock: !ended && (soon || !!o.end),
+      dayText: ended ? 'Ran ' + tot + ' days' : soon ? (o.end ? 'Runs ' + tot + ' days' : '') : o.end ? 'Day ' + day + ' of ' + tot : 'No end date',
       clock: [{ v: pad(p.d), l: 'Days' }, { v: pad(p.h), l: 'Hours' }, { v: pad(p.m), l: 'Minutes' }, { v: pad(p.s), l: 'Seconds' }].map(function (k) { k.fg = fg; k.bg = bg; return k; }),
-      pct: (ended ? 100 : dd.pct) + '%', barColor: ended ? '#cbd5e1' : '#e2136e',
-      codeBorder: ended ? '#cbd5e1' : '#003087', codeColor: ended ? '#94a3b8' : '#003087', codeDeco: ended ? 'line-through' : 'none',
-      copied: !!s.copied, copy: function () { clearTimeout(self.t); self.setState({ copied: true }); self.t = setTimeout(function () { self.setState({ copied: false }); }, 2400); },
-      more: [
-        { big: '৳300 OFF', title: '৳300 off on ৳2,000 or more', left: '2 days left', lc: '#b83210', cover: 'linear-gradient(135deg, #012169, #0a5bd0)' },
-        { big: '40% OFF', title: 'Weekend Mega Sale', left: 'Ends Sunday night', lc: '#b83210', cover: 'linear-gradient(135deg, #b83210, #f59e0b)' },
-        { big: '15% OFF', title: '15% off all accessories', left: '7 days left', lc: '#047857', cover: 'linear-gradient(135deg, #047857, #10b981)' }
-      ]
+      pct: (ended ? 100 : soon || !o.end ? 0 : +pct.toFixed(1)) + '%', barColor: ended ? '#cbd5e1' : '#e2136e',
+      startedLine: (soon ? 'Starts ' : 'Started ') + dstr(o.start), endsLine: o.end ? (ended ? 'Ended ' : 'Ends ') + dstr(o.end) + ', ' + tstr(o.end) : 'No end date',
+      steps: o.steps, terms: o.terms,
+      codeBorder: ended ? '#cbd5e1' : '#003087', codeColor: ended ? 'var(--text-muted)' : '#003087', codeDeco: ended ? 'line-through' : 'none',
+      noCodeText: o.kind === 'flash' ? 'No code needed — sale prices are on the products.' : 'No code needed — it is taken off at checkout.',
+      note: s.note || '',
+      copy: function () { copyText(o.code, 'Copied. You can also just pick it at checkout.'); },
+      copyLink: function () { copyText(window.location.href, 'Link copied.'); },
+      share: function () {
+        if (navigator.share) { navigator.share({ title: o.title, url: window.location.href }).catch(function () { /* closed */ }); return; }
+        copyText(window.location.href, 'Link copied. Paste it in Messenger or WhatsApp.');
+      },
+      more: more.map(function (m) { var q = parts((m.end || now) - now); return { href: '/offer-detail?id=' + encodeURIComponent(m.id), big: m.big, title: m.title, left: !m.end ? 'No end date' : q.d >= 1 ? q.d + (q.d > 1 ? ' days left' : ' day left') : 'Ends today', lc: m.end && q.d < 3 ? '#b83210' : '#047857', cover: m.cover }; }),
+      hasMore: more.length > 0
     };
   }
 }
@@ -136,7 +168,7 @@ export default class OfferDetailScreen extends Component {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
             </svg>
-            <PromoText />
+            <PromoText promo={v.promo} />
           </div>
           <header className="sf-header sf-pad" style={{ minHeight: "76px", background: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "32px", padding: "0 64px" }}>
             <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
@@ -174,9 +206,20 @@ export default class OfferDetailScreen extends Component {
               <span style={{ position: "absolute", top: "0", right: "-2px", minWidth: "18px", height: "18px", borderRadius: "var(--radius-full)", background: "#b83210", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "flex", alignItems: "center", justifyContent: "center" }}>3</span>
             </__Link>
           </header>
+          {!v.ready ? <section className="sf-pad" style={{ padding: "32px 64px 56px", minHeight: "60vh" }} aria-busy="true" /> : null}
+          {v.missing ? (
+            <section className="sf-pad" style={{ padding: "48px 64px 64px", minHeight: "50vh" }}>
+              <div role="status" style={{ maxWidth: "560px", padding: "28px", borderRadius: "var(--radius-xl)", background: "#ffffff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", display: "flex", flexDirection: "column", gap: "12px" }}>
+                <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>This offer is not available</h1>
+                <p style={{ margin: "0", fontSize: "var(--text-base)", color: "#475569" }}>It may have been removed, or the link is not complete.</p>
+                <__Link href="/offers" className="btn solid" style={{ alignSelf: "flex-start" }}>See running offers</__Link>
+              </div>
+            </section>
+          ) : null}
+          {v.ready && !v.missing ? (<>
           <section className="sf-pad sf-split" style={{ padding: "32px 64px 56px", display: "flex", gap: "32px", alignItems: "flex-start" }}>
             <article style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "22px" }}>
-              <div style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}><a href="#" style={{ color: "var(--text-muted)" }}>Home</a> / <__Link href="/offers" style={{ color: "var(--text-muted)" }}>{"Offers & Promotions"}</__Link> / BKASH10</div>
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}><a href="#" style={{ color: "var(--text-muted)" }}>Home</a> / <__Link href="/offers" style={{ color: "var(--text-muted)" }}>{"Offers & Promotions"}</__Link> / {v.crumb}</div>
               {v.ended ? (<>
                 <div role="status" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 18px", borderRadius: "var(--radius-xl)", background: "#eef2f6", color: "#334155", fontSize: "var(--text-sm)" }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -184,104 +227,90 @@ export default class OfferDetailScreen extends Component {
                     <path d="M12 16v-4" />
                     <path d="M12 8h.01" />
                   </svg>
-                  <span style={{ flexGrow: "1" }}><b>This offer has ended</b> on 30 Sep 2026. The code BKASH10 no longer works.</span>
+                  <span style={{ flexGrow: "1" }}><b>This offer has ended.</b> {v.endedLine}{v.hasCode ? ' The code ' + v.code + ' no longer works.' : ''}</span>
                   <__Link href="/offers" className="btn solid sm">See running offers</__Link>
                 </div>
               </>) : null}
               <div className="sf-hero" style={__sx(`height: 280px; border-radius: var(--radius-xl); background: ${v.cover ?? ""}; color: #fff; padding: 36px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;`)}>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <span style={{ height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.22)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", display: "inline-flex", alignItems: "center" }}>BKASH OFFER</span>
+                  <span style={{ height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.22)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", display: "inline-flex", alignItems: "center" }}>{v.type}</span>
                   <span style={__sx(`height: 28px; padding: 0 12px; border-radius: var(--radius-full); background: ${v.sBg ?? ""}; color: ${v.sFg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center;`)}>{v.status}</span>
                 </div>
                 <div>
-                  <div style={{ fontSize: "var(--text-5xl)", lineHeight: "1.12", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>10% OFF</div>
-                  <div style={{ fontSize: "var(--text-lg)", opacity: ".92", marginTop: "8px" }}>when you pay with bKash · up to ৳150</div>
+                  <div style={{ fontSize: "var(--text-5xl)", lineHeight: "1.12", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.big}</div>
+                  <div style={{ fontSize: "var(--text-lg)", opacity: ".92", marginTop: "8px" }}>{v.sub}</div>
                 </div>
                 <span style={{ position: "absolute", right: "-40px", bottom: "-60px", width: "260px", height: "260px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.08)" }} />
               </div>
               <div>
-                <h1 style={{ margin: "0", fontSize: "var(--text-3xl)", lineHeight: "42px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Pay with bKash, get 10% off</h1>
+                <h1 style={{ margin: "0", fontSize: "var(--text-3xl)", lineHeight: "42px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>{v.title}</h1>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px", marginTop: "10px", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <rect width="18" height="18" x="3" y="4" rx="2" />
   <path d="M16 2v4" />
   <path d="M8 2v4" />
   <path d="M3 10h18" />
-</svg>Posted 10 Sep 2026</span>
+</svg>{v.posted}</span>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <circle cx="12" cy="12" r="10" />
   <path d="M12 6v6l4 2" />
-</svg>Runs 10 – 30 Sep · 21 days</span>
+</svg>{v.runs}</span>
                 </div>
               </div>
-              <p style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "27px", color: "#334155" }}>Paying online is faster and safer — so we are giving back. Pay for your order with bKash and get 10% off your bill, up to ৳150. Works on the website and at our Dhanmondi branch counter.</p>
-              <p className="bn" style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "28px", color: "#334155" }}>বিকাশে পেমেন্ট করলেই পাচ্ছেন ১০% ছাড়, সর্বোচ্চ ৳১৫০। ৳৫০০ বা তার বেশি কেনাকাটায় প্রযোজ্য।</p>
+              <p style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "27px", color: "#334155" }}>{v.blurb}</p>
               <section style={{ borderRadius: "var(--radius-xl)", background: "#ffffff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <h2 style={{ margin: "0", flexGrow: "1", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>{v.clockTitle}</h2>
                   <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569" }}>{v.dayText}</span>
                 </div>
-                <div style={{ display: "flex", gap: "12px" }}>
+                {v.showClock ? <div style={{ display: "flex", gap: "12px" }}>
                   {__list(v.clock).map((k, $index) => (<React.Fragment key={$index}>
                       <div style={__sx(`flex: 1 1 0; padding: 14px 0; border-radius: var(--radius-xl); background: ${k?.bg ?? ""}; text-align: center;`)}>
                         <div className="mono" style={__sx(`font-size: var(--text-4xl); line-height: 1.2; font-weight: var(--weight-semibold); color: ${k?.fg ?? ""};`)}>{k?.v}</div>
                         <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{k?.l}</div>
                       </div>
                     </React.Fragment>))}
-                </div>
+                </div> : null}
                 <div style={{ height: "10px", borderRadius: "var(--radius-full)", background: "#eef2f6", overflow: "hidden" }}>
                   <div style={__sx(`width: ${v.pct ?? ""}; height: 100%; border-radius: var(--radius-full); background: ${v.barColor ?? ""};`)} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
-                  <span>Started 10 Sep</span>
-                  <span>Ends 30 Sep, 11:59 PM</span>
+                  <span>{v.startedLine}</span>
+                  <span>{v.endsLine}</span>
                 </div>
               </section>
               <section style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                 <h2 style={{ margin: "0", fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)" }}>How to use it</h2>
                 <div className="sf-grid3 gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px" }}>
-                  <div style={{ padding: "18px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e2e8f0" }}>
-                    <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--accent-text)" }}>STEP 1</div>
-                    <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", marginTop: "4px" }}>Add items worth ৳500 or more</div>
-                  </div>
-                  <div style={{ padding: "18px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e2e8f0" }}>
-                    <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--accent-text)" }}>STEP 2</div>
-                    <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", marginTop: "4px" }}>Pick bKash as payment</div>
-                  </div>
-                  <div style={{ padding: "18px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e2e8f0" }}>
-                    <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--accent-text)" }}>STEP 3</div>
-                    <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", marginTop: "4px" }}>Tap BKASH10 in “Offers for you”</div>
-                  </div>
+                  {__list(v.steps).map((t, i) => (
+                    <div key={i} style={{ padding: "18px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--accent-text)" }}>{'STEP ' + (i + 1)}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", marginTop: "4px" }}>{t}</div>
+                    </div>
+                  ))}
                 </div>
               </section>
               <section style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 <h2 style={{ margin: "0", fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)" }}>Terms</h2>
                 <ul style={{ margin: "0", paddingLeft: "22px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "var(--text-base)", lineHeight: "24px", color: "#334155" }}>
-                  <li>10% off your bill, up to ৳150.</li>
-                  <li>Bill must be ৳500 or more (before delivery charge).</li>
-                  <li>Pay online with bKash. Not for cash on delivery.</li>
-                  <li>Use on the website or at the shop counter.</li>
-                  <li>Valid 10 – 30 Sep 2026.</li>
-                  <li>One time per customer (checked by phone number).</li>
-                  <li>Cannot be used with other codes or flash sale prices.</li>
-                  <li>If you return the item, the discount is taken back from the refund.</li>
+                  {__list(v.terms).map((t, i) => <li key={i}>{t}</li>)}
                 </ul>
               </section>
             </article>
             <aside className="sf-aside gc-side" style={{ width: "360px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "16px", position: "sticky", top: "0", marginTop: "36px" }}>
               <section style={{ borderRadius: "var(--radius-xl)", background: "#ffffff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                <div className="lbl">Your code</div>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <span className="mono" style={__sx(`flex-grow: 1; height: 48px; padding: 0 14px; border-radius: var(--radius-lg); border: 2px dashed ${v.codeBorder ?? ""}; background: #f8fafc; color: ${v.codeColor ?? ""}; font-size: var(--text-xl); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-label); display: flex; align-items: center; text-decoration: ${v.codeDeco ?? ""};`)}>BKASH10</span>
+                <div className="lbl">{v.hasCode ? "Your code" : "How you get it"}</div>
+                {v.hasCode ? <div style={{ display: "flex", gap: "8px" }}>
+                  <span className="mono" style={__sx(`flex-grow: 1; height: 48px; padding: 0 14px; border-radius: var(--radius-lg); border: 2px dashed ${v.codeBorder ?? ""}; background: #f8fafc; color: ${v.codeColor ?? ""}; font-size: var(--text-xl); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-label); display: flex; align-items: center; text-decoration: ${v.codeDeco ?? ""};`)}>{v.code}</span>
                   {v.live ? (<>
                     <button type="button" className="copyb" style={{ height: "52px" }} onClick={v.copy}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <rect width="14" height="14" x="8" y="8" rx="2" />
   <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
 </svg> Copy</button>
                   </>) : null}
-                </div>
-                {v.copied ? (<>
-                  <div className="fade" role="status" style={{ fontSize: "var(--text-sm)", color: "#065f46" }}>Copied. You can also just pick it at checkout.</div>
+                </div> : <p style={{ margin: "0", fontSize: "var(--text-sm)", color: "#475569" }}>{v.noCodeText}</p>}
+                {v.note ? (<>
+                  <div className="fade" role="status" style={{ fontSize: "var(--text-sm)", color: "#065f46" }}>{v.note}</div>
                 </>) : null}
                 {v.live ? (<>
                   <__Link href="/checkout" className="btn solid big">Shop now and save <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -290,7 +319,7 @@ export default class OfferDetailScreen extends Component {
 </svg></__Link>
                 </>) : null}
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <button type="button" className="btn line sm" style={{ flexGrow: "1" }}>
+                  <button type="button" className="btn line sm" style={{ flexGrow: "1" }} onClick={v.share}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <circle cx="18" cy="5" r="3" />
                       <circle cx="6" cy="12" r="3" />
@@ -300,7 +329,7 @@ export default class OfferDetailScreen extends Component {
                     </svg>
                     <span>Share</span>
                   </button>
-                  <button type="button" className="btn line sm" style={{ flexGrow: "1" }}>
+                  <button type="button" className="btn line sm" style={{ flexGrow: "1" }} onClick={v.copyLink}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
@@ -309,13 +338,14 @@ export default class OfferDetailScreen extends Component {
                   </button>
                 </div>
               </section>
+              {v.hasMore ? (
               <section style={{ borderRadius: "var(--radius-xl)", background: "#ffffff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "22px", display: "flex", flexDirection: "column", gap: "12px" }}>
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <h2 style={{ margin: "0", flexGrow: "1", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>More running offers</h2>
                   <__Link href="/offers" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>See all</__Link>
                 </div>
                 {__list(v.more).map((m, $index) => (<React.Fragment key={$index}>
-                    <__Link href="/offers" style={{ display: "flex", alignItems: "center", gap: "12px", textDecoration: "none", color: "#0f172a", padding: "8px", borderRadius: "var(--radius-lg)" }}>
+                    <__Link href={m?.href} style={{ display: "flex", alignItems: "center", gap: "12px", textDecoration: "none", color: "#0f172a", padding: "8px", borderRadius: "var(--radius-lg)" }}>
                       <span style={__sx(`width: 56px; height: 56px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${m?.cover ?? ""}; color: #fff; font-size: var(--text-sm); font-weight: var(--weight-semibold); display: flex; align-items: center; justify-content: center; text-align: center; line-height: 20px;`)}>{m?.big}</span>
                       <span style={{ flexGrow: "1" }}>
                         <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", lineHeight: "20px" }}>{m?.title}</span>
@@ -324,8 +354,10 @@ export default class OfferDetailScreen extends Component {
                     </__Link>
                   </React.Fragment>))}
               </section>
+              ) : null}
             </aside>
           </section>
+          </>) : null}
           <footer className="sf-footer sf-pad" style={{ marginTop: "auto", background: "#0f172a", color: "#cbd5e1", padding: "36px 64px", display: "flex", alignItems: "center", gap: "24px", fontSize: "var(--text-sm)" }}>
             <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#fff" }}>Dazzle Shop</span>
             <span>House 12, Road 5, Dhanmondi, Dhaka</span>

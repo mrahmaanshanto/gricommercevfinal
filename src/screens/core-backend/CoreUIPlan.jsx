@@ -264,9 +264,9 @@ export default class CoreUIPlanScreen extends Component {
                 <span style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", lineHeight: "1.35", color: "#0f172a" }}>Architecture</span>
                 <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>Table and field names for every widget in the step 7 handoff sheets.</span>
               </__Link>
-              <__Link href="/set-usage" className="card lift" style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "20px", color: "inherit" }}>
+              <__Link href="/ai-usage" className="card lift" style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "20px", color: "inherit" }}>
                 <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "#0070a0" }}>Already on the canvas</span>
-                <span style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", lineHeight: "1.35", color: "#0f172a" }}>Settings · AI usage</span>
+                <span style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", lineHeight: "1.35", color: "#0f172a" }}>Grid AI · Usage &amp; billing</span>
                 <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>Its spend-against-cap layout becomes the usage meter pattern for plan limits.</span>
               </__Link>
               <__Link href="/dev/site-map" className="card lift" style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "20px", color: "inherit" }}>

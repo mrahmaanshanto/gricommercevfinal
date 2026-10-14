@@ -7,8 +7,8 @@
 import { productBy } from './stock';
 
 const KEY = 'gc.purchase.orders';
-/** The demo purchase orders go up to PO-2609-0024, so new numbers start after it. */
-const DEMO_LAST = 24;
+/** The demo purchase orders go up to PO-2610-0025, so new numbers start after it. */
+const DEMO_LAST = 25;
 
 export const PO_STATUS_TONE = { Draft: 'slate', Sent: 'primary', 'Partly received': 'warning', Received: 'success' };
 
@@ -40,6 +40,10 @@ export function unitCost(name) {
 const DL = (sku, name, qty, cost, received = 0, code = '') => ({ name, code, sku, qty, cost, received });
 const PO_DAY = (day, m) => new Date(2026, m - 1, day).getTime();
 export const DEMO_POS = [
+  // phones and earbuds come with an IMEI / serial per unit and the cleaning spray with a batch and expiry date:
+  // Receive goods asks for them (PR-F3)
+  { no: 'PO-2610-0025', date: '8 Oct 2026', at: PO_DAY(8, 10), supplier: 'Rahman Telecom', place: 'Central Warehouse', got: 0, of: 33, total: 78680, paid: 0, due: '', s: 'ordered',
+    lines: [DL('PH-RLM-N50', 'Realme Note 50 6/128GB', 5, 13200, 0, '8941400400018'), DL('AU-EAR-PRO', 'Wireless Earbuds Pro', 4, 2600, 0, '8941400400025'), DL('AC-CLN-KIT', 'Screen Cleaning Kit', 24, 95, 0, '8941100100028')] },
   { no: 'PO-2609-0024', date: '18 Sep 2026', at: PO_DAY(18, 9), supplier: 'Rahman Telecom', place: 'Central Warehouse', got: 0, of: 120, total: 86400, paid: 0, due: '', s: 'approval',
     lines: [DL('AU-EAR-TC', 'Type-C Wired Earphones', 114, 710), DL('AC-CHG-20', 'Anker 20W USB-C Charger', 6, 910)] },
   { no: 'PO-2609-0023', date: '17 Sep 2026', at: PO_DAY(17, 9), supplier: 'Dhaka Audio Imports', place: 'Central Warehouse', got: 0, of: 48, total: 38250, paid: 0, due: '', s: 'draft',

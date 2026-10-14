@@ -134,7 +134,7 @@ export default class PromoScreen extends Component {
               <div className="ix-page">
                 <ShopHeader icon="megaphone" title="Offers & promo"
                   about="Every coupon and flash sale in one place: what is running, what starts soon and what they sold this month."
-                  secondary={[{ label: 'Offers page', href: '/offers' }, { label: 'Flash sale', href: '/new-flash-sale' }]}
+                  secondary={[{ label: 'View offers page', icon: 'external-link', onClick: () => window.open('/offers', '_blank', 'noopener') }, { label: 'Flash sale', href: '/new-flash-sale' }]}
                   more={[{ label: 'Coupons', href: '/coupons' }, { label: 'Flash sales', href: '/flash-sales' }]}
                   primary={{ label: 'Create offer', href: '/new-coupon' }} />
 

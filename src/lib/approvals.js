@@ -15,6 +15,7 @@
 
 import { accountProps, accountBy } from './ledger';
 import { currentUser } from './team';
+import { perDay, shiftPast } from './demoClock';
 
 const LIMITS_KEY = 'gc.fin.limits';
 const REQ_KEY = 'gc.fin.approvals';
@@ -90,12 +91,15 @@ const SEED = [
   { id: 'AP-0001', kind: 'expense', title: 'AC servicing · Dhanmondi', amount: 6500, at: at(1, 10, 40), by: 'sadia', byName: 'Sadia Akter', status: 'waiting', rule: 'LM-3',
     payload: { account: 'cash-shop', amount: -6500, kind: 'expense', cat: 'Repairs', party: 'Rafiq Electric', note: 'Two AC units serviced', branch: 'Dhanmondi branch' }, facts: [['Category', 'Repairs'], ['Paid from', 'Cash in hand · shop'], ['Branch', 'Dhanmondi branch']] },
 ];
+// the waiting requests were sent on the demo's 1 October; in the browser they were sent yesterday (demoClock.js)
+const seeded = perDay((days) => SEED.map((r) => ({ ...r, at: shiftPast(r.at, Math.max(0, days - 1)) })));
+const stored = () => read(REQ_KEY, null) || (ssr() ? SEED : seeded());
 /** Every request, newest first. */
-export const getRequests = () => read(REQ_KEY, SEED).slice().sort((a, b) => b.at - a.at);
+export const getRequests = () => stored().slice().sort((a, b) => b.at - a.at);
 export const requestBy = (id) => getRequests().find((r) => r.id === id) || null;
 export const waitingRequests = () => getRequests().filter((r) => r.status === 'waiting');
 export function saveRequest(row) {
-  const list = read(REQ_KEY, SEED);
+  const list = stored();
   write(REQ_KEY, list.some((x) => x.id === row.id) ? list.map((x) => (x.id === row.id ? row : x)) : [row, ...list]);
   return row;
 }
@@ -105,7 +109,7 @@ export function saveRequest(row) {
  * facts: [[label, value]] shown to the approver. Returns the request.
  */
 export function submit({ kind, title, amount, payload, facts = [], rule, user = currentUser(), note = '' }) {
-  const n = Math.max(0, ...read(REQ_KEY, SEED).map((x) => (/^AP-\d+$/.test(x.id) ? Number(x.id.slice(3)) : 0))) + 1;
+  const n = Math.max(0, ...stored().map((x) => (/^AP-\d+$/.test(x.id) ? Number(x.id.slice(3)) : 0))) + 1;
   const row = {
     id: 'AP-' + String(n).padStart(4, '0'),
     kind, title, amount: r2(Math.abs(amount)), payload, facts, note, rule: rule ? rule.id || rule : '',
