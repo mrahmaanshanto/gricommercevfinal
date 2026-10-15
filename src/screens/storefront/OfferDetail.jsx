@@ -3,6 +3,7 @@
 // OfferDetail — Customer storefront — Offer detail.
 // Edit freely: this file is now the source for the screen.
 
+import { ThemeChrome } from './storeChrome';
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
@@ -73,7 +74,7 @@ class Component extends DCLogic {
       pct: (ended ? 100 : soon || !o.end ? 0 : +pct.toFixed(1)) + '%', barColor: ended ? '#cbd5e1' : '#e2136e',
       startedLine: (soon ? 'Starts ' : 'Started ') + dstr(o.start), endsLine: o.end ? (ended ? 'Ended ' : 'Ends ') + dstr(o.end) + ', ' + tstr(o.end) : 'No end date',
       steps: o.steps, terms: o.terms,
-      codeBorder: ended ? '#cbd5e1' : '#003087', codeColor: ended ? 'var(--text-muted)' : '#003087', codeDeco: ended ? 'line-through' : 'none',
+      codeBorder: ended ? '#cbd5e1' : 'var(--sf-primary)', codeColor: ended ? 'var(--text-muted)' : 'var(--sf-primary)', codeDeco: ended ? 'line-through' : 'none',
       noCodeText: o.kind === 'flash' ? 'No code needed — sale prices are on the products.' : 'No code needed — it is taken off at checkout.',
       note: s.note || '',
       copy: function () { copyText(o.code, 'Copied. You can also just pick it at checkout.'); },
@@ -93,17 +94,17 @@ class Component extends DCLogic {
 const CSS = `
 body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
+a{color:var(--sf-primary)}a:hover{color:color-mix(in srgb,var(--sf-primary) 82%,#000)}
 .card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
 .nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
 .nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
+.nav.on{background:color-mix(in srgb,var(--sf-primary) 8%,transparent);color:var(--sf-primary)}
 .navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
+.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid color-mix(in srgb,var(--sf-primary) 50%,transparent);outline-offset:2px}
+.solid{background:var(--sf-primary);color:var(--sf-on-primary)}.solid:hover{background:color-mix(in srgb,var(--sf-primary) 82%,#000);color:#fff}
+.soft{background:color-mix(in srgb,var(--sf-primary) 8%,transparent);color:var(--sf-primary)}.soft:hover{background:color-mix(in srgb,var(--sf-primary) 16%,transparent);color:var(--sf-primary)}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
 .warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
 .big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
@@ -111,22 +112,22 @@ a{color:#003087}a:hover{color:#002a77}
 .ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
 .inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
+.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:var(--sf-primary)}
 .inp::placeholder{color:var(--text-muted)}
 .lbl{font-size:var(--text-sm);line-height:20px;font-weight:var(--weight-medium);color:#334155}
 .tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
 .tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
+.tab.on{background:var(--sf-primary);color:var(--sf-on-primary)}
 .chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
 .chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
+.chip.on{border-color:var(--sf-primary);background:color-mix(in srgb,var(--sf-primary) 8%,transparent);color:var(--sf-primary)}
 .th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
 .td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
 .row{transition:background-color 200ms}.row:hover{background:#f8fafc}
 .badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
 .badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
 .b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
+.b-ordered{background:color-mix(in srgb,var(--sf-primary) 8%,transparent);color:var(--sf-primary)}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
 .b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
 .mono{font-family:var(--font-data);letter-spacing:.02em}
 .fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
@@ -138,21 +139,21 @@ a{color:#003087}a:hover{color:#002a77}
 
 .sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
+.sw.on{background:var(--sf-primary)}.sw.on::after{transform:translateX(20px)}
+.sw:focus-visible{outline:3px solid color-mix(in srgb,var(--sf-primary) 50%,transparent);outline-offset:2px}
 .b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
+.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:color-mix(in srgb,var(--sf-primary) 8%,transparent);color:var(--sf-primary)}
+.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:var(--sf-primary);box-shadow:0 6px 18px color-mix(in srgb,var(--sf-primary) 12%,transparent)}
 .bn{font-family:var(--font-bn)}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
 .sf-nav{font-size:var(--text-sm);font-weight:var(--weight-medium);color:#334155;text-decoration:none;padding:8px 2px;border-bottom:2px solid transparent}
-.sf-nav:hover{color:#003087;text-decoration:none}
-.sf-nav.on{color:#003087;border-bottom-color:#003087}
+.sf-nav:hover{color:var(--sf-primary);text-decoration:none}
+.sf-nav.on{color:var(--sf-primary);border-bottom-color:var(--sf-primary)}
 .post{transition:box-shadow 200ms,transform 200ms}.post:hover{box-shadow:0 12px 28px -10px rgba(15,23,42,.25);transform:translateY(-2px)}
-.copyb{height:36px;padding:0 12px;border-radius:var(--radius-lg);border:0;background:#003087;color:#fff;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.copyb:hover{background:#002a77}
+.copyb{height:36px;padding:0 12px;border-radius:var(--radius-lg);border:0;background:var(--sf-primary);color:#fff;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.copyb:hover{background:color-mix(in srgb,var(--sf-primary) 82%,#000)}
 `;
 
 // ---- markup ----
@@ -161,51 +162,9 @@ export default class OfferDetailScreen extends Component {
   render() {
     const v = this.renderVals() || {};
     return (
-      <div className="dc-screen ds" data-screen="OfferDetail">
+      <ThemeChrome screen="OfferDetail" kind="offers" title="Offer">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="sf-root" style={{ width: "100%", maxWidth: "1440px", margin: "0 auto", minHeight: "100vh", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
-          <div style={{ minHeight: "36px", padding: "6px 16px", textAlign: "center", background: "#b83210", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
-            </svg>
-            <PromoText promo={v.promo} />
-          </div>
-          <header className="sf-header sf-pad" style={{ minHeight: "76px", background: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "32px", padding: "0 64px" }}>
-            <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-              <span style={{ width: "38px", height: "38px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>G</span>
-              <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Dazzle Shop</span>
-            </a>
-            <nav aria-label="Shop" className="sf-navrow" style={{ display: "flex", gap: "26px" }}>
-              <a className="sf-nav" href="#">Home</a>
-              <a className="sf-nav" href="#">Phones</a>
-              <a className="sf-nav" href="#">Accessories</a>
-              <a className="sf-nav" href="#">Audio</a>
-              <__Link href="/offers" className="sf-nav on">Offers</__Link>
-            </nav>
-            <label className="sf-search" style={{ position: "relative", flexGrow: "1", maxWidth: "420px", marginLeft: "auto" }}>
-              <span style={{ position: "absolute", left: "14px", top: "12px", color: "var(--text-muted)" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-              </span>
-              <input className="inp" type="search" placeholder="Search products" aria-label="Search products" style={{ paddingLeft: "44px", background: "#f8fafc" }} />
-            </label>
-            <a className="ib sf-acct" href="#" aria-label="My account">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </a>
-            <__Link href="/checkout" aria-label="Cart, 3 items" style={{ position: "relative", display: "inline-flex", width: "40px", height: "40px", alignItems: "center", justifyContent: "center", color: "#334155" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="8" cy="21" r="1" />
-                <circle cx="19" cy="21" r="1" />
-                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-              </svg>
-              <span style={{ position: "absolute", top: "0", right: "-2px", minWidth: "18px", height: "18px", borderRadius: "var(--radius-full)", background: "#b83210", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "flex", alignItems: "center", justifyContent: "center" }}>3</span>
-            </__Link>
-          </header>
+        <div className="sf-root" style={{ width: "100%", flex: "1", display: "flex", flexDirection: "column" }}>
           {!v.ready ? <section className="sf-pad" style={{ padding: "32px 64px 56px", minHeight: "60vh" }} aria-busy="true" /> : null}
           {v.missing ? (
             <section className="sf-pad" style={{ padding: "48px 64px 64px", minHeight: "50vh" }}>
@@ -358,14 +317,8 @@ export default class OfferDetailScreen extends Component {
             </aside>
           </section>
           </>) : null}
-          <footer className="sf-footer sf-pad" style={{ marginTop: "auto", background: "#0f172a", color: "#cbd5e1", padding: "36px 64px", display: "flex", alignItems: "center", gap: "24px", fontSize: "var(--text-sm)" }}>
-            <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#fff" }}>Dazzle Shop</span>
-            <span>House 12, Road 5, Dhanmondi, Dhaka</span>
-            <span>Call 09610-XXXXXX</span>
-            <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>Powered by <img src="/assets/820d4a69b45ed8fa40c9bc6015985c0e.png" alt="GridCommerce" style={{ height: "18px", objectFit: "contain" }} /></span>
-          </footer>
         </div>
-      </div>
+      </ThemeChrome>
     );
   }
 }

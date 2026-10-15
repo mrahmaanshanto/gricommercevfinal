@@ -7,8 +7,11 @@
 //   Figures      spent this month, other income this month, owed now (→ Bills to pay), partner fees
 //   Card         the ledger rows of those kinds: a view per type, the month, a search, the pager; a cost's
 //                sales channel (categories.js homeOf) is in the row's tooltip and on Spend by category
-//   Below        spend by category (bars, labelled with their channel); Dues and Bills to pay are in More
-//   Dialogs      Record expense (category list from categories.js; posts 'expense' or 'salary'; over an approval
+//   Below        spend by category (bars, labelled with their channel); Repeats monthly (expenses added every month,
+//                with Stop; lib/ledger.js addRecurring); Dues and Bills to pay are in More
+//   Row          opens the entry in a side panel (EntrySheet.jsx: details, note, receipts, Reverse)
+//   Dialogs      Record expense (category, paid to, amount, account, date, place, VAT on the bill, a receipt photo,
+//                repeat every month; category list from categories.js; posts 'expense' or 'salary'; over an approval
 //                limit by amount, category, account or branch it waits in Approvals instead, lib/approvals.js),
 //                Record income (posts 'income'; a supplier bonus can instead be taken as credit on
 //                their bills, supplierBills.js addCredit, with no money moving) and Owner withdraw /
@@ -24,7 +27,11 @@ import { Dialog, EmptyState, InfoTip } from '@/components/ui';
 import { MetricStrip, IndexTabs, SearchField, Pager, LearnMore } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
 import { formatTime } from '@/lib/format';
-import { KIND_LABEL, balanceOf, getEntries, postEntry } from '@/lib/ledger';
+import { KIND_LABEL, balanceOf, getEntries, postEntry, addRecurring, getRecurring, stopRecurring, nextRun } from '@/lib/ledger';
+import { usePlaceList } from '@/lib/usePlaces';
+import { confirmDialog } from '@/runtime/ui';
+import { formatDate } from '@/lib/format';
+import { EntrySheet, shrinkImage } from './EntrySheet';
 import { getSuppliers, payableOf, addCredit } from '@/lib/supplierBills';
 import { getCategories, homeOf } from '@/lib/categories';
 import { getLiabilities, leftOf, liabStatus } from '@/lib/liabilities';
@@ -101,6 +108,18 @@ const CSS = `
 .eb-help{margin:var(--space-2) 0 0}
 .eb-link{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--primary);text-decoration:none}
 .eb-link:hover{text-decoration:underline}
+.eb-pbtn{width:100%;border-width:0 0 1px;background:none;font:inherit;text-align:left;cursor:pointer}
+.eb-tag{margin-left:6px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
+.eb-clip{margin-left:6px;vertical-align:-2px;color:var(--text-muted)}
+.eb-photo{display:flex;align-items:center;gap:var(--space-3)}
+.eb-photo img{width:64px;height:64px;border-radius:var(--radius-lg);object-fit:cover;border:1px solid var(--border-subtle)}
+.eb-chk{display:flex;align-items:flex-start;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-body);cursor:pointer}
+.eb-chk input{margin-top:3px}
+.eb-rules{list-style:none;margin:0;padding:0}
+.eb-rule{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) 0;border-top:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.eb-rule:first-child{border-top:0}
+.eb-rule span{min-width:0}
+.eb-rule small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 `;
 const ABOUT = 'Every taka that went out and every taka that came in that isn\'t a sale: expenses, salaries, commission, affiliates, promotions, supplier payments, owner, and other income.';
 
@@ -113,13 +132,14 @@ export default function ExpensesBills() {
   const [page, setPage] = useState(1);
   const [find, setFind] = useState(false);
   const [dialog, setDialog] = useState(null);   // 'expense' | 'income' | 'owner'
+  const [openId, setOpenId] = useState('');     // an entry opened in the side panel (EntrySheet)
 
   const data = useMemo(() => {
     if (!ready) return null;
     const now = clockNow();
     const thisM = monthRange(now, 0), lastM = monthRange(now, -1);
     const out = getEntries().filter((e) => OUT_KINDS.has(e.kind)).sort((a, b) => b.at - a.at);
-    const spend = out.filter((e) => SPEND_KINDS.has(e.kind) && e.amount < 0);
+    const spend = out.filter((e) => SPEND_KINDS.has(e.kind) && (e.amount < 0 || e.reverses));   // a reversal takes its cost back off
     const income = out.filter((e) => e.kind === 'income');
     const liabs = getLiabilities();
     const owed = liabs.filter((l) => leftOf(l) > 0);
@@ -129,7 +149,7 @@ export default function ExpensesBills() {
     const feeSum = (list) => r2(list.reduce((a, p) => a + p.fee + p.charge, 0));
     const gotOf = (list) => r2(list.reduce((a, e) => a + e.amount, 0));
     return {
-      now, thisM, lastM, out, spend, liabs,
+      now, thisM, lastM, out, spend, liabs, rules: getRecurring().filter((r) => !r.stoppedAt),
       kpi: {
         spent: spentOf(spend.filter((e) => inRange(e.at, thisM))),
         spentLast: spentOf(spend.filter((e) => inRange(e.at, lastM))),
@@ -175,7 +195,7 @@ export default function ExpensesBills() {
 
   const cats = useMemo(() => {
     const by = {}, homes = {};
-    inMonth.filter((e) => SPEND_KINDS.has(e.kind) && e.amount < 0).forEach((e) => {
+    inMonth.filter((e) => SPEND_KINDS.has(e.kind) && (e.amount < 0 || e.reverses)).forEach((e) => {
       const c = catOf(e);
       by[c] = r2((by[c] || 0) - e.amount);
       (homes[c] = homes[c] || new Set()).add(channelOf(e, data.liabs));
@@ -197,6 +217,7 @@ export default function ExpensesBills() {
   const first = (pg - 1) * PAGE;
   const shown = rows.slice(first, first + PAGE);
   const whatOf = (e) => e.cat || KIND_LABEL[e.kind] || e.kind;
+  const tagOf = (e) => (e.reverses ? 'Reversal' : e.reversedBy ? 'Reversed' : e.recurring ? 'Monthly' : '');
   const noteOf = (e) => [e.cat ? KIND_LABEL[e.kind] : '', e.note].filter(Boolean).filter((x) => x !== e.party).join(' · ');
   const rowTitle = (e) => [SPEND_KINDS.has(e.kind) && e.amount < 0 ? channelText(channelOf(e, data.liabs)) : '', e.by ? 'By ' + e.by : '', formatTime(e.at)].filter(Boolean).join(' · ');
   const tabs = GROUPS.map(([id, label]) => ({ key: id, id: 'eb-tab-' + id, label, count: data ? counts[id] : null, on: group === id, onClick: () => setGroup(id) }));
@@ -238,22 +259,22 @@ export default function ExpensesBills() {
           <ul className="ix-plist" aria-label={periodText}>
             {shown.map((e) => (
               <li key={e.id}>
-                <div className="ix-pitem">
-                  <span className="ix-pitem__top"><b>{whatOf(e)}</b><span className={'eb-fig ' + (e.amount < 0 ? 'eb-out' : 'eb-in')}>{signed(e.amount)}</span></span>
+                <button type="button" className="ix-pitem eb-pbtn" onClick={() => setOpenId(e.id)}>
+                  <span className="ix-pitem__top"><b>{whatOf(e)}{tagOf(e) ? <span className="eb-tag">{tagOf(e)}</span> : null}</b><span className={'eb-fig ' + (e.amount < 0 ? 'eb-out' : 'eb-in')}>{signed(e.amount)}</span></span>
                   <span className="ix-pitem__mid">{shortDate(e.at)} · {e.party || '—'} · {accName(e.account)}</span>
-                </div>
+                </button>
               </li>
             ))}
           </ul>
           <div className="ix-table-wrap">
-            <table className="ix-table ix-table--static gc-table--keep">
+            <table className="ix-table gc-table--keep">
               <caption className="sr-only">{periodText}, {plural(rows.length, 'entry', 'entries')}</caption>
               <thead><tr><th scope="col">Date</th><th scope="col">What</th><th scope="col">Paid to / from</th><th scope="col">Account</th><th scope="col" className="ix-num">Amount</th></tr></thead>
               <tbody>
                 {shown.map((e) => (
-                  <tr key={e.id} title={rowTitle(e)}>
+                  <tr key={e.id} tabIndex={0} onClick={() => setOpenId(e.id)} title={rowTitle(e)}>
                     <td className="ix-nowrap">{shortDate(e.at)}</td>
-                    <td><span className="ac-trunc"><span className="ix-strong">{whatOf(e)}</span>{noteOf(e) ? <span className="ix-muted"> · {noteOf(e)}</span> : null}</span></td>
+                    <td><span className="ac-trunc"><span className="ix-strong">{whatOf(e)}</span>{tagOf(e) ? <span className="eb-tag">{tagOf(e)}</span> : null}{(e.files || []).length ? <Icon name="paperclip" width="14" height="14" className="eb-clip" role="img" aria-label="Has a receipt" /> : null}{noteOf(e) ? <span className="ix-muted"> · {noteOf(e)}</span> : null}</span></td>
                     <td><span className="ac-trunc">{e.party || '—'}</span></td>
                     <td><span className="ac-logo"><BrandLogo brand={accBrand(e.account)} size={20} decorative /><span className="ix-muted">{accName(e.account)}</span></span></td>
                     <td className={'ix-num eb-fig ' + (e.amount < 0 ? 'eb-out' : 'eb-in')}>{signed(e.amount)}</td>
@@ -293,7 +314,9 @@ export default function ExpensesBills() {
           ) : <p className="ac-wait" style={{ padding: 0, textAlign: 'left' }}>No expenses, salaries or promotions in {periodText === 'All time' ? 'the books' : periodText}.</p>}
         </div>
       </section>
+      {data && data.rules.length ? <RepeatCard rules={data.rules} now={data.now} /> : null}
       <LearnMore topic="income and expenses" />
+      <EntrySheet id={openId} onClose={() => setOpenId('')} onOpen={setOpenId} />
 
       {dialog === 'expense' ? <ExpenseDialog onClose={close} /> : null}
       {dialog === 'income' ? <IncomeDialog onClose={close} /> : null}
@@ -303,6 +326,35 @@ export default function ExpensesBills() {
 }
 
 // ---- small pieces --------------------------------------------------------------------------------
+/** Expenses that repeat every month (lib/ledger.js addRecurring): what, how much, the next day, Stop. */
+function RepeatCard({ rules, now }) {
+  const me = useMe();
+  const stop = async (r) => {
+    const ok = await confirmDialog({ title: 'Stop repeating?', body: `${r.cat} won’t be added again. Months already added stay.`, confirmLabel: 'Stop repeating', tone: 'danger' });
+    if (!ok) return;
+    stopRecurring(r.id, (me && me.name) || 'Staff');
+    toast('It won’t repeat any more');
+  };
+  return (
+    <section className="ix-card" aria-labelledby="eb-rep-title">
+      <header className="ix-card__head"><h2 id="eb-rep-title">Repeats monthly</h2><span className="eb-total">{money(rules.reduce((a, r) => a + r.amount, 0))}</span></header>
+      <div className="ix-card__body">
+        <ul className="eb-rules">
+          {rules.map((r) => {
+            const next = nextRun(r, now);
+            return (
+              <li key={r.id} className="eb-rule">
+                <span><b className="ix-strong">{r.cat}</b>{r.party && r.party !== r.cat ? ' · ' + r.party : ''}<small>{money(r.amount)} from {accName(r.account)}{next ? ' · next ' + formatDate(next) : ''}</small></span>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => stop(r)}>Stop</button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 const cleanAmount = (v) => v.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
 
 // ---- record expense ------------------------------------------------------------------------------
@@ -316,9 +368,16 @@ function ExpenseDialog({ onClose }) {
   const [account, setAccount] = useState('cash-shop');
   const [date, setDate] = useState(today);
   const [note, setNote] = useState('');
+  const [place, setPlace] = useState('');        // the branch or warehouse the cost belongs to ('' = the whole shop)
+  const [vat, setVat] = useState('');            // VAT shown on the bill, part of the amount
+  const [photo, setPhoto] = useState(null);      // { name, url } the receipt, made small
+  const [repeat, setRepeat] = useState(false);   // add it again on the same day every month (not when it waits for approval)
   const [tried, setTried] = useState(false);
+  const places = usePlaceList('stock');
+  const fileRef = useRef(null);
 
   const amt = r2(amount);
+  const vatAmt = r2(vat);
   const balance = balanceOf(account);
   const picked = categories.find((c) => c.name === cat);
   const isSalary = !!picked && picked.id === 'salary';
@@ -326,9 +385,16 @@ function ExpenseDialog({ onClose }) {
     cat: cat ? '' : 'Choose what the money was for.',
     amount: amt > 0 ? '' : 'Enter the amount paid.',
     date: !date ? 'Pick the day it was paid.' : date > today ? 'The date can’t be in the future.' : '',
+    vat: vatAmt > 0 && amt > 0 && vatAmt >= amt ? 'VAT is part of the amount, so it must be less.' : '',
   };
   const show = (f) => (tried ? errors[f] : '');
-  const rule = amt > 0 && cat ? needsApproval({ kind: 'expense', amount: amt, cat, account }) : null;
+  const rule = amt > 0 && cat ? needsApproval({ kind: 'expense', amount: amt, cat, account, ...(place ? { branch: place } : {}) }) : null;
+  const pickPhoto = async (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (!f) return;
+    try { setPhoto({ name: f.name, url: await shrinkImage(f) }); } catch (err) { toast(err.message, { tone: 'error' }); }
+  };
 
   const save = (e) => {
     e.preventDefault();
@@ -337,6 +403,8 @@ function ExpenseDialog({ onClose }) {
     const entry = {
       account, amount: -amt, kind: isSalary ? 'salary' : 'expense', cat,
       party: party.trim() || cat, note: note.trim(), by: (me && me.name) || 'Staff',
+      ...(place ? { place } : {}), ...(vatAmt > 0 ? { vat: vatAmt } : {}),
+      ...(photo ? { files: [{ id: 'F-' + Date.now().toString(36), name: photo.name, url: photo.url, type: 'image', at: Date.now(), by: (me && me.name) || 'Staff' }] } : {}),
       ...(date !== today ? { at: fromKey(date) + 12 * 3600e3 } : {}),
     };
     if (rule) {
@@ -349,7 +417,11 @@ function ExpenseDialog({ onClose }) {
     }
     const row = postEntry(entry);
     if (!row) { toast('That account could not be found', { tone: 'error' }); return; }
-    toast(`${money(amt)} for ${cat.toLowerCase()} recorded from ${accName(account)}`);
+    if (repeat) {
+      const { files, ...base } = entry;
+      addRecurring({ ...base, startAt: row.at });
+    }
+    toast(`${money(amt)} for ${cat.toLowerCase()} recorded from ${accName(account)}${repeat ? '. It repeats every month.' : ''}`);
     onClose();
   };
 
@@ -391,10 +463,37 @@ function ExpenseDialog({ onClose }) {
             {show('date') ? <p id="eb-date-err" className="gc-help gc-help--error">{errors.date}</p> : null}
           </div>
           <div>
+            <label className="gc-label" htmlFor="eb-place">Place</label>
+            <select id="eb-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>
+              <option value="">Whole shop</option>
+              {places.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="ac-two">
+          <div>
+            <label className="gc-label" htmlFor="eb-vat">VAT on the bill (৳)</label>
+            <input id="eb-vat" className={'gc-input ac-fig' + (show('vat') ? ' gc-input--error' : '')} inputMode="decimal" value={vat} onChange={(e) => setVat(cleanAmount(e.target.value))} placeholder="Optional" aria-invalid={!!show('vat')} aria-describedby={show('vat') ? 'eb-vat-err' : undefined} />
+            {show('vat') ? <p id="eb-vat-err" className="gc-help gc-help--error">{errors.vat}</p> : null}
+          </div>
+          <div>
             <label className="gc-label" htmlFor="eb-note">Note</label>
             <input id="eb-note" className="gc-input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional, e.g. October rent" />
           </div>
         </div>
+        <div>
+          <span className="gc-label">Receipt</span>
+          <div className="eb-photo">
+            {photo ? <img src={photo.url} alt="Receipt" /> : null}
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => fileRef.current && fileRef.current.click()}><Icon name="camera" width="16" height="16" aria-hidden="true" />{photo ? 'Change photo' : 'Add a photo'}</button>
+            {photo ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setPhoto(null)}>Remove</button> : null}
+            <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={pickPhoto} />
+          </div>
+        </div>
+        <label className="eb-chk">
+          <input type="checkbox" className="gc-check" checked={repeat && !rule} disabled={!!rule} onChange={(e) => setRepeat(e.target.checked)} />
+          <span>Repeat every month{date ? ` on day ${Math.min(28, Number(date.slice(8, 10)) || 1)}` : ''}<small className="gc-help" style={{ display: 'block', margin: 0 }}>{rule ? 'Not for an amount that needs approval.' : 'For rent, internet or a bill that is the same each month. Stop it any time.'}</small></span>
+        </label>
       </form>
     </Dialog>
   );

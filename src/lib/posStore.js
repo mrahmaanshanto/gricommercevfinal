@@ -9,6 +9,7 @@ export const POS_KEYS = {
   shift: 'gc.pos.shift', held: 'gc.pos.held', sales: 'gc.pos.sales', points: 'gc.pos.points',
   counters: 'gc.pos.counters', shifts: 'gc.pos.shifts', cash: 'gc.pos.cash', settings: 'gc.pos.settings',
   queue: 'gc.pos.queue', ops: 'gc.pos.ops', open: 'gc.pos.openShifts', device: 'gc.pos.device', drawerOpens: 'gc.pos.drawerOpens', seq: 'gc.pos.seq',
+  collections: 'gc.pos.collections',
 };
 
 export const load = (key, fallback) => { try { return JSON.parse(window.localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
@@ -20,16 +21,86 @@ export const LOCATIONS = PLACES.map((l) => ({ name: l.name, type: l.type }));
 /** Live list of LOCATIONS (read it after mount): the same places, with added ones and without deactivated ones. */
 export const getPosLocations = () => (typeof window === 'undefined' ? LOCATIONS : getPlaces({ active: true }).map((l) => ({ name: l.name, type: l.type })));
 
-// People from Staff who can work a counter or collect cash from one.
-export const EMPLOYEES = [
-  { name: 'Sadia Akter', role: 'Cashier', branch: 'Dhanmondi branch' },
-  { name: 'Rafi Ahmed', role: 'Sales associate', branch: 'Dhanmondi branch' },
-  { name: 'Rakib Hasan', role: 'Branch manager', branch: 'Dhanmondi branch' },
-  { name: 'Moumita Das', role: 'Cashier', branch: 'Mirpur branch' },
-  { name: 'Arif Rahman', role: 'Sales associate', branch: 'Mirpur branch' },
-  { name: 'Nabila Rahman', role: 'Branch manager', branch: 'Mirpur branch' },
+// People who can work a counter or collect cash from one: Staff & HR's people (lib/hr.js) whose sign-in role works the
+// shop (Manager, Cashier, Sales staff), with their Team role (lib/team.js) when they have a sign-in, plus the owner.
+// A new hire made in Staff & HR shows here once getEmployees() is read (Pos and POS management do on load); the lists
+// below are filled in place, so every screen that imported them sees the hire too. Left or suspended staff are not listed.
+//   pos role   manager · supervisor · cashier · seller — what the register lets them do (POS limits below)
+import { seedSnapshot } from './hr';
+import { USERS, ROLES as TEAM_ROLES } from './team';
+export const POS_ROLES = { manager: 'Manager', supervisor: 'Supervisor', cashier: 'Cashier', seller: 'Sales staff' };
+const HR_POS = { Owner: 'manager', Manager: 'manager', Cashier: 'cashier', 'Sales staff': 'seller' };
+const TEAM_POS = { ceo: 'manager', 'shop-manager': 'manager', 'shop-supervisor': 'supervisor', seller: 'seller' };
+const RANK = { supervisor: 0, cashier: 0, seller: 1, manager: 2 };
+const BRANCH_ORDER = ['Dhanmondi branch', 'Mirpur branch'];
+function employeesFrom(staff) {
+  const out = (staff || []).filter((x) => x && x.name && !['left', 'suspended'].includes(x.status) && HR_POS[x.role]).map((x) => {
+    const u = USERS.find((y) => y.staff && y.staff === x.code);
+    const pos = (u && TEAM_POS[u.role]) || HR_POS[x.role];
+    return { name: x.name, role: u && TEAM_ROLES[u.role] ? TEAM_ROLES[u.role].title : x.designation, branch: x.branch, code: x.code, pos, user: u ? u.id : '' };
+  });
+  USERS.filter((u) => u.role === 'ceo' && !out.some((e) => e.name === u.name)).forEach((u) => out.push({ name: u.name, role: 'Owner', branch: 'All branches', code: u.staff || '', pos: 'manager', user: u.id }));
+  const bi = (b) => { const i = BRANCH_ORDER.indexOf(b); return i < 0 ? 9 : i; };
+  return out.sort((a, b) => bi(a.branch) - bi(b.branch) || RANK[a.pos] - RANK[b.pos] || a.name.localeCompare(b.name));
+}
+export const EMPLOYEES = employeesFrom(seedSnapshot().staff);
+export const MANAGERS = EMPLOYEES.filter((e) => e.pos === 'manager').map((e) => e.name);
+/** The live list (Staff & HR in this browser). Also refreshes EMPLOYEES and MANAGERS in place. */
+export function getEmployees() {
+  if (typeof window === 'undefined') return EMPLOYEES;
+  let staff = null;
+  try { staff = JSON.parse(window.localStorage.getItem('gc.hr.staff')); } catch { staff = null; }
+  const list = employeesFrom(Array.isArray(staff) ? staff : seedSnapshot().staff);
+  EMPLOYEES.splice(0, EMPLOYEES.length, ...list);
+  MANAGERS.splice(0, MANAGERS.length, ...list.filter((e) => e.pos === 'manager').map((e) => e.name));
+  return EMPLOYEES;
+}
+export const employeeBy = (name) => EMPLOYEES.find((e) => e.name === name) || null;
+export const posRoleOf = (name) => (employeeBy(name) || {}).pos || 'cashier';
+
+// ---- POS limits per role and each person's manager PIN (POS management › Settings) ---------------------------------
+// What a role may do at the register on its own. 'yes' = allowed; 'pin' = someone who may approve enters their own PIN
+// (components/ManagerPin.jsx lists them). discount = the largest discount in % (bill or line) without approval.
+// approve = this role can approve others with its PIN.
+export const POS_PERMS = [
+  ['price', 'Change a price'], ['refund', 'Refund or exchange'], ['void', 'Cancel a sale in progress or void an offline sale'],
+  ['drawer', 'Open the drawer without a sale'], ['due', 'Sell on due (leave money unpaid)'],
 ];
-export const MANAGERS = EMPLOYEES.filter((e) => e.role === 'Branch manager').map((e) => e.name);
+export const DEFAULT_ROLE_LIMITS = {
+  manager: { discount: 100, price: 'yes', refund: 'yes', void: 'yes', drawer: 'yes', due: 'yes', approve: true },
+  supervisor: { discount: 20, price: 'yes', refund: 'yes', void: 'pin', drawer: 'yes', due: 'yes', approve: true },
+  cashier: { discount: 10, price: 'pin', refund: 'pin', void: 'pin', drawer: 'pin', due: 'pin', approve: false },
+  seller: { discount: 5, price: 'pin', refund: 'pin', void: 'pin', drawer: 'pin', due: 'pin', approve: false },
+};
+/** The demo PIN of everyone who can approve, until they set their own (POS management › Settings › PINs). */
+export const DEMO_PIN = '1234';
+export const roleLimits = (cfg = getSettings()) => Object.fromEntries(Object.entries(DEFAULT_ROLE_LIMITS).map(([k, d]) => [k, { ...d, ...((cfg.roleLimits || {})[k] || {}) }]));
+/** What this person may do: { discount, price, refund, void, drawer, due, approve, role }. */
+export function limitsFor(name, cfg = getSettings()) {
+  const role = posRoleOf(name);
+  return { ...roleLimits(cfg)[role], role };
+}
+/** Who may approve `perm` (and a discount of `pct` %): people whose role approves and allows it themselves. */
+export function approversFor(perm, { pct = 0 } = {}, cfg = getSettings()) {
+  const lim = roleLimits(cfg);
+  return EMPLOYEES.filter((e) => { const l = lim[e.pos]; return l && l.approve && (!perm || perm === 'any' || (perm === 'discount' ? l.discount >= pct : l[perm] === 'yes')); }).map((e) => e.name);
+}
+/** A person's PIN: their own, else the demo PIN when their role approves. '' = no PIN. */
+export function pinOf(name, cfg = getSettings()) {
+  const own = (cfg.pins || {})[name];
+  if (own) return own;
+  const e = employeeBy(name);
+  return e && roleLimits(cfg)[e.pos] && roleLimits(cfg)[e.pos].approve ? DEMO_PIN : '';
+}
+export const checkPin = (name, pin, cfg = getSettings()) => !!pin && pinOf(name, cfg) === String(pin);
+/** Set a person's own PIN (4–6 digits). Returns { ok } or { ok: false, error }. */
+export function setPin(name, pin) {
+  if (!/^\d{4,6}$/.test(String(pin || ''))) return { ok: false, error: 'A PIN has 4 to 6 digits.' };
+  const cfg = getSettings();
+  saveSettings({ ...cfg, pins: { ...(cfg.pins || {}), [name]: String(pin) } });
+  return { ok: true };
+}
+export const hasOwnPin = (name, cfg = getSettings()) => !!(cfg.pins || {})[name];
 export const CASH_PLACES = ['Shop safe', 'Bank deposit', 'Head office'];
 
 const SEED_COUNTERS = [
@@ -59,7 +130,7 @@ export const DEFAULT_SETTINGS = {
   pickupLimit: 20000,     // the register asks for a cash pickup above this much in the drawer
   requireFull: true,      // a sale cannot be completed with money still due
   printReceipt: true,     // print the receipt when the sale completes
-  maxDiscount: 15,        // the most a cashier can give as a manual discount, in percent
+  maxDiscount: 15,        // older setting: the cashier's discount limit now lives in roleLimits (POS limits per role)
   returnDays: 7,          // days a receipt can be exchanged or returned
   footer: 'Thank you for shopping with us.',
   varianceLimit: 200,     // a drawer short or over by more than this (৳) needs a manager's PIN, at opening and closing
@@ -176,6 +247,17 @@ export function postSaleTenders(sale) {
   });
 }
 
+// ---- old dues collected at the counter (Pos › Collect due) -----------------------------------------------------------
+// Each record is one payment taken at a counter against a customer's unpaid invoices: { id (the money receipt's
+// PAY- number), at, counter, cashier, shiftAt, customer, phone, method, amount, account, invoices: [{ id, amount }] }.
+// The payment itself is recorded on the invoices (lib/allocations.js › allocatePayment); cash is moved into the drawer.
+export const getCollections = () => load(POS_KEYS.collections, []);
+export function addCollection(row) {
+  const list = getCollections();
+  save(POS_KEYS.collections, [row, ...list]);
+  return row;
+}
+
 /** Everything a shift sold and the cash its drawer should hold, from the sales and cash movements. */
 const RETURNS_KEY = 'gc.returns';   // the return history (returns.js, which reads this file: read here directly)
 export function shiftReport(shift, sales, cash, until = Infinity) {
@@ -206,8 +288,13 @@ export function shiftReport(shift, sales, cash, until = Infinity) {
     discounts += (t.lineDisc || 0) + (t.cartDisc || 0) + (t.couponDisc || 0) + (t.memberDisc || 0) + (t.pointsDisc || 0);
     units += t.units;
   });
+  // old dues collected at this counter during the shift (Collect due): cash in the drawer, the rest in its account
+  const coll = load(POS_KEYS.collections, []).filter((c) => c.counter === shift.counter && inShift(c.at));
+  const collIds = coll.map((c) => c.id);
+  const viaCollection = (p) => !!p.ref && collIds.some((id) => String(p.ref).includes(id));
+  coll.forEach((c) => { if (c.method === 'Cash') cashCollected += c.amount; else byMethod[c.method] = (byMethod[c.method] || 0) + c.amount; });
   // money received later against an unpaid invoice counts in the shift that was open when it came in
-  sales.forEach((s) => (s.payments || []).forEach((p) => { if (p.account === 'drawer' && p.at >= shift.openedAt && p.at <= until) byMethod[p.method] = (byMethod[p.method] || 0) + p.amount; }));
+  sales.forEach((s) => (s.payments || []).forEach((p) => { if (p.account === 'drawer' && !viaCollection(p) && p.at >= shift.openedAt && p.at <= until) byMethod[p.method] = (byMethod[p.method] || 0) + p.amount; }));
   const moves = cash.filter((m) => m.shiftAt === shift.openedAt && m.type !== 'float' && m.type !== 'opendiff');
   const sum = (type) => moves.filter((m) => m.type === type).reduce((a, m) => a + m.amount, 0);
   const pickups = sum('pickup'), paidOut = sum('out'), added = sum('in');
@@ -222,12 +309,14 @@ export function shiftReport(shift, sales, cash, until = Infinity) {
     acc[k].expected += amount;
   };
   mine.forEach((s) => s.tenders.forEach((x) => addTo(x.account || accountForMethod(x.method, true), x.terminal, x.method, x.amount)));
-  sales.forEach((s) => (s.payments || []).forEach((p) => { if (p.at >= shift.openedAt && p.at <= until) addTo(p.account, '', p.method, p.amount); }));
+  sales.forEach((s) => (s.payments || []).forEach((p) => { if (!viaCollection(p) && p.at >= shift.openedAt && p.at <= until) addTo(p.account, '', p.method, p.amount); }));
+  coll.forEach((c) => { if (c.method !== 'Cash') addTo(c.account, '', c.method, c.amount); });
   const byAccount = [{ account: 'drawer', terminal: '', method: 'Cash', expected }, ...Object.values(acc).map((a) => ({ ...a, expected: r2(a.expected) }))];
   return {
     count: mine.length, units, sold: r2(mine.reduce((a, s) => a + s.totals.total, 0)), discounts: r2(discounts),
     byMethod: Object.fromEntries(Object.entries(byMethod).map(([k, v]) => [k, r2(v)])),
     refunds: r2(refunds), cashRefunds: r2(cashRefunds), cashCollected: r2(cashCollected), pickups, paidOut, added, moves,
+    collected: r2(coll.reduce((a, c) => a + c.amount, 0)), collections: coll.length,
     expected, byAccount,
   };
 }

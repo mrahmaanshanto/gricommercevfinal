@@ -1,0 +1,35 @@
+{
+ "id": "RT-F12",
+ "kind": "new",
+ "section": "Retail & POS",
+ "area": "Retail & POS",
+ "title": "Counter to-dos on Home",
+ "problem": "Home's Needs you had no counter work for a shop with a POS.",
+ "now": "Needs you lists overdue dues, invoices to accept, a full drawer, offline sales, drawer differences and open warranty claims.",
+ "steps": [
+  "Open Home",
+  "Press Needs you",
+  "Open Warranty claims from the list"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/merchant-overview/Home.jsx"
+ ],
+ "notes": "Where: Home › Needs you · /merchant-overview",
+ "shots": [
+  {
+   "route": "/merchant-overview?edition=retail-wholesale",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Home in the Retail edition",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

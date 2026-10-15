@@ -1,0 +1,24 @@
+{
+ "id": "ON-F14",
+ "kind": "new",
+ "section": "Online selling",
+ "area": "Online selling",
+ "title": "Send licence keys and download links",
+ "problem": "Mark as sent on a digital order sent nothing and the key was not shown anywhere.",
+ "now": "Sending gives each licence its key and each download its link, messages the customer, and shows them with Resend.",
+ "steps": [
+  "Create an approved order for the security licence (no delivery charge is added)",
+  "Open it and press Mark as sent",
+  "Press Show to see the key, then Resend"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/orderFlow.js",
+  "src/lib/notifications.js",
+  "src/screens/order-detail/OrderDetail.jsx",
+  "src/screens/merchant-orders/NewOrder.jsx"
+ ],
+ "notes": "Where: Order page of a digital order (Send the download or key card, then Download and keys)",
+ "shots": []
+}

@@ -11,6 +11,8 @@
 //   quick actions edition- and role-aware (appNav.canUse), at most four
 //   Needs you   the day's to-do as action items (lib/actionItems.js, source 'app'; the same keys as the web Home, so
 //               snoozing or dismissing one on the web hides it here too), at most four, most urgent first
+//   Today's cash drawers open now and their expected cash, pickups, shifts closed, COD with couriers (money/TodayCash.jsx;
+//               people who see the whole shop)
 //   This week   sales of the last 7 days (salesBook.salesByChannel), today in brand blue
 //   Recent orders the latest three (online orders, or counter sales in the Retail edition); people who can't open
 //               Orders see the latest sales of their part instead
@@ -36,6 +38,7 @@ import { getBills, billLeft, billStatus } from '@/lib/supplierBills';
 import { liveCount } from '@/lib/liveCounts';
 import { trackItems, ageOf, ageText } from '@/lib/actionItems';
 import { salesScope, scopedSales } from './kit/appScope';
+import { todayCash, TodayCashCard } from './money/TodayCash';
 
 const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch { return fb; } };
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -91,8 +94,8 @@ export function build(ctx) {
   const firstLow = d.low.items[0];
   const pick = (route, web) => (use(route) ? route : web);
   const rows = [
-    has('online') && waiting.length > 0 && { key: 'orders:verify', label: 'Verify orders', n: waiting.length, icon: 'bag', href: pick('/m-orders', '/merchant-orders?status=onhold'), severity: 'high', area: 'area-orders', owner: ['orders', 'comms', 'online-sales'], since: oldest(waiting) },
-    has('online') && ready.length > 0 && { key: 'orders:to-courier', label: 'Send to courier', n: ready.length, icon: 'truck', href: pick('/m-orders', '/merchant-orders?status=ready'), severity: 'high', area: 'area-orders', owner: ['orders', 'wh-manager', 'wh-supervisor'], since: oldest(ready) },
+    has('online') && waiting.length > 0 && { key: 'orders:verify', label: 'Verify orders', n: waiting.length, icon: 'bag', href: use('/m-orders') ? '/m-orders?status=onhold' : '/merchant-orders?status=onhold', severity: 'high', area: 'area-orders', owner: ['orders', 'comms', 'online-sales'], since: oldest(waiting) },
+    has('online') && ready.length > 0 && { key: 'orders:to-courier', label: 'Send to courier', n: ready.length, icon: 'truck', href: use('/m-orders') ? '/m-orders?status=ready' : '/merchant-orders?status=ready', severity: 'high', area: 'area-orders', owner: ['orders', 'wh-manager', 'wh-supervisor'], since: oldest(ready) },
     chats > 0 && { key: 'inbox:chats', label: 'Reply to chats', n: chats, icon: 'chat', href: pick('/m-inbox', '/merchant-inbox'), severity: 'high', area: 'area-inbox', owner: ['comms', 'orders', 'online-sales'] },
     has('money') && d.payouts.late.length > 0 && { key: 'finance:late-payouts', label: 'Check payouts', n: d.payouts.late.length, value: d.payouts.lateTotal, sub: money(d.payouts.lateTotal) + ' late', icon: 'cash', href: pick('/m-payouts', '/settlements'), severity: 'critical', area: 'area-payments', owner: ['ceo'], since: oldest(d.payouts.late, (p) => p.due) },
     overdue.length > 0 && { key: 'finance:supplier-bills', label: 'Pay suppliers', n: overdue.length, icon: 'receipt', href: pick('/m-dues', '/dues?tab=owe'), severity: 'high', area: 'area-finances', owner: ['ceo', 'wh-manager'], since: oldest(overdue, (b) => b.due) },
@@ -116,7 +119,10 @@ export function build(ctx) {
     ['/m-customers', 'Customers', 'users'],
   ].filter(([r]) => use(r)).slice(0, 4);
 
-  return { now, d, total, scope, change, figures, trend, todo, recent, recentSales, actions, place: (user && user.place) || '' };
+  // where today's money is (drawers, pickups, COD with couriers): for people who see the whole shop, in editions with the POS or Money
+  const cash = scope.kind === 'shop' && (has('pos') || has('money')) ? safe(() => todayCash(), null) : null;
+
+  return { now, d, total, scope, change, figures, trend, todo, recent, recentSales, actions, cash, place: (user && user.place) || '' };
 }
 
 function greeting(h) { return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; }
@@ -207,6 +213,8 @@ export default function MHomeScreen() {
           )}
         </Section>
 
+        {data && data.cash ? <TodayCashCard data={data.cash} /> : null}
+
         <Section title="This week" action={<span className="num" style={{ fontSize: 'var(--text-xs-plus)', color: 'var(--muted)' }}>{data ? money(weekTotal) : ''}</span>}>
           <div className="card" style={{ margin: '0 20px', padding: '16px 16px 12px', display: 'flex', gap: '8px', alignItems: 'flex-end', height: '118px' }} role="img" aria-label={data ? `Sales in the last 7 days: ${money(weekTotal)}` : 'Sales in the last 7 days'}>
             {(data ? data.trend : Array.from({ length: 7 }, (_, i) => ({ from: i, total: 0, today: i === 6 }))).map((t) => (
@@ -246,7 +254,7 @@ export default function MHomeScreen() {
                     href={canUse('/m-orders', ctx) ? '/m-order-detail?id=' + encodeURIComponent(o.id) : undefined}
                     avatar={<Avatar text={o.initials || initials(o.customer)} tone={{ bg: '#e0f3fb', fg: '#003087' }} />}
                     title={o.customer || 'Walk-in customer'}
-                    sub={<><span className="mono">{o.id}</span> · {ago(o.at, data.now)}{s ? ' · ' + s.label : ''}</>}
+                    sub={<><span className="mono">{o.id}</span> · {ago(o.at, data.now)}{s ? <> · <span>{s.label}</span></> : ''}</>}
                     end={<span className="num" style={{ fontWeight: 'var(--weight-semibold)' }}>{money(o.amount)}</span>}
                     chevron={false}
                   />

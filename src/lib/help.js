@@ -35,9 +35,15 @@ export const HELP = {
     related: ['/seo'],
   },
   '/merchant-overview': {
-    en: E('Your shop this morning: what needs you, how today is going, money to collect and stock to watch.', ['Start with "Needs your attention" — each line opens the page where you fix it.', 'Check today’s sales, orders and collection against yesterday.', 'Use Customise to hide sections you do not use.'], ['Numbers update as orders, payments and stock change.', 'Deeper analysis is in Reports.'], ['Your morning in 2 minutes', '2:10']),
-    bn: E('সকালে Shop-এর অবস্থা: কী কী দেখতে হবে, আজ বিক্রি কেমন, কত টাকা তুলতে হবে আর কোন Stock কমে গেছে।', ['আগে "আপনার নজর দরকার" অংশ দেখুন — প্রতিটি লাইনে চাপ দিলে ঠিক করার page খুলবে।', 'আজকের Sales, Order আর Collection গতকালের সাথে মিলিয়ে দেখুন।', 'যে অংশ লাগে না, Customise থেকে লুকিয়ে রাখুন।'], ['Order, Payment, Stock বদলালে সংখ্যাও বদলায়।', 'বিস্তারিত হিসাব Reports-এ।'], ['২ মিনিটে আপনার সকাল', '2:10']),
-    related: ['/my-dashboard', '/merchant-orders', '/daily-summary', '/reports-centre'],
+    name: 'Home',
+    en: E('Your shop at a glance: today’s sales, orders and money in hand, what needs someone, and how sales are going.', ['Pick Today or Yesterday and a place at the top; the figures and charts follow it.', 'Press Needs you for the work waiting (orders to verify, payouts to check, bills to pay). Each line opens the page where it is done; snooze or dismiss what can wait.', 'Ask GridAI about sales, orders or stock in the box under the greeting.', 'Sales summary, Order summary and Stock alert sit below; each opens its full page.'], ['Numbers update as orders, payments and stock change.', 'The monthly target is set under This month.', 'Deeper analysis is in Analytics › Reports.'], null),
+    bn: E('এক নজরে আপনার Shop: আজকের Sales, Order আর হাতে থাকা টাকা, কী কাজ বাকি আর বিক্রি কেমন চলছে।', ['উপরে আজ বা গতকাল আর একটি জায়গা বাছুন; সংখ্যা আর Chart সেটাই দেখায়।', 'বাকি কাজ দেখতে Needs you চাপুন (যাচাই করার Order, মেলানোর Payout, দেওয়ার Bill)। প্রতিটি লাইন কাজের Page খোলে; যা পরে করা যায় তা Snooze বা Dismiss করুন।', 'অভিবাদনের নিচের ঘরে GridAI-কে Sales, Order বা Stock নিয়ে প্রশ্ন করুন।', 'নিচে Sales summary, Order summary আর Stock alert; প্রতিটি পুরো Page খোলে।'], ['Order, Payment, Stock বদলালে সংখ্যাও বদলায়।', 'মাসের লক্ষ্য This month-এ ঠিক করা হয়।', 'বিস্তারিত হিসাব Analytics › Reports-এ।'], null),
+    related: ['/my-dashboard', '/merchant-orders', '/daily-summary', '/notifications', '/reports-centre'],
+  },
+  '/notifications': {
+    en: E('Everything that needs someone, newest first: new orders, payments due, low stock, late payouts, approvals, meeting notes, support tickets and mentions.', ['Tap a notification to open the page where it is done; it is marked read.', 'Use the type chips to see one kind, and Unread to see what is new.', 'Settings: choose for each kind whether you get it in the app, with a sound, by email or by SMS, and set quiet hours.'], ['Your settings are your own; each person sets theirs.', 'The bell in the top bar shows the newest six.'], null),
+    bn: E('যা কিছুর জন্য কাউকে দরকার, নতুনগুলো আগে: নতুন Order, বাকি Payment, কম Stock, দেরি হওয়া Payout, Approval, Meeting-এর নোট, Support ticket আর Mention।', ['কাজের Page খুলতে একটি Notification চাপুন; সেটি পড়া হয়েছে বলে চিহ্নিত হয়।', 'একটি ধরন দেখতে ধরনের Chip, আর নতুনগুলো দেখতে Unread ব্যবহার করুন।', 'Settings: প্রতিটি ধরনের জন্য বাছুন App-এ, শব্দসহ, Email-এ বা SMS-এ পাবেন কি না, আর Quiet hours ঠিক করুন।'], ['আপনার Settings শুধু আপনার; প্রত্যেকে নিজেরটা ঠিক করেন।', 'উপরের বারের ঘণ্টায় নতুন ছয়টি দেখায়।'], null),
+    related: ['/merchant-overview', '/my-account'],
   },
   '/my-dashboard': {
     en: E('Your own day: your tasks, follow-ups, attendance and the numbers for your job.', ['Tick tasks as you finish them.', 'Call the customers in My follow-ups on time.', 'Open a block’s report for the full picture.'], ['The menu shows only the pages your role uses.'], ['Your dashboard', '1:30']),
@@ -70,13 +76,13 @@ export const HELP = {
     related: ['/merchant-orders', '/all-customers'],
   },
   '/pos': {
-    en: E('The shop counter: sell, take payment and print the memo.', ['Scan or search products to add them.', 'Choose the customer (or walk-in).', 'Press Pay, take cash, bKash or card, then print.'], ['Press F1 for keyboard shortcuts.', 'When customer dues are on (Settings › Customers), a sale can be left as Due on an invoice.'], ['Make a sale at the counter', '3:00']),
-    bn: E('দোকানের Counter: বিক্রি করুন, Payment নিন, Memo Print করুন।', ['Scan বা Search করে Product যোগ করুন।', 'Customer বাছুন (বা Walk-in)।', 'Pay চাপুন, Cash, bKash বা Card নিন, তারপর Print।'], ['Keyboard shortcut দেখতে F1 চাপুন।', 'Customer-এর বাকি চালু থাকলে (Settings › Customers) বিক্রি Invoice-এ বাকি রাখা যায়।'], ['Counter-এ বিক্রি', '3:00']),
+    en: E('The shop counter: sell, take payment and print the memo.', ['Scan or search products to add them.', 'Choose the customer (or walk-in).', 'Press Pay, take cash, bKash or card, then print.'], ['Press F1 for keyboard shortcuts.', 'When customer dues are on (Settings › Customers), a sale can be left as Due on an invoice.', 'Collect due takes an old due at the counter and prints a money receipt.', 'A discount or price change above your role’s limit needs an approver’s PIN.'], ['Make a sale at the counter', '3:00']),
+    bn: E('দোকানের Counter: বিক্রি করুন, Payment নিন, Memo Print করুন।', ['Scan বা Search করে Product যোগ করুন।', 'Customer বাছুন (বা Walk-in)।', 'Pay চাপুন, Cash, bKash বা Card নিন, তারপর Print।'], ['Keyboard shortcut দেখতে F1 চাপুন।', 'Customer-এর বাকি চালু থাকলে (Settings › Customers) বিক্রি Invoice-এ বাকি রাখা যায়।', 'Collect due দিয়ে Counter-এ পুরোনো বাকি নিন, মানি রিসিট Print হয়।', 'আপনার Role-এর সীমার বেশি ছাড় বা দাম বদলে অনুমোদনকারীর PIN লাগে।'], ['Counter-এ বিক্রি', '3:00']),
     related: ['/pos-manage', '/sales-invoices', '/return-exchange'],
   },
   '/pos-manage': {
-    en: E('Behind the counter: counters, staff and shifts, cash pickups and POS settings.', ['Open a counter’s shift and close it with a cash count.', 'Record cash taken from a drawer in Cash pickups.'], ['Over or short cash is shown on the shift report.'], ['Counters and cash', '2:40']),
-    bn: E('Counter-এর পেছনের কাজ: Counter, Staff আর Shift, Cash pickup আর POS settings।', ['Counter-এর Shift খুলুন, Cash গুনে বন্ধ করুন।', 'Drawer থেকে টাকা তুললে Cash pickups-এ লিখুন।'], ['Cash কম-বেশি হলে Shift report-এ দেখায়।'], ['Counter আর Cash', '2:40']),
+    en: E('Behind the counter: counters, staff and shifts, cash pickups and POS settings.', ['Open a counter’s shift and close it with a cash count.', 'Record cash taken from a drawer in Cash pickups.'], ['Over or short cash is shown on the shift report.', 'Settings › POS limits by role: what each role does on its own; each approver has their own PIN.', 'Report › Print 80 mm or A4 prints the shift’s Z-report.'], ['Counters and cash', '2:40']),
+    bn: E('Counter-এর পেছনের কাজ: Counter, Staff আর Shift, Cash pickup আর POS settings।', ['Counter-এর Shift খুলুন, Cash গুনে বন্ধ করুন।', 'Drawer থেকে টাকা তুললে Cash pickups-এ লিখুন।'], ['Cash কম-বেশি হলে Shift report-এ দেখায়।', 'Settings › Role অনুযায়ী POS সীমা: কোন Role নিজে কী করতে পারে; প্রত্যেক অনুমোদনকারীর নিজের PIN।', 'Report › Print 80 mm বা A4 দিয়ে Shift-এর Z-report Print করুন।'], ['Counter আর Cash', '2:40']),
     related: ['/pos', '/daily-summary'],
   },
   '/sales-invoices': {
@@ -94,10 +100,57 @@ export const HELP = {
     bn: E('যারা কিনেছেন বা Sign up করেছেন — তাদের Order, খরচ আর Due।', ['নাম বা Phone দিয়ে Search করুন।', 'Customer খুলে Order, Payment আর Note দেখুন।', 'Phone দিয়ে Customer যোগ করুন; বাকিতে কিনলে Credit limit দিন।'], ['একই Phone-এর Customer একসাথে করা যায়।'], ['Customer', '2:00']),
     related: ['/sales-leads', '/dues'],
   },
+  // ---- Stage 3 · Online selling ----
+  '/courier-handover': {
+    en: E('Hand the day’s parcels to each courier’s rider, with a signed manifest.', ['Choose the courier, then scan or tick its parcels.', 'Check the count and the cash on delivery, and type the rider’s name.', 'Print manifest for the rider to sign, then press Mark handed over.'], ['Packed parcels not booked yet are booked with the courier as they go. Old manifests can be printed again.']),
+    bn: E('দিনের Parcel প্রতিটি Courier-এর Rider-কে দিন, সই করা Manifest সহ।', ['Courier বাছুন, তারপর তার Parcel Scan বা টিক করুন।', 'সংখ্যা আর COD মিলিয়ে নিন, Rider-এর নাম লিখুন।', 'Rider-এর সইয়ের জন্য Print manifest করুন, তারপর Mark handed over চাপুন।'], ['প্যাক করা কিন্তু Book না হওয়া Parcel দেওয়ার সময় Courier-এ Book হয়। পুরনো Manifest আবার Print করা যায়।']),
+    related: ['/courier-statement', '/merchant-orders', '/courier-returns'],
+  },
+  '/return-requests': {
+    en: E('Returns of delivered online orders, step by step.', ['Open a request and Approve or Reject it.', 'Book the courier pickup, then mark it received: good pieces go back on sale, damaged ones to the damaged bay.', 'Refund the customer or send the same items again as a new order.'], ['Customers ask on their tracking page; staff can ask for them with Return on the order page.']),
+    bn: E('Delivered Online Order-এর Return, ধাপে ধাপে।', ['Request খুলে Approve বা Reject করুন।', 'Courier Pickup Book করুন, পরে Received করুন: ভালো পণ্য আবার বিক্রিতে, নষ্ট পণ্য Damaged bay-তে যায়।', 'Customer-কে Refund দিন বা একই পণ্য নতুন Order হিসেবে আবার পাঠান।'], ['Customer তাদের Tracking পেজ থেকে চান; Staff Order পেজের Return দিয়ে চাইতে পারেন।']),
+    related: ['/return-exchange', '/return-history', '/payment-ops'],
+  },
+  '/set-checkout': {
+    en: E('How the online store’s checkout works.', ['Choose guest checkout or sign-in with the mobile number, and whether the number is checked with a code.', 'Choose which details are asked: email, district and area, a note, the terms box.', 'Set a cash-on-delivery fee, a COD limit and the smallest order.'], ['The thank-you page links to the customer’s order page.']),
+    bn: E('Online Store-এর Checkout কীভাবে চলবে।', ['Guest checkout নাকি মোবাইল নম্বরে Sign-in, আর নম্বর Code দিয়ে যাচাই হবে কি না বাছুন।', 'কোন তথ্য চাওয়া হবে বাছুন: Email, জেলা আর এলাকা, Note, Terms-এর বক্স।', 'COD fee, COD-এর সীমা আর সবচেয়ে ছোট Order ঠিক করুন।'], ['Thank-you পেজে Customer-এর Order পেজের Link থাকে।']),
+    related: ['/set-delivery', '/set-payments', '/set-privacy'],
+  },
   '/meetings': {
     en: E('Meetings with leads and customers on Zoom, Google Meet, by phone or at the shop.', ['Press New meeting: choose who, when, how long and where.', 'The link is made and the invite goes by WhatsApp or SMS; a reminder goes an hour before.', 'After the meeting, open it and write a short note, the outcome and the next follow-up.'], ['Needs a note lists meetings that ended without one. Connect Zoom or Google Meet in Connections.']),
     bn: E('Lead আর Customer-এর সাথে Meeting — Zoom, Google Meet, ফোনে বা দোকানে।', ['New meeting চাপুন: কার সাথে, কখন, কতক্ষণ আর কোথায় বাছুন।', 'Link তৈরি হয়, WhatsApp বা SMS-এ Invite যায়; এক ঘণ্টা আগে মনে করিয়ে দেওয়া হয়।', 'Meeting শেষে খুলে ছোট Note, ফলাফল আর পরের Follow-up লিখুন।'], ['Needs a note-এ Note ছাড়া শেষ হওয়া Meeting থাকে। Connections-এ Zoom বা Google Meet যুক্ত করুন।']),
     related: ['/sales-leads', '/all-customers', '/connections'],
+  },
+  // ---- Online Store › storefront builder (Module A) ----
+  '/theme': {
+    en: E('How your online store looks: the current look, presets and restore points.', ['Press Customize to change colours, fonts and page options.', 'Preview a preset (Signal, Nokshi, Counter) with your own products, then Import the parts you want.', 'Before every import and publish a restore point is made: Go back undoes it in one click.'], ['Importing never touches products, customers or orders.', 'Parts GridCommerce keeps fixed for your theme show as locked.']),
+    bn: E('আপনার Online store দেখতে কেমন: এখনকার Look, Preset আর Restore point।', ['রং, Font আর পেজের Option বদলাতে Customize চাপুন।', 'নিজের Product দিয়ে একটি Preset (Signal, Nokshi, Counter) Preview করুন, তারপর যে অংশগুলো চান Import করুন।', 'প্রতিটি Import আর Publish-এর আগে একটি Restore point তৈরি হয়: Go back এক চাপে আগের অবস্থায় ফেরায়।'], ['Import কখনো Product, Customer বা Order ছোঁয় না।', 'GridCommerce আপনার Theme-এ যা ঠিক রাখে তা Locked দেখায়।']),
+    related: ['/theme-editor', '/header-builder', '/layouts', '/html-blocks'],
+  },
+  '/theme-editor': {
+    en: E('Change the theme’s options and see each change at once.', ['Pick a group or search an option (for example WhatsApp or font).', 'Change it: the preview on the right shows it on a computer or a phone.', 'Save draft keeps your work; Publish shows it to customers.'], ['Undo to last published throws your draft away. Reset to preset puts the preset’s options back in the draft.', 'A warning shows when text is hard to read on a colour.']),
+    bn: E('Theme-এর Option বদলান আর সাথে সাথে দেখুন।', ['একটি Group বাছুন বা Option খুঁজুন (যেমন WhatsApp বা Font)।', 'বদলান: ডানের Preview কম্পিউটার বা ফোনে দেখায়।', 'Save draft আপনার কাজ রাখে; Publish Customer-কে দেখায়।'], ['Undo to last published Draft বাদ দেয়। Reset to preset Preset-এর Option Draft-এ ফেরায়।', 'কোনো রঙে লেখা পড়তে কষ্ট হলে সতর্কতা দেখায়।']),
+    related: ['/theme', '/header-builder'],
+  },
+  '/header-builder': {
+    en: E('Build the top of your store, separately for computers and phones.', ['Choose a header, then Computer or Phone.', 'Press Add in an area to place the logo, menu, search, cart and more; pick an element to change or move it.', 'Set each row’s height, colours and sticky, then Publish header.'], ['The default header shows everywhere; a layout can pick another.', 'Phone menu sets what the ☰ drawer holds and the bottom bar.']),
+    bn: E('আপনার Store-এর উপরের অংশ বানান, কম্পিউটার আর ফোনের জন্য আলাদা করে।', ['একটি Header বাছুন, তারপর Computer বা Phone।', 'কোনো Area-তে Add চেপে Logo, Menu, Search, Cart ইত্যাদি বসান; বদলাতে বা সরাতে একটি Element বাছুন।', 'প্রতিটি Row-এর উচ্চতা, রং আর Sticky ঠিক করে Publish header চাপুন।'], ['Default header সবখানে দেখায়; একটি Layout অন্যটি বাছতে পারে।', 'Phone menu ঠিক করে ☰ Drawer-এ কী থাকবে আর নিচের Bar।']),
+    related: ['/theme', '/store-menus', '/layouts'],
+  },
+  '/html-blocks': {
+    en: E('Reusable content: delivery info, a size guide, a banner, a footer.', ['Press Add block and build it like a page.', 'Place it in a layout, the header builder, a mega menu, the footer or the product page tab.'], ['Used in shows where each block appears. Deleting one warns you first.']),
+    bn: E('বারবার ব্যবহারের Content: Delivery-র তথ্য, Size guide, Banner, Footer।', ['Add block চেপে পেজের মতো বানান।', 'Layout, Header builder, Mega menu, Footer বা Product page-এর Tab-এ বসান।'], ['Used in দেখায় কোন Block কোথায় আছে। মুছার আগে সতর্ক করা হয়।']),
+    related: ['/layouts', '/header-builder', '/store-menus'],
+  },
+  '/layouts': {
+    en: E('Each kind of store page is built from sections.', ['Open a layout or press Add layout and pick the kind of page.', 'Add, move and hide sections; set who sees it (all pages, a category, a product or a page).', 'Preview, then Publish.'], ['The most specific published layout wins on a page; without one the built-in layout shows.']),
+    bn: E('Store-এর প্রতিটি ধরনের পেজ Section দিয়ে বানানো।', ['একটি Layout খুলুন বা Add layout চেপে পেজের ধরন বাছুন।', 'Section যোগ করুন, সরান, লুকান; কোথায় দেখাবে ঠিক করুন (সব পেজ, একটি Category, Product বা Page)।', 'Preview দেখে Publish করুন।'], ['একটি পেজে সবচেয়ে নির্দিষ্ট Published layout দেখায়; না থাকলে Built-in layout।']),
+    related: ['/html-blocks', '/theme'],
+  },
+  '/files': {
+    en: E('Every picture, video and document your shop uses, in one place.', ['Press Upload files, or drop files anywhere on the page. Pictures are resized for phones as they upload.', 'Open a file to give it a name and alt text, move it to a folder, copy its address or replace it.', 'Product photos, brand logos and blog covers saved on their own pages are listed too; change them there.'], ['A file that is used somewhere is kept when you delete many at once.', 'Replace keeps the same address, so every page shows the new file.']),
+    bn: E('আপনার দোকানের সব ছবি, ভিডিও আর ডকুমেন্ট এক জায়গায়।', ['Upload files চাপুন, বা পেজের যেকোনো জায়গায় ফাইল ছেড়ে দিন। ছবি আপলোডের সময় ফোনের জন্য ছোট করা হয়।', 'ফাইল খুলে নাম আর Alt text দিন, ফোল্ডারে সরান, ঠিকানা কপি করুন বা বদলে দিন।', 'Product, Brand আর Blog-এর ছবিও এখানে দেখা যায়; সেগুলো নিজ নিজ পেজে বদলান।'], ['কোথাও ব্যবহার হচ্ছে এমন ফাইল একসাথে মুছলেও রেখে দেওয়া হয়।', 'Replace একই ঠিকানা রাখে, তাই সব পেজে নতুন ফাইল দেখায়।']),
+    related: ['/set-hosting', '/layouts', '/all-products'],
   },
   '/email-inbox': {
     en: E('The shop’s email (info@, sales@, support@, orders@) in one list.', ['Open an email to read it; it is marked read.', 'Reply sends from the address it came to. Forward sends it on; Note is only for your team.', 'Assign it to someone so the team knows who answers. Archive it when it is done.'], ['The sender is matched to a customer, and order numbers in the mail open the order.', 'Set up Business email in Settings to get mail at your own addresses.']),
@@ -380,15 +433,40 @@ export const HELP = {
     bn: E('একসাথে অনেক Product বদলান: দাম, Stock সেটিং, Status আর Tag।', ['Product আর বদলানোর Field বাছুন।', 'Preview দেখে নিন।', 'Apply করুন; পুরো পরিবর্তন Undo করা যায়।'], []),
     related: ['/all-products'],
   },
+  '/set-invoices': {
+    en: E('What customers receive on paper: the A4 invoice and the counter receipt.', ['Set the invoice number prefix and the invoice look.', 'Write the note at the bottom of the invoice.', 'Choose the receipt roll width (58 or 80 mm) and its last line.', 'Choose whether both print the BIN and each item’s warranty.'], ['The shop’s name, address and BIN come from Settings › General.']),
+    bn: E('Customer কাগজে কী পান: A4 Invoice আর Counter-এর রসিদ।', ['Invoice নম্বরের Prefix আর Invoice-এর ধরন ঠিক করুন।', 'Invoice-এর নিচের লেখা লিখুন।', 'রসিদের রোল (58 বা 80 mm) আর শেষ লাইন বাছুন।', 'দুটোতেই BIN আর প্রতিটি পণ্যের Warranty ছাপবে কিনা বাছুন।'], ['দোকানের নাম, ঠিকানা আর BIN আসে Settings › General থেকে।']),
+    related: ['/set-general', '/pos', '/warranty-policies'],
+  },
+  '/warranty-policies': {
+    en: E('One list of warranty policies. Products pick one; invoices and receipts print it.', ['New policy: name, type, how long, what is covered, how to claim.', 'Save draft keeps changes away from customers.', 'Publish makes the next version; sold items keep the version they were sold under.', 'Archive stops offering it for new products.'], []),
+    bn: E('Warranty policy-র একটাই তালিকা। Product একটি বাছে; Invoice আর রসিদে ছাপা হয়।', ['New policy: নাম, ধরন, কতদিন, কী কাভার, কীভাবে Claim।', 'Save draft পরিবর্তন Customer-এর কাছ থেকে আড়ালে রাখে।', 'Publish পরের Version বানায়; বিক্রি হওয়া পণ্য নিজের Version রাখে।', 'Archive করলে নতুন Product-এ আর দেখায় না।'], []),
+    related: ['/warranty-claims', '/catalog-setup'],
+  },
+  '/warranty-claims': {
+    en: E('Warranty claims and the IMEI / serial register.', ['New claim: look up the IMEI, phone or order and check the warranty.', 'Move the claim: received, with service centre, ready, returned to customer.', 'Reject with a reason when it is not covered.'], ['The customer is told at each step (Settings › Notifications).']),
+    bn: E('Warranty claim আর IMEI / Serial রেজিস্টার।', ['New claim: IMEI, Phone বা Order খুঁজে Warranty দেখুন।', 'Claim এগিয়ে নিন: Received, Service centre-এ, Ready, Customer-কে ফেরত।', 'কাভার না হলে কারণ লিখে Reject করুন।'], ['প্রতি ধাপে Customer জানতে পারেন (Settings › Notifications)।']),
+    related: ['/warranty-policies'],
+  },
   '/set-privacy': {
     en: E('Privacy: cookie consent on the website, data requests and how long data is kept.', ['Choose what the cookie banner asks.', 'Handle a customer’s request to see or delete their data.'], []),
     bn: E('Privacy: ওয়েবসাইটের Cookie সম্মতি, ডেটার অনুরোধ আর ডেটা কতদিন রাখা হয়।', ['Cookie banner কী জিজ্ঞেস করবে বাছুন।', 'Customer নিজের ডেটা দেখতে বা মুছতে চাইলে সেটি সামলান।'], []),
     related: ['/settings-history'],
   },
+  '/set-hosting': {
+    en: E('Your store is hosted on GridCommerce: domain, DNS, email records, certificates, security, speed, files, backups and usage in one place.', ['Domains: connect your domain and make it primary.', 'DNS: point the nameservers to GridCommerce, or keep DNS at your registrar and add the records shown.', 'Email: choose who hosts your mailboxes, then add the SPF, DKIM and DMARC records (one click with GridCommerce DNS).', 'Back up the website before big changes; restore with one click.'], ['Overview lists what needs doing first.', 'DMARC: start with None, move to Quarantine when the reports look clean.', 'Certificates renew by themselves 30 days before they end.']),
+    bn: E('আপনার Store GridCommerce-এ Host করা: Domain, DNS, Email record, Certificate, নিরাপত্তা, গতি, File, Backup আর ব্যবহার এক জায়গায়।', ['Domains: নিজের Domain যুক্ত করে Primary করুন।', 'DNS: Nameserver GridCommerce-এ দিন, বা Registrar-এ DNS রেখে দেখানো Record যোগ করুন।', 'Email: কে Mailbox রাখে বাছুন, তারপর SPF, DKIM আর DMARC record যোগ করুন (GridCommerce DNS-এ এক ক্লিকে)।', 'বড় পরিবর্তনের আগে Website-এর Backup নিন; এক ক্লিকে ফিরিয়ে আনুন।'], ['Overview-এ আগে কী করতে হবে তা থাকে।', 'DMARC: None দিয়ে শুরু করুন, Report ঠিক থাকলে Quarantine করুন।', 'Certificate শেষ হওয়ার ৩০ দিন আগে নিজেই নবায়ন হয়।']),
+    related: ['/email', '/seo', '/subscription'],
+  },
   '/set-domains': {
     en: E('Your website’s address: connect your own domain and check it works.', ['Add the domain.', 'Copy the DNS records to your domain provider.', 'Press Check; it goes live when the records are found.'], []),
     bn: E('ওয়েবসাইটের ঠিকানা: নিজের Domain যুক্ত করে কাজ করছে কিনা দেখুন।', ['Domain যোগ করুন।', 'DNS রেকর্ড Domain provider-এ কপি করুন।', 'Check চাপুন; রেকর্ড পেলে চালু হয়।'], []),
     related: ['/connections'],
+  },
+  '/set-verification': {
+    en: E('Prove your business to GridCommerce: trade licence, TIN, the owner’s NID and photos of them. Verified shops can use their own SMS sender name and online payment gateways.', ['Fill in the numbers and add the photos.', 'Send for review; GridCommerce checks it within 2 working days.', 'If it is rejected, fix what the reason says and send again.', 'Billing details: the name, BIN and email on GridCommerce’s bills to you.'], ['The NID number is shown only as its last 4 digits once sent.']),
+    bn: E('GridCommerce-এর কাছে আপনার ব্যবসা যাচাই করুন: Trade licence, TIN, মালিকের NID আর সেগুলোর ছবি। যাচাই হওয়া দোকান নিজের SMS sender নাম আর Online payment gateway ব্যবহার করতে পারে।', ['নম্বরগুলো লিখে ছবি যোগ করুন।', 'যাচাইয়ের জন্য পাঠান; GridCommerce ২ কর্মদিবসের মধ্যে দেখবে।', 'বাতিল হলে কারণ দেখে ঠিক করে আবার পাঠান।', 'Bill-এর তথ্য: GridCommerce-এর Bill-এ আপনার নাম, BIN আর Email।'], ['পাঠানোর পর NID নম্বরের শুধু শেষ ৪টি সংখ্যা দেখা যায়।']),
+    related: ['/set-general', '/subscription'],
   },
   '/settings-history': {
     en: E('Every settings change: who changed what, when, and the value before.', ['Filter by section or person.', 'Open a change to see before and after.'], []),
@@ -410,7 +488,7 @@ export function helpFor(path, { title = '', description = '' } = {}) {
   const written = HELP[path];
   const siblings = item ? ALL.filter((x) => x.group === item.group && pathOf(x) && pathOf(x) !== path && (!item.parent || x.parent === item.parent || !x.parent)).slice(0, 4).map(pathOf) : [];
   const related = [...new Set((written && written.related) || siblings)].filter((r) => r !== path);
-  if (written) return { ...written, related, name };
+  if (written) return { ...written, related, name: written.name || name };   // name: for a page whose h1 isn't its name (Home's greeting)
   const what = description || (item ? `${item.label} — part of ${item.group}.` : `Everything about ${name.toLowerCase()} in one place.`);
   return {
     name, related,

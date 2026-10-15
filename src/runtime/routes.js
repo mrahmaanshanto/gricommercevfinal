@@ -51,6 +51,8 @@ const NAMED_ROUTES = {
   "SeoTools": "/seo",
   // Settings › Business email (Module D)
   "BusinessEmail": "/email",
+  // Customer storefront (Module A)
+  "StoreHome": "/store", "StoreCart": "/cart", "StoreShowcase": "/store-showcase", "StoreBlog": "/blog", "StoreWishlist": "/wishlist", "StoreCompare": "/compare", "StoreAccount": "/account", "StoreAuthor": "/author", "StoreSearch": "/search",
 };
 
 /** Maps a design link to its app route. Anything else is returned unchanged. */

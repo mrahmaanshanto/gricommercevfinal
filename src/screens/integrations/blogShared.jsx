@@ -105,6 +105,8 @@ export const BLOG_CSS = `
 .bl-a-faq summary{cursor:pointer;font-weight:var(--weight-medium);color:var(--text-heading)}
 .bl-a-faq details p{margin-top:var(--space-2)}
 .bl-a-author{display:flex;gap:var(--space-4);align-items:flex-start;padding:var(--space-4);border-radius:var(--radius-xl);background:var(--surface-subtle)}
+.bl-a-by{color:var(--primary);font-weight:var(--weight-medium);text-decoration:none}
+.bl-a-by:hover{text-decoration:underline}
 .bl-a-author b{display:block;color:var(--text-heading);font-size:var(--text-sm-plus)}
 .bl-a-author p{font-size:var(--text-sm);line-height:1.6}
 .bl-a-empty{padding:var(--space-4);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);font-size:var(--text-sm);color:var(--text-muted);text-align:center}
@@ -310,7 +312,7 @@ export function PostPreview({ post, db, device = 'desktop', live = false }) {
       {cats.length ? <div className="bl-wrap">{cats.map((c) => <CatChip key={c.id} cat={c} />)}</div> : null}
       {live ? <h1 className={'bl-a-title ' + (bn(post.title) || '')}>{post.title || 'Untitled post'}</h1> : <h2 className={'bl-a-title ' + (bn(post.title) || '')}>{post.title || 'Untitled post'}</h2>}
       <div className="bl-a-meta">
-        {author ? <><Avatar author={author} size={28} /><span style={{ color: 'var(--text-heading)', fontWeight: 'var(--weight-medium)' }}>{author.name}</span><span aria-hidden="true">·</span></> : null}
+        {author ? <><Avatar author={author} size={28} />{live && author.slug ? <a className="bl-a-by" href={'/author?slug=' + encodeURIComponent(author.slug)}>{author.name}</a> : <span style={{ color: 'var(--text-heading)', fontWeight: 'var(--weight-medium)' }}>{author.name}</span>}<span aria-hidden="true">·</span></> : null}
         <span>{formatDate(postDate(post))}</span><span aria-hidden="true">·</span><span>{post.readingTime || 1} min read</span>
       </div>
       {post.excerpt ? <p className={'bl-a-lead ' + (bn(post.excerpt) || '')}>{post.excerpt}</p> : null}
@@ -319,7 +321,7 @@ export function PostPreview({ post, db, device = 'desktop', live = false }) {
       {author ? (
         <div className="bl-a-author">
           <Avatar author={author} size={48} />
-          <div style={{ minWidth: 0 }}><b>{author.name}</b><span className="bl-sub">{author.role}{(author.expertise || []).length ? ' · ' + author.expertise.join(', ') : ''}</span><p style={{ marginTop: 'var(--space-2)' }}>{author.bio}</p></div>
+          <div style={{ minWidth: 0 }}><b>{author.name}</b><span className="bl-sub">{author.role}{(author.expertise || []).length ? ' · ' + author.expertise.join(', ') : ''}</span><p style={{ marginTop: 'var(--space-2)' }}>{author.bio}</p>{live && author.slug ? <a className="bl-a-by" href={'/author?slug=' + encodeURIComponent(author.slug)}>See all posts by {author.name.split(' ')[0]} →</a> : null}</div>
         </div>
       ) : null}
       {related.length ? (

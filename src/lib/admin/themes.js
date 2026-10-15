@@ -6,7 +6,8 @@
 //   item:     { id, kind 'theme'|'template', name, family, category, accent, tagline, features[], sections[], modules[]
 //               (MODULES codes), packages[] (PACKAGES keys), author, createdAt, updatedAt, state 'active'|'deprecated'|
 //               'disabled', stateReason, replacement (item id), file ('nokshi-2.3.1.zip'), access { edit[], publish[] },
-//               editable { section: bool } (merchant editing, Planned) }
+//               editable { section: bool } (merchant editing: read by the merchant panel's storefront builder,
+//               lib/storefront/access.js, for the store the theme is assigned to) }
 //   release:  { id 'REL-0142', itemId, version '2.4.0', notes, stage 'draft'|'review'|'approved'|'published'|'rolledback',
 //               uploadedBy, uploadedAt, submittedAt, approvedBy, approvedAt, scheduledAt, publishedBy, publishedAt,
 //               rollout 'all'|'selected'|'next-visit', stores [shopId] (selected), rejected { by, at, reason },
@@ -68,11 +69,25 @@ export const SECTIONS = [
   ['form', 'Order form'], ['footer', 'Footer'],
 ];
 export const sectionName = (k) => (SECTIONS.find((s) => s[0] === k) || [k, k])[1];
-/** Merchant editing (Planned): what a merchant may change in their copy of a theme. */
+/** Merchant editing: what a merchant may change in their copy of a theme (the storefront builder, Online Store ›
+ *  Theme, follows these for the store the theme is assigned to; an unassigned store follows `editing`). */
 export const EDITABLE = [
   ['colours', 'Colours and fonts'], ['logo', 'Logo and favicon'], ['header', 'Header and menu'], ['hero', 'Hero banner'],
   ['sections', 'Add, hide and reorder sections'], ['footer', 'Footer'], ['css', 'Custom CSS'], ['code', 'Theme files (code)'],
 ];
+/** What switching each one off hides in the merchant's builder. */
+export const EDITABLE_HINT = {
+  colours: 'Brand & colours and Typography options are locked',
+  logo: 'The logo size in the header builder is locked',
+  header: 'The header builder and the announcement bar are read-only',
+  hero: 'Hero / slider sections can’t be added or changed in layouts',
+  sections: 'Sections can’t be added, hidden, moved or removed in layouts',
+  footer: 'The Footer options are locked',
+  css: 'The Custom CSS option stays off (it also needs the Business plan)',
+  code: 'Not offered: merchants have no theme code editor',
+};
+/** The families offered to merchants as one-click presets (their main theme decides the packages). */
+export const PRESET_FAMILIES = ['signal', 'nokshi', 'counter'];
 const EDIT_DEFAULT = { colours: true, logo: true, header: true, hero: true, sections: true, footer: true, css: false, code: false };
 
 export const TEAMS = ['Design', 'Technical ops'];
@@ -632,7 +647,8 @@ export function setPackage(id, pkg, on) {
   });
 }
 
-/** Merchant editing (Planned): which parts merchants may change. itemId null = the default for new themes. */
+/** Merchant editing: which parts merchants may change. itemId null = the default for new themes (and for stores with
+ *  no theme assigned). */
 export function setEditable(itemId, key, on) {
   return themes.commit((data, now) => {
     const target = itemId ? itemById(data, itemId) : null;

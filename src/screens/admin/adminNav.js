@@ -37,6 +37,7 @@ export const AREAS = [
   { id: 'area-merchants', layer: 'platform', label: 'Merchants', icon: 'store', pages: [
     P('merchants', 'All merchants', '/admin/merchants', 2, 'new', 'Merchant Orders list (layout)', { built: true }),
     P('onboarding', 'Onboarding', '/admin/onboarding', 2, 'new', '', { built: true }),
+    P('kyc', 'Verification', '/admin/kyc', 2, 'new', '', { built: true }),
   ] },
   { id: 'area-plans', layer: 'platform', label: 'Plans & modules', icon: 'boxes', pages: [
     P('subscriptions', 'Subscriptions', '/admin/subscriptions', 3, 'new', '', { built: true }),
@@ -85,6 +86,7 @@ export const AREAS = [
     P('sms', 'SMS', '/admin/sms', 5, 'adapt', '/campaigns-messaging', { built: true }),
     P('email', 'Email', '/admin/email', 5, 'adapt', '/campaigns-messaging', { built: true }),
     P('templates', 'Templates', '/admin/templates', 5, 'adapt', '/set-notifications (templates)', { built: true }),
+    P('notices', 'Merchant notices', '/admin/notices', 5, 'new', '', { built: true }),
     P('automations', 'Automations', '/admin/automations', 5, 'reuse', '/automations', { built: true }),
   ] },
   { id: 'area-support', layer: 'company', label: 'Support', icon: 'life-buoy', pages: [

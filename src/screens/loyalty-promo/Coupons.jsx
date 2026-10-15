@@ -12,6 +12,7 @@ import { DCLogic, Icon as __Icon } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { EmptyState as __EmptyState } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore } from '@/components/ui/IndexKit';
+import MarketingTabs from '@/screens/loyalty-promo/MarketingTabs';
 import { toast as __toast } from '@/runtime/ui';
 import { clockNow } from '@/lib/settlements';
 import { listOffers, setOfferStatus, CHANNEL_LABEL, PROMO_EVENT } from '@/lib/promotions';
@@ -113,13 +114,14 @@ export default class CouponsScreen extends Component {
         <div className="gc-shell">
           <__Sidebar sticky="" active="promo-coupons" />
           <main className="gc-shell__main">
-            <__Topbar crumb="Promo" page="Coupons" placeholder="Search a code" />
+            <__Topbar crumb="Marketing" page="Coupons" placeholder="Search a code" />
             <div className="gc-shell__content">
               <div className="ix-page">
                 <ShopHeader icon="ticket-percent" title="Coupons"
                   about="Discount codes customers type at checkout or at the POS counter. Turn a code off to stop it at once; tap a code to copy it for a post or an SMS."
-                  more={[{ label: 'Offers', href: '/promo' }, { label: 'Flash sales', href: '/flash-sales' }, { label: 'View offers page', icon: 'external-link', onClick: () => window.open('/offers', '_blank', 'noopener') }]}
+                  more={[{ label: 'View offers page', icon: 'external-link', onClick: () => window.open('/offers', '_blank', 'noopener') }]}
                   primary={{ label: 'Make a new code', href: '/new-coupon' }} />
+                <MarketingTabs group="offers" active="promo-coupons" />
 
                 <MetricStrip label="All codes" items={[
                   { label: 'Codes used', value: v.loading ? '—' : v.usedAll, sub: 'times' },

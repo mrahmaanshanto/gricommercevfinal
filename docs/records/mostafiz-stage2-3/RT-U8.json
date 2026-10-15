@@ -1,0 +1,36 @@
+{
+ "id": "RT-U8",
+ "kind": "fix",
+ "section": "Retail & POS",
+ "area": "Retail & POS",
+ "title": "Invoices only when money is owed",
+ "problem": "Every counter sale with a phone became a paid invoice, and dues at the counter waited for acceptance.",
+ "now": "A counter sale becomes an invoice only when money is left unpaid, and it counts as accepted.",
+ "steps": [
+  "Sell at the POS with a phone and pay in full",
+  "Check Invoices has no new row",
+  "Sell on due and take a payment straight away"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/pos-register/Pos.jsx",
+  "src/lib/invoices.js"
+ ],
+ "notes": "Where: Orders › Invoices · /sales-invoices",
+ "shots": [
+  {
+   "route": "/sales-invoices",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Invoices",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

@@ -235,6 +235,18 @@ export function logOrder(id, icon, title, meta) {
 }
 export const logOf = (id) => readMap(LOG_KEY, {})[id] || [];
 
+// ---- who works on the order (ON-F11) --------------------------------------------------------------
+/** Give the order to a staff member ({ id, name }) or take it off them (null). Logged on the order. */
+export function assignOrder(o, person, by = 'Staff') {
+  const next = person && person.id ? { id: person.id, name: person.name || person.id } : null;
+  const was = o.assignee || null;
+  if ((was && was.id) === (next && next.id)) return false;
+  patchOrder(o, { assignee: next });
+  logOrder(o.id, next ? 'user-check' : 'user-x', next ? 'Assigned to ' + next.name : 'Unassigned', [was && next ? 'was ' + was.name : was ? was.name : '', by].filter(Boolean).join(' · '));
+  return true;
+}
+export const assigneeOf = (o) => (o && o.assignee && o.assignee.id ? o.assignee : null);
+
 // ---- duplicates ---------------------------------------------------------------------------------
 /** Other open orders from the same phone with at least one same product, placed within 48 hours. */
 export function duplicatesOf(order, all) {
@@ -307,7 +319,7 @@ export function deliverOrder(o, by = 'Staff') {
   // cash on delivery: the courier has the money now and pays it out later (Accounts › Settlements)
   const cod = collectCod(o, by);
   if (cod) patchOrder(o, { payment: 'Paid', paid: o.amount, codCollected: cod.amount });
-  logOrder(o.id, 'package-check', 'Delivered', (cod ? `${formatBDT(cod.amount)} COD with ${o.courier}` : 'Paid order') + ' · ' + by);
+  logOrder(o.id, 'package-check', 'Delivered', (cod ? `${formatBDT(cod.amount)} COD with ${o.courier}` : o.payment === 'Paid' ? 'Paid order' : 'Payment due') + ' · ' + by);
   notify(o, 'delivered');
 }
 /** The courier is bringing the parcel back. The held stock stays held until it is received. */

@@ -1,0 +1,37 @@
+{
+ "id": "B1-orders",
+ "kind": "new",
+ "section": "Module B · Services",
+ "area": "Module B · Services",
+ "title": "Follow, approve and rate each service order",
+ "problem": "There was nowhere to talk to an expert or approve their work.",
+ "now": "Each order shows its steps, messages, files, monthly reports, store-access and extra-work requests, approve or change, and a rating.",
+ "steps": [
+  "Open My services.",
+  "Open an order and send a message.",
+  "Approve a delivery and rate it."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/services/MyServices.jsx",
+  "src/screens/services/MyService.jsx",
+  "src/screens/services/svcShared.jsx"
+ ],
+ "notes": "Where: Services › My services (/my-services)",
+ "shots": [
+  {
+   "route": "/my-services",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "My services",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

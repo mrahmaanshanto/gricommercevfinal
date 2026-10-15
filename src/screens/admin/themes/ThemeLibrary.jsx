@@ -3,7 +3,7 @@
 // a placeholder thumbnail in the theme's accent, name, category and family, the live version, status, how many stores
 // use it and the packages it is offered on. Tabs by status (counts on the tabs), a category and a family filter.
 // Upload theme opens a side panel (front end only: the .zip's name is kept; the theme appears as a Draft and goes
-// through Releases). A card opens the theme (/admin/themes/view?id=). Merchant editing (Planned) sets what merchants
+// through Releases). A card opens the theme (/admin/themes/view?id=). Merchant editing sets what merchants
 // will be able to change in new themes. Themes are a future module: no theme is rendered, previews are placeholders.
 // Data: lib/admin/themes.js (statusOf, shownVersion, usageCount, librarySummary, uploadItem).
 

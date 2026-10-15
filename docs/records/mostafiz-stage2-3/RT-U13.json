@@ -1,0 +1,35 @@
+{
+ "id": "RT-U13",
+ "kind": "fix",
+ "section": "Retail & POS",
+ "area": "Retail & POS",
+ "title": "Receipt shows the real shop",
+ "problem": "The receipt always said Dazzle Shop with no address, phone, BIN or warranty.",
+ "now": "The receipt prints the shop from Settings › General, the BIN, and a warranty line under each IMEI item.",
+ "steps": [
+  "Change the store name in Settings › General",
+  "Sell a Realme phone at the POS",
+  "Check name, BIN and warranty line on the receipt"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/pos-register/Pos.jsx"
+ ],
+ "notes": "Where: POS › receipt after a sale · /pos",
+ "shots": [
+  {
+   "route": "/set-invoices",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Invoices & receipts settings",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

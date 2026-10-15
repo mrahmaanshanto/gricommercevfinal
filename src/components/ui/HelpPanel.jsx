@@ -1,12 +1,12 @@
 'use client';
 // HelpPanel — the one Help pattern for every page. The Help button in the top bar (gc-topbar) fires `gc:help`;
 // this opens a side panel (bottom sheet on phones) with: What is this page · How to use it · Good to know ·
-// Video tutorial (placeholder until videos exist) · Related pages. Content: src/lib/help.js (English and Bangla).
+// Video tutorial (only when the entry has the video's address) · Related pages. Content: src/lib/help.js (English and Bangla).
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
-import { getLocale, setLocale, toast } from '@/runtime/ui';
+import { getLocale, setLocale } from '@/runtime/ui';
 import { helpFor, labelFor } from '@/lib/help';
 import { routeInEdition } from '@/lib/edition';
 import { Sheet } from './index';
@@ -15,7 +15,7 @@ const CSS = `
 .hp-sec h3{margin:0 0 6px;font-size:var(--text-xs);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .hp-sec p{margin:0;font-size:var(--text-sm);line-height:1.6;color:var(--text-body)}
 .hp-sec ol,.hp-sec ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:var(--text-sm);line-height:1.55;color:var(--text-body)}
-.hp-video{display:flex;align-items:center;gap:var(--space-3);width:100%;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-subtle);font:inherit;text-align:left;cursor:pointer}
+.hp-video{display:flex;color:inherit;text-decoration:none;align-items:center;gap:var(--space-3);width:100%;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-subtle);font:inherit;text-align:left;cursor:pointer}
 .hp-video:hover{border-color:var(--primary)}
 .hp-video__thumb{position:relative;display:grid;place-items:center;width:96px;height:60px;flex:none;border-radius:var(--radius-lg);background:linear-gradient(135deg,var(--primary),var(--secondary));color:var(--text-on-dark)}
 .hp-video b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
@@ -37,7 +37,11 @@ export function HelpPanel() {
   const [locale, setLoc] = useState('en');
   useEffect(() => {
     const on = () => {
-      const title = (document.querySelector('.gc-shell__content h1, main h1, h1') || {}).innerText || '';
+      // the page's name: its h1 without the status badges a record header puts inside it
+      const h1 = document.querySelector('.gc-shell__content h1, main h1, h1');
+      const bare = h1 ? h1.cloneNode(true) : null;
+      if (bare) bare.querySelectorAll('[class*="badge"]').forEach((b) => b.remove());
+      const title = bare ? bare.textContent.replace(/\s+/g, ' ').trim() : '';
       const description = (document.querySelector('.gc-pagehead__about') || {}).textContent || (document.querySelector('.gc-pagehead__desc') || {}).innerText || '';
       setPage(helpFor(window.location.pathname.replace(/\/$/, '') || '/', { title: title.trim(), description: description.trim() }));
       setLoc(getLocale());
@@ -66,13 +70,16 @@ export function HelpPanel() {
       <section className="hp-sec" lang={locale}><h3>{t.what}</h3><p>{c.what}</p></section>
       {c.steps && c.steps.length ? <section className="hp-sec" lang={locale}><h3>{t.how}</h3><ol>{c.steps.map((s) => <li key={s}>{s}</li>)}</ol></section> : null}
       {c.tips && c.tips.length ? <section className="hp-sec" lang={locale}><h3>{t.know}</h3><ul>{c.tips.map((s) => <li key={s}>{s}</li>)}</ul></section> : null}
-      <section className="hp-sec">
-        <h3>{t.video}</h3>
-        <button type="button" className="hp-video" onClick={() => toast(t.soon, { tone: 'info' })}>
-          <span className="hp-video__thumb" aria-hidden="true"><Icon name="play" width="24" height="24" /></span>
-          <span><b lang={locale}>{(c.video || [])[0] || t.watch}</b><small>{t.watch} · {(c.video || [])[1] || '2:00'}</small></span>
-        </button>
-      </section>
+      {/* a tutorial shows only when its video exists (help.js video: [title, length, address]); none are made yet (MS-U14) */}
+      {c.video && c.video[2] ? (
+        <section className="hp-sec">
+          <h3>{t.video}</h3>
+          <a className="hp-video" href={c.video[2]} target="_blank" rel="noreferrer">
+            <span className="hp-video__thumb" aria-hidden="true"><Icon name="play" width="24" height="24" /></span>
+            <span><b lang={locale}>{c.video[0] || t.watch}</b><small>{t.watch}{c.video[1] ? ' · ' + c.video[1] : ''}</small></span>
+          </a>
+        </section>
+      ) : null}
       {page.related && page.related.filter((r) => routeInEdition(r.split('?')[0])).length ? (
         <section className="hp-sec"><h3>{t.related}</h3><div className="hp-rel">{page.related.filter((r) => routeInEdition(r.split('?')[0])).map((r) => <Link key={r} href={r} onClick={() => setOpen(false)}><Icon name="arrow-up-right" width="14" height="14" aria-hidden="true" />{labelFor(r)}</Link>)}</div></section>
       ) : null}

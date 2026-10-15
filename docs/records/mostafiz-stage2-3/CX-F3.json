@@ -1,0 +1,43 @@
+{
+ "id": "CX-F3",
+ "kind": "new",
+ "section": "Customers & marketing",
+ "area": "Customers & marketing",
+ "title": "Customer messages beyond orders in one list",
+ "problem": "Only order events could send SMS or email; refunds, invoices, tickets, warranty and account messages had no settings.",
+ "now": "Notifications lists every event by group with SMS, WhatsApp, email, customer and shop switches and editable text; tickets, invoice reminders and service requests send.",
+ "steps": [
+  "Open Settings › Notifications and scroll to Customers and account",
+  "Turn on Ticket opened and edit its text",
+  "Make a new support ticket with a phone number and see the message in the delivery log",
+  "On a customer's Invoices, open an unpaid invoice and send a reminder"
+ ],
+ "status": "partly",
+ "left": "Invoice sent and Sign-in code show Not sent yet: nothing sends an invoice on its own and sign-in codes need the server; loyalty messages stay in Loyalty.",
+ "files": [
+  "src/lib/notifications.js",
+  "src/screens/settings-console/SetNotifications.jsx",
+  "src/lib/supportTickets.js",
+  "src/screens/customers-crm/CustomerInvoices.jsx",
+  "src/screens/customers-crm/CustomerWarranty.jsx",
+  "src/screens/customers-crm/AllCustomers.jsx",
+  "src/screens/settings-console/SetRail.jsx",
+  "src/lib/edition.js"
+ ],
+ "notes": "Where: Settings › Notifications (/set-notifications)",
+ "shots": [
+  {
+   "route": "/set-notifications",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Settings › Notifications",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

@@ -3,7 +3,11 @@
 //   Counters        register a counter at a branch or warehouse and choose who may work it
 //   Shifts          who is on a counter now, what each employee sold, and every closed shift
 //   Cash pickups    cash taken out of (or put into) any counter's drawer, and drawer opens without a sale
-//   Settings        the rules the register follows (incl. the drawer difference limit and held-sale minutes)
+//   Settings        the rules the register follows (incl. the drawer difference limit and held-sale minutes), the POS
+//                   limits of each role (discount %, price change, refund, void, drawer without a sale, selling on due:
+//                   on its own or with someone's PIN) and each approver's own PIN (posStore.setPin)
+// The employees come from Staff & HR / Team (posStore.getEmployees). A closed shift's report prints as a Z-report
+// (80 mm or A4, ZReport.jsx). The receipt's width and footer are in Settings › Invoices & receipts.
 // A counter open on another device shows who has it; a manager can end that shift here (PIN).
 // Front end only: it reads and writes the same browser storage as the register (src/lib/posStore.js).
 
@@ -15,7 +19,8 @@ import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, PageHeader, EmptyState } from '@/components/ui';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { POS_KEYS, load, getCounters, saveCounters, getShifts, getCash, saveCash, getSettings, saveSettings, shiftReport, nextId, LOCATIONS, EMPLOYEES, MANAGERS, CASH_PLACES, CASH_LABEL, DEFAULT_SETTINGS, postCashMove, getPosLocations, getOpenShifts, releaseCounter, deviceId, drawerOf, getDrawerOpens } from '@/lib/posStore';
+import { POS_KEYS, load, getCounters, saveCounters, getShifts, getCash, saveCash, getSettings, saveSettings, shiftReport, nextId, LOCATIONS, EMPLOYEES, MANAGERS, CASH_PLACES, CASH_LABEL, DEFAULT_SETTINGS, postCashMove, getPosLocations, getOpenShifts, releaseCounter, deviceId, drawerOf, getDrawerOpens, getEmployees, POS_ROLES, POS_PERMS, roleLimits, DEFAULT_ROLE_LIMITS, setPin as savePin, hasOwnPin, checkPin } from '@/lib/posStore';
+import { ZReport, printZ } from './ZReport';
 import { ManagerPin } from '@/components/ManagerPin';
 import { ModuleSetup } from '@/components/ModuleSetup';
 
@@ -67,6 +72,8 @@ const CSS = `
 .pm-foot{display:flex;justify-content:flex-end;gap:var(--space-2);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle)}
 .pm-rowbtn{border:0;background:none;padding:0;font:inherit;text-align:left;color:inherit;cursor:pointer}
 .pm-rowbtn:hover .pm-strong{color:var(--primary)}
+.pm-limits{margin:0 var(--space-5) var(--space-4)}
+.pm-limin{width:auto;min-width:96px}
 @media (max-width:1023px){.pm-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pm-settings{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:599px){.pm-two,.pm-checks{grid-template-columns:1fr}}
 @media (max-width:640px){
@@ -74,6 +81,9 @@ const CSS = `
      the main button is a little narrower; if they still do not fit, the row wraps */
   [data-screen="PosManage"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:0!important;min-width:min-content!important}
   [data-screen="PosManage"] .gc-pagehead__actions .gc-btn--solid{padding:0 var(--space-3)}
+  /* POS limits: the long action names wrap in a narrow first column, so the role columns show as you scroll */
+  .pm-limits{margin:0 var(--space-3) var(--space-4)}
+  .pm-limits table.gc-table--scroll :is(th,td):first-child{white-space:normal;min-width:136px;max-width:150px}
 }
 `;
 
@@ -96,8 +106,13 @@ export default function PosManage() {
   const [elsewhere, setElsewhere] = useState([]); // shifts open on other devices
   const [opens, setOpens] = useState([]);       // drawer opened without a sale
   const [endOther, setEndOther] = useState(null); // a shift on another device a manager is ending
+  const [staff, setStaff] = useState(EMPLOYEES);  // counter staff from Staff & HR (read after mount)
+  const [pinFor, setPinFor] = useState(null);     // { name, old, pin, pin2, err } — changing someone's PIN
+  const zRef = React.useRef(null);
+  const [zSize, setZSize] = useState('80');
 
   useEffect(() => {
+    setStaff(getEmployees().slice());
     setCounters(getCounters()); setShifts(getShifts()); setCash(getCash());
     const set = getSettings(); setCfg(set); setSaved(set);
     setOpen(load(POS_KEYS.shift, null)); setSales(load(POS_KEYS.sales, []));
@@ -153,7 +168,7 @@ export default function PosManage() {
     toast(`${money(amount)} picked up from ${entry.counter} by ${entry.by} · ${entry.to}`);
   };
 
-  const employeeRows = EMPLOYEES.map((e) => {
+  const employeeRows = staff.map((e) => {
     const own = shifts.filter((s) => s.cashier === e.name);
     const on = open && open.cashier === e.name;
     return {
@@ -166,6 +181,19 @@ export default function PosManage() {
     };
   });
   const history = shifts.filter((s) => !who || s.cashier === who);
+  const printReport = (size) => { setZSize(size); window.setTimeout(() => printZ(zRef.current, size, `Shift ${report.id} · ${report.cashier}`), 0); };
+  // POS limits per role, kept in the register's settings (saved with Save settings)
+  const lims = roleLimits(cfg);
+  const setLim = (role, patch) => setCfg({ ...cfg, roleLimits: { ...(cfg.roleLimits || {}), [role]: { ...lims[role], ...patch } } });
+  const changePin = (e) => {
+    e.preventDefault();
+    if (!checkPin(pinFor.name, pinFor.old)) { setPinFor({ ...pinFor, err: 'The current PIN is not right.', old: '' }); return; }
+    if (pinFor.pin !== pinFor.pin2) { setPinFor({ ...pinFor, err: 'The two new PINs are not the same.' }); return; }
+    const r = savePin(pinFor.name, pinFor.pin);
+    if (!r.ok) { setPinFor({ ...pinFor, err: r.error }); return; }
+    const fresh = getSettings(); setSaved((x) => ({ ...x, pins: fresh.pins })); setCfg((x) => ({ ...x, pins: fresh.pins }));
+    setPinFor(null); toast(`${pinFor.name}’s PIN changed`);
+  };
   const startOfToday = new Date().setHours(0, 0, 0, 0);
   const picked = cash.filter((m) => m.type === 'pickup');
 
@@ -372,7 +400,6 @@ export default function PosManage() {
                       <div><label className="gc-label" htmlFor="pm-limit">Ask for a cash pickup when the drawer holds more than (৳)</label><input id="pm-limit" className="gc-input" type="number" min="0" inputMode="numeric" value={cfg.pickupLimit} onChange={(e) => setCfg({ ...cfg, pickupLimit: num(e.target.value) })} /><p className="gc-help">The register shows a reminder above this amount.</p></div>
                       <div><label className="gc-label" htmlFor="pm-variance">Drawer short or over by more than (৳)</label><input id="pm-variance" className="gc-input" type="number" min="0" inputMode="numeric" value={cfg.varianceLimit} onChange={(e) => setCfg({ ...cfg, varianceLimit: num(e.target.value) })} /><p className="gc-help">Needs a manager’s PIN when a shift opens or closes. The difference posts to Accounts as a shortage or overage.</p></div>
                       <span className="pm-cap">Selling</span>
-                      <div><label className="gc-label" htmlFor="pm-disc">Largest cashier discount (%)</label><input id="pm-disc" className="gc-input" type="number" min="0" max="100" inputMode="numeric" value={cfg.maxDiscount} onChange={(e) => setCfg({ ...cfg, maxDiscount: Math.min(100, num(e.target.value)) })} /></div>
                       <div><label className="gc-label" htmlFor="pm-hold">Held sale keeps its stock for (minutes)</label><input id="pm-hold" className="gc-input" type="number" min="0" inputMode="numeric" value={cfg.holdMinutes} onChange={(e) => setCfg({ ...cfg, holdMinutes: num(e.target.value) })} /><p className="gc-help">Then the stock goes back on sale. 0 keeps it until the sale is resumed.</p></div>
                       <p className="gc-help" style={{ margin: 0 }}>VAT is not set here. The register charges each product the rate of its category from <Link href="/vat" className="gc-card__link">Accounts › VAT</Link>.</p>
                     </div>
@@ -382,8 +409,32 @@ export default function PosManage() {
                       <div className="pm-switch"><span>Print the receipt automatically<small>The cashier can still turn it off for one sale.</small></span><button type="button" role="switch" aria-checked={cfg.printReceipt} aria-label="Print the receipt automatically" className="gc-switch" onClick={() => setCfg({ ...cfg, printReceipt: !cfg.printReceipt })}><span className="gc-switch__knob" /></button></div>
                       <span className="pm-cap">Receipt</span>
                       <div><label className="gc-label" htmlFor="pm-days">Exchange or return within (days)</label><input id="pm-days" className="gc-input" type="number" min="0" inputMode="numeric" value={cfg.returnDays} onChange={(e) => setCfg({ ...cfg, returnDays: num(e.target.value) })} /></div>
-                      <div><label className="gc-label" htmlFor="pm-footer">Line at the bottom of the receipt</label><input id="pm-footer" className="gc-input" maxLength={80} value={cfg.footer} onChange={(e) => setCfg({ ...cfg, footer: e.target.value })} /></div>
+                      <p className="gc-help" style={{ margin: 0 }}>The shop’s name, BIN, the receipt width and its last line are set in <Link href="/set-invoices" className="gc-card__link">Settings › Invoices & receipts</Link>.</p>
                     </div>
+                  </div>
+                  <div className="pm-head" style={{ borderTop: '1px solid var(--border-subtle)' }}><div><h2>POS limits by role</h2><p>What each role does on its own. Above it, someone who may approve enters their PIN.</p></div></div>
+                  <div className="gc-table-wrap pm-limits">
+                    <table className="gc-table gc-table--compact gc-table--keep gc-table--scroll">
+                      <thead><tr><th scope="col">Can do on their own</th>{Object.keys(DEFAULT_ROLE_LIMITS).map((r) => <th key={r} scope="col">{POS_ROLES[r]}</th>)}</tr></thead>
+                      <tbody>
+                        <tr><td>Largest discount (%)</td>{Object.keys(DEFAULT_ROLE_LIMITS).map((r) => <td key={r}><input className="gc-input pm-limin" type="number" min="0" max="100" inputMode="numeric" aria-label={`${POS_ROLES[r]}: largest discount`} value={lims[r].discount} onChange={(e) => setLim(r, { discount: Math.min(100, num(e.target.value)) })} /></td>)}</tr>
+                        {POS_PERMS.map(([k, l]) => (
+                          <tr key={k}><td>{l}</td>{Object.keys(DEFAULT_ROLE_LIMITS).map((r) => <td key={r}><select className="gc-input gc-select pm-limin" aria-label={`${POS_ROLES[r]}: ${l}`} value={lims[r][k]} onChange={(e) => setLim(r, { [k]: e.target.value })}><option value="yes">Yes</option><option value="pin">With PIN</option></select></td>)}</tr>
+                        ))}
+                        <tr><td>Approves others with their PIN</td>{Object.keys(DEFAULT_ROLE_LIMITS).map((r) => <td key={r}><input type="checkbox" className="gc-check" aria-label={`${POS_ROLES[r]} approves others`} checked={!!lims[r].approve} disabled={r === 'manager'} onChange={(e) => setLim(r, { approve: e.target.checked })} /></td>)}</tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="pm-head"><div><h2>Approval PINs</h2><p>Each person who approves has their own PIN, so every approval names them.</p></div></div>
+                  <div className="gc-table-wrap">
+                    <table className="gc-table gc-table--compact">
+                      <thead><tr><th scope="col">Person</th><th scope="col">POS role</th><th scope="col">PIN</th><th scope="col"><span className="sr-only">Change</span></th></tr></thead>
+                      <tbody>
+                        {staff.filter((e) => lims[e.pos] && lims[e.pos].approve).map((e) => (
+                          <tr key={e.name}><td><span className="pm-strong">{e.name}</span><span className="pm-sub">{e.branch}</span></td><td>{POS_ROLES[e.pos]}</td><td>{hasOwnPin(e.name, cfg) ? <span className="gc-badge gc-badge--success">Own PIN</span> : <span className="gc-badge gc-badge--warning">Demo PIN</span>}</td><td><div className="pm-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setPinFor({ name: e.name, old: '', pin: '', pin2: '', err: '' })} aria-label={`Change ${e.name}’s PIN`}>Change PIN</button></div></td></tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                   <div className="pm-foot">
                     <button type="button" className="gc-btn gc-btn--neutral" disabled={!dirty} onClick={() => setCfg(saved)}>Discard</button>
@@ -413,7 +464,7 @@ export default function PosManage() {
             <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
               <legend className="gc-label">Employees who can open this counter *</legend>
               <div className="pm-checks">
-                {EMPLOYEES.map((e) => (
+                {staff.filter((e) => !form.location || e.branch === form.location || e.branch === 'All branches' || form.staff.includes(e.name) || e.pos === 'manager').map((e) => (
                   <label key={e.name} className="pm-check"><input type="checkbox" className="gc-check" checked={form.staff.includes(e.name)} onChange={(ev) => setForm({ ...form, staff: ev.target.checked ? [...form.staff, e.name] : form.staff.filter((x) => x !== e.name) })} />{e.name}<small>{e.role}</small></label>
                 ))}
               </div>
@@ -444,15 +495,33 @@ export default function PosManage() {
       {/* a manager ends a shift left open on another device */}
       <ManagerPin open={!!endOther} action="End shift on another device" by={endOther ? endOther.cashier : ''} reason={endOther ? `End ${endOther.cashier}'s shift on ${endOther.counter} (${endOther.deviceName}). Its sales stay on that device.` : ''} onClose={() => setEndOther(null)} onApprove={(m) => { releaseCounter(endOther.counterId); setElsewhere(getOpenShifts().filter((o) => o.device !== deviceId())); toast(`${endOther.counter} closed by ${m}`); setEndOther(null); }} />
 
+      {/* the Z-report paper of the shift open in the report dialog */}
+      {report ? <ZReport shift={report} report={report} size={zSize} innerRef={zRef} /> : null}
+
+      {/* change an approver's own PIN: the current one first */}
+      <Dialog open={!!pinFor} title={pinFor ? `PIN · ${pinFor.name}` : 'PIN'} onClose={() => setPinFor(null)} width={400}>
+        {pinFor ? (
+          <form className="pm-form" onSubmit={changePin}>
+            <div><label className="gc-label" htmlFor="pm-pin-old">Current PIN</label><input id="pm-pin-old" className="gc-input" type="password" inputMode="numeric" autoComplete="off" maxLength={6} data-autofocus value={pinFor.old} onChange={(e) => setPinFor({ ...pinFor, old: e.target.value.replace(/\D/g, ''), err: '' })} /><p className="gc-help">{hasOwnPin(pinFor.name) ? 'Their own PIN.' : 'Demo PIN: 1234'}</p></div>
+            <div className="pm-two">
+              <div><label className="gc-label" htmlFor="pm-pin-new">New PIN (4–6 digits)</label><input id="pm-pin-new" className="gc-input" type="password" inputMode="numeric" autoComplete="off" maxLength={6} value={pinFor.pin} onChange={(e) => setPinFor({ ...pinFor, pin: e.target.value.replace(/\D/g, ''), err: '' })} /></div>
+              <div><label className="gc-label" htmlFor="pm-pin-new2">New PIN again</label><input id="pm-pin-new2" className="gc-input" type="password" inputMode="numeric" autoComplete="off" maxLength={6} value={pinFor.pin2} onChange={(e) => setPinFor({ ...pinFor, pin2: e.target.value.replace(/\D/g, ''), err: '' })} /></div>
+            </div>
+            {pinFor.err ? <p className="gc-help gc-help--error" role="alert" style={{ margin: 0 }}>{pinFor.err}</p> : null}
+            <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setPinFor(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid" disabled={pinFor.pin.length < 4}>Save PIN</button></div>
+          </form>
+        ) : null}
+      </Dialog>
+
       {/* closed shift report */}
       <Dialog open={!!report} title={report ? `Shift ${report.id} · ${report.cashier}` : 'Shift'} onClose={() => setReport(null)} width={520}
-        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast('Shift report sent to the printer')}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => setReport(null)}>Done</button></>}>
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => printReport('80')}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print 80 mm</button><button type="button" className="gc-btn gc-btn--neutral" onClick={() => printReport('a4')}>Print A4</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => setReport(null)}>Done</button></>}>
         {report ? (
           <div className="pm-form">
             <span className="pm-sub">{report.counter} · {formatDate(report.openedAt)}, {formatTime(report.openedAt)} – {formatTime(report.closedAt)}</span>
             <span className="pm-cap">Sold</span>
             <ul className="pm-rows">
-              <li><span>Sales</span><span>{report.count} · {report.units} units</span></li>
+              <li><span>Sales</span><span>{report.count} · {report.units} {report.units === 1 ? 'unit' : 'units'}</span></li>
               <li><span>Sold, VAT included</span><span>{money(report.sold)}</span></li>
               <li><span>Discounts given</span><span>−{money(report.discounts || 0)}</span></li>
               <li><span>Refunds and exchanges</span><span>−{money(report.refunds)}</span></li>

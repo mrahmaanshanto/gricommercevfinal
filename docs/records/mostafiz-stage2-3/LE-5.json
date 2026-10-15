@@ -1,0 +1,37 @@
+{
+ "id": "LE-5",
+ "kind": "fix",
+ "section": "Loose ends Nayeem listed",
+ "area": "Loose ends Nayeem listed",
+ "title": "IMEI asked when packing a courier order",
+ "problem": "Phones going by courier (also from quotes) left without their IMEI numbers recorded.",
+ "now": "Packing asks each piece's IMEI or serial; the parcel can't be ready or sent without them.",
+ "steps": [
+  "Approve an order with a phone.",
+  "Prepare parcel asks for the IMEI.",
+  "Type it; the order becomes ready."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/orderFlow.js",
+  "src/screens/order-detail/OrderDetail.jsx",
+  "src/screens/app/MOrderDetail.jsx"
+ ],
+ "notes": "Where: Orders › an approved order › Prepare parcel (web and phone)",
+ "shots": [
+  {
+   "route": "/merchant-orders",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Orders",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

@@ -24,13 +24,13 @@
 //   payments     a payment proof to review (ProofSheet: Accept / Reject with a reason, lib/paymentProof.js) and Add
 //                payment proof (AddProofSheet)
 //   more         Edit order, Add payment proof, Resend receipt (receipts.sendReceipt), Print invoice (SaleInvoice),
-//                Return or exchange (the web flow /return-exchange?ref=), Open on the web, Cancel order
+//                Return or exchange (/m-return?ref=&back=), Open on the web, Cancel order
 // Holds by hand, sub-status and tags stay on the web page (linked).
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  AppScreen, AppBar, Content, ActionBar, Sheet, Section, Card, ListRow, Chips, Segmented, Pill, OrderPill, Avatar,
+  AppScreen, AppBar, Content, ActionBar, Sheet, Section, Card, ListRow, Chips, Segmented, Pill, Avatar,
   IconButton, Button, Field, TextInput, Switch, Note, EmptyState, Skeleton, Icon, useAppData, useQuery, money, dateText,
   timeText, initials, toast, confirmDialog, refresh,
 } from './kit/AppKit';
@@ -62,7 +62,9 @@ import { MERCHANT } from '@/lib/merchant';
 import { coverOf } from '@/lib/warranty';
 import { allProducts } from '@/lib/products';
 import { productOfLine, saleOfOrder, serialsOfLine, coverStart } from '@/lib/customerWarranty';
-import { payPill, digitsOf, plural, byName, shrinkPhoto } from './orders/orderData';
+import { payPill, statusPill, digitsOf, plural, byName, shrinkPhoto } from './orders/orderData';
+// the status as the Orders tabs say it, with the step beside it (ON-U10, orders/orderData.js › statusPill)
+const StatusPill = ({ statusKey }) => { const sp = statusPill(statusKey); return <Pill tone={sp.tone}>{sp.label}{sp.sub ? ' · ' : ''}{sp.sub}</Pill>; };
 
 const CANCEL_REASONS = ['Customer cancelled', 'No answer', 'Fake order', 'Out of stock', 'Duplicate order', 'Other'];
 const SHORT = { new: 'Placed', verified: 'Verified', approved: 'Approved', ready: 'Packed', shipped: 'Shipped', delivered: 'Delivered' };
@@ -452,7 +454,7 @@ export default function MOrderDetailScreen() {
     canAddProof && { key: 'add-proof', icon: 'wallet', label: 'Add payment proof', sub: 'bKash, Nagad, Rocket or bank', run: () => setSheet('add-proof') },
     { key: 'resend', icon: 'chat', label: 'Resend receipt', run: () => setSheet('resend') },
     { key: 'print', icon: 'receipt', label: 'Print invoice', run: doPrint },
-    { key: 'return', icon: 'undo', label: 'Return or exchange', sub: 'Opens the web flow', href: '/return-exchange?ref=' + encodeURIComponent(o.invoiceId || o.id) },
+    { key: 'return', icon: 'undo', label: 'Return or exchange', sub: 'Find the sale, refund or swap', href: '/m-return?ref=' + encodeURIComponent(o.invoiceId || o.id) + '&back=' + encodeURIComponent('/m-order-detail?id=' + o.id) },
     { key: 'comment', icon: 'chat', label: 'Add a comment', run: () => setSheet('comment') },
     { key: 'web', icon: 'globe', label: 'Open on the web', sub: 'Tags, holds and more', href: '/order-detail?id=' + encodeURIComponent(o.id) },
     canCancel && { key: 'cancel', icon: 'x', label: 'Cancel order', run: () => setSheet('cancel') },
@@ -462,10 +464,10 @@ export default function MOrderDetailScreen() {
     <AppScreen name="MOrderDetail" title={'Order ' + o.id} css={CSS}>
       <AppBar title={'Order ' + o.id} back={back} actions={<IconButton icon="dots" label="More actions" onClick={() => setSheet('more')} />} />
       <Content top={103} bottom={bar ? 98 : 0}>
-        {!counter ? <Steps steps={steps} reached={reached} next={next} stopped={offPath ? (o.statusKey === 'cancelled' ? 'Order stopped' : 'Came back from the courier') : ''} status={completion.done ? <Pill tone="ok">Completed</Pill> : <OrderPill statusKey={o.statusKey} />} /> : (
+        {!counter ? <Steps steps={steps} reached={reached} next={next} stopped={offPath ? (o.statusKey === 'cancelled' ? 'Order stopped' : 'Came back from the courier') : ''} status={completion.done ? <Pill tone="ok">Completed</Pill> : <StatusPill statusKey={o.statusKey} />} /> : (
           <div className="card" style={{ margin: '4px 20px 0', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ flex: '1', minWidth: '0', fontSize: 'var(--text-sm)', color: 'var(--body)' }} className="ell">{o.placed} · {o.channel}</span>
-            <OrderPill statusKey={o.statusKey} />
+            <StatusPill statusKey={o.statusKey} />
           </div>
         )}
 

@@ -1,0 +1,40 @@
+{
+ "id": "ON-F12",
+ "kind": "new",
+ "section": "Online selling",
+ "area": "Online selling",
+ "title": "Courier handover with signed manifest",
+ "problem": "There was no proof of which parcels the rider took when cash on delivery went missing.",
+ "now": "Staff scan each courier's parcels, check count and cash, print a manifest to sign and mark them handed over.",
+ "steps": [
+  "Open Courier handover",
+  "Choose Pathao and tick its parcels",
+  "Print manifest",
+  "Press Mark handed over"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/merchant-orders/CourierHandover.jsx",
+  "src/lib/orderFlow.js",
+  "src/shell/navigation.js",
+  "src/lib/edition.js",
+  "src/lib/team.js"
+ ],
+ "notes": "Where: Orders › Courier handover (/courier-handover)",
+ "shots": [
+  {
+   "route": "/courier-handover",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Courier handover",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

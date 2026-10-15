@@ -4,6 +4,7 @@
 // (lib/customerWarranty.js). Covered items come first, ending soon (30 days or less) at the top; ended ones after.
 // "Log service" records a warranty service request for an item; it shows on the order page under the item.
 // `limit` keeps the card short (Overview); without it every item is listed (Orders area).
+// Logging a service sends "Service request received" as Settings › Notifications says (review CX-F3).
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -12,6 +13,7 @@ import { toast } from '@/runtime/ui';
 import { StatusBadge } from '@/components/ui';
 import { formatDate } from '@/lib/format';
 import { warrantyItems, requestService, getClaims, CLAIMS_EVENT } from '@/lib/customerWarranty';
+import { notifyCustomer, notifyWords } from '@/lib/notifications';
 
 const TONE = { active: 'success', ending: 'warning', expired: 'neutral' };
 const STATE = { active: 'Covered', ending: 'Ending soon', expired: 'Ended' };
@@ -55,7 +57,9 @@ export default function CustomerWarranty({ phones = [], name = '', limit }) {
     if (!ask.problem.trim()) { toast('Write what is wrong with it', { tone: 'error' }); return; }
     const c = requestService(it, { problem: ask.problem, phone: phones[0], name });
     setAsk(null);
-    toast(`Warranty service ${c.id} logged for ${it.name}`);
+    const phone = phones.map((p) => String(p || '').replace(/\D/g, '').replace(/^88/, '')).find((d) => /^01[3-9]\d{8}$/.test(d)) || '';
+    const r = notifyCustomer('service-received', { name, phone }, { claim_id: c.id, item_name: it.name }, { ref: c.id });
+    toast(`Warranty service ${c.id} logged for ${it.name}` + (r.sent ? ' · ' + notifyWords(r, (name || '').split(' ')[0] || 'the customer') : ''));
   };
 
   return (

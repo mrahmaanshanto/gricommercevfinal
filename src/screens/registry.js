@@ -2213,6 +2213,17 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "SetHosting",
+    "route": "/set-hosting",
+    "folder": "settings-console",
+    "title": "SetHosting",
+    "description": "Hosting: domains, DNS records, email records (SPF, DKIM, DMARC), SSL and security, speed and cache, root files, backups and usage.",
+    "canvasPage": "11 · Settings",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
+  },
+  {
     "name": "SetSeo",
     "route": "/set-seo",
     "folder": "settings-console",
@@ -2227,8 +2238,8 @@ export const SCREENS = [
     "name": "SetNotifications",
     "route": "/set-notifications",
     "folder": "settings-console",
-    "title": "Order notifications",
-    "description": "SMS and email for each order event",
+    "title": "Notifications",
+    "description": "SMS, WhatsApp and email for orders, refunds, store credit, invoices, tickets, warranty and the account",
     "canvasPage": "11 · Settings",
     "width": 1380,
     "height": 880,
@@ -2389,6 +2400,17 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "Notifications",
+    "route": "/notifications",
+    "folder": "notifications",
+    "title": "Notifications",
+    "description": "Everything that needs someone: new orders, payments due, low stock, late payouts, approvals, meeting notes, tickets and mentions; with each person's notification settings.",
+    "canvasPage": "Home",
+    "width": 1440,
+    "height": 1000,
+    "interactive": true
+  },
+  {
     "name": "Meetings",
     "route": "/meetings",
     "folder": "customers-crm",
@@ -2397,6 +2419,17 @@ export const SCREENS = [
     "canvasPage": "Customers",
     "width": 1440,
     "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "Files",
+    "route": "/files",
+    "folder": "files",
+    "title": "Files",
+    "description": "Every picture, video and document the shop uses: upload, folders, alt text, where each is used, replace and delete.",
+    "canvasPage": "Settings",
+    "width": 1440,
+    "height": 1000,
     "interactive": true
   },
   {
@@ -2584,6 +2617,50 @@ export const SCREENS = [
     "canvasPage": "08 · Storefront",
     "width": 1440,
     "height": 1500,
+    "interactive": true
+  },
+  {
+    "name": "TrackOrder",
+    "route": "/track",
+    "folder": "storefront",
+    "title": "Track your order",
+    "description": "Customer order page: order number + mobile number, status steps, courier and tracking ID, cash to pay, items, return request.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "SetCheckout",
+    "route": "/set-checkout",
+    "folder": "settings-console",
+    "title": "Checkout settings",
+    "description": "Guest checkout or sign-in, code check on the mobile number, email, district and area, terms box, cash-on-delivery fee and limit, smallest order.",
+    "canvasPage": "Settings",
+    "width": 1440,
+    "height": 1100,
+    "interactive": true
+  },
+  {
+    "name": "ReturnRequests",
+    "route": "/return-requests",
+    "folder": "merchant-orders",
+    "title": "Return requests",
+    "description": "Online return requests: approve or reject, book the pickup, receive and check, then refund or send the items again.",
+    "canvasPage": "Orders",
+    "width": 1440,
+    "height": 1000,
+    "interactive": true
+  },
+  {
+    "name": "CourierHandover",
+    "route": "/courier-handover",
+    "folder": "merchant-orders",
+    "title": "Courier handover",
+    "description": "Scan or tick each courier's parcels, check the count and cash on delivery, print the pickup manifest, mark them handed over.",
+    "canvasPage": "Orders",
+    "width": 1440,
+    "height": 1000,
     "interactive": true
   },
   {
@@ -2791,6 +2868,182 @@ export const SCREENS = [
     "title": "Menus",
     "description": "Online Store › Menus: header and footer menus with links to pages, categories, products, offers and the blog; live preview.",
     "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },
+  {
+    "name": "Theme",
+    "route": "/theme",
+    "folder": "online-store",
+    "title": "Theme",
+    "description": "Online Store › Theme: the store's look, live preview, the Signal / Nokshi / Counter presets (preview and import), restore points.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "ThemeEditor",
+    "route": "/theme-editor",
+    "folder": "online-store",
+    "title": "Customize theme",
+    "description": "Theme editor: ~60 options in 9 groups with search, live desktop / phone preview, draft, publish, undo, reset to preset.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1000,
+    "interactive": true
+  },
+  {
+    "name": "HeaderBuilder",
+    "route": "/header-builder",
+    "folder": "online-store",
+    "title": "Header builder",
+    "description": "Saved headers: desktop and phone, 3 rows × 3 areas, elements, row height / colours / sticky, phone drawer and bottom bar, preview.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },
+  {
+    "name": "HtmlBlocks",
+    "route": "/html-blocks",
+    "folder": "online-store",
+    "title": "HTML blocks",
+    "description": "Reusable content blocks by type with where each is used; duplicate, safe delete.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1000,
+    "interactive": true
+  },
+  {
+    "name": "HtmlBlockEdit",
+    "route": "/html-block-edit",
+    "folder": "online-store",
+    "title": "Edit HTML block",
+    "description": "Edit an HTML block with the page editor's blocks; type and where it is used.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "Layouts",
+    "route": "/layouts",
+    "folder": "online-store",
+    "title": "Layouts",
+    "description": "Page layouts (home, product, category, page, cart, search, page not found) with conditions, header and status.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1000,
+    "interactive": true
+  },
+  {
+    "name": "LayoutEdit",
+    "route": "/layout-edit",
+    "folder": "online-store",
+    "title": "Edit layout",
+    "description": "Section builder: add from 15 sections, reorder, hide, short settings, conditions, header, live preview, draft / publish / undo.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },
+  {
+    "name": "StoreHome",
+    "route": "/store",
+    "folder": "storefront",
+    "title": "Store home",
+    "description": "Customer storefront — the home page drawn by the theme (Home layout sections).",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 2400,
+    "interactive": true
+  },
+  {
+    "name": "StoreCart",
+    "route": "/cart",
+    "folder": "storefront",
+    "title": "Cart",
+    "description": "Customer storefront — the cart page (items, free delivery bar, order note, checkout).",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "StoreWishlist",
+    "route": "/wishlist",
+    "folder": "storefront",
+    "title": "Wishlist",
+    "description": "Customer storefront — the products a shopper saved with the heart.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "StoreCompare",
+    "route": "/compare",
+    "folder": "storefront",
+    "title": "Compare products",
+    "description": "Customer storefront — up to four products side by side, specs from the product templates.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "StoreAccount",
+    "route": "/account",
+    "folder": "storefront",
+    "title": "My account",
+    "description": "Customer storefront — sign in with the mobile number and a code; orders, wishlist, details.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "StoreAuthor",
+    "route": "/author",
+    "folder": "storefront",
+    "title": "Author",
+    "description": "Customer storefront — a blog author: bio, topics, links, figures, their posts and the other writers.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },
+  {
+    "name": "StoreBlog",
+    "route": "/blog",
+    "folder": "storefront",
+    "title": "Blog",
+    "description": "Customer storefront — the shop's blog posts in the theme's Blog list style, with topics.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1600,
+    "interactive": true
+  },
+  {
+    "name": "StoreShowcase",
+    "route": "/store-showcase",
+    "folder": "storefront",
+    "title": "All sections",
+    "description": "Every section, header, product card, product page, checkout and footer from all the themes on one page, in one theme.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 2400,
+    "interactive": true
+  },
+  {
+    "name": "StoreSearch",
+    "route": "/search",
+    "folder": "storefront",
+    "title": "Search",
+    "description": "Customer storefront — search results with the category picker.",
+    "canvasPage": "08 · Storefront",
     "width": 1440,
     "height": 1400,
     "interactive": true

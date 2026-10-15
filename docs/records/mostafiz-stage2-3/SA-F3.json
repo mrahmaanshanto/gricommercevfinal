@@ -1,0 +1,50 @@
+{
+ "id": "SA-F3",
+ "kind": "new",
+ "section": "Super admin",
+ "area": "Super admin",
+ "title": "Business verification for every store",
+ "problem": "Staff could not check a store's trade licence, TIN or owner's NID, and nothing showed which stores were real.",
+ "now": "Owners send their licence, TIN, NID and photos from Settings; staff approve or reject them in a review queue, and the state shows everywhere.",
+ "steps": [
+  "In the merchant panel open Settings › Business verification and send the form with two photos",
+  "In the super admin open Merchants › Verification and approve or reject it",
+  "Open Dazzle Shop's profile and see the Verification card",
+  "Back in Settings the shop shows Verified or the reason it was rejected"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/platform/shops.js",
+  "src/lib/platform/seed.js",
+  "src/screens/settings-console/SetVerification.jsx",
+  "src/app/(settings)/set-verification/page.jsx",
+  "src/screens/admin/merchants/kycShared.jsx",
+  "src/screens/admin/merchants/Verification.jsx",
+  "src/app/(admin)/admin/kyc/page.jsx",
+  "src/screens/admin/merchants/profile/ProfileOverview.jsx",
+  "src/screens/admin/merchants/Merchants.jsx",
+  "src/lib/admin/merchants.js",
+  "src/screens/admin/adminNav.js",
+  "src/screens/settings-console/SetRail.jsx",
+  "src/lib/edition.js",
+  "src/lib/help.js",
+  "src/lib/i18n/bn.js"
+ ],
+ "notes": "Where: Merchant: Settings › Business verification (/set-verification) · Super admin: Merchants › Verification (/admin/kyc), merchant profile · Needs the server: Photos are kept as file names only; a server must store the files and check the numbers.",
+ "shots": [
+  {
+   "route": "/admin/kyc",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Super admin: Verification",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

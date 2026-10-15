@@ -141,7 +141,7 @@ export default function WorkflowSettingsScreen() {
           <Topbar crumb="Automation" page="Workflow settings" />
           <div className="gc-shell__content">
             <div className="ix-page ix-page--narrow">
-              <RecordHeader back="/automations" backLabel="Rules" title="Workflow settings" meta={headline}
+              <RecordHeader back="/automations" backLabel="Automations" title="Workflow settings" meta={headline}
                 about="One set of rules for every message the shop sends: campaigns, automations, cart reminders, loyalty messages and order updates. Quiet hours and limits per kind of message, how AI replies, who never gets messages, what waits for a manager, who may change rules and what happens when a step fails."
                 primary={{ label: 'Save', onClick: save }} />
 

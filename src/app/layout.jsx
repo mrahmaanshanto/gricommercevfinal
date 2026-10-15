@@ -5,6 +5,7 @@ import { GridAi } from '@/components/ui/GridAi';
 import { ChatDock } from '@/components/inbox/ChatDock';
 import { EveningCheck } from '@/components/EveningCheck';
 import { MeetingAlerts } from '@/components/MeetingAlerts';
+import { MerchantNotices } from '@/components/MerchantNotices';
 import { HelpPanel } from '@/components/ui/HelpPanel';
 import { ProposalBadge } from '@/components/ProposalBadge';
 import { DemoClockReady } from '@/components/DemoClockReady';
@@ -51,6 +52,7 @@ export default function RootLayout({ children }) {
         <ChatDock />
         <EveningCheck />
         <MeetingAlerts />
+        <MerchantNotices />
         <HelpPanel />
         <ProposalBadge />
         <DemoClockReady />

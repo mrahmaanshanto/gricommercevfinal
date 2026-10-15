@@ -2,7 +2,8 @@
 // events are lib/platform's demo data; this file adds what the Merchants pages need on top:
 //
 //   Reading
-//     VIEWS, viewOf(stateKey)            the list's tabs (All · Paying · Trial · Behind on payment · Suspended · Closed · Setting up)
+//     VIEWS, viewOf(stateKey)            the list's tabs (All · At risk · Paying · Trial · Behind on payment · Suspended · Closed · Setting up);
+//                                        At risk (SIGNAL_VIEWS) is a signal across states: row.atRisk (health under 50 on a live store)
 //     merchantRow(db, shop, t)           one store as a list row (owner, package, modules, dates, state, monthly amount …)
 //     merchantList(db, t)                every store as rows + the count per view
 //     ownerOf(shop)                      { name, phone, email } (old records keep the owner as a plain name)
@@ -28,12 +29,15 @@ import { MODULES, SETS, PLAN_NAME, ladderLabel, UNLIMITED, LIMIT_KEYS, STAGES } 
 import { shopOf, subOf, subState, isPaying, mrrOf, planOf, openInvoices, balance } from '@/lib/platform/billing';
 import { health, lastActiveDays, ordersMTD } from '@/lib/platform/views';
 import { moduleState } from '@/lib/platform/merchant';
+import { kycOf } from '@/lib/platform/shops';
 
 // ---- views (the list's tabs) -------------------------------------------------------------------------------------
 export const VIEWS = [
-  ['all', 'All'], ['paying', 'Paying'], ['trial', 'Trial'], ['late', 'Behind on payment'], ['suspended', 'Suspended'],
+  ['all', 'All'], ['risk', 'At risk'], ['paying', 'Paying'], ['trial', 'Trial'], ['late', 'Behind on payment'], ['suspended', 'Suspended'],
   ['closed', 'Paused & closed'], ['setup', 'Setting up'],
 ];
+/** Views that are a signal, not a state: a row is in them besides its own state view. */
+export const SIGNAL_VIEWS = ['risk'];
 /** Which view a subscription state belongs to (besides All). */
 export function viewOf(key) {
   if (key === 'active') return 'paying';
@@ -106,13 +110,17 @@ export function merchantRow(db, shop, t) {
     am: shop.am || null, src: shop.src, dist: shop.dist, cat: shop.cat, segs: shop.segs,
     health: hl.score, healthBand: hl.band, healthTone: hl.tone, lastActive: lastActiveDays(db, shop, t),
     trialLeft: st.key === 'trial' ? st.left : null, domain: shop.dom || `${shop.sub}.gridcommerce.com.bd`,
+    // health and churn signals (SA-F6): a live store whose score is under 50; why, from views.js › health
+    atRisk: hl.band === 'At risk' && ['active', 'grace', 'pastdue', 'trial'].includes(st.key), healthWhy: hl.why,
+    kyc: kycOf(shop).state,
   };
 }
 
 export function merchantList(db, t) {
   const rows = db.shops.map((s) => merchantRow(db, s, t)).sort((a, b) => b.registered - a.registered);
   const counts = { all: rows.length };
-  for (const [k] of VIEWS.slice(1)) counts[k] = rows.filter((r) => r.view === k).length;
+  for (const [k] of VIEWS.slice(1).filter(([v]) => !SIGNAL_VIEWS.includes(v))) counts[k] = rows.filter((r) => r.view === k).length;
+  counts.risk = rows.filter((r) => r.atRisk).length;
   return { rows, counts };
 }
 

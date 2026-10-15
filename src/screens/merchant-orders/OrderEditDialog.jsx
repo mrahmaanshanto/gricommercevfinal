@@ -10,7 +10,7 @@ import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Dialog } from '@/components/ui';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { DELIVERY_RATES } from '@/lib/orderLinks';
+import { deliveryRates } from '@/lib/deliveryRates';
 import { orderableItems } from '@/lib/sellable';
 import { draftOf, previewEdit, applyEdit, requestEdit, applyEditRequest, discardEditRequest, versionOf } from '@/lib/orderEdit';
 
@@ -67,6 +67,8 @@ export default function OrderEditDialog({ open, order, request, onClose, onDone 
     setDraft({ ...draft, lines });
     setQ('');
   };
+  // Settings › Delivery's charges (the dialog only opens in the browser, after the order page has read its data)
+  const DELIVERY_RATES = deliveryRates();
   const zones = [...DELIVERY_RATES.map((r) => r.label), ...(DELIVERY_RATES.some((r) => r.label === order.zone) || !order.zone ? [] : [order.zone])];
   const setZone = (e) => { const z = e.target.value; const r = DELIVERY_RATES.find((x) => x.label === z); setDraft({ ...draft, zone: z, shipping: r ? r.fee : draft.shipping }); };
   const needle = q.trim().toLowerCase();

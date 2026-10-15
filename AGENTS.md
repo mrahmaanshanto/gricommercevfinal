@@ -33,8 +33,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
     Pager, Menu, KV; classes `ix-*` at the end of design-system.css). References: `MerchantOrders.jsx`, `AllProducts.jsx`,
     `Home.jsx`.
   - Muted text is `var(--text-muted)`, never `#94a3b8`.
-  `npm run pattern` snaps literals back onto the tokens and re-applies the shell hooks (safe to
-  rerun; needed after `npm run convert`).
+  `npm run pattern` snaps literals back onto the tokens and re-applies the shell hooks (needed after `npm run convert`).
+  **Don't run it on today's screens** (checked 16 Oct 2026): it rewrites ~340 hand-edited files (a second scroll box
+  around tables already inside `ix-table-wrap`, an extra `<PageHeader>` h1, heights and weights snapped). When
+  `check:screens` flags a literal, replace that one value with the token of the same size by hand.
 - Layout: no screen has a fixed width. Merchant screens use the shared shell classes (`gc-shell`,
   `gc-shell__main`, `gc-shell__content`) and the reflow hooks `gc-cols-2…6`, `gc-split`, `gc-side`,
   `gc-cardrow`, `gc-table-wrap`; their rules are at the end of `design-system.css`. The sidebar is a
@@ -293,16 +295,254 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   Users & roles' invite can make a mailbox; HR `settleLeaving` suspends it and forwards its mail; Order notifications show
   the sending address. Super admin: Business email area (`/admin/email` directory with money and alerts, `/plans`,
   `/abuse`; `screens/admin/email/`).
+- **Storefront builder (Module A, Oct 2026)**: one engine in `src/lib/storefront/`. `store.js` is one browser store
+  (`gc.storefront`, event `gc:storefront`); theme, headers and layouts each keep a draft and a published copy (customers see
+  the published one); restore points (newest 6) are made before every import and publish, and `restoreTo` makes one first, so
+  going back can be undone. First open seeds the Signal preset, published.
+  - `theme.js`: `OPTIONS` (59 in 9 `GROUPS`; an option may carry `lock` = a super admin switch, or `plan`), `contrastIssues`,
+    `themeVars` (CSS variables `--sf-*` scoped to `.sf-theme`). `presets.js`: `PRESETS` Signal / Nokshi / Counter,
+    `whatWillChange`, `importPreset(id, parts)` (never products, customers or orders), `resetThemeToPreset`.
+  - `headers.js` (computer and phone, 3 rows × 3 areas, `ELEMENTS`, phone drawer + bottom bar, `headerFor(id)`), `layouts.js`
+    (`KINDS` home/product/category/page/cart/search/404, 15 `SECTION_TYPES`, conditions; `layoutFor(kind, ctx)`: product beats
+    category beats page beats all), `blocks.js` (HTML blocks from blog blocks; `usedIn`), mega menus on menu items
+    (`item.mega` in `storeMenus.js`, `megaProblem`). `access.js` reads the super admin's `gc.admin.themes` READ-ONLY (the theme
+    assigned to `0090` gives the merchant-editing switches; presets follow the theme's `packages` and the plan; `lockOf(x)`).
+    `cart.js` (`gc.store.cart`; the side cart opens on `gc:store-cart-open`; Checkout reads it).
+  - Customer pages are drawn by `screens/storefront/storeChrome.jsx` (StoreChrome / ThemeChrome, `storeHeader.jsx`,
+    `sections.jsx` › `useLayout` + `<Sections main>`): `/store`, `/cart`, `/search`, the themed not-found, `/product`,
+    `/category`, `/page`, `/blog-post`, `/lp`, `/offers`, `/offer-detail`, `/checkout`, `/order-link`. `?preview=1` shows
+    drafts; editors push unsaved copies into preview frames (`sendPreview`; `&header=`, `&layout=`, `&preset=`).
+  - Merchant screens (Online Store, first rows): Theme `/theme` (presets, import with choose-what + what-will-be-replaced,
+    restore points), Customize `/theme-editor` (fills the window; option search; live preview computer / phone; draft,
+    publish, undo, reset), Header builder `/header-builder`, Layouts `/layouts` + `/layout-edit`, HTML blocks `/html-blocks` +
+    `/html-block-edit`, mega menu in Menus. Shared parts `screens/online-store/sfShared.jsx`. Super admin › theme record:
+    the merchant-editing switches are live (each says what it hides).
+- **Website editor, phase 0 (Oct 2026; the plan for the whole editor: every section in several looks, page / checkout /
+  sign-in / account styles, pop-ups, SEO + AEO / LLM settings, 7 themes, JSON import / export)**:
+  - Looks: a `SECTION_TYPES` entry may carry `styles: [{ id, label, sketch }]` (`sketch` = rectangles in a 100×62 box,
+    drawn by `sfShared.jsx › StyleSketch`); the section keeps `variant` (`layouts.js › variantOf`, which also reads the
+    old Category tiles `style`). Built so far: Hero (full, boxed, split, banners + `side`, video + `video`/`poster`),
+    Category tiles (tiles, circles, cards, carousel, list), FAQ (accordion, columns, topics with `item.topic`, split).
+    `LIB_GROUPS` / `groupOf` order the section library.
+  - Style controls: `lib/storefront/styles.js` (`box` on a section: steps None…XL per device `{d,t,m}` for padding and
+    margin, width, alignment, background colour / picture + shade, text colour, heading font and size, button look,
+    hide per device, entrance animation, anchor, CSS class). `boxProps` → CSS variables + classes read by `BOX_CSS`
+    (wrapper class `sfsx`; `sfx` is the side cart's). Computer ≥1024, tablet 641–1023, phone ≤640.
+  - Global styles (Theme › Customize): `buttons` (solid / outline / soft / pill), `fieldStyle`, `badgeStyle`, `shadow`,
+    `iconStyle`, `spacing` adds Airy; `themeClasses(values)` on the store root + `TOKENS_CSS`.
+  - `/layout-edit` fills the window (menu folded): Sections list (select, drag, arrows, hide, copy, remove, Add section
+    library with looks), live preview (computer / tablet / phone; `?preview=1&edit=1` makes the frame's sections
+    clickable: `store.js › isEditing / selectInEditor`, the editor sends `select`), and the panel Content (look + fields) ·
+    Style · Advanced. Undo / Redo (Ctrl+Z / Ctrl+Shift+Z). `cleanBox` trims `box` on save.
+- **Theme pack: 8 themes from Bangladeshi stores (Oct 2026; research in `docs/theme-research-oct-2026.md`)**:
+  `lib/storefront/presetsPack.js` (`PACK`, joined into `PRESETS`): GhorPure (Ghorer Bazar), NovaByte (Star Tech),
+  NaturaNest (Naturo), Haatly (HT Bazar), Rupkotha (Shajgoj), GlowMuse (Beauty Booth), Voltiva (Shei Tech), GizmoLane
+  (GadStyle). Each copies a store's layout, sections and styles, never its logo, photos, text or exact colours; logos are
+  the owner's own (`public/assets/themes/<id>-logo|stacked|logo-light.png`, shown only with `?preview=1&preset=<id>` or
+  once the theme is imported). A pack theme sets the theme values (card, product page `productStyle` / `detailsStyle`,
+  checkout), one header (`hdr-<id>-main`), home / product / category layouts and menus (`presetMenus`). New sections for
+  them are in `screens/storefront/sections2.jsx` (`moreBody`; trust, brands, reviews, product tabs, bento, deal, banner
+  grid, coupons, quick links, steps, CTA, reels, YouTube feed, visit outlet, SEO text).
+  - Checkout styles (Customize › Cart & checkout; `Checkout.jsx` root class `ck-style-<id>`): `checkoutStyle` classic ·
+    grocery (order review first, login bar, payment tiles, the district sets the charge) · quick (products, zone cards,
+    details; cash on delivery only) · specs (points banner, payment beside delivery with store pickup) · compact · advance
+    (notice bar; COD with a bKash / Nagad advance of `advanceAmount`: the number paid from + transaction ID go to
+    `manualPayments.submitManualPayment`, without them a payment link is made) · steps (secure header, 3 steps, Full /
+    advance switch, tip cards) · signin (phone + code before the form). `checkoutBump` = one add-on offer in the summary.
+    `checkoutMode: 'popup'` opens checkout over the page (`storeChrome › CheckoutPop`, `CheckoutBody popup`; the side
+    cart's Checkout and Buy now call `cart.js › goCheckout`).
+  - **All sections** (`/store-showcase`, `screens/storefront/StoreShowcase.jsx`; linked from Online Store › Theme and its
+    preview): one page with every section of every theme's layouts (one per look, labelled with the themes that use it; a
+    look no theme uses gets sample content from `sectionStarters.js`, shared with `/layout-edit`), every header of every
+    theme, the 10 product cards, the product page (buy box × details switch) and checkout (style switch, `CheckoutBody`
+    props `cs` / `bump`; pop-up button) and every footer. `?preview=1&preset=<id>` draws it in that theme. noindex.
+  - **Complete home + tweak panel (16 Oct)**: every home layout has every kind of section (`completeHome.js`: the theme's
+    own sections first, each missing kind at its place in `HOME_ORDER`; Video starts hidden until it has a link). Stores
+    saved before `SF_VERSION` 2 are upgraded once (`presets.js › upgradeData`: missing sections, the look's new font).
+    `/store` has a "Tweak this page" button → `/store?preview=1&tweak=1` (`StoreTweak.jsx`, lazy, portal in the admin
+    look): click a part on the page (sections carry `data-sec`, header rows, product cards, footer) or pick it from the
+    list; look thumbnails, words, products, background, spacing, width, hide / move, add a missing kind; theme fonts,
+    colours, corners, buttons, titles; header, cards, footer, product page and checkout styles. Every change saves the
+    draft at once; Publish / Discard. Demo: everyone sees the button; a live store shows it to signed-in staff only.
+  - **Looks for every section (16 Oct)**: every kind has 3–10 looks (`SECTION_TYPES[].styles`; products' layouts are
+    `PRODUCT_LOOKS`). A look is a class on the kind's own markup (`is-<look>`; Text and picture uses `look-<look>`
+    because `is-left/right` is the picture side), styled in `screens/storefront/sectionLooks.js › LOOKS_CSS`; a few looks
+    have their own markup (Reviews big / compact, Deal split, CTA split / centre / outline, Visit our shops cards / list /
+    split, Best sellers grid, FAQ cards, Brands circles / moving strip). Kinds that had one look keep it as the first.
+  - **Page styles (16 Oct, WoodMart + the 8 reference stores)**: theme options `productLayout` (7: photos left / right,
+    stacked with sticky details, big photos, centred, compact, tinted panel; `.spd-lay-<id>` in StoreProduct.jsx), `gallery`
+    (+ slider, stacked), `detailsStyle` (+ side tabs), `checkoutStyle` (+ split, centre = 10), and group `pages`:
+    `aboutStyle`, `policyStyle` (privacy, terms, returns, delivery = `POLICY_TEMPLATES`), `blogStyle` (the new `/blog`,
+    `StoreBlog.jsx`), `postStyle` — 5 each, drawn by `screens/storefront/pageStyles.jsx` (About adds section looks around the
+    page's words; policies split the text at its headings). Every pack theme sets its own. Sketches: `lib/storefront/pageLooks.js`
+    (`PAGE_LOOKS`, `PAGE_PARTS`). The tweak panel's **Pages** part shows them, and "Tweak this page" works on the product,
+    checkout, page and blog screens (`storeChrome › TweakDock`, `?preview=1&tweak=1&part=pg:<id>`). Checkout reads
+    `themeValues()` (draft in a preview) and follows `gc:storefront`.
+  - **About us + Contact us, picture slots, phones (16 Oct)**: `screens/storefront/shopInfo.jsx` holds the shop facts
+    (`useShopInfo`: contact from Settings › General, branches from `locations.getPlaces` with their hours, `SHOP_SOCIALS`),
+    `openState(hours)` (reads "Sat–Thu 10:00 AM – 10:00 PM", Dhaka time, after mount, every minute: Open now / Closing soon /
+    Closed · Opens …), and the parts `OpenBadge`, `ShopCards`, `SocialLinks`, `Testimonials` (published 4–5★ reviews +
+    the average), `ContactChannels`, `ContactForm` (makes a support ticket via `supportTickets.addTicket`), `QuickAnswers`.
+    Every About look ends with reviews, shops and socials; `aboutStyle: 'classic'` is now "Figures, values and shops". Contact
+    has `contactStyle` (cards · split · map, `ContactPage`); StorePage draws About and Contact always in their style.
+    The blog link: `resolveLink` gives `{ type: 'blog' }` the address `/blog`; every theme's header menu ends with Blog
+    (`presets.js › menusFor`), and saved menus get it once (`storeMenus.js › withBlog`, flag `gc.storeMenus.blog`).
+    Picture slots: `sectionLooks.js › FIT_CSS` pins each picture box to its own shape (`grid-template:minmax(0,1fr)/
+    minmax(0,1fr)` on aspect-ratio boxes, aspect ratios on offer / text-and-picture / deal banner), so any upload shows at the
+    theme's size; `storeKit › SF_CSS` clips sideways overflow on `.sf-theme` and caps media at 100%. Phones: quick links two
+    per row, steps as a tight list, coupons and blog posts as swipe strips, bento lower row 2 cards, 28px logo, 44px taps,
+    the Tweak button a round icon at the bottom left. Check a new section by swapping every picture for a 300×1500 and a
+    1800×200 one: no picture box may change size.
+  - **Global settings, WoodMart's elements, edit everything (16 Oct)**:
+    - Global settings (`theme.js`, groups Global styles · Form fields · Icons and details · Shop details, plus Typography /
+      Product card / Product page / Extras additions): button size, text, hover; field look (outlined, filled, underline,
+      raised, pill), height, corners, focus; tick boxes; quantity buttons; option buttons; icon frame, line, size, colour;
+      social icons; stars; heading weight, spacing, title colour; links; motion; price colour / size / old price; badge
+      position; card brand, stock bar, wishlist heart, quick view, zoom; catalogue mode; age check; social links. They are
+      CSS variables from `themeVars › detailVars` (`--sf-field-*`, `--sf-fbt/fbx/fbb`, `--sf-focus-ring`, `--sf-btn-*`,
+      `--sf-icon-*`, `--sf-star`, `--sf-price*`) plus root classes (`themeClasses`, rules in `TOKENS_CSS`). Every field skin
+      in the store (`.sf-input`, `.ck-in`, `.shi-field`, category sort, `.gc-input` inside the store) reads the variables, so
+      a component's own error / focus rule still wins.
+    - WoodMart features: wishlist and compare (`lib/storefront/saved.js`, `/wishlist`, `/compare` with template specs and
+      "Only the differences", `StoreSaved.jsx`), quick view (`storeExtras.jsx`, event `gc:store-quick-view`), card actions
+      (heart, quick view, compare; `data-pid` on cards), My account (`/account`, `StoreAccount.jsx`: mobile + one-time code,
+      shown on screen in the demo; orders by that number), product page stock bar, sold count, sale countdown (only when a
+      live flash sale lists the product) and Frequently bought together from real orders, else "Goes well with"
+      (`productExtras.jsx`), catalogue mode, age check, section dividers (Style › Top / Bottom edge, `styles.js › DIVIDERS`).
+    - 14 new section kinds (`layouts.js`, drawn by `screens/storefront/sections3.jsx`, starters in `sectionStarters.js`;
+      not added to the home by `completeHome`, shown on `/store-showcase` and in Add section): hotspot (Shop the look, pins),
+      compare (before / after), testimonials, team, timeline, counters, pricelist, marquee, gallery, table, iconlist,
+      social, spotlight, contact — 3–5 looks each.
+    - Editing: the section field editor is shared (`screens/online-store/SectionFields.jsx › Field`, new `pins` type: click
+      the picture to drop a pin) and the tweak panel uses it, so every field of every section (items, pictures, links,
+      icons, products) is edited on the store. The panel adds Global styles (live preview), Words and labels, Shop details,
+      All settings (every Customize group), a setting search, "Edit this product" after clicking a card, and "This section
+      shows your … · Open …" links to where the data lives. Store words: `lib/storefront/words.js` (`WORDS`, `w(key, vars)`,
+      saved as theme `words`, draft → publish); a word drawn with `data-w` opens in the panel on a click.
+  - **Premium home (16 Oct)**: Signal's home (`/store`) is a running shop, not every kind at once: `completeHome.js ›
+    premiumPlan()` (19 sections in a buying order: hero + PC banner, promises, category rings, flash sale, New arrivals,
+    one product big (iPhone 18 Pro, dark), banner mosaic, best sellers by category, Shop our counter (pins), brand strip,
+    figures, real reviews, shops, guides, Instagram, FAQ, newsletter, recently viewed, about text) and `premiumHome`
+    (kept sections keep their ids; every other kind stays in the layout, hidden, for the tweak panel's eye button).
+    `PREMIUM_LOOK` (presets.js) is Signal's global settings. Store `SF_VERSION` 5 gives a saved Signal store the premium
+    home and look once (`upgradeData`); `premiumPlan` is a function so no ids are made while the modules load (store.js ↔
+    presets.js cycle). The plan's photos are the gadget ones (banners, products, the shop counter).
+  - **Blog authors and related posts (16 Oct)**: `/author?slug=` (`StoreAuthor.jsx`: hero with avatar, role, bio, topics,
+    links; figures only when they have live posts; their posts with topic chips; More writers; Person schema; email and
+    phone never shown). Under every post `blogExtras.jsx › PostMore`: More from <author> and Related posts (shared topic,
+    then tag; a small blog lets the author's posts fill it). The post byline and author box link to the author page
+    (`PostPreview` with `live`). The blog list's look class is `sbl is-<look>` (`sbl-grid` is the inner grid; the old
+    `sbl-<look>` made the Grid look's wrapper a grid too).
+  - **Brand kit** (tweak panel, first part; `lib/storefront/brandKit.js`): upload the logo → `logoColours` reads its
+    brand colours on a canvas, `suggestPalettes` gives five colour sets (button colour darkened to 4.5:1 for white text),
+    `suggestFonts` three `FONT_PAIRS` by the colour's mood; one tap applies to the draft.
+  - **Type per theme**: `FONT_PAIRS` carry a display face, a text face, heading weight `hw` and tracking `tr`
+    (`--sf-head-w`, `--sf-head-track`; capitals get +0.04em). Signal Plus Jakarta Sans, Nokshi Bodoni Moda + Jost, Counter
+    Lexend, GhorPure Fraunces + Figtree, NovaByte Archivo, NaturaNest Young Serif + Nunito Sans, Haatly Bricolage + DM Sans,
+    Rupkotha DM Serif + Jost, GlowMuse Instrument Serif + Manrope, Voltiva Unbounded + Manrope, GizmoLane Sora + Figtree.
+    Hero and section titles use `clamp()` sizes; body 15px (M). Only the pair's weights load.
+  - Demo products with photos (`public/assets/products/`): Smart Watch S2, Fastrack FPods, FPods ANC, Magnetic Phone
+    Cooler, SKE Mini DC UPS, Redmi 17, Redmi Turbo 4 / 4 Pro, Redmi Note 15 4G / 15 Pro+, iPhone 18 Pro, iPhone Duo
+    (pre-order, `oversell`), MacBook Neo (category Laptops), Galaxy Tab A11+. `catalog.js › productsBy` puts products with a
+    photo first in every list (not hand-picked). Banners (`public/assets/banners/`): `completeHome.js › withBanners` puts
+    `HOME_BANNERS` (Galaxy S26 Ultra, iPhone 18 Pro series, Mac mini) first in every home slider and a PC parts tile first in
+    the banner grid (store `SF_VERSION` 3 upgrades saved stores). A slide with a picture and no title, text or button is a
+    picture-only banner (`.sfs-slide.is-pic`, shown whole at 15:8; a slider holding one gives every slide that shape,
+    `.has-pics`). Brands: 31 more names and 24 logos (`public/assets/brand-logos/`, `brands.js › LOGOS`; merged once into a
+    saved list, a saved brand without a logo gets it); the brand wall shows brands with products or a logo. Shop logo: the
+    Dazzle wordmark (`public/assets/brand/dazzle-logo.svg` + `-white.svg`) is `businessProfile().brand.logo / logoOnDark`
+    unless Settings › Brand assets has one; the store header, footer and letterheads use it. Flash sale's default look
+    (`panel`) is a dark panel with the sale colour's glow, product photos (matched by name) and a pill button.
+- **Settings › Files (Oct 2026)** (`/files`, menu id `products-media` moved from Products to Settings, module core;
+  `screens/files/Files.jsx`, `lib/files.js`, `components/files/FileParts.jsx` + `FilePicker.jsx`): every picture, video and
+  document. Uploads are resized (2000 / 800 px WebP + a 200 px preview) and kept in IndexedDB `gc-files`; the list is
+  `gc.files`; an upload's address is `gcfile:<id>` (draw it with `FileImg` / `useFileSrc`; HTML blocks resolve with
+  `resolveIn`). Product photos, brand logos and blog covers saved with their records are listed read-only. `usedIn(src)`
+  (layouts, headers, blocks, menus, pages, products, brands, posts) keeps a used file from being deleted by mistake;
+  Replace keeps the address. `ImageField` / `FilePicker` (Library · Upload · Web address) replace the old picture
+  select (`sfShared › ImagePick` now uses it). Storage counts in Hosting › Usage.
+- **Settings › Hosting (Oct 2026)** (`/set-hosting?tab=`, `screens/settings-console/SetHosting.jsx` + `hosting/*`,
+  `lib/hosting.js`, browser storage `gc.hosting` + `gc.hosting.backups`, event `gc:hosting`): the store is hosted on
+  GridCommerce and this section holds everything a web host offers. Tabs: Overview (address, certificate, email checks,
+  bandwidth, `healthItems` to-do) · Domains (the old `/set-domains` page embedded; that address opens this tab; the demo
+  shop seeds `dazzleshop.com.bd` verified and primary) · DNS (a zone per custom domain: `mode` 'gc' = GridCommerce DNS
+  via `NAMESERVERS`, or 'registrar'; records A/AAAA/CNAME/MX/TXT/SRV/CAA/NS with TTL, `recordProblem` checks, `sys`
+  records locked, `managed: 'email'` kept by the Email tab, go live after `LIVE_MS`; service templates, BIND import /
+  export, DNSSEC with the DS record) · Email (mailbox provider, order emails from the shop's domain through GridCommerce,
+  SPF built from every sender with the 10-lookup check, DKIM `gc1` + the provider's selector, bounce CNAME, DMARC builder,
+  MTA-STS; `emailRecords`, `emailStatus`, `applyEmailRecords` keeps records that already match, `checkEmail`, `testEmail`;
+  Business email (`lib/platform/mail.js`) decides the records when it runs on the domain) · SSL & security (automatic
+  certificates + renew, own certificate on Business, Force HTTPS, HSTS, TLS, www or bare domain, headers, request limit,
+  challenge, blocked countries and IPs, store password) · Speed & cache and Files & verification (online module only:
+  cache times and purge, image formats, speed test; `verificationMeta()` is added to the storefront head by
+  `components/seo/SeoHead.jsx`; root files, robots.txt and the sitemap stay in SEO) · Backups (website and settings
+  snapshots in this browser: back up, download, upload, restore with a snapshot first; nightly server backups: restore is a
+  request; Settings › API keys points here) · Usage (bandwidth by day, requests, storage against `PLAN_LIMITS`).
+- **Stage 3 · online selling (Oct 2026)**: `lib/deliveryRates.js` is the one source for zone charges, extra per unit,
+  delivery times (Settings › Delivery) and the advance % (Payment setup): `feeFor(zone, units)`, `zoneFee`, `advanceFor`
+  (read after mount; `DEFAULT_RATES` for the first render). Structured address: `lib/bdAreas.js` (64 districts → areas → zone)
+  + `components/AreaPicker.jsx` on Create order, order link and Checkout; orders keep `district` / `thana`. Tracking page
+  `/track?id=` (`storefront/TrackOrder.jsx`, unlocked by the order's mobile; `orderStatus.trackingLink` = `{{tracking_url}}`).
+  Return requests `lib/returnRequests.js` + `/return-requests` (requested → approved → pickup → received → refunded /
+  exchanged, or rejected; customers ask on `/track`). Courier handover `/courier-handover` (`orderFlow.handoverParcels /
+  handOver / handovers`, `gc.courierHandovers`, printed manifest). Orders carry `source` (`orderLinks.ORDER_SOURCES`, Source
+  filter) and `assignee` (`orders.assignOrder`, "Assigned to me", bulk Assign); badges use `orderStatus.tabOf()`; the order
+  page shows Return only after delivery, Resend receipt when paid / delivered. Digital orders: `sendDigital` takes licence
+  keys and makes download links (`o.digital`, `digital-sent` message), `resendDigital`. Checkout settings `/set-checkout`
+  (`lib/checkoutSettings.js`). `/new-order?phone=&name=` and `/pos?phone=&name=` preset the customer.
+- **Stage 3 · products, POS (Oct 2026)**: warranty policies are one versioned list (`lib/warranty.js`: `getPolicies`,
+  `newPolicy`, `publishPolicy`, `archivePolicy`, `setDefault`; `coverOf(product, soldAt)` uses the version live at the sale);
+  claims `customerWarranty.js` (`CLAIM_STEPS` received → centre → ready → returned / rejected, `moveClaim`, `openClaim`,
+  `lookupWarranty`; `/warranty-claims` with a live count). Catalog setup lists are real (`lib/catalogSetup.js` shop fields +
+  size charts, `units.getUnits/addUnit`, `vat.getTaxRates`); Add product shows Shop fields (`product.custom`), Pricing is the
+  third card. Suppliers: `updateSupplier`, `archiveSupplier`, `restoreSupplier` (opening balance = bill `OB-<id>`, advance =
+  credit note `ADV-<id>`), Print ledger. Inventory menu: a Purchasing group (`stock-buying`); warranty pages under Products.
+  POS people come from Staff & HR + Team (`posStore.EMPLOYEES/MANAGERS`, `getEmployees()`); limits per role (`POS_ROLES`,
+  `POS_PERMS`, `limitsFor`, `approversFor`) and a PIN per person (`pinOf`, `checkPin`, `setPin`; demo 1234); `ManagerPin`
+  takes `need` and refuses self-approval. Register: Collect due (`allocations.allocatePayment`, `posStore.addCollection`,
+  money receipt), Z-report `pos-register/ZReport.jsx` (80 mm / A4); a counter sale is an invoice only when money is owed
+  (`invoices.isCounterSale`). Settings › Invoices & receipts `/set-invoices` (`lib/docSettings.js`, `docNumber`), read by
+  `SaleInvoice.jsx` and the receipt (shop identity from `businessProfile.invoiceIdentity()`). Home Needs you adds `pos:*`
+  rows when POS is on.
+- **Stage 3 · customers, marketing (Oct 2026)**: notifications beyond orders (`notifications.js › CUSTOMER_EVENTS`:
+  refunds & returns, store credit & loyalty, invoices & dues, support tickets, warranty & service, account; `scope`, `mod`,
+  `sender` ('' = "Not sent yet"), `owner: 'loyalty'`), sent with `notifyCustomer(event, to, vars, { ref, once })` through
+  `messaging.send`; `/set-notifications` is one matrix ("Notifications", every edition). Customer profile reads every
+  customer's tickets (`supportTickets.ticketsFor`), store credit, loyalty progress, offers used, messages, next meeting and
+  Insights (`signalsOf`); Create order and New ticket (`/support-tickets?new=1&phone=&name=`, `?id=`). Automations is the one
+  place (`/automations?tab=`: rule groups, AI, Notifications, Reminders, Smart offers, Auto-call). Folded menu pages:
+  `fold: true` (+ `hidden`, `under`) = a tab of `under`; `team.js › navFor` unfolds it for people who can't open `under`.
+  Marketing has 5 rows (Offers and Loyalty carry page tabs, `screens/loyalty-promo/MarketingTabs.jsx`). Live counts add
+  `tickets`, `aicalls`, `coupons`, `carts`. The GridAI button on desktop is a round icon that widens on hover; pages keep
+  88px of room at the bottom.
+- **Stage 3 · money, team, settings (Oct 2026)**: a money movement opens in `screens/accounts/EntrySheet.jsx`
+  (`/money?entry=`); nothing is edited or deleted: `ledger.reverseEntry(id, why, by)` posts a mirror (`reverses` /
+  `reversedBy`; transfers both sides via `pair`), `reverseCheck` refuses generated rows and money owned by another record;
+  notes and receipts in `gc.ledger.meta`. Cost filters count reversals (`e.amount < 0 || e.reverses`). Record expense has a
+  place, VAT, a receipt photo and Repeat every month (`ledger.addRecurring / stopRecurring`; generated `REC-<rule>-<yyyymm>`
+  rows). Notification centre `lib/notificationCentre.js` + `/notifications` (per person `gc.notify.read`, `gc.notify.prefs`,
+  event `gc:notify`); the bell shows the newest 6. Top bar: Scan uses `identifiers.resolveScan`; the Settings, Invoices and Files
+  buttons were taken out of the bar (Oct 2026, owner's request): Store settings is in the account menu. Menu items carry no fixed `count:`; SetRail dots follow `connections.statusOf`. "Profile
+  type" shows only with `NEXT_PUBLIC_SHOW_STORYBOARD=true`. Home widgets follow the page's day and place (Sales summary,
+  Order summary with `ORDER_TABS` names, Stock alert). HelpPanel shows a tutorial only when an entry has `video[2]`.
+- **Stage 3 · super admin, phone app (Oct 2026)**: business verification `shop.kyc` (`lib/platform/shops.js`: `kycOf`,
+  `submitKyc`, `reviewKyc`, `kycQueue`): the owner sends it from Settings › Business verification `/set-verification`, staff
+  review at `/admin/kyc`. Merchant notices `lib/platform/notices.js` (`gc.platform.notices`, `gc:notices`; audience all /
+  plan / edition / stores, maintenance window) written at `/admin/notices`, shown by `components/MerchantNotices.jsx` (root
+  layout; banner under the top bar, "What's new" on `gc:whats-new`). Merchants list: Health, Last sign-in, At risk view.
+  Billing: `failedCharges`, `retryCharge` (staff retries don't use the 3 automatic tries), `askUpdateMethod`; Collections
+  "Auto-charge failed". Bills carry VAT (`db.settings.vatPct`, 15) and `billTo` (`shop.billing`: name, BIN, email);
+  platform `DATA_VERSION` 5. Phone: returns `/m-return` (`screens/app/pos/MReturn.jsx` + `returnData.js`, `?ref=&back=`),
+  Today's cash card (`screens/app/money/TodayCash.jsx`) on Home and Finance.
 - Courier statement (`/courier-statement`, Orders › Courier statement; `lib/courierStatement.js`): for a period (by
   dispatch day) and one courier or all, each parcel's state (waiting pickup, in transit, out for delivery, delivery failed,
   delivered, coming back, partly received, returned — from the order times, courier hooks and Courier returns receipts)
   and the money (COD to collect / collected, charges, net, paid to you and payout due from Settlements, holding now from
   the ledger). Courier-by-courier table, a section per courier with its parcels, CSV and print. Linked from Courier returns.
-- Home widgets (`components/dashboard/HomeWidgets.jsx`, under Home's figures and to-do): Sales summary (revenue / cost /
-  profit area chart, date range + category), Order summary (a ring per status), Live visitors (world map, `lib/worldMap.js`
-  generated once from Natural Earth; the number from `lib/traffic.js`), Top customers, Latest orders, Latest customers,
-  Top products, Stock alert (category + place). Home is one page in the menu; My dashboard opens from the person's card at
-  the bottom of the menu (`my-dash` is hidden under `home`; a role without the main Dashboard gets My dashboard instead).
+- Home widgets (`components/dashboard/HomeWidgets.jsx`, under Home's figures and to-do; Stage 3 MS-U9): they follow the
+  page's day and place and are three cards: Sales summary (revenue / cost / profit), Order summary (a ring per Orders tab)
+  and Stock alert. No copies of list pages. Home is one page in the menu; My dashboard opens from the person's card at the
+  bottom of the menu (`my-dash` is hidden under `home`; a role without the main Dashboard gets My dashboard instead).
 - POS: `/pos` (`src/screens/pos-register/Pos.jsx`) is the one register; `/pos-manage` (`PosManage.jsx`) is its
   back office (counters, employees and shifts, cash pickups, settings). Both read and write
   `src/lib/posStore.js` (browser storage). Register shortcuts are listed in `SHORTCUTS` in `Pos.jsx` (F1 on screen).

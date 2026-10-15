@@ -13,6 +13,7 @@ import { DCLogic, Icon as __Icon } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { StatusBadge as __StatusBadge } from '@/components/ui';
 import { ShopHeader, MetricStrip } from '@/components/ui/IndexKit';
+import MarketingTabs from '@/screens/loyalty-promo/MarketingTabs';
 import { listOffers, setOfferStatus, PROMO_EVENT } from '@/lib/promotions';
 import { clockNow } from '@/lib/settlements';
 import { ModuleSetup } from '@/components/ModuleSetup';
@@ -129,14 +130,14 @@ export default class PromoScreen extends Component {
         <div className="gc-shell">
           <__Sidebar sticky="" active="promo-home" />
           <main className="gc-shell__main">
-            <__Topbar crumb="Promo" page={"Offers & promo"} placeholder="Search customer by name or phone" />
+            <__Topbar crumb="Marketing" page="Offers" placeholder="Search customer by name or phone" />
             <div className="gc-shell__content">
               <div className="ix-page">
-                <ShopHeader icon="megaphone" title="Offers & promo"
+                <ShopHeader icon="megaphone" title="Offers"
                   about="Every coupon and flash sale in one place: what is running, what starts soon and what they sold this month."
                   secondary={[{ label: 'View offers page', icon: 'external-link', onClick: () => window.open('/offers', '_blank', 'noopener') }, { label: 'Flash sale', href: '/new-flash-sale' }]}
-                  more={[{ label: 'Coupons', href: '/coupons' }, { label: 'Flash sales', href: '/flash-sales' }]}
                   primary={{ label: 'Create offer', href: '/new-coupon' }} />
+                <MarketingTabs group="offers" active="promo-home" />
 
                 <ModuleSetup area="area-marketing" />
                 <MetricStrip label="This month" items={[

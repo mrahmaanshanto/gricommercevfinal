@@ -106,7 +106,7 @@ export default function MailDirectory() {
       </div>
       <Sheet open={!!row} title={row ? row.d.domain : ''} onClose={() => { setOpen(null); setWhy(''); }} footer={row ? (row.d.state === 'suspended'
         ? <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => say(restoreDomain(row.d.id, me.name), 'Domain restored')}>Restore the domain</button>
-        : <button type="button" className="gc-btn gc-btn--sm gc-btn--error" onClick={() => { if (say(suspendDomain(row.d.id, why, me.name), 'Domain suspended · the owner is told why')) setWhy(''); }}>Suspend the whole domain</button>) : null}>
+        : <button type="button" className="gc-btn gc-btn--sm gc-btn--solid gc-btn--error" onClick={() => { if (say(suspendDomain(row.d.id, why, me.name), 'Domain suspended · the owner is told why')) setWhy(''); }}>Suspend the whole domain</button>) : null}>
         {row ? (
           <div className="md-pad">
             <KV rows={[['Store', `${row.d.shopName} (#${row.d.shopId})`], ['Plan', `${row.st.plan.name} · ${row.d.seats} mailboxes · ${row.d.cycle}`], ['Earns', `${tk(row.st.monthly)} a month · provider cost ${tk(row.st.cost)}`], ['DNS', row.st.dnsOk ? 'All four working' : RECORDS.filter((k) => row.st.dns[k] !== 'ok').map((k) => k.toUpperCase() + ' ' + row.st.dns[k]).join(', ')], ['Shop emails', row.st.shopSending ? 'From its own domain' : 'From GridCommerce'], row.d.suspended ? ['Suspended', `${row.d.suspended.reason} · ${row.d.suspended.by}`] : null].filter(Boolean)} />

@@ -15,7 +15,7 @@ import { EmptyState, StatusBadge } from '@/components/ui';
 import { ShopHeader, IndexTabs, SearchField, LearnMore } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate } from '@/lib/format';
 import { getInvoices, isPaid, statusOf, stageOf, STAGES } from '@/lib/invoices';
-import { wholesaleOn } from '@/lib/edition';
+import { wholesaleOn, hasModule } from '@/lib/edition';
 
 const TABS = [['all', 'All'], ['review', 'To accept'], ['unpaid', 'Unpaid'], ['partial', 'Partly paid'], ['paid', 'Paid']];
 const STATUS = { paid: ['Paid', 'success'], partial: ['Partly paid', 'info'], unpaid: ['Unpaid', 'warning'], review: ['To accept', 'warning'] };
@@ -36,9 +36,12 @@ export default function SalesInvoices() {
   const [find, setFind] = useState(false);
   const [q, setQ] = useState('');
   const [kind, setKind] = useState('');   // '' | 'wholesale' | 'retail'
+  // New sale opens the POS register; a site without POS (Online edition) makes an order instead (ON-U12, after mount)
+  const [saleHref, setSaleHref] = useState('/pos');
 
   useEffect(() => {
     setRows(getInvoices());
+    setSaleHref(hasModule('pos') ? '/pos' : '/new-order');
     const want = new URLSearchParams(window.location.search).get('tab');
     if (TABS.some((x) => x[0] === want)) setTab(want);
   }, []);
@@ -72,7 +75,7 @@ export default function SalesInvoices() {
               <ShopHeader icon="file-text" title="Invoices"
                 about="Every sale made out to a customer: paid, partly paid or unpaid. An unpaid invoice is accepted by staff first, then its payment is recorded. Open an invoice to accept it, take a payment, edit it or send it."
                 more={[...(wholesaleOn() ? [{ label: 'Wholesale orders', href: '/wholesale-orders' }] : []), { label: 'Dues', href: '/dues' }, { label: 'Return & exchange', href: '/return-exchange' }]}
-                primary={{ label: 'New sale', href: '/pos' }} />
+                primary={{ label: saleHref === '/pos' ? 'New sale' : 'Create order', href: saleHref }} />
 
               <section className="ix-card" aria-label="Invoices">
                 <div className="ix-bar">

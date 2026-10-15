@@ -14,7 +14,11 @@ import { basePlans, STAGES, ADDONS, PLAN_NAME, ladderLabel, channelsOf } from '.
 //   scenario: active · grace:<days overdue> · pastdue:<days> · suspended:<days> · trial:<day> · paused · cancelled ·
 //             archived · failed (provisioning stopped) · running (provisioning now) · due:<days until due, 0 = today>
 /** Bump when the demo data's shape or seed changes: saved data from an older version is replaced (store.js). */
-export const DATA_VERSION = 4;   // 4: Dazzle Shop (#0090), the merchant panel's demo store, is a platform store too
+/** VAT on subscription bills (SA-F14): the rate, and how many days before the first visit it started. */
+const VAT_PCT = 15;
+const VAT_DAYS = 10;
+export const DATA_VERSION = 5;   // 4: Dazzle Shop (#0090), the merchant panel's demo store, is a platform store too
+                                 // 5: business verification (shop.kyc), billing details, Mehedi Traders' failed auto-charges
 
 const NAMED = [
   // the merchant panel's demo shop: its service orders, store access and invoices meet the super admin here
@@ -30,7 +34,7 @@ const NAMED = [
   ['0044', 'Bindu Beauty', 'online', 'growth', 'pastdue:9', { months: 7, src: 'Meta ads', by: 'Rakib Hasan', dist: 'Chattogram', am: 'Rakib Hasan', cat: 'Beauty', h: 33, orders: 640, last: 9, mods: ['Landing pages', 'Loyalty', 'Blasts'], dom: 'bindubeauty.com.bd' }],
   ['0058', 'Nodi Organic', 'online', 'starter', 'trial:9', { src: 'Meta ads', by: 'Rakib Hasan', dist: 'Bogura', am: null, cat: 'Grocery', h: 41, orders: 12, last: 6, mods: ['Landing pages'] }],
   ['0061', 'Kolpo Books', 'online', 'starter', 'trial:12', { src: 'Website', by: 'Tania Sultana', dist: 'Dhaka', am: 'Tania Sultana', cat: 'Fashion', h: 72, orders: 48, every: 1, mods: ['Landing pages'] }],
-  ['0066', 'Mehedi Traders', 'retail', 'growth', 'active', { months: 12, src: 'Event', by: 'Farhana Akter', dist: 'Narayanganj', am: 'Farhana Akter', cat: 'Grocery', h: 81, orders: 780, every: 2, mods: ['Warehouse', 'Loyalty'], dom: 'meheditraders.com.bd', items: ['M05'], pays: 'nagad' }],
+  ['0066', 'Mehedi Traders', 'retail', 'growth', 'grace:4', { months: 12, src: 'Event', by: 'Farhana Akter', dist: 'Narayanganj', am: 'Farhana Akter', cat: 'Grocery', h: 81, orders: 780, every: 2, mods: ['Warehouse', 'Loyalty'], dom: 'meheditraders.com.bd', items: ['M05'], autoCharge: true }],
   ['0069', 'Pabna Dairy Hub', 'retail-online', 'starter', 'trial:13', { src: 'Affiliate', by: 'Mahin Khan', dist: 'Pabna', am: 'Mahin Khan', cat: 'Grocery', h: 58, orders: 4, last: 2, mods: ['POS'] }],
   ['0072', 'Sabuj Bazar', 'online', 'growth', 'trial:6', { src: 'Meta ads', by: 'Tania Sultana', dist: 'Sylhet', am: 'Tania Sultana', cat: 'Grocery', h: 82, orders: 31, every: 1, mods: ['Landing pages', 'Cart recovery'] }],
   ['0074', 'Rongin Saree', 'online', 'starter', 'trial:5', { src: 'Reference', by: 'Farhana Akter', dist: 'Tangail', am: 'Farhana Akter', cat: 'Fashion', h: 77, orders: 22, every: 1, mods: ['Landing pages'] }],
@@ -210,7 +214,11 @@ export function buildSeed(anchor) {
         if (tid === '0031' && due > upgradeAt && due - upgradeAt < 31 * DAY) lines.push({ label: 'Plan changed Starter → Growth, prorated', amount: 1050, kind: 'proration' });
         if (tid === '0017' && periodOf(due) === periodOf(addMonths(A, -1, 1))) lines.push({ label: 'Top-up: 200 extra orders', amount: 600, kind: 'topup' });
         if (!lines.length) { k++; due = at(addMonths(due, 1, sub.billDay), 0, 0); continue; }
+        // VAT on subscription bills (SA-F14) from VAT_FROM: the bills issued in the last 10 days carry it already
+        const issued = due - 7 * DAY;
+        if (issued >= A - VAT_DAYS * DAY) { const net = lines.reduce((t, l) => t + l.amount, 0); if (net > 0) lines.push({ label: `VAT ${VAT_PCT}%`, amount: Math.round((net * VAT_PCT) / 100), kind: 'vat' }); }
         const inv = invoice(db, { shopId: tid, issuedAt: due - 7 * DAY + r.int(0, 3) * 3600e3, dueAt: due, period: periodOf(due), lines });
+        if (lines.some((l) => l.kind === 'vat')) inv.vatPct = VAT_PCT;
         const unpaid = (lastDue && Math.abs(due - lastDue) < DAY) || (kind === 'due' && due > A - DAY);
         // the board's unpaid bills wait for a call; other upcoming bills the owners pay themselves (billing.js)
         if (unpaid) inv.hold = true;
@@ -286,7 +294,56 @@ export function buildSeed(anchor) {
   ev(db, '0031', shopById(db, '0031').resetAt, 'staff', 'Password reset link sent by SMS, by Farhana Akter');
   ev(db, '0031', addMonths(A, -7, 27), 'staff', 'Plan changed Starter → Growth, prorated ৳1,050');
   for (const s of db.shops) ev(db, s.id, s.createdAt, 'owner', s.src === 'Physical visit' ? 'Store created on a field visit' : 'Store created · came from ' + s.src);
+
+  // Mehedi Traders pays by automatic bKash charge: the last bill's three tries failed (Collections › Auto-charge failed)
+  const mt66 = inv('0066');
+  if (mt66) {
+    mt66.charges = [0, 1, 3].map((d, i) => ({ at: mt66.dueAt + d * DAY + 9 * 3600e3, ok: false, method: 'bKash', reason: i === 1 ? 'bKash wallet locked' : 'Not enough balance' }));
+    ev(db, '0066', mt66.dueAt + 3 * DAY + 9 * 3600e3, 'billing', `Automatic charge for ${mt66.id} failed 3 times · collect by hand`);
+  }
+  seedKyc(db, A);
+  // bills with VAT keep the store's billing details as they were when issued (billing.js › billToOf)
+  for (const i of db.invoices) {
+    if (!i.vatPct) continue;
+    const sh = shopById(db, i.shopId);
+    const b = sh.billing || {};
+    i.billTo = { name: b.name || sh.legal || sh.name, bin: b.bin || (sh.kyc && sh.kyc.bin) || '', email: b.email || (sh.owner && sh.owner.email) || '' };
+  }
+  db.settings.vatPct = VAT_PCT;
+  db.settings.vatFrom = A - VAT_DAYS * DAY;
   return db;
+}
+
+/** Business verification and billing details for the demo stores (shops.js › kycOf, billingProfileOf). */
+function seedKyc(db, A) {
+  const digits = (r, n) => Array.from({ length: n }, () => r.int(0, 9)).join('');
+  const SPECIAL = { '0090': 'none', '0044': 'rejected', '0058': 'submitted', '0072': 'submitted', '0069': 'submitted', '0031': 'verified', '0012': 'verified' };
+  for (const s of db.shops) {
+    const r = rng('kyc' + s.id);
+    const sub = db.subs[s.id];
+    const age = A - s.createdAt;
+    let state = SPECIAL[s.id];
+    if (!state) {
+      if (s.status === 'setup' || !sub) state = 'none';
+      else if (sub.status === 'trial') state = r.chance(0.3) ? 'submitted' : 'none';
+      else state = age > 45 * DAY || r.chance(0.6) ? 'verified' : 'none';
+    }
+    const owner = s.owner && typeof s.owner === 'object' ? s.owner.name : String(s.owner || '');
+    const city = s.dist === 'Dhaka' ? 'DNCC' : s.dist.slice(0, 3).toUpperCase() + 'CC';
+    const base = { licence: `TRAD/${city}/${digits(r, 6)}/2026`, tin: digits(r, 12), bin: r.chance(0.4) ? `${digits(r, 9)}-0101` : '', nid: digits(r, 10), ownerName: owner,
+      docs: [{ kind: 'licence', name: 'trade-licence.jpg' }, { kind: 'nid-front', name: 'nid-front.jpg' }, { kind: 'nid-back', name: 'nid-back.jpg' }] };
+    if (state === 'none') { s.kyc = { state: 'none', licence: '', tin: '', bin: '', nid: '', ownerName: owner, docs: [], submittedAt: null, submittedBy: null, reviewedAt: null, reviewedBy: null, reason: '', log: [] }; continue; }
+    const sent = state === 'submitted' ? Math.min(A - 3600e3, A - r.int(2, 40) * 3600e3) : Math.min(A - 2 * DAY, s.createdAt + r.int(1, 4) * DAY);
+    const by = s.am || s.by || 'Tania Sultana';
+    const k = { state, ...base, submittedAt: sent, submittedBy: owner, reviewedAt: null, reviewedBy: null, reason: '', log: [{ at: sent, by: owner, text: 'Sent for review' }] };
+    if (state === 'verified') { k.reviewedAt = sent + r.int(3, 30) * 3600e3; k.reviewedBy = by; k.log.unshift({ at: k.reviewedAt, by, text: 'Verified' }); }
+    if (state === 'rejected') { k.reviewedAt = sent + 20 * 3600e3; k.reviewedBy = 'Farhana Akter'; k.reason = 'Document photo is not clear'; k.log.unshift({ at: k.reviewedAt, by: k.reviewedBy, text: 'Rejected · ' + k.reason }); }
+    s.kyc = k;
+    s.licence = k.licence;
+    s.tin = k.tin;
+  }
+  const dz = db.shops.find((x) => x.id === '0090');
+  if (dz) dz.billing = { name: 'Dazzle Shop (Mehedi Rahman)', bin: '', email: 'accounts@dazzleshop.com.bd' };
 }
 
 /** Days from `ms` to the next Sunday (1–7). */

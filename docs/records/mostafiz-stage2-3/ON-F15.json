@@ -1,0 +1,38 @@
+{
+ "id": "ON-F15",
+ "kind": "new",
+ "section": "Online selling",
+ "area": "Online selling",
+ "title": "Checkout settings and order status page",
+ "problem": "The store checkout could not be set up at all.",
+ "now": "Settings choose guest or sign-in, a code check, email, area, note, terms box, cash fee and limit, smallest order.",
+ "steps": [
+  "Open Settings › Checkout",
+  "Add a ৳20 cash fee and require email",
+  "Open the store checkout and see both"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/settings-console/SetCheckout.jsx",
+  "src/lib/checkoutSettings.js",
+  "src/screens/storefront/Checkout.jsx",
+  "src/screens/settings-console/SetRail.jsx"
+ ],
+ "notes": "Where: Settings › Business setup › Checkout (/set-checkout); store /checkout; thank-you › Track your order · Needs the server: Customer accounts with saved addresses need a server; the sign-in code is shown on screen in the demo.",
+ "shots": [
+  {
+   "route": "/set-checkout",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Settings › Checkout",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

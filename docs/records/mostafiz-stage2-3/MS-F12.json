@@ -1,0 +1,44 @@
+{
+ "id": "MS-F12",
+ "kind": "new",
+ "section": "Money, team & settings",
+ "area": "Money, team & settings",
+ "title": "Notification centre and personal settings",
+ "problem": "The bell showed five made-up rows that all opened the orders list, and nobody could choose what to get.",
+ "now": "The bell shows real items from the shop; View all opens a page with filters, read and unread, and each person's settings.",
+ "steps": [
+  "Open the bell in the top bar",
+  "Press View all notifications",
+  "Tap a row to open its page",
+  "Open Settings and switch Sound on for New orders"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/notificationCentre.js",
+  "src/screens/notifications/Notifications.jsx",
+  "src/app/(merchant)/notifications/page.jsx",
+  "src/shell/gc-topbar.js",
+  "src/shell/navigation.js",
+  "src/lib/edition.js",
+  "src/lib/team.js",
+  "src/screens/registry.js",
+  "src/lib/help.js"
+ ],
+ "notes": "Where: Top bar bell › View all notifications (/notifications), Settings tab (/notifications?tab=settings) · Needs the server: Email and SMS are kept as a choice only; sending them needs the server.",
+ "shots": [
+  {
+   "route": "/notifications",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Notifications",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

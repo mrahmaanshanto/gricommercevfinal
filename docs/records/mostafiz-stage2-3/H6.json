@@ -1,0 +1,36 @@
+{
+ "id": "H6",
+ "kind": "new",
+ "section": "Hosting",
+ "area": "Hosting",
+ "title": "Site verification codes and root files",
+ "problem": "Google, Meta and Apple Pay verification had nowhere to go.",
+ "now": "Paste verification codes (the store’s pages carry them) and add files like ads.txt at the domain’s root.",
+ "steps": [
+  "Open Settings › Hosting › Files & verification.",
+  "Press Add file and choose /ads.txt."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/settings-console/hosting/HostingMore.jsx",
+  "src/components/seo/SeoHead.jsx",
+  "src/lib/hosting.js"
+ ],
+ "notes": "Where: Settings › Hosting › Files & verification (/set-hosting?tab=files)",
+ "shots": [
+  {
+   "route": "/set-hosting?tab=files",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Hosting › Files & verification",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

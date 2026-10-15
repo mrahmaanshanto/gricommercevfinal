@@ -1,0 +1,35 @@
+{
+ "id": "PR-U7",
+ "kind": "fix",
+ "section": "Products & stock",
+ "area": "Products & stock",
+ "title": "Shorter Inventory menu",
+ "problem": "Inventory listed fifteen rows mixing stock, buying and warranty.",
+ "now": "Buying pages fold into one Purchasing row; warranty policies and claims moved to Products.",
+ "steps": [
+  "Open Inventory in the menu",
+  "Open Purchasing to see its five pages",
+  "Find Warranty claims under Products"
+ ],
+ "status": "partly",
+ "left": "Barcode labels was not moved under a More group; it stays a plain Inventory row.",
+ "files": [
+  "src/shell/navigation.js"
+ ],
+ "notes": "Where: Side menu › Inventory and Products",
+ "shots": [
+  {
+   "route": "/stock",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "The Inventory menu",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

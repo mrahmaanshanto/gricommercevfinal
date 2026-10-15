@@ -1,0 +1,38 @@
+{
+ "id": "MS-U6",
+ "kind": "fix",
+ "section": "Money, team & settings",
+ "area": "Money, team & settings",
+ "title": "Analytics menu shows the analytics pages",
+ "problem": "The Analytics menu listed pixel setup pages while the real analytics pages were hidden in the reports list.",
+ "now": "Analytics lists Reports, Daily summary, Scheduled reports and the marketing, campaign, attribution, traffic, team and alert pages.",
+ "steps": [
+  "Open the Analytics area in the menu",
+  "Open Marketing performance",
+  "Open Settings › Connections › Meta ads to reach Pixels & events"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/shell/navigation.js",
+  "src/lib/edition.js",
+  "src/lib/team.js",
+  "src/shell/i18n.js"
+ ],
+ "notes": "Where: Menu › Analytics; pixel setup now under Settings › Connections",
+ "shots": [
+  {
+   "route": "/reports-centre",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "The Analytics menu",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

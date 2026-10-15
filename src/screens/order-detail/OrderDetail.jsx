@@ -23,7 +23,7 @@ import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
 import { RecordHeader, KV } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { ORDER_STEPS, STEP_LABEL, orderStatus, isNewOrder } from '@/lib/orderStatus';
+import { ORDER_STEPS, STEP_LABEL, orderStatus, isNewOrder, tabOf } from '@/lib/orderStatus';
 import { usePlaceList } from '@/lib/usePlaces';
 import { holdsStock } from '@/lib/edition';
 import { productBy } from '@/lib/stock';
@@ -31,14 +31,18 @@ import { holdsFor } from '@/lib/stockHolds';
 import { courierHistory } from '@/lib/orderLinks';
 import {
   getOrders, findOrder, duplicatesOf, holdsOfOrder, availability, approveOrder, holdOrderStock, cancelOrder, mergeInto,
-  logOrder, logOf, rtoState, invoiceHref, orderHref, isCounterSale, holdPlaceOf, patchOrder,
+  logOrder, logOf, rtoState, invoiceHref, orderHref, isCounterSale, holdPlaceOf, patchOrder, assignOrder, assigneeOf,
   CAN_CANCEL, DEFAULT_HOLD_PLACE,
 } from '@/lib/orders';
 import {
   verifyOf, startAutoCall, settleAutoCall, recordCall, CALL_RESULTS, callResultLabel, requestAdvance, receiveAdvance, ADVANCE_METHODS,
   COURIERS, courierCharge, prepOf, prepDone, updatePrep, markReady, sendToCourier, trackingOf, courierWebhook, syncCourier, HOOK_LABEL, setLinePhoto, serialLinesOf, setPackSerial,
-  isDigitalOrder, sendDigital,
+  isDigitalOrder, sendDigital, resendDigital,
 } from '@/lib/orderFlow';
+import { advanceFor } from '@/lib/deliveryRates';
+import { maskKey } from '@/lib/licenceKeys';
+import { allUsers, canSee, currentUser } from '@/lib/team';
+import { requestsForOrder, requestReturn, canRequestReturn, RR_LABEL, RR_TONE, RR_REASONS, RETURN_REQUESTS_EVENT } from '@/lib/returnRequests';
 import { notificationLog, retryNotification, NOTIFY_EVENT } from '@/lib/notifications';
 import { clockNow } from '@/lib/settlements';
 import { printNode } from '@/lib/printNode';
@@ -84,6 +88,8 @@ const CSS = `
 .od-card .gc-badge,.od-num{white-space:nowrap}
 .od-num{text-align:right;font-variant-numeric:tabular-nums}
 .od-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
+a.od-custlink{color:var(--primary);text-decoration:none}
+a.od-custlink:hover{text-decoration:underline}
 .od-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .od-id{font-family:var(--font-data)}
 .od-sum{display:grid;grid-template-columns:1fr auto;gap:6px var(--space-5);margin:0;font-size:var(--text-sm);font-variant-numeric:tabular-nums}
@@ -246,6 +252,7 @@ export default function OrderDetail() {
   const [blockPin, setBlockPin] = useState(null);     // the customer waiting for a manager's PIN to be blocked
   const [tracking, setTracking] = useState(false);
   const [comment, setComment] = useState(null);        // text of the comment being written, null when closed
+  const [showKeys, setShowKeys] = useState(false);   // licence keys are masked until staff press Show
   const [resend, setResend] = useState(null);     // { via, to } — sending the receipt again
   const invoiceRef = React.useRef(null);         // the A4 invoice paper
   const [tagEdit, setTagEdit] = useState(null);   // tags typed on this page, before they are read back from the order
@@ -256,6 +263,8 @@ export default function OrderDetail() {
   const [viewPhoto, setViewPhoto] = useState(null);   // the line whose photo is open
   const [proofDlg, setProofDlg] = useState(null);     // 'add', or the proof being reviewed
   const [editDlg, setEditDlg] = useState(null);       // 'edit' | 'request' (review a change asked for)
+  const [ret, setRet] = useState(null);               // a return asked for on the customer's behalf: { qty, reason, want, error }
+  const [staff, setStaff] = useState([]);             // who can be given the order (team.js), read after mount
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -269,7 +278,9 @@ export default function OrderDetail() {
     const again = () => setTick((t) => t + 1);
     window.addEventListener(NOTIFY_EVENT, again);
     window.addEventListener(RESTRICTIONS_EVENT, again);   // a block added or lifted here or on the customer page
-    return () => { window.removeEventListener(NOTIFY_EVENT, again); window.removeEventListener(RESTRICTIONS_EVENT, again); };
+    window.addEventListener(RETURN_REQUESTS_EVENT, again);   // a return asked for on the tracking page
+    try { setStaff(allUsers().filter((u) => canSee(u, 'orders-all'))); } catch { setStaff([]); }
+    return () => { window.removeEventListener(NOTIFY_EVENT, again); window.removeEventListener(RESTRICTIONS_EVENT, again); window.removeEventListener(RETURN_REQUESTS_EVENT, again); };
   }, []);
 
   const all = useMemo(() => (ready ? getOrders() : []), [ready, tick]);
@@ -285,7 +296,8 @@ export default function OrderDetail() {
   useEffect(() => {
     if (!o) return;
     setPlace(holdPlaceOf(o.id));
-    setAdv((a) => ({ ...a, amount: String(o.shipping || 200) }));
+    // the advance asked by default follows Payment setup's advance percentage (deliveryRates.js › advanceFor)
+    setAdv((a) => ({ ...a, amount: String(advanceFor(o)) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [o && o.id]);
 
@@ -314,6 +326,13 @@ export default function OrderDetail() {
   }
 
   const status = orderStatus(o.statusKey) || { label: o.status, tone: 'neutral', icon: 'circle' };
+  // the badge says the tab the order is under (On hold, Processing …); the saved step shows beside it (ON-U10)
+  const tab = tabOf(o.statusKey) || { label: status.label, sub: '' };
+  const assignee = assigneeOf(o);
+  const rreqs = isCounterSale(o) || o.isInvoice ? [] : requestsForOrder(o.id);
+  const canRet = isCounterSale(o) || o.isInvoice ? { ok: false } : canRequestReturn(o);
+  // the customer's own tracking page (/track): the same page the SMS link opens
+  const trackHref = '/track?id=' + encodeURIComponent(o.id);
   const pay = PAYMENTS[o.payment] || PAYMENTS.COD;
   const isNew = isNewOrder(o.statusKey);
   const offPath = ['cancelled', 'returned'].includes(o.statusKey);
@@ -324,7 +343,7 @@ export default function OrderDetail() {
   const short = stock.filter((x) => x.short);
   const record = courierHistory(o.phone);
   const samePhone = digitsOf(o.phone).length >= 10 ? all.filter((x) => digitsOf(x.phone) === digitsOf(o.phone)) : [o];
-  const adj = o.amount - o.subtotal - (o.shipping || 0);
+  const adj = o.amount - o.subtotal - (o.shipping || 0) - (Number(o.codFee) || 0);
   const due = o.paid == null ? null : Math.max(0, o.amount - o.paid);
   const paid = o.paid || 0;
   const cod = o.codAmount != null ? o.codAmount : Math.max(0, o.amount - paid);
@@ -485,7 +504,29 @@ export default function OrderDetail() {
     setPrep({ slipPrinted: true });
   };
   const ready2 = () => { markReady(o); refresh(); toast('Ready for courier'); };
-  const sentDigital = () => { if (sendDigital(o)) { refresh(); toast('Sent · ' + o.id + ' is delivered'); } };
+  const sentDigital = () => {
+    const r = sendDigital(o);
+    if (!r) return;
+    refresh();
+    toast(r.short ? `Sent · ${r.short} licence ${r.short === 1 ? 'key is' : 'keys are'} short. Add keys to the product.` : 'Sent · ' + o.id + ' is delivered', r.short ? { tone: 'error' } : undefined);
+  };
+  const resendDig = () => { if (resendDigital(o)) { refresh(); toast('Sent again'); } };
+  const setAssignee = (e) => {
+    const u = staff.find((x) => x.id === e.target.value) || null;
+    let me = 'Staff';
+    try { me = currentUser().name || 'Staff'; } catch { /* signed out */ }
+    if (assignOrder(o, u, me)) { refresh(); toast(u ? 'Assigned to ' + u.name : 'Unassigned'); }
+  };
+  const openReturn = () => setRet({ qty: Object.fromEntries(o.lines.map((l) => [l.name, l.qty])), reason: RR_REASONS[0], want: 'refund', note: '', error: '' });
+  const saveReturn = (e) => {
+    e.preventDefault();
+    let me = 'Staff';
+    try { me = currentUser().name || 'Staff'; } catch { /* signed out */ }
+    const r = requestReturn(o, { lines: Object.entries(ret.qty).map(([name, qty]) => ({ name, qty })), reason: ret.reason, note: ret.note, want: ret.want, refundTo: ret.want === 'refund' ? { method: 'bKash', number: o.phone } : null, from: 'Staff', by: me });
+    if (!r.ok) { setRet({ ...ret, error: r.error }); return; }
+    setRet(null); refresh();
+    toast('Return ' + r.request.id + ' requested');
+  };
   const send = () => {
     const r = sendToCourier(o);
     refresh();
@@ -516,6 +557,9 @@ export default function OrderDetail() {
     if (!c) { toast(`Can't block: ${o.phone || 'this order'} is not a valid mobile number.`, { tone: 'error' }); return; }
     setBlockPin(c);
   };
+  // the customer's name opens their profile; a customer met only on this order is kept in the customer book first,
+  // so the profile has a record to open
+  const keepCustomer = () => { try { if (!resolveCustomer(o.phone)) saveCustomerOnce({ name: o.customer, phone: digitsOf(o.phone), address: o.address || '', types: ['Online'], addedFrom: ADDED_FROM.order }); } catch { /* opens the search */ } };
   const approveBlock = (who) => {
     const r = addRestriction(blockPin, { type: 'blocked', reason: 'Set on order ' + o.id, by: 'Staff', approvedBy: who });
     setBlockPin(null); refresh();
@@ -631,7 +675,7 @@ export default function OrderDetail() {
     </>),
   };
   else if (o.statusKey === 'shipped') step = {
-    title: 'Sent to courier', sub: `${o.courier} · ${o.consignment}`, link: o.trackingUrl ? <a className="od-linkbtn" href={o.trackingUrl} target="_blank" rel="noreferrer">Track</a> : null,
+    title: 'Sent to courier', sub: `${o.courier} · ${o.consignment}`, link: <a className="od-linkbtn" href={trackHref} target="_blank" rel="noreferrer">Track</a>,
     body: (
       <div className="od-demo">
         <p>Courier updates (demo)</p>
@@ -676,19 +720,27 @@ export default function OrderDetail() {
         <div className="ix-page">
           <RecordHeader back={back} backLabel="Back to all orders" title={o.id} meta={`${o.placed} · ${o.channel}`}
             badges={<>
-              {completion.done ? <StatusBadge tone="success" icon="badge-check">Completed</StatusBadge> : <StatusBadge tone={status.tone} icon={status.icon}>{status.label}</StatusBadge>}
+              {completion.done ? <StatusBadge tone="success" icon="badge-check">Completed</StatusBadge> : <StatusBadge tone={status.tone} icon={status.icon}>{tab.label}{tab.sub ? ' · ' : ''}{tab.sub}</StatusBadge>}
               {custom ? <StatusBadge tone={custom.tone} icon="tag">{custom.label}</StatusBadge> : null}
               <StatusBadge tone={pay[0]} icon={pay[1]}>{o.payment === 'Partial' ? 'Partly paid' : o.payment}</StatusBadge>
               {dups.length ? <StatusBadge tone="warning" icon="copy">Possible duplicate</StatusBadge> : blocked ? <StatusBadge tone="error" icon="ban">Customer blocked</StatusBadge> : null}
             </>}
-            secondary={[{ label: 'Resend receipt', onClick: () => setResend({ via: 'sms', to: digitsOf(o.phone).length >= 10 ? o.phone : '' }) }, { label: 'Print invoice', onClick: () => printInvoice(invoiceRef.current, invDoc) }, { label: 'Return', href: '/return-exchange?ref=' + encodeURIComponent(returnRef) }]}
+            // Return only after delivery (a request for online orders, the counter flow for counter sales); Resend receipt
+            // once it is paid or delivered; before that Cancel (ON-U11)
+            secondary={[
+              o.statusKey === 'delivered' || o.payment === 'Paid' ? { label: 'Resend receipt', onClick: () => setResend({ via: 'sms', to: digitsOf(o.phone).length >= 10 ? o.phone : '' }) } : null,
+              { label: 'Print invoice', onClick: () => printInvoice(invoiceRef.current, invDoc) },
+              o.statusKey === 'delivered' ? (counter ? { label: 'Return', href: '/return-exchange?ref=' + encodeURIComponent(returnRef) } : canRet.ok ? { label: 'Return', onClick: openReturn } : null) : null,
+              canCancel ? { label: 'Cancel order', onClick: () => setDlg('cancel') } : null,
+            ].filter(Boolean)}
             more={[
+              !counter && o.statusKey === 'delivered' ? { label: 'Return at the counter', href: '/return-exchange?ref=' + encodeURIComponent(returnRef) } : null,
+              !counter && o.statusKey !== 'cancelled' ? { label: 'Customer tracking page', href: trackHref } : null,
               { label: 'Print POS receipt', onClick: () => toast('POS receipt for order ' + o.id + ' sent to the printer', { tone: 'info' }) },
               !counter ? { label: 'Edit order', onClick: () => openEdit() } : null,
               !counter && o.statusKey !== 'cancelled' ? { label: 'Add payment proof', onClick: () => setProofDlg('add') } : null,
               { label: 'Add a comment', onClick: () => setComment('') },
               { label: blocked ? 'Unblock customer' : 'Block customer', onClick: toggleBlock },
-              canCancel ? { label: 'Cancel order', onClick: () => setDlg('cancel'), tone: 'danger' } : null,
             ].filter(Boolean)} />
 
           {dups.length ? (
@@ -764,6 +816,7 @@ export default function OrderDetail() {
                   <dl className="od-sum">
                     <dt>Products ({o.units} {o.units === 1 ? 'item' : 'items'})</dt><dd>{formatBDT(o.subtotal)}</dd>
                     {o.shipping ? <><dt>Delivery · {o.zone}</dt><dd>{formatBDT(o.shipping)}</dd></> : null}
+                    {Number(o.codFee) > 0 ? <><dt>Cash on delivery fee</dt><dd>{formatBDT(o.codFee)}</dd></> : null}
                     {saleSum ? saleSum.map(([k, v, plain]) => <React.Fragment key={k}><dt>{k}</dt><dd>{plain ? bdt(v) : '−' + bdt(v)}</dd></React.Fragment>)
                       : o.vatIncluded && o.vat ? <>{adj < 0 ? <><dt>Discount</dt><dd>−{formatBDT(-adj)}</dd></> : null}<dt>VAT included</dt><dd>{bdt(o.vat)}</dd></>
                         : adj > 0 ? <><dt>VAT and charges</dt><dd>{formatBDT(adj)}</dd></> : adj < 0 ? <><dt>Discount</dt><dd>−{formatBDT(-adj)}</dd></> : null}
@@ -791,9 +844,51 @@ export default function OrderDetail() {
                 </div>
               </section>
 
+              {digital && o.digital ? (
+                <section className="ix-card od-card" aria-labelledby="od-dig">
+                  <header className="ix-card__head"><div><h2 id="od-dig">Download and keys</h2><p className="od-head-sub">Sent {formatDate(o.digital.lastSent || o.digital.at)}{o.digital.sends > 1 ? ` · ${o.digital.sends} times` : ''}</p></div><button type="button" className="od-linkbtn" onClick={resendDig}>Resend</button></header>
+                  <div className="ix-card__body">
+                    <div className="od-msgs">
+                      {(o.digital.keys || []).map((k) => (
+                        <div key={k.key} className="od-msg">
+                          <span className="od-msg__ic" aria-hidden="true"><Icon name="key-round" width="14" height="14" /></span>
+                          <span className="od-msg__main"><b>{k.name}</b><span className="od-id">{showKeys ? k.key : maskKey(k.key)}</span></span>
+                          <span className="od-msg__end"><button type="button" className="od-linkbtn" onClick={() => setShowKeys((v) => !v)}>{showKeys ? 'Hide' : 'Show'}</button><span className="gc-badge gc-badge--success">Licence key</span></span>
+                        </div>
+                      ))}
+                      {(o.digital.links || []).map((x) => (
+                        <div key={x.url} className="od-msg">
+                          <span className="od-msg__ic" aria-hidden="true"><Icon name="download" width="14" height="14" /></span>
+                          <span className="od-msg__main"><b>{x.name}</b><span className="od-id">{x.url}</span>{x.limit || x.days ? <span>{[x.limit ? x.limit + ' downloads' : '', x.days ? x.days + ' days' : ''].filter(Boolean).join(' · ')}</span> : null}</span>
+                          <span className="od-msg__end"><span className="gc-badge gc-badge--info">Download</span></span>
+                        </div>
+                      ))}
+                      {o.digital.short ? <p className="gc-help gc-help--error" style={{ margin: 0 }}>{o.digital.short} licence {o.digital.short === 1 ? 'key' : 'keys'} short. Add keys to the product, then resend.</p> : null}
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+
+              {rreqs.length ? (
+                <section className="ix-card od-card" aria-labelledby="od-rr">
+                  <header className="ix-card__head"><h2 id="od-rr">Return requests</h2><Link href="/return-requests" className="od-linkbtn">Open queue</Link></header>
+                  <div className="ix-card__body">
+                    <div className="od-msgs">
+                      {rreqs.map((r) => (
+                        <div key={r.id} className="od-msg">
+                          <span className="od-msg__ic" aria-hidden="true"><Icon name="undo-2" width="14" height="14" /></span>
+                          <span className="od-msg__main"><b>{r.id} · {r.want === 'exchange' ? 'Exchange' : 'Refund'}</b><span>{r.lines.map((l) => `${l.name} × ${l.qty}`).join(', ')}</span><span>{r.reason} · {formatDate(r.at)}</span></span>
+                          <span className="od-msg__end"><span className={'gc-badge gc-badge--' + (RR_TONE[r.stage] === 'primary' ? 'info' : RR_TONE[r.stage])}>{RR_LABEL[r.stage]}</span><Link href={'/return-requests?id=' + encodeURIComponent(r.id)} className="ix-btn ix-btn--sm">Open</Link></span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+
               {track.length ? (
                 <section className="ix-card od-card" aria-labelledby="od-track">
-                  <header className="ix-card__head"><div><h2 id="od-track">Tracking</h2><p className="od-head-sub">{o.courier} · {o.consignment}</p></div>{o.trackingUrl ? <a className="od-linkbtn" href={o.trackingUrl} target="_blank" rel="noreferrer">Open tracking</a> : null}</header>
+                  <header className="ix-card__head"><div><h2 id="od-track">Tracking</h2><p className="od-head-sub">{o.courier} · {o.consignment}</p></div><a className="od-linkbtn" href={trackHref} target="_blank" rel="noreferrer">Open tracking</a></header>
                   <div className="ix-card__body">
                     <ol className="od-time">
                       {track.map((e, i) => <li key={e.code + e.at + i}><i aria-hidden="true" /><b>{e.text}</b><span>{formatTime(e.at)}, {formatDate(e.at)}</span></li>)}
@@ -873,7 +968,8 @@ export default function OrderDetail() {
               <section className="ix-card od-custcard" aria-labelledby="od-cust">
                 <header className="ix-card__head"><h2 id="od-cust">Customer</h2>{blocked ? <StatusBadge tone="error" icon="ban">Blocked</StatusBadge> : null}</header>
                 <div className="ix-card__body">
-                  <span className="od-strong" style={{ display: 'block' }}>{o.customer}</span>
+                  {/* the customer's profile (history, dues, restrictions), found by the mobile number (ON-U9) */}
+                  {digitsOf(o.phone).length >= 10 ? <Link href={'/customer-crm?phone=' + digitsOf(o.phone)} className="od-strong od-custlink" style={{ display: 'block' }} onClick={keepCustomer}>{o.customer}</Link> : <span className="od-strong" style={{ display: 'block' }}>{o.customer}</span>}
                   {digitsOf(o.phone).length >= 10 ? <span className="od-sub">{samePhone.length > 1 ? `${samePhone.length} orders from this number` : 'First order from this number'}</span> : null}
                   {!counter || digitsOf(o.phone).length >= 10 ? <div className="od-section">
                     <h3>Contact</h3>
@@ -889,10 +985,24 @@ export default function OrderDetail() {
                   {!counter || o.address ? <div className="od-section">
                     <h3>Shipping address</h3>
                     <p>{o.address || (counter ? 'Counter sale · no delivery' : 'No address on this order')}</p>
+                    {o.district && !String(o.address || '').toLowerCase().includes(String(o.thana || o.district).toLowerCase()) ? <p>{[o.thana, o.district].filter(Boolean).join(', ')}</p> : null}
                     {o.zone ? <p className="od-sub">{o.zone}</p> : null}
                   </div> : null}
                 </div>
               </section>
+
+              {!counter ? (
+                <section className="ix-card" aria-labelledby="od-assign">
+                  <header className="ix-card__head"><h2 id="od-assign">Assigned to</h2></header>
+                  <div className="ix-card__body">
+                    <select className="gc-input gc-select" aria-labelledby="od-assign" value={assignee ? assignee.id : ''} onChange={setAssignee}>
+                      <option value="">No one</option>
+                      {assignee && !staff.some((u) => u.id === assignee.id) ? <option value={assignee.id}>{assignee.name}</option> : null}
+                      {staff.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    </select>
+                  </div>
+                </section>
+              ) : null}
 
               <section className="ix-card" aria-labelledby="od-notes">
                 <header className="ix-card__head"><h2 id="od-notes">Notes</h2></header>
@@ -931,6 +1041,8 @@ export default function OrderDetail() {
                     counter && !o.invoiceId ? null : [o.invoiceKind || 'Invoice', o.invoiceId ? <Link key="inv" href={invoiceHref(o.invoiceId)} className="od-id">{o.invoiceId}</Link> : 'Not made yet'],
                     soldBy ? ['Sold by', soldBy] : null,
                     ['Channel', o.channel],
+                    !counter && o.source ? ['Source', o.source] : null,
+                    o.exchangeOf ? ['Exchange for', <Link key="ex" href={orderHref(o.exchangeOf)} className="od-id">{o.exchangeOf}</Link>] : null,
                     !counter ? ['Courier', <span key="c">{o.courier}{o.consignment !== '—' ? <span className="od-sub od-id">{o.consignment}</span> : null}</span>] : null,
                     !counter || open.length ? ['Stock', open.length ? `Held at ${heldAt}` : 'Not held'] : o.stockOut ? ['Stock', `Taken from ${o.stockOut.place}`] : null,
                     !counter ? ['Version', lastEdit ? `${version} · ${(o.edits || []).length} ${(o.edits || []).length === 1 ? 'edit' : 'edits'}` : '1'] : null,
@@ -1074,6 +1186,25 @@ export default function OrderDetail() {
       </Dialog>
 
       <ManagerPin open={!!blockPin} reason={blockPin ? `Block ${o.customer} from ordering (order ${o.id})` : ''} action="Customer restriction" by="Staff" refId={blockPin ? blockPin.id : ''} onApprove={approveBlock} onClose={() => setBlockPin(null)} />
+
+      <Dialog open={!!ret} title={'Return · ' + o.id} onClose={() => setRet(null)} width={480}>
+        {ret ? (
+          <form onSubmit={saveReturn} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <div className="gc-table-wrap">
+              <table className="gc-table gc-table--compact">
+                <caption className="sr-only">Items coming back</caption>
+                <thead><tr><th scope="col">Item</th><th scope="col" className="od-num">Bought</th><th scope="col" className="od-num">Back</th></tr></thead>
+                <tbody>{o.lines.map((l) => <tr key={l.name}><td className="od-strong">{l.name}</td><td className="od-num">{l.qty}</td><td className="od-num"><input className="gc-input" type="number" min="0" max={l.qty} inputMode="numeric" style={{ width: 72, textAlign: 'right' }} aria-label={'How many ' + l.name + ' come back'} value={ret.qty[l.name]} onChange={(e) => setRet({ ...ret, qty: { ...ret.qty, [l.name]: Math.max(0, Math.min(l.qty, Number(e.target.value) || 0)) }, error: '' })} /></td></tr>)}</tbody>
+              </table>
+            </div>
+            <div><label className="gc-label" htmlFor="od-ret-why">Reason</label><select id="od-ret-why" className="gc-input gc-select" value={ret.reason} onChange={(e) => setRet({ ...ret, reason: e.target.value })}>{RR_REASONS.map((x) => <option key={x}>{x}</option>)}</select></div>
+            <div className="ix-chips" role="group" aria-label="Customer wants">{[['refund', 'Refund'], ['exchange', 'Exchange']].map(([k, l]) => <button key={k} type="button" className="ix-chip" aria-pressed={ret.want === k} onClick={() => setRet({ ...ret, want: k })}>{l}</button>)}</div>
+            <div><label className="gc-label" htmlFor="od-ret-note">Note</label><input id="od-ret-note" className="gc-input" placeholder="Optional" value={ret.note} onChange={(e) => setRet({ ...ret, note: e.target.value })} /></div>
+            {ret.error ? <p className="gc-help gc-help--error" role="alert" style={{ margin: 0 }}>{ret.error}</p> : null}
+            <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setRet(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid">Request return</button></div>
+          </form>
+        ) : null}
+      </Dialog>
 
       <Dialog open={comment != null} title="Add a comment" onClose={() => setComment(null)} width={440}>
         <form onSubmit={saveComment} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

@@ -1,0 +1,39 @@
+{
+ "id": "H2",
+ "kind": "new",
+ "section": "Hosting",
+ "area": "Hosting",
+ "title": "Keep the domain’s DNS at GridCommerce",
+ "problem": "A merchant couldn’t manage the DNS records of their own domain.",
+ "now": "Point the nameservers here, then add, edit or delete any record; service templates, zone import and export, DNSSEC.",
+ "steps": [
+  "Open Settings › Hosting › DNS.",
+  "Press Add record, choose A, name it shop and give an address.",
+  "Press Add for a service and add Google Search Console."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/settings-console/hosting/HostingDns.jsx",
+  "src/lib/hosting.js"
+ ],
+ "notes": "Where: Settings › Hosting › DNS (/set-hosting?tab=dns)",
+ "shots": [
+  {
+   "route": "/set-hosting?tab=dns",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Hosting › DNS",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    },
+    {
+     "scroll": "#hs-dns-recs"
+    }
+   ]
+  }
+ ]
+}

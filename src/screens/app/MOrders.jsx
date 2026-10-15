@@ -17,7 +17,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  AppScreen, Content, LargeHeader, TabBar, ActionBar, Fab, Sheet, Chips, SearchField, Card, ListRow, Pill, OrderPill,
+  AppScreen, Content, LargeHeader, TabBar, ActionBar, Fab, Sheet, Chips, SearchField, Card, ListRow, Pill,
   IconButton, Button, EmptyState, Skeleton, Note, Icon, useAppData, money, ago, toast, confirmDialog, refresh,
 } from './kit/AppKit';
 import { canUse, routeLabel } from './kit/appNav';
@@ -31,7 +31,7 @@ import { startJob, tickJobs, getJobs, jobSummary, retryFailed, dismissJob, label
 import { sendReceipt } from '@/lib/receipts';
 import { invoiceFromOrder } from '@/components/SaleInvoice';
 import { saleOfOrder } from '@/lib/customerWarranty';
-import { listTabs, inTab, tabFor, payPill, areaOf, channelOf, DATE_RANGES, inRange, PAYMENT_FILTERS, digitsOf, plural, byName } from './orders/orderData';
+import { listTabs, inTab, tabFor, payPill, statusPill, areaOf, channelOf, DATE_RANGES, inRange, PAYMENT_FILTERS, digitsOf, plural, byName } from './orders/orderData';
 
 const PAGE = 20;
 const NO_FILTERS = { channel: '', payment: '', date: '' };
@@ -54,6 +54,7 @@ function OrderCard({ o, now, selecting, selected, onPress, onLong }) {
   const timer = useRef(0);
   const fired = useRef(false);
   const pay = payPill(o);
+  const sp = statusPill(o.statusKey);
   const start = () => { fired.current = false; window.clearTimeout(timer.current); timer.current = window.setTimeout(() => { fired.current = true; onLong(o.id); }, 480); };
   const stop = () => window.clearTimeout(timer.current);
   const click = (e) => {
@@ -82,7 +83,7 @@ function OrderCard({ o, now, selecting, selected, onPress, onLong }) {
       </div>
       <div style={{ display: 'flex', gap: '6px', marginTop: '12px', flexWrap: 'wrap' }}>
         <Pill tone={pay.tone}>{pay.text}</Pill>
-        <OrderPill statusKey={o.statusKey} />
+        <Pill tone={sp.tone}>{sp.label}</Pill>{sp.sub ? <span style={{ alignSelf: 'center', fontSize: 'var(--text-xs)', color: 'var(--muted)' }}>{sp.sub}</span> : null}
         {o.verify && o.verify.state === 'confirmed' && CAN_APPROVE.includes(o.statusKey) ? <Pill tone="ok">Confirmed</Pill> : null}
       </div>
     </Link>

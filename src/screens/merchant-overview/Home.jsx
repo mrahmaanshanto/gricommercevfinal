@@ -29,7 +29,10 @@ import { getSales, salesByChannel, getSaleLines } from '@/lib/salesBook';
 import { getOrders, isCounterSale, courierReturns, rtoState } from '@/lib/orders';
 import { getMeetings, needsNote } from '@/lib/meetings';
 import { ORDER_STATUSES } from '@/lib/orderStatus';
-import { getInvoices } from '@/lib/invoices';
+import { getInvoices, isOverdue, stageOf } from '@/lib/invoices';
+import { POS_KEYS, load as posLoad, getShifts, getCash, getSettings as posSettings, shiftReport } from '@/lib/posStore';
+import { pendingQueue } from '@/lib/posSale';
+import { openClaims } from '@/lib/customerWarranty';
 import { getAdjustments } from '@/lib/stockAdjustments';
 import { DEMO_POS, DEMO_STATUS, getPOs } from '@/lib/purchaseOrders';
 import { getTransfers } from '@/lib/transfers';
@@ -117,6 +120,28 @@ const CSS = `
   .hm-bars{gap:6px;height:112px}
 }
 `;
+
+/** The counter's to-dos (POS module, RT-F12): each opens the page where it is done. */
+function retailTodo(now, oldest) {
+  const inv = safe(() => getInvoices(), []).filter((i) => (Number(i.due) || 0) > 0);
+  const overdue = inv.filter((i) => safe(() => isOverdue(i, now), false));
+  const toAccept = inv.filter((i) => safe(() => stageOf(i), '') === 'review');
+  const shift = safe(() => posLoad(POS_KEYS.shift, null), null);
+  const cfg = safe(() => posSettings(), {});
+  const inDrawer = shift ? safe(() => shiftReport(shift, [...posLoad(POS_KEYS.sales, []), ...posLoad(POS_KEYS.queue, [])], getCash()).expected, 0) : 0;
+  const waiting = safe(() => pendingQueue(), []);
+  const DAY = 864e5;
+  const off = safe(() => getShifts(), []).filter((x) => x.closedAt && now - x.closedAt < 2 * DAY && x.diff && Math.abs(x.diff) > 0);
+  const claims = safe(() => openClaims(), []);
+  return [
+    overdue.length > 0 && { key: 'pos:dues-overdue', label: 'Collect overdue dues', n: overdue.length, value: overdue.reduce((a, i) => a + Number(i.due), 0), href: '/dues?tab=get', severity: 'high', area: 'area-finances', owner: ['ceo', 'shop-manager'], since: oldest(overdue, (i) => i.dueAt || i.at) },
+    toAccept.length > 0 && { key: 'pos:invoices-accept', label: 'Accept invoices', n: toAccept.length, href: '/sales-invoices?tab=review', severity: 'normal', area: 'area-orders', owner: ['ceo', 'shop-manager', 'shop-supervisor'], since: oldest(toAccept) },
+    shift && cfg.pickupLimit && inDrawer > cfg.pickupLimit && { key: 'pos:drawer-pickup', label: 'Pick up cash', n: money(inDrawer), href: '/pos-manage?tab=cash', severity: 'high', area: 'area-pos', owner: ['ceo', 'shop-manager', 'shop-supervisor'], since: shift.openedAt },
+    waiting.length > 0 && { key: 'pos:offline-sales', label: 'Sync offline sales', n: waiting.length, href: '/pos', severity: 'high', area: 'area-pos', owner: ['shop-manager', 'shop-supervisor', 'seller'], since: oldest(waiting) },
+    off.length > 0 && { key: 'pos:shift-diff', label: 'Check drawer short / over', n: off.length, value: off.reduce((a, x) => a + Math.abs(x.diff), 0), href: '/pos-manage?tab=shifts', severity: 'normal', area: 'area-pos', owner: ['ceo', 'shop-manager'], since: oldest(off, (x) => x.closedAt) },
+    claims.length > 0 && { key: 'pos:warranty-claims', label: 'Warranty claims', n: claims.length, href: '/warranty-claims', severity: 'normal', area: 'area-products', owner: ['shop-manager', 'shop-supervisor'], since: oldest(claims) },
+  ].filter(Boolean);
+}
 
 /** Everything the page shows, worked out once from the books. */
 function build({ dayOffset, place, ed = 'full' }) {
@@ -207,6 +232,8 @@ function build({ dayOffset, place, ed = 'full' }) {
     has('catalog') && poApproval.length > 0 && { key: 'purchasing:po-approval', label: 'Approve purchase orders', n: poApproval.length, href: '/purchase-orders', severity: 'normal', area: 'area-inventory', owner: ['ceo', 'wh-manager'], since: oldest(poApproval) },
     has('online') && returnsToReceive.length > 0 && { key: 'orders:returns', label: 'Receive returns', n: returnsToReceive.length, href: '/courier-returns', severity: 'normal', area: 'area-orders', owner: ['orders', 'wh-manager', 'wh-supervisor'], since: oldest(returnsToReceive) },
     has('comms') && meetNotes.length > 0 && { key: 'meetings:notes', label: 'Write meeting notes', n: meetNotes.length, href: '/meetings?tab=note', severity: 'normal', area: 'area-customers', owner: ['ceo', 'online-sales', 'shop-manager'], since: oldest(meetNotes) },
+    // counter work (POS module): dues, invoices to accept, cash in the drawer, offline sales, drawer differences, warranty
+    ...(has('pos') ? retailTodo(now, oldest) : []),
     has('catalog') && stock.lowCount > 0 && { key: 'stock:restock', label: 'Restock', n: stock.lowCount, href: '/stock', severity: 'low', area: 'area-inventory', owner: ['wh-manager', 'shop-manager'] },
   ].filter(Boolean);
   // online orders placed on each of the last 7 days (the Orders figure's trend line)
@@ -383,7 +410,7 @@ export default function Home() {
 
               {data && !data.fresh && data.insights && data.insights.length ? <InsightsCard items={data.insights} scope={place ? 'All places' : ''} /> : null}
               </div>
-              {!data ? <div className="hm-cards" aria-busy="true"><div className="hm-skel" /><div className="hm-skel" /></div> : data.fresh ? null : <HomeWidgets has={has} />}
+              {!data ? <div className="hm-cards" aria-busy="true"><div className="hm-skel" /><div className="hm-skel" /></div> : data.fresh ? null : <HomeWidgets has={has} day={data.day} place={place} />}
             </div>
           </div>
         </main>

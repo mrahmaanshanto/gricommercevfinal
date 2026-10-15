@@ -4,6 +4,8 @@
 // credit notes and the amounts, the payments (method, transaction ID, how it came in, who took it), credit notes and
 // adjustments, and the timeline (issued, reminders, auto-charge tries, calls, payments, credits, decisions). The side
 // column has the bill's facts and the store. Print draws a clean A4 copy on the Grid Technologies letterhead.
+// VAT (SA-F14): bills issued by the engine carry a "VAT 15%" line (billing.js › issueBill) and a copy of the store's
+// billing details (inv.billTo: name, BIN, email), shown in Facts and on the printed copy with GridCommerce's own BIN.
 // Data: lib/platform (billing, views › adjustmentEffect). ?id= is read after mount; the menu marks Invoices.
 
 import React, { useEffect, useState } from 'react';
@@ -14,7 +16,7 @@ import { StatusBadge, EmptyState, InfoTip } from '@/components/ui';
 import { RecordHeader, KV } from '@/components/ui/IndexKit';
 import { dm, dmy, hm, taka } from '@/lib/platform/util';
 import { REASON_LABEL, viaLabel } from '@/lib/platform/catalogue';
-import { invoiceById, shopOf, subOf, balance, paidOn, creditOn, paidVia, outcomeLabel } from '@/lib/platform/billing';
+import { invoiceById, shopOf, subOf, balance, paidOn, creditOn, paidVia, outcomeLabel, billToOf, vatOf } from '@/lib/platform/billing';
 import { AdminShell, usePlatform } from '../AdminShell';
 import {
   BILL_CSS, Skeleton, BillBadge, billState, money, plural, periodText, packageOf, when, payLink, Row,
@@ -71,6 +73,7 @@ const CSS = `
 
 const COMPANY = 'Grid Technologies Limited · GridCommerce';
 const COMPANY_ADDR = 'Dhaka, Bangladesh · gridcommerce.net';
+const COMPANY_BIN = '004512398-0101';   // lib/admin/finance.js › COMPANY.bin (kept here: billing screens read lib/platform only)
 
 /** Everything that happened to the bill, newest first. */
 function timeline(db, inv, t) {
@@ -108,16 +111,17 @@ function PrintCopy({ db, inv, t }) {
   const cns = db.credits.filter((c) => c.invoiceId === inv.id);
   const pays = db.payments.filter((p) => p.invoiceId === inv.id && p.status === 'ok').sort((a, b) => a.at - b.at);
   const bal = balance(db, inv);
+  const billTo = inv.billTo || billToOf(shop) || {};
   return createPortal(
     <div className="bl-print" aria-hidden="true">
       <div className="bl-print__head">
-        <div className="bl-print__co"><b>{COMPANY}</b><span>{COMPANY_ADDR}</span></div>
+        <div className="bl-print__co"><b>{COMPANY}</b><span>{COMPANY_ADDR}</span><span>BIN {COMPANY_BIN}</span></div>
         <div className="bl-print__title"><b>{inv.noCharge ? 'Statement' : 'Invoice'}</b><span>{inv.id}</span></div>
       </div>
       <div className="bl-print__meta">
         <div>
           <h3>Billed to</h3>
-          <p><b>{shop ? shop.name : '#' + inv.shopId}</b><br />{owner.name}{owner.phone ? <><br />{owner.phone}</> : null}{shop && shop.dist ? <><br />{shop.dist}</> : null}<br />Store ID #{inv.shopId}</p>
+          <p><b>{billTo.name || (shop ? shop.name : '#' + inv.shopId)}</b><br />{owner.name}{owner.phone ? <><br />{owner.phone}</> : null}{billTo.email ? <><br />{billTo.email}</> : null}{shop && shop.dist ? <><br />{shop.dist}</> : null}{billTo.bin ? <><br />BIN {billTo.bin}</> : null}<br />Store ID #{inv.shopId}</p>
         </div>
         <div>
           <h3>Bill</h3>
@@ -292,6 +296,9 @@ export default function InvoiceView() {
                   inv.graceFrom ? ['Grace', `extended from ${dm(inv.graceFrom)}`] : null,
                   ['Balance', <span key="b" className={'bl-fig' + (bal ? ' bl-bad' : '')}>{taka(bal)}</span>],
                   ['Collected by', sub && sub.autoCharge ? `Auto-charge · ${sub.payMethod}` : 'Hand · pay link or call'],
+                  ['Billed to', (inv.billTo || billToOf(shopOf(db, inv.shopId)) || {}).name],
+                  (inv.billTo || {}).bin ? ['Store BIN', <span key="bin" className="bl-data">{inv.billTo.bin}</span>] : null,
+                  ['VAT', vatOf(inv).vat ? `${taka(vatOf(inv).vat)} at ${inv.vatPct}%` : 'None on this bill'],
                   inv.reminders && inv.reminders.length ? ['Pay links sent', plural(inv.reminders.length, 'time')] : null,
                 ]} />
               </div>

@@ -19,7 +19,8 @@ export const TARGET_IP = '76.76.21.21';
 export const TARGET_HOST = 'shops.gridcommerce.com.bd';
 const MIN = 60 * 1000;
 
-const SEED = { sub: 'dazzleshop', list: [] };
+// the demo shop already runs on its own domain (verified, SSL issued, primary); a shop starts with none
+const SEED = { sub: 'dazzleshop', list: [{ host: 'dazzleshop.com.bd', addedAt: 1, primary: true, state: 'verified', ssl: 'active', checkedAt: 1 }] };
 const ssr = () => typeof window === 'undefined';
 function load() { if (ssr()) return SEED; try { return { ...SEED, ...(JSON.parse(window.localStorage.getItem(KEY)) || {}) }; } catch { return SEED; } }
 function save(st) { try { window.localStorage.setItem(KEY, JSON.stringify(st)); window.dispatchEvent(new CustomEvent(DOMAINS_EVENT)); } catch { /* ignore */ } }

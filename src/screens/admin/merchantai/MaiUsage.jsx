@@ -89,7 +89,7 @@ export default function MaiUsage() {
         footer={row ? <div className="mai-foot">{row.status === 'Suspended' && row.reason !== 'Store suspended'
           ? <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => done(restoreAi(row.id), 'AI restored for ' + row.name)}>Restore AI</button>
           : row.reason === 'Store suspended' ? <span className="ix-muted" style={{ fontSize: 'var(--text-xs)' }}>The whole store is suspended (Licences).</span>
-            : <button type="button" className="gc-btn gc-btn--sm gc-btn--error" onClick={() => { if (done(suspendAi(row.id, form.suspend), 'AI suspended for ' + row.name)) setForm({ ...form, suspend: '' }); }}>Suspend AI</button>}
+            : <button type="button" className="gc-btn gc-btn--sm gc-btn--solid gc-btn--error" onClick={() => { if (done(suspendAi(row.id, form.suspend), 'AI suspended for ' + row.name)) setForm({ ...form, suspend: '' }); }}>Suspend AI</button>}
           <Link className="gc-btn gc-btn--sm gc-btn--neutral" href={'/admin/merchant?id=' + row.id}>Open the store</Link></div> : null}>
         {row ? (
           <div className="mai-body">

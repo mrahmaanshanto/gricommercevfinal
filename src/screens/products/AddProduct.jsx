@@ -2,7 +2,8 @@
 // Generated from design/templates/products/AddProduct.dc.html by scripts/convert-design.mjs.
 // AddProduct — Products — Add product / Edit product, laid out exactly like the reference app's product editor
 // (docs/reference-add-product.md): header (Preview · Duplicate · Save draft), then a main column (title and rich-text
-// description, media, classification + template, specifications, pricing, product model, variants, and one-line cards
+// description, media, pricing (right after media, so the price is set first), classification + template, specifications,
+// product model, variants, and one-line cards
 // that open drawers for inventory & identifiers, shipping, SEO and relationships) and a side column (status,
 // publishing, organization, product data, Google readiness, warranty, activity). Drawers are Sheets with Cancel / Save:
 // Cancel puts back what the drawer changed. Our kit, font and colours (docs/shopify-style.md).
@@ -24,13 +25,15 @@ import { onlinePlace, getBranchNames, getStockPlaces, STOCK_PLACES } from '@/lib
 import { getCategories, formTables, CATEGORY_SEED } from '@/lib/productCategories';
 import { productLevel } from '@/lib/reorder';
 import { ManagerPin } from '@/components/ManagerPin';
-import { UNITS, unitOf, packsOf, packLine } from '@/lib/units';
+import { getUnits, unitOf, packsOf, packLine } from '@/lib/units';
+import { offeredPolicies, policyBy, lineOf, periodText, STARTS as W_STARTS, TYPES as W_TYPES } from '@/lib/warranty';
+import { fieldsForCategory, getSizeCharts, sizeChartBy } from '@/lib/catalogSetup';
 import { ID_TYPES, idLabel, validateId, idOwner, gtinOk } from '@/lib/identifiers';
 import { TEMPLATES, tplBy, templateFor, templateOfCategory, groupsOf, fieldValue, hiddenValues, tplDefaults, TPL_SOURCE, CAP_LABEL } from '@/lib/productTemplates';
 import { saveDraft, draftFor, dropDraft, agoText, AUTOSAVE_MS } from '@/lib/productDrafts';
 import SeoPanel, { SEO_PANEL_CSS } from '@/components/seo/SeoPanel';
 import { setLinkInHtml } from '@/lib/seo';
-import { vatRateFor, loadVat } from '@/lib/vat';
+import { vatRateFor, loadVat, getTaxRates } from '@/lib/vat';
 import { contextOf } from '@/lib/seoItems';
 import { toHandle, cleanHandleInput } from '@/lib/handles';
 import { versionsOf, latestVersion, openEdit, closeEdit, editorsOf, takeOver, staleSince, needsPriceApproval, priceChangePct, priceLimit, requestPrice, openPriceRequests, decidePrice, VERSIONS_EVENT } from '@/lib/productVersions';
@@ -61,9 +64,9 @@ function toast(self, m, bad) { __toast(m, bad ? { tone: 'error' } : undefined); 
 var TRANSIENT = { ai: 1, prev: 1, assistOpen: 1, catOpen: 1, aiSel: 1, facts: 1, msg: 1, bad: 1, errors: 1, dirty: 1, tab: 1, stripL: 1, stripR: 1, savedList: 1,
   recover: 1, autosavedAt: 1, editors: 1, loadedV: 1, verOpen: 1, verView: 1, priceAsk: 1, pinFor: 1, keysText: 1, tick: 1,
   sheet: 1, sheetSnap: 1, seoOpen: 1, colText: 1, tagText: 1, altText: 1 };
-var FIELD_ORDER = ['title', 'price', 'cost', 'wholesale', 'moq', 'opts', 'sku', 'barcode', 'internal', 'ids', 'packs', 'variants', 'bundle', 'shelf'];
+var FIELD_ORDER = ['title', 'price', 'cost', 'wholesale', 'moq', 'opts', 'sku', 'barcode', 'internal', 'ids', 'packs', 'variants', 'bundle', 'shelf', 'custom'];
 // fields that live in a drawer: a save error opens the drawer and puts the cursor there
-var FIELD_SHEET = { sku: 'ids', barcode: 'ids', internal: 'ids', ids: 'ids', packs: 'ids', shelf: 'ids', bundle: 'rel' };
+var FIELD_SHEET = { sku: 'ids', barcode: 'ids', internal: 'ids', ids: 'ids', packs: 'ids', shelf: 'ids', bundle: 'rel', custom: 'data' };
 // a product format (Nayeem's Product brief #1 › 1.1): digital formats have no stock, courier or weight
 var FORMATS = [['physical', 'Physical'], ['digital', 'Digital / downloadable'], ['licence', 'Digital licence'], ['service', 'Service / non-stock']];
 var SELL_MODES = [['retail', 'Retail'], ['wholesale', 'Wholesale'], ['both', 'Retail + Wholesale']];
@@ -164,18 +167,19 @@ function prefillFrom(p) {
     media: (p.media || []).map(function (m) { return assign({}, m); }), handle: p.handle || '', noindex: !!p.noindex, faqs: p.faqs || [], seoX: assign({}, p.seo || {}), goLiveAt: p.goLiveAt || '', vatRate: p.vatRate == null ? '' : String(p.vatRate),
     ship: p.ship ? assign({}, p.ship) : null, wq: p.warranty ? (p.warranty.has ? 'yes' : 'no') : null, wp: p.warranty ? p.warranty.policy : null, wtext: p.warranty ? p.warranty.text : null,
     snt: p.snType || null, shelfN: p.shelf ? String(p.shelf.n) : null, shelfU: p.shelf ? p.shelf.u : null, lowAt: String(productLevel({ sku: p.sku, lowAt: p.lowAt })),
-    specLayout: p.specLayout || null, publishing: p.publishing || null, google: p.google || null, sg: p.sizeGuide || null
+    specLayout: p.specLayout || null, publishing: p.publishing || null, google: p.google || null, sg: p.sizeGuide || null,
+    custom: assign({}, p.custom || {})
   };
 }
 
 var AI_TXT = {
   short: '6.7-inch AMOLED, 5000 mAh battery and a 50 MP camera — with 1 year official Samsung warranty in Bangladesh.',
-  long: '<p>Meet the 5G Smartphone Pro — a big, bright 6.7-inch AMOLED screen that stays sharp in the sun, and a 5000 mAh battery that lasts a full day and more.</p><h3>What you get</h3><ul><li>256 GB or 512 GB storage, 8 GB RAM</li><li>50 MP main camera with night mode</li><li>Fast 45 W charging</li><li>Dual SIM, 5G ready for Grameenphone and Robi</li></ul><p>Every phone is official, PTA approved and comes with a 1-year brand warranty. The IMEI is printed on your invoice.</p>',
+  long: '<p>Meet the 5G Smartphone Pro — a big, bright 6.7-inch AMOLED screen that stays sharp in the sun, and a 5000 mAh battery that lasts a full day and more.</p><h3>What you get</h3><ul><li>256 GB or 512 GB storage, 8 GB RAM</li><li>50 MP main camera with night mode</li><li>Fast 45 W charging</li><li>Dual SIM, 5G ready for Grameenphone and Robi</li></ul><p>Every phone is official, BTRC approved and comes with a 1-year brand warranty. The IMEI is printed on your invoice.</p>',
   bangla: '<p>বাংলায়: ৬.৭ ইঞ্চি AMOLED স্ক্রিন, ৫০০০ mAh ব্যাটারি ও ৫০ MP ক্যামেরা। অফিসিয়াল ১ বছরের ওয়ারেন্টি।</p>',
   seoT: '5G Smartphone Pro 256GB Price in Bangladesh | Dazzle Shop',
   seoD: 'Buy the 5G Smartphone Pro 256GB at the best price in BD. Official warranty, 6.7" AMOLED, 5000 mAh. Cash on delivery all over Bangladesh.'
 };
-var FAQ_AI = [['Is this the official version?', 'Yes. Every phone is official and PTA approved, with a 1-year brand warranty.'], ['Does it support 5G in Bangladesh?', 'Yes, it works on 5G where Grameenphone and Robi have it, and on 4G everywhere else.'], ['Can I pay by EMI?', 'Yes, 3 to 12 months EMI on most bank cards.']];
+var FAQ_AI = [['Is this the official version?', 'Yes. Every phone is official and BTRC approved, with a 1-year brand warranty.'], ['Does it support 5G in Bangladesh?', 'Yes, it works on 5G where Grameenphone and Robi have it, and on 4G everywhere else.'], ['Can I pay by EMI?', 'Yes, 3 to 12 months EMI on most bank cards.']];
 // the shop's categories (Products › Categories, lib/productCategories.js): main categories and every category inside
 // them ([name, isSub, label]); PARENT = a category's main category, CAT_PATH = its full path. The demo tree on the first
 // render, the shop's saved tree after mount (loadCats).
@@ -191,11 +195,9 @@ var GOOGLE_CAT = { Phones: 'Electronics > Communications > Telephony > Mobile Ph
   'Chargers & cables': 'Electronics > Electronics Accessories > Power > Power Adapters & Chargers', 'Screen protection': 'Electronics > Electronics Accessories > Screen Protectors', 'Holders & stands': 'Electronics > Communications > Telephony > Mobile Phone Accessories > Mobile Phone Stands',
   Batteries: 'Electronics > Electronics Accessories > Power > Batteries', Audio: 'Electronics > Audio', Earbuds: 'Electronics > Audio > Audio Components > Headphones & Headsets', Earphones: 'Electronics > Audio > Audio Components > Headphones & Headsets',
   Wearables: 'Electronics > Electronics Accessories > Wearable Technology', 'Power banks': 'Electronics > Electronics Accessories > Power > Power Banks', Services: 'Business & Industrial', Repairs: 'Business & Industrial', Software: 'Software', Digital: 'Media', Gifts: 'Arts & Entertainment > Party & Celebration > Gift Giving' };
-var WP = { brand1y: [['Period', '12 months'], ['Proof needed', 'Invoice + IMEI'], ['Claim at', 'Service centre, Mirpur 10']], shop6m: [['Period', '6 months'], ['Type', 'Shop service'], ['Claim at', 'Your shop']], rep7d: [['Period', '7 days'], ['Type', 'Replacement'], ['Claim at', 'Your shop']], elec2y: [['Period', '2 years'], ['Type', 'Parts + service'], ['Claim at', 'Brand centre']] };
-var WP_LINE = { brand1y: '12 months brand warranty', shop6m: '6 months shop service', rep7d: '7-day replacement', elec2y: '2 years parts, 1 year service' };
-var WPS = { brand1y: 'Delivery date', shop6m: 'Delivery date', rep7d: 'Delivery date', elec2y: 'Invoice date' };
-var WPT = { brand1y: '12 months brand warranty. Covers manufacturing defects, battery below 80% health, and motherboard or display faults. Not covered: physical or liquid damage, phones opened by a third party, software issues after rooting. Repair first; replaced if it cannot be repaired within 15 days.', shop6m: 'We repair or replace parts at no cost for 6 months.', rep7d: 'Swap for a new piece within 7 days if faulty.', elec2y: 'Parts are free for 2 years; service is free for the first year.' };
-var SG = { case: [['Case size', 'Fits', 'Height (mm)', 'Width (mm)', 'Camera cut-out'], [['S', 'iPhone 15', '147.6', '71.6', 'Square'], ['M', 'Galaxy A55, A35', '161.1', '77.4', 'Triple'], ['L', 'Redmi Note 13, Galaxy A15', '163.3', '78.2', 'Triple'], ['XL', 'iPhone 15 Pro Max', '159.9', '76.7', 'Square']]], strap: [['Strap', 'Wrist (mm)', 'Width (mm)', 'Fits'], [['S', '130–180', '18', 'Smart Band 8'], ['M', '150–200', '20', 'Galaxy Watch FE'], ['L', '170–220', '22', 'Smart Watch S2']]] };
+// Warranty policies (lib/warranty.js) and size charts (lib/catalogSetup.js) are the one list made in Catalog setup and
+// Warranty policies; the product keeps the policy's key and the chart's id.
+var wpInfoOf = function (p) { return p ? [['Period', periodText(p)], ['Type', W_TYPES[p.type] || 'Warranty'], ['Claim at', p.centre || p.claim]].concat(p.proof && p.proof.indexOf('imei') >= 0 ? [['Proof needed', 'Invoice + IMEI']] : []) : []; };
 var AIF = [['short', 'Short description'], ['long', 'Long description'], ['seo', 'SEO title and description'], ['tags', 'Tags'], ['faq', 'FAQ'], ['alt', 'Photo alt text']];
 var ALT_VIEWS = ['front view', 'back view', 'side view', 'in the box', 'in hand'];
 // Product relationships (accessories, substitutes, successor, components, bundles): kept in the code, not shown on the form
@@ -332,8 +334,12 @@ class Component extends DCLogic {
     var snt = invMode === 'serial' ? 'serial' : f('snt', 'imei2') === 'imei1' ? 'imei1' : 'imei2';
     var shelfN = f('shelfN', '12'), shelfU = f('shelfU', 'months'), lowAt = f('lowAt', '5');
     var saleUnit = f('saleUnit', ''), buyUnit = f('buyUnit', '');
-    var wq = f('wq', caps.indexOf('warranty') >= 0 || flags0.indexOf('Warranty') >= 0 ? 'yes' : 'no'), wp = WP[f('wp', 'brand1y')] ? f('wp', 'brand1y') : 'brand1y', wtext = f('wtext', WPT[wp]);
-    var sg = SG[f('sg', 'none')] ? f('sg', 'none') : 'none';
+    // warranty: the policy the product names (even an archived one it already had), else the first policy offered
+    var wq = f('wq', caps.indexOf('warranty') >= 0 || flags0.indexOf('Warranty') >= 0 ? 'yes' : 'no');
+    var wpols = offeredPolicies(), wpRec = policyBy(f('wp', 'brand1y')) || wpols[0] || null, wp = wpRec ? wpRec.key : '', wtext = f('wtext', wpRec ? wpRec.text : '');
+    var sgRec = sizeChartBy(f('sg', 'none')), sg = sgRec ? sgRec.id : 'none';
+    // the shop's own product fields for this category (Catalog setup › Product fields)
+    var shopFields = fieldsForCategory(catPathOf(f('cat', ''))), custom = f('custom', {});
     var oversell = !!f('oversell', false), backorder = !!f('backorder', false), giftOnly = !!f('giftOnly', false);
     var sellability = f('sellability', '') || (giftOnly ? 'gift' : oversell ? 'preorder' : backorder ? 'backorder' : 'normal');
     var ship = assign({ weight: '', length: '', width: '', height: '', parcel: 'box', fragile: false }, f('ship', {}));
@@ -364,7 +370,7 @@ class Component extends DCLogic {
 
     // ---- title, descriptions, AI ----
     assign(v, {
-      facts: f('facts', '6.7 inch AMOLED, 5000 mAh, 50 MP camera, 1 year official warranty, PTA approved'), typeFacts: function (e) { self.setState({ facts: e.target.value }); },
+      facts: f('facts', '6.7 inch AMOLED, 5000 mAh, 50 MP camera, 1 year official warranty, BTRC approved'), typeFacts: function (e) { self.setState({ facts: e.target.value }); },
       aiFields: AIF.map(function (x) { var on = !!aiSel[x[0]]; return { label: x[1], on: on, pick: function () { var o = assign({}, aiSel); o[x[0]] = !on; self.setState({ aiSel: o }); } }; }),
       aiCount: AIF.filter(function (x) { return aiSel[x[0]]; }).length,
       runAssist: function () { var p = {}, a = assign({}, ai), pv = assign({}, prev); var add = function (k, patch) { a[k] = true; pv[k] = {}; Object.keys(patch).forEach(function (x) { pv[k][x] = s[x]; p[x] = patch[x]; }); };
@@ -671,7 +677,7 @@ class Component extends DCLogic {
       addId: function () { self.setState({ ids: ids.concat({ type: 'supplier', value: '', variant: '' }) }); },
       variantSkus: variants.map(function (x) { return { sku: x.sku, name: x.name }; }).filter(function (x) { return x.sku; }),
       // units & packs: stock is kept in the base unit; a pack is a number of base units
-      unit: unit, units: UNITS, setUnit: function (e) { self.setState({ unit: e.target.value }); }, unitShort: unitOf(unit).short,
+      unit: unit, units: getUnits(), setUnit: function (e) { self.setState({ unit: e.target.value }); }, unitShort: unitOf(unit).short,
       unitOpts: unitOpts, saleUnit: saleUnit, setSaleUnit: function (e) { self.setState({ saleUnit: e.target.value }); }, buyUnit: buyUnit, setBuyUnit: function (e) { self.setState({ buyUnit: e.target.value }); },
       packConv: salePack ? '1 ' + salePack.name + ' = ' + salePack.qty + ' ' + unitOf(unit).short : '1 ' + unitOf(unit).one + ' = 1 ' + unitOf(unit).one,
       packRows: packs.map(function (k, i) {
@@ -718,7 +724,9 @@ class Component extends DCLogic {
       seoT: seoT, seoD: seoD, typeSeoT: function (e) { self.setState({ seoT: e.target.value }); }, typeSeoD: function (e) { self.setState({ seoD: e.target.value }); }, seoTCount: seoT.length + ' of 70 letters',
       noindex: !!f('noindex', false), indexOpts: [['index', 'Index'], ['noindex', 'Noindex']].map(function (o) { var on = (o[0] === 'noindex') === !!f('noindex', false); return { l: o[1], on: on, pick: function () { self.setState({ noindex: o[0] === 'noindex' }); } }; }),
       // VAT / tax: the product's own rate, or its category's (Accounts › Setup › VAT) when left on "Same as its category"
-      vatRate: f('vatRate', ''), setVatRate: function (e) { self.setState({ vatRate: e.target.value }); }, catVat: vatRateFor(catPathOf(cat), loadVat()) || 0,
+      vatRate: f('vatRate', ''), setVatRate: function (e) { self.setState({ vatRate: e.target.value }); },
+      // the named rates of Catalog setup › Tax rates (a saved rate no longer listed is kept as a choice)
+      taxRates: (function () { var list = getTaxRates(), cur = f('vatRate', ''); return cur !== '' && !list.some(function (t) { return String(t.rate) === String(cur); }) ? list.concat([{ id: 'own', name: 'Own rate', rate: Number(cur) }]) : list; })(), catVat: vatRateFor(catPathOf(cat), loadVat()) || 0,
       // the shared SEO panel (components/seo/SeoPanel.jsx): title, description and noindex stay the product's own fields
       seoObj: assign(assign({}, f('seoX', {})), { metaTitle: seoT, metaDescription: seoD, noindex: !!f('noindex', false) }),
       setSeoObj: function (patch) {
@@ -773,10 +781,19 @@ class Component extends DCLogic {
       tagText: s.tagText != null ? s.tagText : tags.join(', '),
       typeTags: function (e) { var t = e.target.value; self.setState({ tagText: t, tags: t.split(',').map(function (x) { return x.trim(); }).filter(Boolean) }); },
       wYes: wq === 'yes', wqOpts: seg([['yes', 'Yes'], ['no', 'No']], wq, 'wq'), wp: wp, setWp: function (e) { self.setState({ wp: e.target.value, wtext: null }); },
-      wpInfo: WP[wp].map(function (x) { return { k: x[0], v: x[1] }; }), wpText: wtext, typeWtext: function (e) { self.setState({ wtext: e.target.value }); }, wpStart: WPS[wp],
-      warrantyLine: wq === 'yes' ? WP_LINE[wp] : 'No warranty',
-      sg: sg, setSg: function (e) { self.setState({ sg: e.target.value }); }, hasSg: sg !== 'none',
-      sgHead: sg !== 'none' ? SG[sg][0] : [], sgRows: sg !== 'none' ? SG[sg][1] : []
+      wpOpts: (wpRec && wpols.every(function (x) { return x.key !== wpRec.key; }) ? [wpRec] : []).concat(wpols).map(function (x) { return { k: x.key, l: x.label + ' · ' + periodText(x) + (x.status === 'archived' ? ' (archived)' : '') }; }),
+      wpInfo: wpInfoOf(wpRec).map(function (x) { return { k: x[0], v: x[1] }; }), wpText: wtext, typeWtext: function (e) { self.setState({ wtext: e.target.value }); }, wpStart: wpRec ? W_STARTS[wpRec.start] || 'Delivery date' : '',
+      warrantyLine: wq === 'yes' ? (wpRec ? lineOf(wpRec) : 'Choose a policy') : 'No warranty',
+      sg: sg, setSg: function (e) { self.setState({ sg: e.target.value }); }, hasSg: !!sgRec, sgOpts: getSizeCharts().map(function (c) { return { k: c.id, l: c.name }; }),
+      sgHead: sgRec ? sgRec.head.map(function (h, i) { return i && typeof sgRec.rows[0][i] === 'number' ? h + ' (mm)' : h; }) : [], sgRows: sgRec ? sgRec.rows : [],
+      // the shop's own fields (Product data drawer); a required one must be filled before the product is active
+      shopFields: shopFields.map(function (fd) {
+        var val = custom[fd.key];
+        var put = function (x) { var o = assign({}, custom); if (x === '' || x == null || (Array.isArray(x) && !x.length)) delete o[fd.key]; else o[fd.key] = x; self.setState({ custom: o }); if (errs.custom) { var er = assign({}, errs); delete er.custom; self.setState({ errors: er }); } };
+        return { k: fd.key, id: 'pf-cf-' + fd.key, l: fd.label, unit: fd.unit, type: fd.type, req: fd.req, show: fd.show, options: fd.options || [], value: val,
+          onText: function (e) { put(e.target.value); }, onBool: function (e) { put(e.target.value === '' ? null : e.target.value === 'yes'); },
+          toggle: function (o) { var list = Array.isArray(val) ? val.slice() : []; var i = list.indexOf(o); if (i >= 0) list.splice(i, 1); else list.push(o); put(list); } };
+      })
     });
 
     // ---- Google product data and listing readiness ----
@@ -881,6 +898,8 @@ class Component extends DCLogic {
         else if (bundle.parts.some(function (x) { return x.sku && !(Number(x.qty) > 0); })) e.bundle = 'Each part needs a quantity of 1 or more.';
       }
       if (expiresOn && !(/^\d+$/.test(String(shelfN).trim()) && +shelfN > 0)) e.shelf = 'Enter how long it stays good as a whole number above 0.';
+      var missingField = !draft && shopFields.filter(function (fd) { var x = custom[fd.key]; return fd.req && (x == null || x === '' || (Array.isArray(x) && !x.length)); })[0];
+      if (missingField) e.custom = 'Fill in ' + missingField.label + '. Every product in ' + (mainCat || 'this category') + ' needs it (Catalog setup).';
       return e;
     };
     var clr = function (k, fn) { return function (ev) { fn(ev); if (errs[k]) { var o = assign({}, errs); delete o[k]; self.setState({ errors: o }); } }; };
@@ -911,7 +930,8 @@ class Component extends DCLogic {
         // the reference page's fields
         sellability: sellability, invMode: invMode, snType: serialOn ? snt : null, shelf: expiresOn ? { n: +shelfN, u: shelfU } : null, lowAt: wholeNum(lowAt),
         saleUnit: saleUnit, buyUnit: buyUnit, subcats: subcats.map(catPathOf), collections: collections, media: media, handle: f('handle', ''), noindex: !!f('noindex', false), faqs: faqs, seo: f('seoX', {}), goLiveAt: status === 'scheduled' ? f('goLiveAt', '') || null : null, vatRate: f('vatRate', '') === '' ? null : Number(f('vatRate', '')),
-        ship: physical ? ship : null, warranty: { has: wq === 'yes', policy: wp, text: wtext }, specLayout: f('specLayout', null), publishing: f('publishing', null), google: f('google', null), sizeGuide: sg === 'none' ? null : sg
+        ship: physical ? ship : null, warranty: { has: wq === 'yes', policy: wp, text: wtext }, specLayout: f('specLayout', null), publishing: f('publishing', null), google: f('google', null), sizeGuide: sg === 'none' ? null : sg,
+        custom: shopFields.reduce(function (o, fd) { if (custom[fd.key] != null) o[fd.key] = custom[fd.key]; return o; }, assign({}, (orig && orig.custom) || {}))
       });
     };
     var trySave = function (draft, okMsg, opt) {
@@ -1049,7 +1069,7 @@ class Component extends DCLogic {
     // everything the product is made of, as one snapshot (unsaved changes = it differs from the saved one)
     this._snap = JSON.stringify([title, short, long, seoT, seoD, f('handle', ''), !!f('noindex', false), tags, faqs, String(price), String(cost), String(mrp), String(wholesale), String(moq), sell,
       sku, gtin, internalBc, ids, packs, unit, saleUnit, buyUnit, invMode, snt, shelfN, shelfU, lowAt, f('openStock', {}), oversell, backorder, f('restockAt', ''), giftOnly, sellability,
-      cat, subcats, brand, collections, status, tplOwn, data, f('specLayout', null), format, f('digital', null), bundle, rel, opts, variants, media, ship, wq, wp, wtext, f('publishing', null), f('google', null), sg, f('seoX', {}), f('goLiveAt', ''), f('vatRate', '')]);
+      cat, subcats, brand, collections, status, tplOwn, data, f('specLayout', null), format, f('digital', null), bundle, rel, opts, variants, media, ship, wq, wp, wtext, f('publishing', null), f('google', null), sg, f('seoX', {}), f('goLiveAt', ''), f('vatRate', ''), custom]);
     return v;
   }
 }
@@ -1452,89 +1472,7 @@ export default class AddProductScreen extends Component {
                       </div>
                     </section>
 
-                    {/* ---- 3. classification: main category, subcategories, template ---- */}
-                    <section className="ix-card ix-card--open" aria-labelledby="ap-h-class">
-                      <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-class">Category and template</h2></div>
-                      </div>
-                      <div className="ix-card__body ap-body">
-                        <div className="ap-grid2">
-                          <div className="ap-field">
-                            <label className="gc-label" htmlFor="pf-maincat">Main category</label>
-                            <select id="pf-maincat" className="gc-input gc-select" value={v.mainCat} onChange={v.setMainCat}>
-                              <option value="">Other</option>
-                              {__list(v.mainCats).map((c) => (<option key={c} value={c}>{c}</option>))}
-                            </select>
-                            <p className="ap-help">Used in reports and for the product’s default details.</p>
-                          </div>
-                          <div className="ap-field">
-                            <span className="gc-label" id="ap-l-subs">Subcategories <span className="ix-muted">multiple allowed</span></span>
-                            <MultiCheck id="pf-subcats" groups={v.subGroups} placeholder="Select subcategories" labelledBy="ap-l-subs" />
-                            <p className="ap-help"><__Link href="/categories">Manage categories</__Link></p>
-                          </div>
-                        </div>
-                        <hr className="ap-sep" />
-                        <div className="ap-tplrow">
-                          <div>
-                            <label className="gc-label" htmlFor="pf-tpl" style={{ margin: 0 }}>Product template</label>
-                            <p className="ap-help">Decides which specifications the product has. Values you already filled in are kept.</p>
-                            <span className="ap-src">{v.tplSource}{v.tplCaps.length ? ' · Turns on: ' + v.tplCaps.join(', ') : ''}</span>
-                          </div>
-                          <select id="pf-tpl" className="gc-input gc-select" value={v.tplSel} onChange={v.setTpl}>
-                            <option value="">{'Category’s: ' + v.catTplName}</option>
-                            {__list(v.templates).map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
-                          </select>
-                        </div>
-                      </div>
-                    </section>
-
-                    {/* ---- 4. specifications: SPECIFICATION | VALUE | ORDER per group ---- */}
-                    <section className="ix-card" aria-labelledby="ap-h-spec">
-                      <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-spec">Specifications</h2></div>
-                        <button type="button" className="ix-btn" onClick={v.addGroup}><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add group</button>
-                      </div>
-                      <div className="ix-card__body ap-body">
-                        {__list(v.specGroups).map((g) => (
-                          <div key={g.gi} className="ap-sgrp">
-                            <div className="ap-sgrp__head">
-                              <input className="ap-sgrp__name" value={g.name} onChange={g.rename} aria-label="Group name" />
-                              <OrderBtns what="group" onUp={g.up} onDown={g.down} upOff={g.first} downOff={g.last} onRemove={g.remove} removeText="Remove" />
-                            </div>
-                            <div className="ap-twrap">
-                              <table className="ap-spec gc-table--keep">
-                                <thead><tr><th scope="col">Specification</th><th scope="col">Value</th><th scope="col" className="ap-spec__ord">Order</th></tr></thead>
-                                <tbody>
-                                  {__list(g.rows).map((r) => (
-                                    <tr key={r.k}>
-                                      <td className="ap-spec__l"><span><input className="ap-cellin" value={r.l} onChange={r.rename} aria-label="Specification name" />{r.unit ? <span className="ap-unit">{r.unit}</span> : null}</span></td>
-                                      <td>
-                                        <span className="ap-spec__val">
-                                          <ValueIn r={r} />
-                                          {r.label && r.source !== 'product' ? <span className="ap-src">{r.label}</span> : null}
-                                          {r.canReset ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain ap-reset" onClick={r.reset}>{r.resetLabel}</button> : null}
-                                        </span>
-                                      </td>
-                                      <td className="ap-spec__ord"><OrderBtns what="specification" onUp={r.up} onDown={r.down} upOff={r.first} downOff={r.last} onRemove={r.remove} /></td>
-                                    </tr>
-                                  ))}
-                                  {!g.rows.length ? <tr><td colSpan="3" className="ap-spec__empty">No specifications in this group yet.</td></tr> : null}
-                                </tbody>
-                              </table>
-                            </div>
-                            <div><button type="button" className="ix-btn ix-btn--sm" onClick={g.addSpec}><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add specification</button></div>
-                          </div>
-                        ))}
-                        {!v.specGroups.length ? <p className="ap-help">This template has no specifications. Add a group to start.</p> : null}
-                        <div className="ap-specfoot">
-                          {v.specMore > 0 || v.allData ? <button type="button" className="ap-linkbtn" aria-expanded={v.allData} onClick={v.toggleAllData}>{v.allData ? 'Show key features only' : 'View all product data (' + v.specTotal + ')'}</button> : null}
-                          {v.hiddenRows ? <button type="button" className="ap-linkbtn" onClick={v.showHidden}>{v.hiddenRows === 1 ? 'Show 1 hidden specification' : 'Show ' + v.hiddenRows + ' hidden specifications'}</button> : null}
-                          {v.hiddenCount ? <span className="ap-help">{v.hiddenCount === 1 ? '1 value is kept from another template. Switch back to see it.' : v.hiddenCount + ' values are kept from another template. Switch back to see them.'}</span> : null}
-                        </div>
-                      </div>
-                    </section>
-
-                    {/* ---- 5. pricing ---- */}
+                    {/* ---- 3. pricing (right after media: price first, PR-U6) ---- */}
                     <section className="ix-card" aria-labelledby="ap-h-price">
                       <div className="ix-card__head ap-head">
                         <div><h2 id="ap-h-price">Pricing</h2></div>
@@ -1577,11 +1515,7 @@ export default class AddProductScreen extends Component {
                             <span className="gc-label">VAT / tax</span>
                             <select className="gc-input gc-select" aria-label="Tax rate" value={v.vatRate} onChange={v.setVatRate}>
                               <option value="">{'Same as its category · ' + v.catVat + '%'}</option>
-                              <option value="15">Standard VAT 15%</option>
-                              <option value="10">10%</option>
-                              <option value="7.5">Reduced 7.5%</option>
-                              <option value="5">5%</option>
-                              <option value="0">No VAT</option>
+                              {v.taxRates.map((t) => <option key={t.id} value={String(t.rate)}>{t.name + ' · ' + t.rate + '%'}</option>)}
                             </select>
                           </label>
                         </div>
@@ -1590,6 +1524,88 @@ export default class AddProductScreen extends Component {
                           <span>Current inventory cost <b>{v.invCost}</b> <__Link href="/stock">Inventory</__Link></span>
                           <span>Profit per piece <b>{v.profit}</b></span>
                           <span>Customer saves <b>{v.saves}</b></span>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* ---- 4. classification: main category, subcategories, template ---- */}
+                    <section className="ix-card ix-card--open" aria-labelledby="ap-h-class">
+                      <div className="ix-card__head ap-head">
+                        <div><h2 id="ap-h-class">Category and template</h2></div>
+                      </div>
+                      <div className="ix-card__body ap-body">
+                        <div className="ap-grid2">
+                          <div className="ap-field">
+                            <label className="gc-label" htmlFor="pf-maincat">Main category</label>
+                            <select id="pf-maincat" className="gc-input gc-select" value={v.mainCat} onChange={v.setMainCat}>
+                              <option value="">Other</option>
+                              {__list(v.mainCats).map((c) => (<option key={c} value={c}>{c}</option>))}
+                            </select>
+                            <p className="ap-help">Used in reports and for the product’s default details.</p>
+                          </div>
+                          <div className="ap-field">
+                            <span className="gc-label" id="ap-l-subs">Subcategories <span className="ix-muted">multiple allowed</span></span>
+                            <MultiCheck id="pf-subcats" groups={v.subGroups} placeholder="Select subcategories" labelledBy="ap-l-subs" />
+                            <p className="ap-help"><__Link href="/categories">Manage categories</__Link></p>
+                          </div>
+                        </div>
+                        <hr className="ap-sep" />
+                        <div className="ap-tplrow">
+                          <div>
+                            <label className="gc-label" htmlFor="pf-tpl" style={{ margin: 0 }}>Product template</label>
+                            <p className="ap-help">Decides which specifications the product has. Values you already filled in are kept.</p>
+                            <span className="ap-src">{v.tplSource}{v.tplCaps.length ? ' · Turns on: ' + v.tplCaps.join(', ') : ''}</span>
+                          </div>
+                          <select id="pf-tpl" className="gc-input gc-select" value={v.tplSel} onChange={v.setTpl}>
+                            <option value="">{'Category’s: ' + v.catTplName}</option>
+                            {__list(v.templates).map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
+                          </select>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* ---- 5. specifications: SPECIFICATION | VALUE | ORDER per group ---- */}
+                    <section className="ix-card" aria-labelledby="ap-h-spec">
+                      <div className="ix-card__head ap-head">
+                        <div><h2 id="ap-h-spec">Specifications</h2></div>
+                        <button type="button" className="ix-btn" onClick={v.addGroup}><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add group</button>
+                      </div>
+                      <div className="ix-card__body ap-body">
+                        {__list(v.specGroups).map((g) => (
+                          <div key={g.gi} className="ap-sgrp">
+                            <div className="ap-sgrp__head">
+                              <input className="ap-sgrp__name" value={g.name} onChange={g.rename} aria-label="Group name" />
+                              <OrderBtns what="group" onUp={g.up} onDown={g.down} upOff={g.first} downOff={g.last} onRemove={g.remove} removeText="Remove" />
+                            </div>
+                            <div className="ap-twrap">
+                              <table className="ap-spec gc-table--keep">
+                                <thead><tr><th scope="col">Specification</th><th scope="col">Value</th><th scope="col" className="ap-spec__ord">Order</th></tr></thead>
+                                <tbody>
+                                  {__list(g.rows).map((r) => (
+                                    <tr key={r.k}>
+                                      <td className="ap-spec__l"><span><input className="ap-cellin" value={r.l} onChange={r.rename} aria-label="Specification name" />{r.unit ? <span className="ap-unit">{r.unit}</span> : null}</span></td>
+                                      <td>
+                                        <span className="ap-spec__val">
+                                          <ValueIn r={r} />
+                                          {r.label && r.source !== 'product' ? <span className="ap-src">{r.label}</span> : null}
+                                          {r.canReset ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain ap-reset" onClick={r.reset}>{r.resetLabel}</button> : null}
+                                        </span>
+                                      </td>
+                                      <td className="ap-spec__ord"><OrderBtns what="specification" onUp={r.up} onDown={r.down} upOff={r.first} downOff={r.last} onRemove={r.remove} /></td>
+                                    </tr>
+                                  ))}
+                                  {!g.rows.length ? <tr><td colSpan="3" className="ap-spec__empty">No specifications in this group yet.</td></tr> : null}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div><button type="button" className="ix-btn ix-btn--sm" onClick={g.addSpec}><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add specification</button></div>
+                          </div>
+                        ))}
+                        {!v.specGroups.length ? <p className="ap-help">This template has no specifications. Add a group to start.</p> : null}
+                        <div className="ap-specfoot">
+                          {v.specMore > 0 || v.allData ? <button type="button" className="ap-linkbtn" aria-expanded={v.allData} onClick={v.toggleAllData}>{v.allData ? 'Show key features only' : 'View all product data (' + v.specTotal + ')'}</button> : null}
+                          {v.hiddenRows ? <button type="button" className="ap-linkbtn" onClick={v.showHidden}>{v.hiddenRows === 1 ? 'Show 1 hidden specification' : 'Show ' + v.hiddenRows + ' hidden specifications'}</button> : null}
+                          {v.hiddenCount ? <span className="ap-help">{v.hiddenCount === 1 ? '1 value is kept from another template. Switch back to see it.' : v.hiddenCount + ' values are kept from another template. Switch back to see them.'}</span> : null}
                         </div>
                       </div>
                     </section>
@@ -2273,6 +2289,21 @@ export default class AddProductScreen extends Component {
 
         <Drawer open={sh === 'data'} title="Product data" sub={v.pageTitle} onCancel={v.cancelSheet} onSave={v.closeSheet}>
           <p className="ap-help">Every detail of this product. To add or reorder fields, use Specifications.</p>
+          {v.shopFields.length ? (
+            <div className="ap-dsec">
+              <h3 className="ap-dh">Shop fields<span className="ap-push" /><__Link href="/catalog-setup" className="ap-src">Catalog setup</__Link></h3>
+              <Err id="pf-cf-err" text={v.err?.custom} />
+              {v.shopFields.map((r) => (
+                <div key={r.k} className="ap-field">
+                  <div className="ap-lbl"><label className="gc-label" htmlFor={r.id}>{r.l + (r.unit ? ' (' + r.unit + ')' : '') + (r.req ? ' *' : '')}</label><span className="ap-push ap-ftag">{r.show ? 'On product page' : 'Shop only'}</span></div>
+                  {r.type === 'select' ? <select id={r.id} className="gc-input gc-select" value={r.value || ''} onChange={r.onText}><option value="">Choose</option>{r.options.map((o) => <option key={o}>{o}</option>)}</select>
+                    : r.type === 'bool' ? <select id={r.id} className="gc-input gc-select" value={r.value == null ? '' : r.value ? 'yes' : 'no'} onChange={r.onBool}><option value="">Choose</option><option value="yes">Yes</option><option value="no">No</option></select>
+                      : r.type === 'multi' ? <div id={r.id} className="ap-row" role="group" aria-label={r.l}>{r.options.map((o) => <label key={o} className="ap-check"><input type="checkbox" className="gc-check" checked={Array.isArray(r.value) && r.value.indexOf(o) >= 0} onChange={() => r.toggle(o)} />{o}</label>)}</div>
+                        : <input id={r.id} className="gc-input" type={r.type === 'date' ? 'date' : 'text'} inputMode={r.type === 'number' ? 'decimal' : undefined} value={r.value == null ? '' : r.value} onChange={r.onText} />}
+                </div>
+              ))}
+            </div>
+          ) : null}
           {__list(v.dataGroups).map((g) => (
             <div key={g.name} className="ap-dsec">
               <h3 className="ap-dh">{g.name}<span className="ap-push ap-src">{g.rows.length === 1 ? '1 field' : g.rows.length + ' fields'}</span></h3>
@@ -2321,8 +2352,7 @@ export default class AddProductScreen extends Component {
             <h3 className="ap-dh">Size guide<span className="ap-push" /><__Link href="/catalog-setup" className="ap-src">Make a size chart</__Link></h3>
             <select className="gc-input gc-select" value={v.sg} onChange={v.setSg} aria-label="Size guide">
               <option value="none">No size guide</option>
-              <option value="case">Case sizes by model</option>
-              <option value="strap">Watch and band straps</option>
+              {v.sgOpts.map((o) => <option key={o.k} value={o.k}>{o.l}</option>)}
             </select>
             {v.hasSg ? (
               <div className="ap-twrap">
@@ -2344,12 +2374,9 @@ export default class AddProductScreen extends Component {
             {v.wYes ? (<>
               <div className="ap-grid2">
                 <div className="ap-field">
-                  <div className="ap-lbl"><label className="gc-label" htmlFor="pf-wp">Warranty policy</label><__InfoTip text="Written once in Stock › Warranty policies" /></div>
+                  <div className="ap-lbl"><label className="gc-label" htmlFor="pf-wp">Warranty policy</label><__InfoTip text="Written once in Products › Warranty policies" /></div>
                   <select id="pf-wp" className="gc-input gc-select" value={v.wp} onChange={v.setWp}>
-                    <option value="brand1y">Smartphone brand warranty · 12 months</option>
-                    <option value="shop6m">6 months shop service warranty</option>
-                    <option value="rep7d">7-day replacement guarantee</option>
-                    <option value="elec2y">2 years parts, 1 year service</option>
+                    {v.wpOpts.map((o) => <option key={o.k} value={o.k}>{o.l}</option>)}
                   </select>
                 </div>
                 <div className="ap-field">

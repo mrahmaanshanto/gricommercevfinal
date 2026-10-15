@@ -11,10 +11,14 @@ const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
 const img = path.join(dir, 'img');
 const SECTIONS = { ON: 'Online selling', PR: 'Products & stock', RT: 'Retail & POS', WH: 'Wholesale', CX: 'Customers & marketing',
   MS: 'Money, team & settings', SA: 'Super admin', AP: 'Phone app' };
-const ORDER = Object.keys(SECTIONS);
+// a record may name its own section (`section`, e.g. "Module A · Storefront builder"); meta.sections orders them
+const secOf = (r) => r.section || SECTIONS[r.id.slice(0, 2)] || 'Other';
+const ORDER = meta.sections || Object.values(SECTIONS);
+const rank = (r) => { const i = ORDER.indexOf(secOf(r)); return i < 0 ? ORDER.length : i; };
 const num = (id) => parseInt(String(id).replace(/\D+/g, ''), 10) || 0;
-const recs = fs.readdirSync(dir).filter((f) => /^[A-Z]{2}-[FU]\d+\.json$/.test(f)).map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')))
-  .sort((a, b) => ORDER.indexOf(a.id.slice(0, 2)) - ORDER.indexOf(b.id.slice(0, 2)) || (a.kind === b.kind ? 0 : a.kind === 'fix' ? -1 : 1) || num(a.id) - num(b.id));
+const recs = fs.readdirSync(dir).filter((f) => f.endsWith('.json') && f !== 'meta.json' && f !== 'record.json').map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')))
+  .filter((r) => r && r.id && r.title)
+  .sort((a, b) => rank(a) - rank(b) || (a.kind === b.kind ? 0 : a.kind === 'fix' ? -1 : 1) || num(a.id) - num(b.id) || String(a.id).localeCompare(String(b.id)));
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const md = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
 const data = (f) => { const p = path.join(img, f); return fs.existsSync(p) ? 'data:image/jpeg;base64,' + fs.readFileSync(p).toString('base64') : null; };
@@ -33,7 +37,7 @@ function shots(r) {
 }
 const copyTable = (r) => (r.copy || []).length ? `<table class="copy"><tr><th style="width:24%">Where</th><th>Before</th><th>Now</th></tr>${r.copy.map((c) => `<tr><td>${md(c.where)}</td><td>${md(c.old)}</td><td>${md(c.new)}</td></tr>`).join('')}</table>` : '';
 const entry = (r) => `<section class="entry">
-  <div class="top"><span class="id">${esc(r.id)}</span><span class="area">${esc(r.area || SECTIONS[r.id.slice(0, 2)])}</span>
+  <div class="top"><span class="id">${esc(r.id)}</span><span class="area">${esc(r.area || secOf(r))}</span>
     <span class="kind ${r.kind}">${word(r)}</span><span class="st ${r.status}">${r.status === 'partly' ? 'Partly done' : 'Done'}</span></div>
   <h2>${esc(r.title)}</h2>
   <div class="pn"><div class="box prob"><b>${r.kind === 'new' ? 'What was missing' : 'Problem'}</b><p>${md(r.problem)}</p></div>
@@ -44,7 +48,7 @@ const entry = (r) => `<section class="entry">
   <div class="tech">For developers · ${(r.files || []).map((f) => `<code>${esc(f)}</code>`).join(' ')}${r.notes ? ` · ${md(r.notes)}` : ''}</div>
 </section>`;
 
-const bySection = ORDER.map((k) => [k, recs.filter((r) => r.id.startsWith(k))]).filter(([, l]) => l.length);
+const bySection = [...ORDER, 'Other'].map((k) => [k, recs.filter((r) => secOf(r) === k || (k === 'Other' && !ORDER.includes(secOf(r))))]).filter(([, l]) => l.length);
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(meta.title)}</title><style>
 @page{size:A4}
 body{font-family:Poppins,"Segoe UI",Arial,sans-serif;font-size:11px;line-height:1.5;color:#0d1b3d;margin:0}
@@ -83,10 +87,10 @@ code{font-family:"JetBrains Mono",Consolas,monospace;font-size:7.5px;background:
 </style></head><body>
 <div class="cover"><span class="eyebrow">Grid Commerce · change record</span><h1>${esc(meta.title)}</h1>
 <p class="lead">${md(meta.intro || '')}</p>
-<div class="meta"><b>Batch</b><span>${esc(meta.batch)}</span><b>Date</b><span>${esc(meta.date)}</span><b>Branch</b><span>${esc(meta.branch)}</span><b>Preview</b><span>${esc(meta.preview)}</span><b>Compared with</b><span>Mostafiz vai's handover (12 Oct 2026)</span></div>
+<div class="meta"><b>Batch</b><span>${esc(meta.batch)}</span><b>Date</b><span>${esc(meta.date)}</span><b>Branch</b><span>${esc(meta.branch)}</span><b>Preview</b><span>${esc(meta.preview)}</span><b>Compared with</b><span>${esc(meta.compared || "Mostafiz vai's handover (12 Oct 2026)")}</span></div>
 <div class="counts"><div><b>${recs.length}</b>changes</div><div><b>${fixes.length}</b>fixes</div><div><b>${news.length}</b>new features</div><div><b>${partly.length}</b>partly done</div><div><b>${(meta.skipped || []).length}</b>skipped</div></div>
 <div class="howto"><b>How to read each page:</b> the red box says what was wrong (or missing), the green box says what happens now, the pictures show Before and Now on the same screen, and "Try it yourself" lists the clicks to see it on the preview site. Grey small print at the bottom is for developers.</div></div>
-<div class="index"><h2>All changes</h2>${bySection.map(([k, l]) => `<h3>${SECTIONS[k]} · ${l.length}</h3><table><tr><th style="width:12%">ID</th><th style="width:12%">Type</th><th>Change</th><th style="width:12%">Status</th></tr>
+<div class="index"><h2>All changes</h2>${bySection.map(([k, l]) => `<h3>${esc(k)} · ${l.length}</h3><table><tr><th style="width:12%">ID</th><th style="width:12%">Type</th><th>Change</th><th style="width:12%">Status</th></tr>
 ${l.map((r) => `<tr><td class="id">${esc(r.id)}</td><td>${word(r)}</td><td>${esc(r.title)}</td><td>${r.status === 'partly' ? 'Partly' : 'Done'}</td></tr>`).join('')}</table>`).join('')}</div>
 ${recs.map(entry).join('')}
 <section class="sec"><h2>Partly done, skipped and found along the way</h2>

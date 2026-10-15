@@ -4,6 +4,8 @@
 //               hold for the shop (lib/settlements.js)
 //   figures     today's money in and out of the own accounts (moves between them left out) and net profit this month
 //               (lib/profit.js profitByChannel; last month early in a month), as on Accounts › Money overview
+//   Today's cash drawers open now and their expected cash, pickups, closed shifts, COD with couriers (TodayCash.jsx):
+//               why "In today" can differ from Home's sales (cash still in drawers and with couriers)
 //   quick       Add expense (/m-expense-new) · Money in · Money out · Move money (the web Money page's forms: over an
 //               approval limit nothing is posted, it waits in Approvals — lib/approvals.js needsApproval / submit)
 //   Approvals   money waiting for a second person: a sheet with the facts and the limit; Approve posts it, Deny asks a
@@ -27,6 +29,7 @@ import {
   financeData, accountMoves, accountOptions, allowed, accName, accIcon, whatOf, subOf, safe, KIND_TEXT, limitText, TYPE_LABEL,
 } from './moneyData';
 import { AccountField, AmountField, ChoiceChips, Lines, HeroCard, Signed, NotHere } from './moneyParts';
+import { todayCash, TodayCashCard } from './TodayCash';
 
 const IN_REASONS = [['investment', 'Owner put money in'], ['cash in', 'Other money in']];
 const OUT_REASONS = [['owner withdraw', 'Owner took money'], ['expense', 'Bank or wallet charge'], ['paid out', 'Other money out']];
@@ -47,9 +50,10 @@ export default function MFinanceScreen() {
   const [form, setForm] = useState(null);       // { mode, account, to, reason, amount, note, tried }
   const [reqId, setReqId] = useState('');
   const [accId, setAccId] = useState('');
+  const [cash, setCash] = useState(null);
   useEffect(() => {
     if (!ready || !ctx) return undefined;
-    const id = window.setTimeout(() => setData(safe(() => financeData(), null)), 0);
+    const id = window.setTimeout(() => { setData(safe(() => financeData(), null)); setCash(safe(() => todayCash(), null)); }, 0);
     return () => window.clearTimeout(id);
   }, [ready, tick, ctx]);
 
@@ -81,6 +85,8 @@ export default function MFinanceScreen() {
           <Stat tone="err" label="Out today" value={data ? money(data.moneyOut) : '—'} />
           <Stat tone="nav" label={data ? `Profit · ${data.profitLabel.replace(' so far', '')}` : 'Profit'} value={data ? money(data.profit) : '—'} />
         </StatRow>
+
+        {cash ? <TodayCashCard data={cash} /> : null}
 
         <TileGrid cols={4}>
           {can('/m-expense-new') ? <Tile href="/m-expense-new" icon="receipt" label="Add expense" /> : null}

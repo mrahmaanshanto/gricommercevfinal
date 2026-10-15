@@ -39,6 +39,7 @@ export const APP_ROUTES = {
   '/m-new-order': { label: 'New order', icon: 'plus', group: 'sell', module: 'online', nav: ['orders-all'] },
   '/m-customers': { label: 'Customers', icon: 'users', group: 'sell', module: 'core', nav: ['customers'] },
   '/m-pos': { label: 'POS register', icon: 'cart', group: 'sell', module: 'pos', nav: ['pos-register'] },
+  '/m-return': { label: 'Return or exchange', icon: 'undo', group: 'sell', module: 'commerce', nav: ['sales-return', 'pos-register'] },
   '/m-calls': { label: 'Calls', icon: 'phone', group: 'sell', module: 'comms', nav: ['calls'] },
   // Stock
   '/m-products': { label: 'Products', icon: 'box', group: 'stock', module: 'catalog', nav: ['products-all'] },
@@ -68,7 +69,7 @@ export const APP_ROUTES = {
 };
 
 export const GROUPS = [
-  { key: 'sell', label: 'Sell', routes: ['/m-orders', '/m-new-order', '/m-customers', '/m-pos', '/m-calls'] },
+  { key: 'sell', label: 'Sell', routes: ['/m-orders', '/m-new-order', '/m-customers', '/m-pos', '/m-return', '/m-calls'] },
   { key: 'stock', label: 'Stock', routes: ['/m-products', '/m-stock', '/m-scan', '/m-purchase', '/m-receive', '/m-transfers', '/m-adjust'] },
   { key: 'messages', label: 'Messages', routes: ['/m-inbox', '/m-gridai', '/m-social'] },
   { key: 'money', label: 'Money', routes: ['/m-finance', '/m-payouts', '/m-dues', '/m-expense-new', '/m-reports'] },
@@ -87,7 +88,7 @@ export const ROUTES_BUILT = new Set([
   '/m-customers', '/m-customer',
   '/m-social', '/m-post-new', '/m-hr', '/m-tasks', '/m-task',
   '/m-settings', '/m-profile', '/m-settings-devices',
-  '/m-receive', '/m-transfers', '/m-adjust', '/m-pos',
+  '/m-receive', '/m-transfers', '/m-adjust', '/m-pos', '/m-return',
   '/m-gridai', '/m-call-active',
 ]);
 

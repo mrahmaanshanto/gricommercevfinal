@@ -9,6 +9,7 @@
 
 import { formatBDT } from './format';
 import { freezeLine } from './productCost';
+import { DEFAULT_RATES, deliveryRates, feeFor } from './deliveryRates';
 
 const LINKS = 'gc.orderLinks';
 const ORDERS = 'gc.extraOrders';
@@ -21,12 +22,13 @@ function write(key, value) {
   try { window.localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
 }
 
-export const DELIVERY_RATES = [
-  { id: 'dhaka', label: 'Inside Dhaka', note: '1–2 days · Pathao', fee: 70 },
-  { id: 'sub', label: 'Sub-Dhaka', note: 'Savar, Gazipur, Narayanganj · 2–3 days', fee: 110 },
-  { id: 'outside', label: 'Outside Dhaka', note: '3–5 days · Steadfast', fee: 150 },
-  { id: 'pickup', label: 'Shop pickup', note: 'Customer collects from the shop', fee: 0 },
-];
+// The delivery rates come from Settings › Delivery (deliveryRates.js). DELIVERY_RATES is the default list for a first
+// render; pages read deliveryRates() after mount so the shop's own charges apply.
+export const DELIVERY_RATES = DEFAULT_RATES;
+export { deliveryRates };
+
+/** Where a hand-made order came from (ON-F9): Create order's Source, the orders list's Source filter. */
+export const ORDER_SOURCES = ['Facebook', 'Instagram', 'WhatsApp', 'Phone', 'Website', 'TikTok', 'Chat', 'Order link', 'Other'];
 
 /** The label the orders list shows for each payment term. */
 export const PAYMENT_LABEL = { cod: 'COD', partial: 'Partial', full: 'Paid' };
@@ -89,7 +91,7 @@ const keyOf = (phone, lines, total) => [String(phone || '').replace(/\D/g, ''), 
 /** Adds an order row (the shape the orders list uses) and returns it. The lines are kept so the
  *  order page can show them (frozen as sold, see freezeLines). Returns the earlier order, marked
  *  { duplicate: true }, when the same order was just added. */
-export function addOrder({ id, lines, customer, phone, zone, total, status = 'New', payment = 'COD', channel = 'Manual order', address = '', shipping = 0, paid, source, method, discount = 0, discountReason = '', vat = 0, vatRate = 0, vatIncluded = false, note = '', tags = [] }) {
+export function addOrder({ id, lines, customer, phone, zone, total, status = 'New', payment = 'COD', channel = 'Manual order', address = '', shipping = 0, paid, source, method, discount = 0, discountReason = '', vat = 0, vatRate = 0, vatIncluded = false, note = '', tags = [], district = '', thana = '', email = '', codFee = 0, assignee = null, more = null }) {
   const list = read(ORDERS, []);
   const count = lines.reduce((n, l) => n + l.qty, 0);
   const now = new Date();
@@ -114,6 +116,10 @@ export function addOrder({ id, lines, customer, phone, zone, total, status = 'Ne
     ...(discount ? { discount: Math.round(discount), discountReason: discountReason || '' } : {}),
     ...(vat ? { vat: Math.round(vat * 100) / 100, vatRate: Number(vatRate) || 0, ...(vatIncluded ? { vatIncluded: true } : {}) } : {}),
     ...(note ? { note } : {}), ...(tags && tags.length ? { tags } : {}),
+    // structured address (bdAreas.js), email, a cash-on-delivery fee (Settings › Checkout), who works on it, and
+    // anything else the caller keeps on the order (e.g. exchangeOf on a replacement order)
+    ...(district ? { district, thana: thana || '' } : {}), ...(email ? { email } : {}), ...(codFee ? { codFee: Math.round(codFee) } : {}),
+    ...(assignee ? { assignee } : {}), ...(more || {}),
     initials: customer.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase(),
     phone, zone,
     itemTitle: lines[0].name + (lines.length > 1 ? ` + ${lines.length - 1} more` : ''),
@@ -148,10 +154,13 @@ export function extraOrders() {
 export function submitLinkOrder(id, form) {
   const links = read(LINKS, {});
   const link = links[id];
-  const rate = DELIVERY_RATES.find((r) => r.id === form.area) || DELIVERY_RATES[0];
+  const rates = deliveryRates();
+  const rate = rates.find((r) => r.id === form.area) || rates[0];
+  const units = (form.lines || []).reduce((n, l) => n + (Number(l.qty) || 0), 0);
   const row = addOrder({
     lines: form.lines, customer: form.name, phone: prettyPhone(form.phone), zone: rate.label,
-    total: form.total, status: 'New', payment: form.terms === 'cod' ? 'COD' : 'Unpaid', channel: 'Order link', address: form.address || '', shipping: rate.fee,
+    total: form.total, status: 'New', payment: form.terms === 'cod' ? 'COD' : 'Unpaid', channel: 'Order link', address: form.address || '',
+    shipping: form.shipping != null ? form.shipping : feeFor(rate.id, units, rates), district: form.district || '', thana: form.thana || '',
   });
   if (link) { links[id] = { ...link, used: true, order: row.id }; write(LINKS, links); }
   return row;

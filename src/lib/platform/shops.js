@@ -1,10 +1,12 @@
 // platform/shops — store-level actions the console takes (Merchant page, Provisioning, Provision a store).
 //   sendReset · addNote · toggleTask · setAttribution · logSession · provisionStore · retryRun · subdomainFree
+//   business verification (KYC): kycOf · kycProblems · submitKyc · reviewKyc · kycQueue
+//   billing profile (name, BIN and email on GridCommerce's bills): billingProfileOf · setBillingProfile
 // Billing actions live in billing.js. Every action is written to the store's activity.
 
 import { commit, staff } from './store';
 import { invoice as newInvoice } from './seed';
-import { STAGES, PLAN_NAME, PLAN_IDS, LADDER_IDS, ladderLabel, channelsOf, addonBy, TRIAL_DAYS } from './catalogue';
+import { STAGES, PLAN_NAME, PLAN_IDS, LADDER_IDS, ladderLabel, channelsOf, addonBy, TRIAL_DAYS, can } from './catalogue';
 import { pad4, DAY, at, dayOfMonth, periodOf, hash } from './util';
 
 const who = () => staff().name;
@@ -148,3 +150,106 @@ export function retryRun(runId, newSub) {
   });
 }
 export { newInvoice, at, DAY, periodOf };
+
+// ---- business verification (KYC, SA-F3) ------------------------------------------------------------------------------
+// shop.kyc = { state: 'none' | 'submitted' | 'verified' | 'rejected', licence (trade licence no.), tin, bin, nid (owner's
+// NID), ownerName, docs: [{ kind, name }] (file names only: the demo keeps no files; the live system stores them),
+// submittedAt, submittedBy, reviewedAt, reviewedBy, reason (why it was rejected), log: [{ at, by, text }] }.
+// The owner fills it in from the merchant panel (Settings › Business verification, store #0090 in the demo; staff can
+// ask for it with a notice); staff with Merchants edit rights approve or reject it (Merchants › Verification).
+// A real build keeps the documents in private storage and checks the numbers with the issuing offices.
+export const KYC_STATES = {
+  none: { label: 'Not verified', tone: 'neutral' },
+  submitted: { label: 'To review', tone: 'warning' },
+  verified: { label: 'Verified', tone: 'success' },
+  rejected: { label: 'Rejected', tone: 'error' },
+};
+export const KYC_DOCS = [['licence', 'Trade licence'], ['nid-front', 'Owner’s NID, front'], ['nid-back', 'Owner’s NID, back'], ['tin', 'TIN certificate'], ['bin', 'BIN / VAT certificate']];
+export const KYC_REJECT_REASONS = ['Document photo is not clear', 'Numbers do not match the documents', 'Trade licence has expired', 'Name on the documents is different', 'Other'];
+const kycEmpty = (shop) => ({ state: 'none', licence: shop.licence || '', tin: shop.tin || '', bin: '', nid: '', ownerName: (shop.owner && shop.owner.name) || '', docs: [], submittedAt: null, submittedBy: null, reviewedAt: null, reviewedBy: null, reason: '', log: [] });
+/** A store's verification record (an empty one when nothing was sent yet). */
+export const kycOf = (shop) => (shop && shop.kyc ? shop.kyc : kycEmpty(shop || {}));
+/** Check the fields: { field: text } (empty when fine). */
+export function kycProblems(f) {
+  const e = {};
+  if (!String(f.licence || '').trim()) e.licence = 'Enter the trade licence number.';
+  if (!/^\d{12}$/.test(String(f.tin || '').replace(/\D/g, ''))) e.tin = 'A TIN has 12 digits.';
+  if (String(f.bin || '').trim() && !/^\d{9}-?\d{4}$/.test(String(f.bin).trim())) e.bin = 'A BIN looks like 004561287-0102 (9 digits, a dash, 4 digits).';
+  if (![10, 13, 17].includes(String(f.nid || '').replace(/\D/g, '').length)) e.nid = 'An NID has 10, 13 or 17 digits.';
+  if (!String(f.ownerName || '').trim()) e.ownerName = 'Enter the owner’s name as on the NID.';
+  const kinds = (f.docs || []).map((d) => d.kind);
+  if (!kinds.includes('licence')) e.docs = 'Add a photo of the trade licence.';
+  else if (!kinds.includes('nid-front')) e.docs = 'Add a photo of the front of the owner’s NID.';
+  return e;
+}
+/** Send (or send again) the verification. `by` is the owner's name from the panel, or the staff member. */
+export function submitKyc(shopId, f, by) {
+  const e = kycProblems(f);
+  const first = Object.keys(e)[0];
+  if (first) return { ok: false, field: first, error: e[first] };
+  return commit((db, t) => {
+    const shop = db.shops.find((s) => s.id === shopId);
+    if (!shop) return { ok: false, error: 'Store not found.' };
+    const old = kycOf(shop);
+    if (old.state === 'verified') return { ok: false, error: 'This store is already verified.' };
+    const who2 = by || who();
+    shop.kyc = {
+      ...old, state: 'submitted', licence: String(f.licence).trim(), tin: String(f.tin).replace(/\D/g, ''), bin: String(f.bin || '').trim(),
+      nid: String(f.nid).replace(/\D/g, ''), ownerName: String(f.ownerName).trim(), docs: (f.docs || []).map((d) => ({ kind: d.kind, name: d.name })),
+      submittedAt: t, submittedBy: who2, reviewedAt: null, reviewedBy: null, reason: '',
+      log: [{ at: t, by: who2, text: old.state === 'rejected' ? 'Sent again for review' : 'Sent for review' }, ...(old.log || [])],
+    };
+    shop.licence = shop.kyc.licence;
+    shop.tin = shop.kyc.tin;
+    ev(db, shopId, t, by ? 'owner' : 'staff', `Business verification sent for review, by ${who2}`);
+    return { ok: true };
+  });
+}
+/** Approve (decision 'verify') or reject ('reject', with a reason) a verification that waits for review. */
+export function reviewKyc(shopId, decision, reason = '') {
+  const me = staff();
+  if (!can(me, 'merchants', 'edit')) return { ok: false, error: 'Only staff who can edit merchants can review a verification.' };
+  if (decision === 'reject' && !String(reason).trim()) return { ok: false, field: 'reason', error: 'Say why it is rejected: the owner sees this.' };
+  return commit((db, t) => {
+    const shop = db.shops.find((s) => s.id === shopId);
+    const k = shop && shop.kyc;
+    if (!k || k.state !== 'submitted') return { ok: false, error: 'Nothing waits for review on this store.' };
+    k.state = decision === 'reject' ? 'rejected' : 'verified';
+    k.reviewedAt = t;
+    k.reviewedBy = me.name;
+    k.reason = decision === 'reject' ? String(reason).trim() : '';
+    k.log = [{ at: t, by: me.name, text: decision === 'reject' ? 'Rejected · ' + k.reason : 'Verified' }, ...(k.log || [])];
+    ev(db, shopId, t, 'staff', decision === 'reject' ? `Business verification rejected · ${k.reason}, by ${me.name}` : `Business verified, by ${me.name}`);
+    return { ok: true, state: k.state };
+  });
+}
+/** Every store's verification for the review queue, oldest waiting first. */
+export function kycQueue(db) {
+  return db.shops.map((s) => ({ shop: s, kyc: kycOf(s) })).sort((a, b) => (a.kyc.submittedAt || Infinity) - (b.kyc.submittedAt || Infinity));
+}
+
+// ---- billing profile (SA-F14): who GridCommerce's bills are made out to -----------------------------------------------
+// shop.billing = { name (the name on the invoice), bin (the store's VAT registration, optional), email (where bills go) }.
+// Each new bill keeps a copy (invoice.billTo), so a later change never rewrites an issued bill.
+export function billingProfileOf(shop) {
+  const b = (shop && shop.billing) || {};
+  const owner = (shop && shop.owner && typeof shop.owner === 'object') ? shop.owner : {};
+  return { name: b.name || (shop && (shop.legal || shop.name)) || '', bin: b.bin || (shop && shop.kyc && shop.kyc.bin) || '', email: b.email || owner.email || '' };
+}
+export function setBillingProfile(shopId, f, by) {
+  const name = String(f.name || '').trim();
+  const bin = String(f.bin || '').trim();
+  const email = String(f.email || '').trim();
+  if (!name) return { ok: false, field: 'name', error: 'Enter the name to put on the bills.' };
+  if (bin && !/^\d{9}-?\d{4}$/.test(bin)) return { ok: false, field: 'bin', error: 'A BIN looks like 004561287-0102 (9 digits, a dash, 4 digits).' };
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, field: 'email', error: 'Check the email address.' };
+  return commit((db, t) => {
+    const shop = db.shops.find((s) => s.id === shopId);
+    if (!shop) return { ok: false, error: 'Store not found.' };
+    const old = billingProfileOf(shop);
+    if (old.name === name && old.bin === bin && old.email === email) return { ok: true, changed: false };
+    shop.billing = { name, bin, email };
+    ev(db, shopId, t, by ? 'owner' : 'staff', `Billing details changed (${[old.name !== name && 'name', old.bin !== bin && 'BIN', old.email !== email && 'email'].filter(Boolean).join(', ')}), by ${by || who()}`);
+    return { ok: true, changed: true };
+  });
+}

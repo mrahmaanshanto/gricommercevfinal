@@ -7,7 +7,10 @@
 //   Item panel    label, link to: home page · a page · a category · a product · the offers page · the blog (or a post) ·
 //                 a web address, chosen from the store's real pages, categories, products and posts
 //   Save bar      changes are kept on the page until Save menu; Discard puts the saved menu back
-//   Preview       the header's links (sub-items in a drop-down) and the footer's columns, as you edit
+//   Preview       the header's links (sub-items in a drop-down, or the mega menu) and the footer's columns, as you edit
+//   Mega menu     (Module A · A5) a top item of the header menu can open a mega menu: width (same as the page / full /
+//                 custom), 2–5 columns (category list, link list = its sub-items, image banner, HTML block) and an
+//                 optional promo picture; phones show the sub-items as a normal list. Set in the item panel.
 // ?menu=<id> opens that menu. Front end only: data from src/lib/storeMenus.js; the live theme would draw the menus.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -18,13 +21,17 @@ import { Sheet, Dialog, EmptyState, StatusBadge } from '@/components/ui';
 import { ShopHeader, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import {
   saveMenu, addMenu, deleteMenu, newItem, LINK_TYPES, linkTypeOf, linkTargets, resolveLink, urlProblem,
+  MEGA_WIDTHS, MEGA_KINDS, newMegaColumn, blankMega, megaProblem,
 } from '@/lib/storeMenus';
+import { getBlock } from '@/lib/storefront/blocks';
+import { catChildren, catByPath } from '@/lib/storefront/catalog';
+import { ImagePick, BlockPick, CatPick, SFB_CSS } from './sfShared';
 import { StoreFrame, useStoreMenus, queryParam } from './storeShared';
 
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const count = (items) => (items || []).reduce((n, it) => n + 1 + (it.children || []).length, 0);
 
-const CSS = `
+const CSS = SFB_CSS + `
 .mn-name{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--space-3);padding:var(--space-4) var(--space-4) 0}
 .mn-name>div{flex:1 1 240px;min-width:0}
 .mn-list{display:flex;flex-direction:column;gap:var(--space-2);margin:0;padding:var(--space-4);list-style:none}
@@ -67,6 +74,19 @@ const CSS = `
 .mn-ftr .is-cur{outline:1px dashed currentColor;outline-offset:4px;border-radius:var(--radius-md)}
 @media (min-width:1025px){.mn-side{position:sticky;top:calc(var(--header-height) + var(--space-4));align-self:flex-start}}
 .mn-off{text-decoration:line-through;opacity:.6}
+.mn-mega{position:absolute;left:0;right:0;top:100%;z-index:6;display:none;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:0 0 var(--radius-lg) var(--radius-lg);background:var(--surface-card);box-shadow:var(--shadow-lg)}
+.mn-nav>li.is-mega{position:static}
+.mn-site,.mn-hdr{position:relative}
+.mn-nav>li:hover .mn-mega,.mn-nav>li:focus-within .mn-mega,.mn-mega.is-open{display:grid;gap:var(--space-3)}
+.mn-mega b{display:block;margin-bottom:4px;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.mn-mega ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px;font-size:var(--text-xs);color:var(--text-body)}
+.mn-mega img{width:100%;height:56px;object-fit:cover;border-radius:var(--radius-md)}
+.mn-mega small{font-size:var(--text-xs);color:var(--text-muted)}
+.mn-megapv{display:flex;flex-direction:column;gap:var(--space-2)}
+.mn-megapv .mn-mega{position:static;display:grid;border-radius:var(--radius-lg)}
+.mn-megaform{display:flex;flex-direction:column;gap:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--border-subtle)}
+.mn-col{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.mn-colhead{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 @media (max-width:640px){.mn-row{flex-wrap:wrap}.mn-text{flex-basis:calc(100% - 40px)}.mn-acts{width:100%;justify-content:flex-start}.mn-kids{margin-left:var(--space-3)}.mn-bar{position:static}}
 `;
 
@@ -89,16 +109,63 @@ function takeOut(items, id) {
 }
 
 // ---- the item panel -----------------------------------------------------------------------------------
-function ItemSheet({ item, onClose, onApply }) {
+/** The mega menu part of the item panel (top items of the header menu). */
+function MegaForm({ mega, onChange, kids, item }) {
+  const m = mega || { on: false };
+  const set = (patch) => onChange({ ...m, ...patch });
+  // a new mega menu's category column starts with the item's own category
+  const startMega = () => { const b = blankMega(); if (item && item.type === 'category' && item.ref) b.cols[0] = { ...b.cols[0], ref: item.ref }; return b; };
+  const setCol = (i, patch) => set({ cols: m.cols.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
+  const moveCol = (i, dir) => { const j = i + dir; if (j < 0 || j >= m.cols.length) return; const l = m.cols.slice(); [l[i], l[j]] = [l[j], l[i]]; set({ cols: l }); };
+  return (
+    <div className="mn-megaform">
+      <div className="sfb-row"><span id="mn-mega-on">Open a mega menu</span><button type="button" role="switch" className="gc-switch" aria-checked={!!m.on} aria-labelledby="mn-mega-on" onClick={() => onChange(m.on ? { ...m, on: false } : (m.cols ? { ...m, on: true } : startMega()))}><span className="gc-switch__knob" /></button></div>
+      {m.on ? (<>
+        <p className="sfb-muted">On a computer the item opens a wide panel of columns. Phones show {kids ? 'its sub-items' : 'the item'} as a normal list.</p>
+        {item && item.preview ? <div className="mn-megapv"><p className="gc-label" style={{ margin: 0 }}>Preview</p><MegaPreview it={{ ...item.preview, mega: m }} open /></div> : null}
+        <div className="sfb-two">
+          <div className="sfb-field"><label className="gc-label" htmlFor="mn-mw">Width</label><select id="mn-mw" className="gc-input gc-select" value={m.width} onChange={(e) => set({ width: e.target.value })}>{MEGA_WIDTHS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+          {m.width === 'custom' ? <div className="sfb-field"><label className="gc-label" htmlFor="mn-mpx">Width (px)</label><input id="mn-mpx" type="number" min={480} max={1600} step={20} className="gc-input" value={m.px} onChange={(e) => set({ px: Number(e.target.value) })} /></div> : null}
+        </div>
+        {(m.cols || []).map((c, i) => (
+          <div key={c.id} className="mn-col">
+            <div className="mn-colhead"><span>Column {i + 1}</span><span>
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={`Move column ${i + 1} left`} disabled={i === 0} onClick={() => moveCol(i, -1)}><Icon name="arrow-left" width="16" height="16" /></button>
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={`Move column ${i + 1} right`} disabled={i === m.cols.length - 1} onClick={() => moveCol(i, 1)}><Icon name="arrow-right" width="16" height="16" /></button>
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={`Remove column ${i + 1}`} disabled={m.cols.length <= 2} onClick={() => set({ cols: m.cols.filter((_, j) => j !== i) })}><Icon name="trash-2" width="16" height="16" /></button>
+            </span></div>
+            <select className="gc-input gc-select" aria-label={`Column ${i + 1} shows`} value={c.kind} onChange={(e) => setCol(i, { kind: e.target.value })}>{MEGA_KINDS.map((k) => <option key={k.kind} value={k.kind}>{k.label}</option>)}</select>
+            <input className="gc-input" aria-label={`Column ${i + 1} title`} placeholder="Title (optional)" value={c.title || ''} onChange={(e) => setCol(i, { title: e.target.value })} />
+            {c.kind === 'cats' ? <CatPick id={'mn-c' + i} value={c.ref} top onChange={(x) => setCol(i, { ref: x })} /> : null}
+            {c.kind === 'links' ? <p className="sfb-muted">{kids ? `Shows the ${kids} sub-item${kids === 1 ? '' : 's'} of this item.` : 'Add sub-items to this item to fill this column.'}</p> : null}
+            {c.kind === 'image' ? <><ImagePick id={'mn-i' + i} value={c.src} allowNone={false} onChange={(x) => setCol(i, { src: x })} /><input className="gc-input" aria-label={`Column ${i + 1} link`} placeholder="Link, e.g. /offers" value={c.href || ''} onChange={(e) => setCol(i, { href: e.target.value })} /></> : null}
+            {c.kind === 'block' ? <BlockPick id={'mn-b' + i} value={c.block} type="mega" onChange={(x) => setCol(i, { block: x })} /> : null}
+          </div>
+        ))}
+        {(m.cols || []).length < 5 ? <button type="button" className="ix-btn ix-btn--sm" style={{ alignSelf: 'flex-start' }} onClick={() => set({ cols: [...(m.cols || []), newMegaColumn('cats')] })}><Icon name="plus" width="16" height="16" aria-hidden="true" />Add a column</button> : null}
+        <div className="sfb-field">
+          <label className="gc-label" htmlFor="mn-promo">Promo picture (optional)</label>
+          <ImagePick id="mn-promo" value={(m.promo && m.promo.src) || ''} onChange={(x) => set({ promo: x ? { ...(m.promo || {}), src: x } : null })} />
+          {m.promo && m.promo.src ? <div className="sfb-two"><input className="gc-input" aria-label="Promo title" placeholder="Title" value={m.promo.title || ''} onChange={(e) => set({ promo: { ...m.promo, title: e.target.value } })} /><input className="gc-input" aria-label="Promo link" placeholder="Link" value={m.promo.href || ''} onChange={(e) => set({ promo: { ...m.promo, href: e.target.value } })} /></div> : null}
+        </div>
+      </>) : null}
+    </div>
+  );
+}
+
+function ItemSheet({ item, onClose, onApply, megaOk, kids, onDraft }) {
   const [f, setF] = useState(null);
   const [err, setErr] = useState({});
   const [targets, setTargets] = useState([]);
   useEffect(() => {
     if (!item) { setF(null); return; }
-    setF({ label: item.label || '', type: item.link.type || 'page', ref: item.link.ref || '', url: item.link.url || '', auto: !item.label });
+    setF({ label: item.label || '', type: item.link.type || 'page', ref: item.link.ref || '', url: item.link.url || '', auto: !item.label, mega: item.mega ? JSON.parse(JSON.stringify(item.mega)) : null });
     setErr({});
   }, [item]);
   useEffect(() => { if (f) setTargets(linkTargets(f.type)); }, [f && f.type]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the preview beside the panel shows the mega menu as it is being built
+  const megaKey = f && megaOk ? JSON.stringify(f.mega) : '';
+  useEffect(() => { if (onDraft) onDraft(megaOk && f ? f.mega : null); }, [megaKey]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!item || !f) return <Sheet open={false} onClose={onClose} title="" />;
   const needsRef = ['page', 'category', 'product', 'blog'].includes(f.type);
   const titleOf = (type, ref) => (type === 'home' ? 'Home' : type === 'offers' ? 'Offers' : (linkTargets(type).find((t) => t.value === ref) || {}).label || '');
@@ -116,9 +183,12 @@ function ItemSheet({ item, onClose, onApply }) {
     if (!f.label.trim()) e2.label = 'Enter the text people see.';
     if (needsRef && f.type !== 'blog' && !f.ref) e2.ref = `Choose a ${linkTypeOf(f.type).label.toLowerCase()}.`;
     if (f.type === 'url') { const p = urlProblem(f.url); if (p) e2.url = p; }
+    const mp = megaOk ? megaProblem(f.mega) : '';
+    if (mp) e2.mega = mp;
     setErr(e2);
+    if (e2.mega && Object.keys(e2).length === 1) { toast(e2.mega, { tone: 'error' }); return; }
     if (Object.keys(e2).length) { const first = document.getElementById(e2.label ? 'mn-label' : e2.ref ? 'mn-ref' : 'mn-urlin'); if (first) first.focus(); return; }
-    onApply({ ...item, label: f.label.trim(), link });
+    onApply({ ...item, label: f.label.trim(), link, ...(megaOk ? { mega: f.mega && f.mega.on ? f.mega : f.mega ? { ...f.mega, on: false } : undefined } : {}) });
   };
   return (
     <Sheet open title={item.label ? `Edit “${item.label}”` : 'Add menu item'} onClose={onClose}
@@ -154,13 +224,30 @@ function ItemSheet({ item, onClose, onApply }) {
         </div>
         {res.url && !res.broken ? <p className="mn-url">{res.url}</p> : null}
         {res.note && (f.type !== 'url' || f.url) && !(needsRef && !f.ref && f.type !== 'blog') ? <p className={'gc-help' + (res.broken ? ' gc-help--error' : '')} style={{ margin: 0 }}><Icon name="triangle-alert" width="14" height="14" aria-hidden="true" style={{ verticalAlign: 'middle' }} /> {res.note}</p> : null}
+        {megaOk ? <MegaForm mega={f.mega} kids={kids} item={{ type: f.type, ref: f.ref, preview: { ...item, label: f.label || item.label } }} onChange={(mega) => setF((x) => ({ ...x, mega }))} /> : null}
       </form>
     </Sheet>
   );
 }
 
 // ---- preview ------------------------------------------------------------------------------------------
-function Preview({ menus, working }) {
+function MegaPreview({ it, open }) {
+  const cols = it.mega.cols || [];
+  return (
+    <div className={'mn-mega' + (open ? ' is-open' : '')} style={{ gridTemplateColumns: `repeat(${cols.length + (it.mega.promo && it.mega.promo.src ? 1 : 0)},minmax(0,1fr))` }} aria-label={`${it.label} mega menu preview`}>
+      {cols.map((c) => {
+        if (c.kind === 'cats') { const top = catByPath(c.ref); const kids = catChildren(c.ref); return <div key={c.id}><b>{c.title || (top && top.name) || 'Category list'}</b><ul>{(kids.length ? kids : top ? [top] : []).slice(0, 6).map((k) => <li key={k.id}>{k.name}</li>)}</ul>{!c.ref ? <small>Choose a category</small> : null}</div>; }
+        if (c.kind === 'links') return <div key={c.id}><b>{c.title || it.label}</b><ul>{(it.children || []).map((k) => <li key={k.id}>{k.label}</li>)}</ul>{!(it.children || []).length ? <small>No sub-items yet</small> : null}</div>;
+        if (c.kind === 'image') return <div key={c.id}>{c.src ? <img src={c.src} alt="" /> : <small>Choose a picture</small>}{c.title ? <small>{c.title}</small> : null}</div>;
+        const b = getBlock(c.block);
+        return <div key={c.id}><b>{c.title || 'HTML block'}</b><small>{b ? b.name : 'Choose a block'}</small></div>;
+      })}
+      {it.mega.promo && it.mega.promo.src ? <div><img src={it.mega.promo.src} alt="" />{it.mega.promo.title ? <small>{it.mega.promo.title}</small> : null}</div> : null}
+    </div>
+  );
+}
+
+function Preview({ menus, working, openMega }) {
   const list = menus.map((m) => (working && m.id === working.id ? working : m));
   const header = list.find((m) => m.place === 'header');
   const footers = list.filter((m) => m.place === 'footer');
@@ -183,9 +270,9 @@ function Preview({ menus, working }) {
             <span className="mn-logo"><i aria-hidden="true">G</i>Dazzle Shop</span>
             <ul className="mn-nav" aria-label="Header menu preview">
               {header && header.items.length ? header.items.map((it) => (
-                <li key={it.id} tabIndex={(it.children || []).length ? 0 : undefined}>
-                  <span>{label(it)}{(it.children || []).length ? <Icon name="chevron-down" width="14" height="14" aria-hidden="true" /> : null}</span>
-                  {(it.children || []).length ? <ul className="mn-drop">{it.children.map((c) => <li key={c.id}>{label(c)}</li>)}</ul> : null}
+                <li key={it.id} tabIndex={(it.children || []).length || (it.mega && it.mega.on) ? 0 : undefined} className={it.mega && it.mega.on ? 'is-mega' : undefined}>
+                  <span>{label(it)}{(it.children || []).length || (it.mega && it.mega.on) ? <Icon name="chevron-down" width="14" height="14" aria-hidden="true" /> : null}</span>
+                  {it.mega && it.mega.on ? <MegaPreview it={it} open={!!openMega && openMega === it.id} /> : (it.children || []).length ? <ul className="mn-drop">{it.children.map((c) => <li key={c.id}>{label(c)}</li>)}</ul> : null}
                 </li>
               )) : <li><span className="ix-muted">No links yet</span></li>}
             </ul>
@@ -197,7 +284,7 @@ function Preview({ menus, working }) {
             <div key={c.key} className={c.cur ? 'is-cur' : undefined}><b>{c.title}</b><ul>{c.items.map((it) => <li key={it.id}>{label(it)}</li>)}</ul></div>
           )) : <span>No footer links yet</span>}
         </div>
-        <p className="gc-help" style={{ margin: 0 }}>Struck-through links don’t open on the website yet. Hover a header link to see its drop-down.</p>
+        <p className="gc-help" style={{ margin: 0 }}>Struck-through links don’t open on the website yet. Hover a header link to see its drop-down or mega menu.</p>
       </div>
     </section>
   );
@@ -213,6 +300,7 @@ export default function StoreMenus() {
   const [drag, setDrag] = useState(null);
   const [over, setOver] = useState(null);
   const [adding, setAdding] = useState(null);    // new footer menu name
+  const [megaDraft, setMegaDraft] = useState(null);
   const dirtyRef = useRef(false);
 
   // open a menu (first load: ?menu= or the main menu)
@@ -288,7 +376,7 @@ export default function StoreMenus() {
       if (parent) { const p = next.find((x) => x.id === parent); p.children = [...(p.children || []), { ...item, children: [] }]; } else next.push(item);
     } else {
       const at = locate(next, item.id);
-      if (at.parent) next[at.pIndex].children[at.index] = { ...item, children: [] }; else next[at.index] = { ...next[at.index], label: item.label, link: item.link };
+      if (at.parent) next[at.pIndex].children[at.index] = { ...item, children: [] }; else next[at.index] = { ...next[at.index], label: item.label, link: item.link, ...('mega' in item ? { mega: item.mega } : {}) };
     }
     setItems(next);
     setEditing(null);
@@ -352,7 +440,7 @@ export default function StoreMenus() {
           onDragEnd={() => { setDrag(null); setOver(null); }} onDragOver={(e) => { if (drag) { e.preventDefault(); if (over !== it.id) setOver(it.id); } }} onDrop={(e) => { e.preventDefault(); onDrop(it.id); }}>
           <span className="mn-grip" title="Drag to move" aria-hidden="true"><Icon name="grip-vertical" width="16" height="16" /></span>
           <span className="mn-text">
-            <b>{it.label}</b>
+            <b>{it.label}{it.mega && it.mega.on ? <> <StatusBadge tone="info">Mega menu</StatusBadge></> : null}</b>
             <span className={'mn-to' + (r.broken ? ' is-bad' : r.note ? ' is-warn' : '')}>
               <Icon name={r.broken || r.note ? 'triangle-alert' : T.icon} width="12" height="12" aria-hidden="true" />
               <span>{r.broken || r.note ? r.note : `${T.label} · ${r.url.replace(/^dazzleshop\.com\.bd/, '') || '/'}`}</span>
@@ -376,7 +464,8 @@ export default function StoreMenus() {
   return (
     <StoreFrame screen="StoreMenus" active="store-menus" page="Menus" css={CSS}
       after={<>
-        <ItemSheet item={editing ? editing.item : null} onClose={() => setEditing(null)} onApply={apply} />
+        <ItemSheet item={editing ? editing.item : null} onClose={() => setEditing(null)} onApply={apply}
+          megaOk={!!editing && !editing.parent && !!work && work.place === 'header'} kids={editing ? (editing.item.children || []).length : 0} onDraft={setMegaDraft} />
         <Dialog open={adding != null} title="Add a footer menu" onClose={() => setAdding(null)}>
           <form onSubmit={createMenu} className="mn-form" noValidate>
             <div><label className="gc-label" htmlFor="mn-new">Menu name</label><input id="mn-new" className="gc-input" value={adding || ''} placeholder="e.g. Our branches" onChange={(e) => setAdding(e.target.value)} data-autofocus /><p className="gc-help">It shows as a column of links in the website’s footer.</p></div>
@@ -425,7 +514,7 @@ export default function StoreMenus() {
       </section>
 
       </div>
-      <aside className="ix-side mn-side" aria-label="Preview">{ready && work ? <Preview menus={menus} working={work} /> : null}</aside>
+      <aside className="ix-side mn-side" aria-label="Preview">{ready && work ? <Preview menus={menus} working={editing && !editing.isNew && !editing.parent && megaDraft ? { ...work, items: work.items.map((x) => (x.id === editing.item.id ? { ...x, mega: megaDraft } : x)) } : work} openMega={editing && !editing.parent && megaDraft && megaDraft.on ? editing.item.id : ''} /> : null}</aside>
       </div>
       <LearnMore topic="menus" />
     </StoreFrame>

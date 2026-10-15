@@ -1,0 +1,38 @@
+{
+ "id": "A6",
+ "kind": "new",
+ "section": "Module A · Storefront builder",
+ "area": "Module A · Storefront builder",
+ "title": "One-click demo import with undo",
+ "problem": "Starting a good-looking store meant setting everything by hand; there were no ready demos to begin from.",
+ "now": "Signal, Nokshi and Counter can be previewed with the shop's own products and imported part by part; a restore point undoes it in one click.",
+ "steps": [
+  "Open Online Store › Theme and press Preview on Nokshi, switch to Phone",
+  "Press Import, tick Menus too and read What will be replaced",
+  "Import, then open the store: the fashion look shows",
+  "Back on Theme, press Go back on Before importing Nokshi"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/storefront/presets.js",
+  "src/lib/storefront/store.js",
+  "src/screens/online-store/Theme.jsx"
+ ],
+ "notes": "Where: Online Store › Theme (/theme) · Presets and Restore points",
+ "shots": [
+  {
+   "route": "/theme",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Theme: presets and restore points",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

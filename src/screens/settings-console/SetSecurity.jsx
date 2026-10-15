@@ -1,16 +1,12 @@
 'use client';
-// SetSecurity — Settings › API keys & backups (/set-security). What a merchant of a hosted shop needs here:
+// SetSecurity — Settings › API keys (/set-security). What a merchant of a hosted shop needs here:
 //   API keys         the shop's own named keys for its apps (ApiKeysCard, lib/apiKeys.js)
-//   Backups & data   read-only: GridCommerce runs the backups (super admin owns storage, database and file backups),
-//                    the shop sees when the last copy was made; "Export my data" is not built yet and says so.
+//   Backups          moved to Settings › Hosting › Backups (lib/hosting.js); this card points there.
 // The old self-hosting cards (one raw app key, database and file backups to Google Drive with tokens) were removed
 // in Oct 2026 (review MS-U1); their search entries went with them (lib/settingsRegistry.js).
 
 import React from 'react';
-import { Icon } from '@/runtime/dc';
-import { toast } from '@/runtime/ui';
-import { StatusBadge } from '@/components/ui';
-import { KV } from '@/components/ui/IndexKit';
+import Link from 'next/link';
 import SetFrame from '@/screens/settings-console/SetFrame';
 import ApiKeysCard from '@/screens/settings-console/ApiKeysCard';
 
@@ -29,26 +25,15 @@ export default class SetSecurity extends React.Component {
   render() {
     const { now } = this.state;
     return (
-      <SetFrame screen="SetSecurity" active="apisec" title="API keys & backups"
-        about="Keys for your own apps, and the state of your shop's backups. GridCommerce makes and keeps the backups for you.">
+      <SetFrame screen="SetSecurity" active="apisec" title="API keys"
+        about="Keys for your own apps. Backups are in Settings › Hosting.">
         <ApiKeysCard />
-        <section id="backups" className="ix-card set-card" aria-label="Backups & data">
+        <section id="backups" className="ix-card set-card" aria-label="Backups">
           <div className="set-head set-head--top">
-            <span style={{ display: 'block' }}><h2 className="set-title">Backups & data</h2></span>
-            <span style={{ marginLeft: 'auto', flex: 'none' }}><StatusBadge tone="success">Managed by GridCommerce</StatusBadge></span>
+            <span style={{ display: 'block' }}><h2 className="set-title">Backups</h2></span>
+            <span style={{ marginLeft: 'auto', flex: 'none' }}><Link href="/set-hosting?tab=backups" className="ix-btn ix-btn--sm">Open in Hosting</Link></span>
           </div>
-          <div style={{ padding: '4px 16px 16px', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            <KV rows={[
-              ['Last backup', now ? lastBackup(now) : '—'],
-              ['How often', 'Every night, kept for 30 days'],
-            ]} />
-            <span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <button type="button" className="ix-btn ix-btn--sm" onClick={() => toast('Coming soon: download all your shop’s data.', { tone: 'info' })}>
-                <Icon name="download" width="14" height="14" aria-hidden="true" />Export my data
-              </button>
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Coming soon</span>
-            </span>
-          </div>
+          <p style={{ margin: 0, padding: '0 16px 16px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Last nightly backup: {now ? lastBackup(now) : '—'}. Backups, downloads and restores are in Settings › Hosting.</p>
         </section>
       </SetFrame>
     );

@@ -1,7 +1,7 @@
 'use client';
 // Merchant 360° profile — every action sheet. MerchantProfile keeps `sheet = { kind, …params }` and draws
 // <ActionSheets sheet ctx close />; a tab or the header calls ctx.open(kind, params).
-//   edit · pay · plan · trial · grace · credits · module · manager · control · adjust · call · modtrial · item
+//   edit · pay · plan · trial · grace · credits · module · manager · control · adjust · call · modtrial · item · billto
 // Each sheet calls one lib function, shows the error it returns next to the field it is about, and on success closes
 // with a toast. Sensitive ones (suspend, cancel, pause, revoke, turning a module off, more grace, waiving a bill) take
 // a reason and use the danger button.
@@ -19,6 +19,7 @@ import {
   logCall, openInvoices, balance, planOf, monthlyOf, mrrOf, billItems, outcomeLabel, prorationFor,
 } from '@/lib/platform/billing';
 import { editMerchant, activateTrial, assignManager, ownerOf, usageOf } from '@/lib/admin/merchants';
+import { billingProfileOf, setBillingProfile } from '@/lib/platform/shops';
 import { ask, rightOf, ruleFor, figureOf } from '@/lib/admin/actionRights';
 import { Field, ctl } from './profileShared';
 
@@ -499,7 +500,32 @@ function CallSheet({ ctx, close }) {
   );
 }
 
-const SHEETS = { edit: EditSheet, pay: PaySheet, plan: PlanSheet, trial: TrialSheet, grace: GraceSheet, credits: CreditsSheet, module: ModuleSheet, manager: ManagerSheet, control: ControlSheet, adjust: AdjustSheet, call: CallSheet, modtrial: ModTrialSheet, item: ItemSheet };
+// ---- billing details (SA-F14): the name, BIN and email GridCommerce's bills carry ------------------------------------------
+function BillToSheet({ ctx, close }) {
+  const { shop } = ctx;
+  const [f, setF] = useState(() => billingProfileOf(shop));
+  const [err, setErr] = useState(null);
+  const submit = () => {
+    const r = setBillingProfile(shop.id, f);
+    if (!ok(r)) { setErr({ field: r.field || 'form', text: r.error }); return; }
+    toast(r.changed ? 'Billing details saved · new bills use them' : 'Nothing changed');
+    close();
+  };
+  const text = (k, label, type = 'text', hint) => (
+    <Field id={'bt-' + k} label={label} error={errOf(err, k)} hint={hint}>
+      <input id={'bt-' + k} type={type} {...ctl(errOf(err, k))} value={f[k]} onChange={(e) => { setF({ ...f, [k]: e.target.value }); setErr(null); }} />
+    </Field>
+  );
+  return (
+    <FormSheet id="mp-billto" title="Billing details" close={close} onSubmit={submit} submit="Save" error={err}>
+      {text('name', 'Name on the bills')}
+      {text('bin', 'BIN', 'text', 'The store’s VAT registration, if it has one. Shown on its bills.')}
+      {text('email', 'Billing email', 'email', 'Bills and receipts are sent here.')}
+    </FormSheet>
+  );
+}
+
+const SHEETS = { billto: BillToSheet, edit: EditSheet, pay: PaySheet, plan: PlanSheet, trial: TrialSheet, grace: GraceSheet, credits: CreditsSheet, module: ModuleSheet, manager: ManagerSheet, control: ControlSheet, adjust: AdjustSheet, call: CallSheet, modtrial: ModTrialSheet, item: ItemSheet };
 
 /** The open action sheet, if any. */
 export function ActionSheets({ sheet, ctx, close }) {

@@ -16,6 +16,7 @@ import { downloadCsv } from '@/lib/reports/period';
 import { formatBDT } from '@/lib/format';
 import { executive, alerts, PERIODS } from '@/lib/admin/dashboard';
 import { FUNNEL } from '@/lib/admin/company';
+import { merchantList } from '@/lib/admin/merchants';
 import { AdminShell, usePlatform } from './AdminShell';
 
 const CSS = `
@@ -33,6 +34,7 @@ const CSS = `
 .dash-row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:40px;border-top:1px solid var(--border-subtle);font-size:var(--text-sm);color:var(--text-body);text-decoration:none}
 .dash-row:first-child{border-top:0}
 .dash-row b{font-family:var(--font-data);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums}
+.dash-row b.is-bad{color:var(--text-danger)}
 a.dash-row:hover{color:var(--primary)}
 .dash-donut{display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-3)}
 .dash-donut .dch-legend{flex-direction:column;align-items:flex-start}
@@ -103,7 +105,7 @@ export default function Dashboard() {
   // worked out on every redraw (the data changes in place; usePlatform redraws on each change and every 20 s)
   let result = null;
   if (live) {
-    try { result = { x: executive(db, t, period), todo: alerts(db, t) }; } catch (e) { result = { error: e, retry }; }
+    try { result = { x: executive(db, t, period), todo: alerts(db, t), risk: merchantList(db, t).counts.risk || 0 }; } catch (e) { result = { error: e, retry }; }
   }
   const x = result && result.x;
   const periodName = (PERIODS.find(([k]) => k === period) || [])[1] || '';
@@ -213,6 +215,7 @@ export default function Dashboard() {
             </div>
             <div className="dash-rows">
               <Link className="dash-row" href="/admin/onboarding"><span>New in this period</span><b>{m.newStores}</b></Link>
+              <Link className="dash-row" href="/admin/merchants?view=risk&sort=health-asc"><span>At risk of leaving (health under 50)</span><b className={result.risk ? 'is-bad' : undefined}>{result.risk}</b></Link>
               <Link className="dash-row" href="/admin/analytics/growth"><span>Trials that became paying</span><b>{m.trialEnded ? `${m.trialWon} of ${m.trialEnded} · ${share(m.trialRate)}` : '—'}</b></Link>
               {m.ladders.map((l) => <Link key={l.key} className="dash-row" href="/admin/packages"><span>{l.name}</span><b>{l.value}</b></Link>)}
             </div>

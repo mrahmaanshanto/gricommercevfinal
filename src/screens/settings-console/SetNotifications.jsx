@@ -1,11 +1,15 @@
 'use client';
-// SetNotifications — Settings › Notifications › Order notifications (/set-notifications).
+// SetNotifications — Settings › Notifications (/set-notifications).
 // For every order event (src/lib/notifications.js › EVENTS): SMS on/off, WhatsApp on/off (customer only; needs WhatsApp
 // connected in Connections), email on/off, to the customer, to the shop; and its template (SMS text, the shop's SMS,
 // the WhatsApp template — name, language, body, Track order button, review state —, email subject and body, sender
 // name, reply-to) with the {{variables}}, a live preview and a test send. The sender details apply to every message;
 // "If WhatsApp fails, send an SMS" (waFallback) applies to every event.
 // Saved in this browser (gc.notify.settings); orders send through notify(). Text stays short (Shopify style).
+// Beyond orders (review CX-F3): refunds and returns, store credit and loyalty, invoices and dues, support tickets,
+// warranty and service and the account are in the same matrix (notifications.js › CUSTOMER_EVENTS, sent with
+// notifyCustomer). A group shows only in editions with its module; an event nothing sends yet says "Not sent yet";
+// Loyalty's own messages link to Loyalty, which sends them.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { toast, confirmDialog } from '@/runtime/ui';
@@ -15,7 +19,9 @@ import SetChrome from '@/screens/settings-console/SetChrome';
 import SetRail from '@/screens/settings-console/SetRail';
 import SetTopbar from '@/screens/settings-console/SetTopbar';
 import Link from 'next/link';
-import { EVENTS, VARIABLES, WA_LANGS, getNotifySettings, saveNotifySettings, defaultTemplate, fill, smsParts, waTemplateState } from '@/lib/notifications';
+import { EVENTS, VARIABLES, CUSTOMER_VARIABLES, WA_LANGS, getNotifySettings, saveNotifySettings, defaultTemplate, fill, smsParts, waTemplateState } from '@/lib/notifications';
+import { send as sendMessage } from '@/lib/messaging';
+import { hasModule } from '@/lib/edition';
 import { statusOf, CONNECTIONS_EVENT } from '@/lib/connections';
 import { logChanges } from '@/lib/settingsHistory';
 import { shopSender } from '@/lib/platform/mail';
@@ -29,7 +35,12 @@ function MailSender() {
 }
 
 const GROUPS = [...new Set(EVENTS.map((e) => e.group))];
-const SAMPLE = Object.fromEntries(VARIABLES.map(([k, , ex]) => [k, ex]));
+const SAMPLE = Object.fromEntries([...VARIABLES, ...CUSTOMER_VARIABLES].map(([k, , ex]) => [k, ex]));
+const COMMON = ['customer_name', 'store_name', 'support_phone'];
+/** The placeholders an event can use: the order's for order events, the common ones plus its own for the rest. */
+const varsFor = (e) => (e && e.scope === 'customer' ? CUSTOMER_VARIABLES.filter(([k]) => COMMON.includes(k) || (e.vars || []).includes(k)) : VARIABLES);
+/** Is the event's area in this edition? Order events need online selling. */
+const inEdition = (e) => hasModule(e.scope === 'customer' ? e.mod : 'online');
 
 const CSS = `
 .sn-card>header{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:44px;padding:var(--space-3) var(--space-4) 0}
@@ -46,6 +57,9 @@ const CSS = `
 .sn-cell{display:flex;justify-content:center}
 .sn-cell input[type=checkbox]{width:20px;height:20px;accent-color:var(--primary);cursor:pointer}
 .sn-row.is-off .sn-ev b{color:var(--text-muted)}
+.sn-ev b .gc-badge{margin-left:var(--space-2);vertical-align:1px}
+.sn-owner{grid-column:2 / -1;display:flex;align-items:center;justify-content:flex-end;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+.sn-part{margin:var(--space-2) 0 0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .sn-cap{display:none}
 .sn-vars{display:flex;flex-wrap:wrap;gap:6px}
 .sn-vars button{height:32px;padding:0 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-body);cursor:pointer}
@@ -75,6 +89,7 @@ const CSS = `
   .sn-cell{flex-direction:column;align-items:center;gap:2px}
   .sn-cap{display:block;font-size:var(--text-xs);color:var(--text-muted)}
   .sn-row>.sn-edit{grid-column:1 / -1;justify-self:start}
+  .sn-owner{grid-column:1 / -1;justify-content:flex-start}
   }
 @media (max-width:640px){
   .sn-row{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:var(--space-1)}
@@ -92,8 +107,9 @@ export default function SetNotifications() {
   const refs = { smsText: useRef(null), merchantText: useRef(null), waBody: useRef(null), subject: useRef(null), body: useRef(null) };
   const [wa, setWa] = useState(null);           // WhatsApp Business connection (Settings › Connections)
   const [, setTick] = useState(0);              // re-reads a template's review state
+  const [groups, setGroups] = useState([]);     // the groups this edition has (read after mount)
 
-  useEffect(() => { const x = getNotifySettings(); setSaved(x); setS(x); }, []);
+  useEffect(() => { const x = getNotifySettings(); setSaved(x); setS(x); setGroups(GROUPS.filter((g) => EVENTS.some((e) => e.group === g && inEdition(e)))); }, []);
   useEffect(() => {
     const read = () => setWa(statusOf('whatsapp'));
     read();
@@ -138,6 +154,14 @@ export default function SetNotifications() {
     if (ok) setDraft({ ...draft, ...defaultTemplate(edit), sms: draft.sms, email: draft.email, whatsapp: draft.whatsapp, customer: draft.customer, merchant: draft.merchant });
   };
   const ev = edit ? EVENTS.find((x) => x.key === edit) : null;
+  // a test goes to the shop's own phone through the send layer (it shows in the delivery log)
+  const sendTest = () => {
+    if (!draft) return;
+    const r = sendMessage({ source: (ev && ev.source) || 'Orders', event: (ev ? ev.label : 'Message') + ' · test', cls: 'Service', channel: 'sms', to: { name: s.senderName, phone: s.adminPhone }, text: fill(draft.smsText, SAMPLE), internal: true });
+    const st = r && r.row ? r.row.status : '';
+    if (st === 'Delivered' || st === 'Read') toast(`Test SMS sent to ${s.adminPhone}`);
+    else toast(`Test not sent: ${(r && r.row && r.row.reason) || 'check the shop phone'}`, { tone: 'error' });
+  };
   const sms = draft ? smsParts(fill(draft.smsText, SAMPLE)) : null;
   const savedEv = edit && saved ? saved.events[edit] : null;
   const waChanged = !!(draft && savedEv && WA_FIELDS.some((f) => JSON.stringify(draft[f]) !== JSON.stringify(savedEv[f])));
@@ -152,15 +176,15 @@ export default function SetNotifications() {
       <div className="set-shell">
         <div className="set-shell__rail"><SetChrome embedded /></div>
         <div className="set-shell__main">
-          <div className="set-shell__top"><SetTopbar embedded crumb="Order notifications" /></div>
+          <div className="set-shell__top"><SetTopbar embedded crumb="Notifications" /></div>
           <div className="set-shell__body">
             <div className="set-shell__nav"><SetRail embedded active="notifications" /></div>
             <div className="set-shell__col">
               <div className="set-content">
                 <main className="set-main">
                   <header className="set-pagehead">
-                    <span className="set-pagehead__text"><h1 className="ix-head__title">Order notifications</h1></span>
-                    <span className="gc-pagehead__about" hidden>SMS and email for each order event: turn each one on or off, choose who gets it, and edit its text with the order's details filled in.</span>
+                    <span className="set-pagehead__text"><h1 className="ix-head__title">Notifications</h1></span>
+                    <span className="gc-pagehead__about" hidden>SMS, WhatsApp and email for each event: orders, refunds and returns, store credit, invoices, support tickets, warranty and the account. Turn each one on or off, choose who gets it, and edit its text.</span>
                   </header>
 
                   <section className="ix-card sn-card" aria-labelledby="sn-sender">
@@ -187,16 +211,25 @@ export default function SetNotifications() {
                     </div>
                   </section>
 
-                  {GROUPS.map((g) => (
-                    <section key={g} className="ix-card sn-card" aria-labelledby={'sn-g-' + g}>
+                  {groups.map((g, gi) => (<React.Fragment key={g}>
+                    {gi > 0 && EVENTS.find((e) => e.group === g).scope === 'customer' && EVENTS.find((e) => e.group === groups[gi - 1]).scope !== 'customer' ? <h2 className="sn-part">Customers and account</h2> : null}
+                    <section className="ix-card sn-card" aria-labelledby={'sn-g-' + g}>
                       <header><h2 id={'sn-g-' + g}>{g}</h2></header>
                       <div className="sn-head" aria-hidden="true"><span>Event</span><span>SMS</span><span>WhatsApp</span><span>Email</span><span>Customer</span><span>Shop</span><span /></div>
-                      {EVENTS.filter((e) => e.group === g).map((e) => {
+                      {EVENTS.filter((e) => e.group === g && inEdition(e)).map((e) => {
                         const t = s.events[e.key];
                         const off = !(t.sms || t.email || (t.whatsapp && t.customer)) || !(t.customer || t.merchant);
+                        const idle = e.scope === 'customer' && !e.sender;
+                        // Loyalty sends its own messages (templates and on / off in Loyalty)
+                        if (e.owner === 'loyalty') return (
+                          <div key={e.key} className="sn-row">
+                            <span className="sn-ev"><b>{e.label}</b><small>{e.when}</small></span>
+                            <span className="sn-owner">Sent by Loyalty<Link className="sn-conn" href="/loyalty">Loyalty settings</Link></span>
+                          </div>
+                        );
                         return (
                           <div key={e.key} className={'sn-row' + (off ? ' is-off' : '')}>
-                            <span className="sn-ev"><b>{e.label}</b><small>{e.when}{e.note ? ' · ' + e.note : ''}</small></span>
+                            <span className="sn-ev"><b>{e.label}{idle ? <span className="gc-badge gc-badge--neutral" title="Nothing sends this yet. The setting is kept for when it does.">Not sent yet</span> : null}</b><small>{e.when}{e.note ? ' · ' + e.note : ''}</small></span>
                             <span className="sn-cell"><button type="button" role="switch" className="set-sw" aria-checked={!!t.sms} aria-label={`${e.label}: SMS`} onClick={() => setEv(e.key, { sms: !t.sms })}><span aria-hidden="true" /></button><span className="sn-cap" aria-hidden="true">SMS</span></span>
                             <span className="sn-cell">
                               {waOn
@@ -212,7 +245,7 @@ export default function SetNotifications() {
                         );
                       })}
                     </section>
-                  ))}
+                  </React.Fragment>))}
                 </main>
               </div>
               {dirty ? (
@@ -228,12 +261,12 @@ export default function SetNotifications() {
       </div>
 
       <Sheet open={!!edit} title={ev ? ev.label : ''} onClose={closeEdit}
-        footer={<><button type="button" className="gc-btn gc-btn--flat" onClick={reset}>Reset</button><button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast(`Test sent to ${s.adminPhone}`)}>Send test</button><button type="button" className="gc-btn gc-btn--solid" onClick={keepEdit}>Done</button></>}>
+        footer={<><button type="button" className="gc-btn gc-btn--flat" onClick={reset}>Reset</button><button type="button" className="gc-btn gc-btn--neutral" onClick={sendTest}>Send test</button><button type="button" className="gc-btn gc-btn--solid" onClick={keepEdit}>Done</button></>}>
         {draft ? (
           <div className="sn-ed">
             <div>
               <span className="gc-label">Variables</span>
-              <div className="sn-vars">{VARIABLES.map(([k, l]) => <button key={k} type="button" title={l} onClick={() => insert(k)}>{`{{${k}}}`}</button>)}</div>
+              <div className="sn-vars">{varsFor(ev).map(([k, l]) => <button key={k} type="button" title={l} onClick={() => insert(k)}>{`{{${k}}}`}</button>)}</div>
             </div>
             <h3>SMS</h3>
             <div><label className="gc-label" htmlFor="sn-sms">To customer</label><textarea id="sn-sms" className="gc-input" rows={3} {...tf('smsText')} /><span className="sn-count">{sms.chars} characters · {sms.parts} SMS{sms.unicode ? ' (Bangla)' : ''}</span></div>
@@ -250,7 +283,7 @@ export default function SetNotifications() {
               <div><label className="gc-label" htmlFor="sn-wlang">Language</label><select id="sn-wlang" className="gc-input gc-select" value={draft.waLang || 'English'} onChange={(e) => setDraft({ ...draft, waLang: e.target.value })}>{WA_LANGS.map((l) => <option key={l}>{l}</option>)}</select></div>
             </div>
             <div><label className="gc-label" htmlFor="sn-wbody">Message</label><textarea id="sn-wbody" className="gc-input" rows={5} {...tf('waBody')} /></div>
-            <label className="sn-wa__sw"><input type="checkbox" checked={!!draft.waButton} onChange={() => setDraft({ ...draft, waButton: !draft.waButton })} style={{ width: 20, height: 20, accentColor: 'var(--primary)' }} />Add a "Track order" button</label>
+            {ev && ev.scope === 'customer' ? null : <label className="sn-wa__sw"><input type="checkbox" checked={!!draft.waButton} onChange={() => setDraft({ ...draft, waButton: !draft.waButton })} style={{ width: 20, height: 20, accentColor: 'var(--primary)' }} />Add a "Track order" button</label>}
             <div className="sn-bubble">{fill(draft.waBody, SAMPLE)}{draft.waButton ? <span className="sn-bubble__btn">Track order</span> : null}</div>
             <h3>Email</h3>
             <div><label className="gc-label" htmlFor="sn-sub">Subject</label><input id="sn-sub" className="gc-input" {...tf('subject')} /></div>

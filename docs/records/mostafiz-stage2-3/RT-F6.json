@@ -1,0 +1,40 @@
+{
+ "id": "RT-F6",
+ "kind": "new",
+ "section": "Retail & POS",
+ "area": "Retail & POS",
+ "title": "Own PIN and limits per role",
+ "problem": "Everyone shared one PIN and one discount limit, so approvals could not be traced to a person.",
+ "now": "Each role has its limits (discount, price, refund, void, drawer, due); over them an approver enters their own PIN, which can be changed. Return & exchange and the phone register follow the same limits.",
+ "steps": [
+  "Set the seller's discount to 5%",
+  "Open a shift as Rafi and give 10% off",
+  "Approve as Rakib with PIN 1234"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/posStore.js",
+  "src/components/ManagerPin.jsx",
+  "src/screens/pos-register/Pos.jsx",
+  "src/screens/pos-register/PosManage.jsx",
+  "src/screens/sales/ReturnExchange.jsx",
+  "src/screens/app/pos/MPos.jsx"
+ ],
+ "notes": "Where: POS › POS management › Settings · /pos-manage?tab=settings",
+ "shots": [
+  {
+   "route": "/pos-manage?tab=settings",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "POS settings",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

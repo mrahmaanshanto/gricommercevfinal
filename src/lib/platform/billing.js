@@ -19,6 +19,8 @@
 //   actions (commit inside): recordPayment · logCall · sendPayLinks · requestAdjustment · decideAdjustment · askAboutAdjustment
 //                            addItem · editItem · endItem · changePlan · startModuleTrial · setAutoCharge · extendTrial
 //                            pauseStore · resumeStore · cancelStore · archiveStore · restoreStore · setControl · runBilling
+//   failed auto-charges:     failedCharges · retryCharge · askUpdateMethod
+//   VAT:                     vatRate · vatOf · billToOf (each new bill carries a VAT line and the store's billing details)
 
 import { commit, setTicker, staff } from './store';
 import { invoice as newInvoice } from './seed';
@@ -134,6 +136,23 @@ export const isPaying = (st) => st.key === 'active' || st.key === 'grace' || st.
 export const isLiveStore = (st) => !['setup', 'failed', 'cancelled', 'archived'].includes(st.key);
 export const stageLabel = (key) => (STAGES.find((s) => s[0] === key) || [key, key])[1];
 
+// ---- VAT and who a bill is made out to (SA-F14) ---------------------------------------------------------------
+/** The VAT rate GridCommerce charges on subscriptions (%; db.settings.vatPct, 15 by default). */
+export const vatRate = (db) => (db.settings && db.settings.vatPct != null ? Number(db.settings.vatPct) || 0 : 15);
+/** The store's billing details as a bill keeps them: { name, bin, email } (shops.js › billingProfileOf, copied here so
+ *  billing.js does not import shops.js). */
+export function billToOf(shop) {
+  if (!shop) return null;
+  const b = shop.billing || {};
+  const owner = shop.owner && typeof shop.owner === 'object' ? shop.owner : {};
+  return { name: b.name || shop.legal || shop.name, bin: b.bin || (shop.kyc && shop.kyc.bin) || '', email: b.email || owner.email || '' };
+}
+/** What a bill asks before VAT, and the VAT on it (0 on bills issued before VAT was added). */
+export function vatOf(inv) {
+  const vat = (inv.lines || []).filter((l) => l.kind === 'vat').reduce((s, l) => s + l.amount, 0);
+  return { vat, net: Math.max(0, inv.total - vat) };
+}
+
 // ---- the engine --------------------------------------------------------------------------------------------
 /** Issue an invoice for a store's bill falling due at `due`, from what it is billed for. */
 function issueBill(db, sub, due, t) {
@@ -167,6 +186,10 @@ function issueBill(db, sub, due, t) {
     a.appliedTo = 'pending';
   }
   if (!lines.length) return null;
+  // VAT at the platform's rate on what the bill asks after discounts (SA-F14); bills issued before this rule have none
+  const vatPct = vatRate(db);
+  const net = lines.reduce((s, l) => s + l.amount, 0);
+  if (vatPct > 0 && net > 0) lines.push({ label: `VAT ${vatPct}%`, amount: Math.round((net * vatPct) / 100), kind: 'vat' });
   // credit the store has with us (an overpayment or a credit note on a bill that was already paid) comes off this bill
   const carry = Math.min(storeCredit(db, sub.shopId), lines.reduce((s, l) => s + l.amount, 0));
   if (carry > 0) lines.push({ label: 'Credit carried over', amount: -carry, kind: 'carry' });
@@ -175,7 +198,8 @@ function issueBill(db, sub, due, t) {
   db.seq.inv[y] = (db.seq.inv[y] || 0) + 1;
   const id = `INV-${y}-${pad4(db.seq.inv[y])}`;
   const total = Math.max(0, lines.reduce((s, l) => s + l.amount, 0));
-  const inv = { id, y, shopId: sub.shopId, issuedAt, dueAt: due, period: periodOf(due), lines, total, noCharge: total === 0, voided: false, charges: [], reminders: [] };
+  const shop = shopOf(db, sub.shopId);
+  const inv = { id, y, shopId: sub.shopId, issuedAt, dueAt: due, period: periodOf(due), lines, total, noCharge: total === 0, voided: false, charges: [], reminders: [], vatPct, billTo: billToOf(shop) };
   db.invoices.push(inv);
   for (const it of sub.items) if (it.billedIn === 'pending') it.billedIn = id;
   for (const a of db.adjustments) if (a.appliedTo === 'pending') a.appliedTo = id;
@@ -258,7 +282,8 @@ export function tick(db, t) {
     if (sub.autoCharge && sub.status === 'active') {
       for (const inv of openInvoices(db, shop.id)) {
         if (inv.dueAt > t) continue;
-        const tries = inv.charges.length;
+        const tries = inv.charges.filter((c) => !c.manual).length;   // a staff retry (retryCharge) is not one of the three
+        if (inv.charges.some((c) => c.ok)) continue;
         const next = inv.dueAt + [0, 1, 3][tries] * DAY;
         if (tries >= 3 || next > t) continue;
         const ok = hash(inv.id + ':' + tries) % 10 !== 0;
@@ -314,6 +339,7 @@ export function recordPayment({ invoiceId, amount, method, txId, via = 'call', b
 }
 
 const OUTCOME = {
+  method: 'Asked to update payment method',
   paid: 'Paid on the call', promised: 'Promised to pay', panel: 'Will pay from the panel', noanswer: 'No answer', later: 'Call later', dispute: 'Disputes the bill', reminder: 'Reminder sent',
 };
 /** Log a collection call. */
@@ -338,6 +364,49 @@ export function sendPayLinks(shopId = null) {
       n++;
     }
     return { ok: true, count: n };
+  });
+}
+
+// ---- automatic charges that failed (SA-F8) -----------------------------------------------------------------
+/** Unpaid bills of stores on automatic charge whose last try failed, newest failure first:
+ *  [{ inv, shopId, tries, failed, last: { at, reason, method }, retryAt (the next automatic try, or null), asked }] */
+export function failedCharges(db, t) {
+  const out = [];
+  for (const inv of db.invoices) {
+    if (!inv.charges || !inv.charges.length || balance(db, inv) <= 0) continue;
+    const last = inv.charges[inv.charges.length - 1];
+    if (last.ok || last.at > t) continue;
+    const sub = subOf(db, inv.shopId);
+    const auto = inv.charges.filter((c) => !c.manual).length;
+    const retryAt = sub && sub.autoCharge && auto < 3 ? inv.dueAt + [0, 1, 3][auto] * DAY + 9 * 3600e3 : null;
+    const asked = db.calls.filter((c) => c.shopId === inv.shopId && c.outcome === 'method' && c.at >= last.at).sort((a, b) => b.at - a.at)[0] || null;
+    out.push({ inv, shopId: inv.shopId, tries: inv.charges.length, failed: inv.charges.filter((c) => !c.ok).length, last, retryAt, asked });
+  }
+  return out.sort((a, b) => b.last.at - a.last.at);
+}
+/** Try the saved bKash or card again now. Demo outcome: about two tries in three go through (a real build calls the
+ *  wallet or card gateway and waits for its answer). */
+export function retryCharge(invoiceId) {
+  return commit((db, t) => {
+    const inv = invoiceById(db, invoiceId);
+    if (!inv || balance(db, inv) <= 0) return { ok: false, error: 'This bill is already paid.' };
+    const sub = subOf(db, inv.shopId);
+    const method = (sub && sub.payMethod) || 'bKash';
+    const ok = hash(inv.id + ':retry:' + inv.charges.length + ':' + Math.floor(t / 60000)) % 3 !== 0;
+    const charge = { at: t, ok, method, reason: ok ? null : 'Not enough balance', manual: true, by: who() };
+    inv.charges.push(charge);
+    if (ok) db.payments.push({ id: 'PAY-' + pad4(db.seq.pay++), invoiceId: inv.id, shopId: inv.shopId, amount: balance(db, inv), method, via: 'auto', at: t, by: who(), txId: 'AC' + (hash(inv.id + t) % 1e8), status: 'ok' });
+    db.events.push({ id: 'E' + db.seq.ev++, shopId: inv.shopId, at: t, kind: 'billing', text: ok ? `${inv.id} charged by ${method} on a retry, by ${who()}` : `Retry of the ${method} charge for ${inv.id} failed · ${charge.reason}, by ${who()}` });
+    return { ok: true, paid: ok, reason: charge.reason, method };
+  });
+}
+/** Log that the owner was asked to update the saved payment method (the notice itself is sent by the caller). */
+export function askUpdateMethod(shopId, invoiceId) {
+  return commit((db, t) => {
+    const c = { id: 'CALL-' + pad4(db.seq.call++), shopId, invoiceId: invoiceId || null, at: t, by: who(), outcome: 'method', note: 'Asked the owner to update the payment method', promiseAt: null, nextAt: t + DAY };
+    db.calls.push(c);
+    db.events.push({ id: 'E' + db.seq.ev++, shopId, at: t, kind: 'billing', text: `Owner asked to update the saved payment method (SMS and a notice in the panel), by ${who()}` });
+    return { ok: true, call: c };
   });
 }
 

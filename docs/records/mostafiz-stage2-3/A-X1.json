@@ -1,0 +1,60 @@
+{
+ "id": "A-X1",
+ "kind": "new",
+ "section": "Module A · Storefront builder",
+ "area": "Module A · Storefront builder",
+ "title": "Customer pages drawn by the theme",
+ "problem": "The store had no home page, cart page or search, and offers and checkout pages had their own fixed header.",
+ "now": "A store home, cart, search and page-not-found page join product, category, page, offers, checkout and the order-link page, all with the theme's header, footer and colours.",
+ "steps": [
+  "Open /store and add a phone to the cart from a card",
+  "The side cart opens with the free delivery bar; press Checkout",
+  "The checkout shows the same items",
+  "Search for charger from the header"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/storefront/storeChrome.jsx",
+  "src/screens/storefront/storeHeader.jsx",
+  "src/screens/storefront/storeKit.jsx",
+  "src/lib/storefront/cart.js",
+  "src/screens/storefront/Offers.jsx",
+  "src/screens/storefront/OfferDetail.jsx",
+  "src/screens/storefront/Checkout.jsx",
+  "src/app/(storefront)/store/page.jsx",
+  "src/app/(storefront)/cart/page.jsx",
+  "src/app/(storefront)/search/page.jsx",
+  "src/screens/storefront/OrderLink.jsx",
+  "src/runtime/routes.js"
+ ],
+ "notes": "Where: Customer pages: /store, /cart, /search?q=, /product, /category, /page, /offers, /checkout · Needs the server: Customer accounts, wishlist and compare are not built yet; those buttons say so.",
+ "shots": [
+  {
+   "route": "/store",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "The customer store, drawn by the theme",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  },
+  {
+   "route": "/store",
+   "query": "as=ceo",
+   "viewport": "phone",
+   "beforeToo": false,
+   "label": "The same store on a phone",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

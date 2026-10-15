@@ -1,36 +1,30 @@
 'use client';
-// HomeWidgets — the dashboard widgets under Home's key figures and to-do, in pairs (one column on phones):
-//   Sales summary   revenue, cost and profit per day for a date range and a category (smooth area chart, hover to read)
-//   Order summary   orders in a date range by status: one ring per status, with the counts beside it
-//   Live visitors   who is on the website now, on a world map (lib/traffic.js for the number, lib/worldMap.js for the map)
-//   Top customers   the 8 customers who bought the most in the last 30 days
-//   Latest orders   · Latest customers · Top products · Low stock (by category and place)
-// Every number comes from the shared books (salesBook, orders, customers, stock, traffic); nothing here is sample data.
+// HomeWidgets — the charts under Home's key figures and to-do (MS-U9: no dashboard copies of list pages). They follow
+// the page's scope: `day` (the day Home shows, its start in ms) and `place` ('' = every place).
+//   Sales summary   revenue, cost and profit per day for the 7, 30 or 90 days up to that day (smooth area chart)
+//   Order summary   orders in those days by the Orders page's own tabs (lib/orderStatus.js ORDER_TABS); each opens it
+//   Stock alert     the products lowest at that place (stock.js LOW_AT), each opens Stock
+// Latest orders, latest and top customers, top products and the visitors map were copies of the list pages
+// (Orders, Customers, Best sellers on Home, Visitors on Online Home) and were removed.
+// Every number comes from the shared books (salesBook, orders, stock); nothing here is sample data.
 // `has(module)` hides what the edition doesn't sell (lib/edition.js).
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
-import { StatusBadge } from '@/components/ui';
 import { formatBDT, formatDate } from '@/lib/format';
 import { getSaleLines } from '@/lib/salesBook';
-import { getOrders, orderHref } from '@/lib/orders';
-import { ORDER_STATUSES } from '@/lib/orderStatus';
-import { getDirectory } from '@/lib/customers';
-import { getCatalog, productBy, stockAt, isVirtualRow, LOW_AT } from '@/lib/stock';
-import { getPlaces } from '@/lib/locations';
-import { visitsOn } from '@/lib/traffic';
+import { getOrders, isCounterSale } from '@/lib/orders';
+import { ORDER_TABS } from '@/lib/orderStatus';
+import { getCatalog, stockAt, isVirtualRow, LOW_AT } from '@/lib/stock';
 
 const DAY = 864e5;
 const dayStart = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
-const iso = (t) => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-const fromIso = (s) => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, m - 1, d).getTime(); };
 const money = (n) => formatBDT(Math.round(n || 0));
 const short = (n) => (Math.abs(n) >= 1e5 ? '৳' + (n / 1e5).toFixed(1).replace(/\.0$/, '') + 'L' : Math.abs(n) >= 1e3 ? '৳' + (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'k' : '৳' + Math.round(n));
-const topCat = (c) => String(c || '').split('›')[0].trim();
 const safe = (fn, d) => { try { return fn(); } catch { return d; } };
-const hash = (s) => { let h = 7; for (const c of String(s || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
-const initials = (n) => String(n || '?').replace(/^@/, '').split(/[\s._]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
+const dm = (t) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+const PERIODS = [['7', 'Last 7 days'], ['30', 'Last 30 days'], ['90', 'Last 90 days']];
 
 /** Width of an element, kept up to date (charts draw at their real width so text never stretches). */
 function useWidth(ref, fallback = 600) {
@@ -45,11 +39,6 @@ function useWidth(ref, fallback = 600) {
   return w;
 }
 
-/** A person: initials on a soft tint that follows the name. */
-function Face({ name, size = 32 }) {
-  return <span className="hw-face" data-tone={hash(name) % 6} style={{ width: size, height: size }} aria-hidden="true">{initials(name)}</span>;
-}
-
 function Card({ title, right, children, className = '', foot }) {
   return (
     <section className={'ix-card hw-card ' + className} aria-label={typeof title === 'string' ? title : undefined}>
@@ -57,16 +46,6 @@ function Card({ title, right, children, className = '', foot }) {
       <div className="hw-body">{children}</div>
       {foot ? <div className="hw-foot">{foot}</div> : null}
     </section>
-  );
-}
-
-function Range({ from, to, onFrom, onTo, label }) {
-  return (
-    <span className="hw-range" role="group" aria-label={label}>
-      <input type="date" className="hw-date" value={from} max={to} onChange={(e) => e.target.value && onFrom(e.target.value)} aria-label="From" />
-      <span className="hw-to">to</span>
-      <input type="date" className="hw-date" value={to} min={from} onChange={(e) => e.target.value && onTo(e.target.value)} aria-label="To" />
-    </span>
   );
 }
 function Pick({ value, onChange, options, label }) {
@@ -102,29 +81,26 @@ const niceMax = (v) => { if (v <= 0) return 100; const p = Math.pow(10, Math.flo
 
 // ---- Sales summary ------------------------------------------------------------------------------------------------
 const SERIES = [['revenue', 'Revenue', 'var(--viz-7)'], ['cost', 'Cost', 'var(--viz-8)'], ['profit', 'Profit', 'var(--viz-3)']];
-function SalesSummary({ lines, cats, now }) {
-  const [from, setFrom] = useState(iso(now - 29 * DAY));
-  const [to, setTo] = useState(iso(now));
-  const [cat, setCat] = useState('');
+function SalesSummary({ lines, day, place }) {
+  const [days, setDays] = useState('30');
   const [hover, setHover] = useState(-1);
   const box = useRef(null);
   const W = useWidth(box, 640);
   const H = 240, PL = 48, PR = 12, PT = 12, PB = 28;
   const data = useMemo(() => {
-    const a = fromIso(from), b = fromIso(to) + DAY;
-    const days = Math.max(1, Math.round((b - a) / DAY));
-    const step = days > 92 ? 7 : 1;
+    const n0 = Number(days), b = day + DAY, a = b - n0 * DAY;
+    const step = n0 > 31 ? 7 : 1;
     const buckets = [];
     for (let t = a; t < b; t += step * DAY) buckets.push({ at: t, revenue: 0, cost: 0, profit: 0 });
     lines.forEach((l) => {
-      if (l.at < a || l.at >= b || (cat && topCat(l.cat) !== cat)) return;
+      if (l.at < a || l.at >= b || (place && l.place !== place)) return;
       const k = Math.min(buckets.length - 1, Math.floor((l.at - a) / (step * DAY)));
       buckets[k].revenue += l.revenue || 0; buckets[k].cost += l.cost || 0;
     });
     buckets.forEach((x) => { x.profit = x.revenue - x.cost; });
     const sum = (k) => buckets.reduce((s, x) => s + x[k], 0);
     return { buckets, step, total: { revenue: sum('revenue'), cost: sum('cost'), profit: sum('profit') } };
-  }, [lines, from, to, cat]);
+  }, [lines, days, day, place]);
   const max = niceMax(Math.max(1, ...data.buckets.map((x) => Math.max(x.revenue, x.cost, x.profit))));
   const n = data.buckets.length;
   const x = (i) => PL + (n === 1 ? (W - PL - PR) / 2 : (i * (W - PL - PR)) / (n - 1));
@@ -138,8 +114,7 @@ function SalesSummary({ lines, cats, now }) {
   };
   const h = hover >= 0 ? data.buckets[hover] : null;
   return (
-    <Card title="Sales summary" className="hw-sales"
-      right={<><Range from={from} to={to} onFrom={setFrom} onTo={setTo} label="Sales dates" /><Pick value={cat} onChange={setCat} label="Category" options={[['', 'All categories'], ...cats.map((c) => [c, c])]} /></>}>
+    <Card title="Sales summary" className="hw-sales" right={<><span className="hw-muted hw-small">{place || 'All places'} · to {dm(day)}</span><Pick value={days} onChange={setDays} label="Period" options={PERIODS} /></>}>
       <div className="hw-totals">
         {SERIES.map(([k, l, c]) => (
           <div key={k} className="hw-total">
@@ -152,7 +127,7 @@ function SalesSummary({ lines, cats, now }) {
         <svg width={W} height={H} role="img" aria-label={`Revenue ${money(data.total.revenue)}, cost ${money(data.total.cost)}, profit ${money(data.total.profit)}`} onMouseMove={onMove}>
           <defs>{SERIES.map(([k, , c]) => <linearGradient key={k} id={'hw-g-' + k} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c} stopOpacity=".28" /><stop offset="1" stopColor={c} stopOpacity=".02" /></linearGradient>)}</defs>
           {ticks.map((v) => <g key={v}><line x1={PL} x2={W - PR} y1={y(v)} y2={y(v)} className="hw-grid" /><text x={PL - 8} y={y(v) + 4} textAnchor="end" className="hw-axis">{short(v).replace('৳', '')}</text></g>)}
-          {data.buckets.map((b, i) => ((i % every === 0 && (n - 1 - i >= every * 0.6 || i === 0)) || i === n - 1 ? <text key={b.at} x={x(i)} y={H - 8} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} className="hw-axis">{new Date(b.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</text> : null))}
+          {data.buckets.map((b, i) => ((i % every === 0 && (n - 1 - i >= every * 0.6 || i === 0)) || i === n - 1 ? <text key={b.at} x={x(i)} y={H - 8} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} className="hw-axis">{dm(b.at)}</text> : null))}
           {SERIES.map(([k, , c]) => {
             const pts = data.buckets.map((b, i) => [x(i), y(b[k])]);
             const line = smoothPath(pts);
@@ -178,40 +153,29 @@ function SalesSummary({ lines, cats, now }) {
 }
 
 // ---- Order summary ------------------------------------------------------------------------------------------------
-const ALL_GROUPS = [
-  ['New', ['onhold', 'processing', 'pending'], 'var(--viz-1)'],
-  ['Approved', ['approved'], 'var(--viz-7)'],
-  ['Ready for courier', ['ready'], 'var(--viz-4)'],
-  ['Sent to courier', ['shipped'], 'var(--viz-5)'],
-  ['Delivered', ['delivered'], 'var(--viz-3)'],
-  ['Cancelled', ['cancelled'], 'var(--viz-8)'],
-  ['Returned', ['returned'], 'var(--viz-2)'],
-];
-// a shop without online selling: counter sales are finished or on due (no courier steps)
+// the Orders page's own tabs and names (ORDER_TABS), one colour each; a shop without online selling keeps its tabs
+const TAB_COLOUR = { onhold: 'var(--viz-1)', processing: 'var(--viz-7)', shipped: 'var(--viz-5)', delivered: 'var(--viz-3)', returned: 'var(--viz-2)', cancelled: 'var(--viz-8)' };
+const ONLINE_GROUPS = ORDER_TABS.map((t) => [t.label, t.keys, TAB_COLOUR[t.key] || 'var(--viz-4)', t.key]);
 const RETAIL_GROUPS = [
-  ['Payment due', ['pending'], 'var(--viz-1)'],
-  ['Completed', ['delivered'], 'var(--viz-3)'],
-  ['Cancelled', ['cancelled'], 'var(--viz-8)'],
-  ['Returned', ['returned'], 'var(--viz-2)'],
+  ['Payment due', ['pending'], 'var(--viz-1)', 'pending'],
+  ['Completed', ['delivered'], 'var(--viz-3)', 'delivered'],
+  ['Cancelled', ['cancelled'], 'var(--viz-8)', 'cancelled'],
+  ['Returned', ['returned'], 'var(--viz-2)', 'returned'],
 ];
-function OrderSummary({ orders, cats, now, online = true }) {
-  const GROUPS = online ? ALL_GROUPS : RETAIL_GROUPS;
-  const [from, setFrom] = useState(iso(now - 6 * DAY));
-  const [to, setTo] = useState(iso(now));
-  const [cat, setCat] = useState('');
+function OrderSummary({ orders, day, online = true }) {
+  const GROUPS = online ? ONLINE_GROUPS : RETAIL_GROUPS;
+  const [days, setDays] = useState('7');
   const [shown, setShown] = useState(false);
   useEffect(() => { const t = window.setTimeout(() => setShown(true), 60); return () => window.clearTimeout(t); }, []);
   const counts = useMemo(() => {
-    const a = fromIso(from), b = fromIso(to) + DAY;
-    const inCat = (o) => !cat || (o.lines || []).some((l) => topCat((safe(() => productBy(l.sku || l.name), null) || {}).cat) === cat);
-    const list = orders.filter((o) => o.at >= a && o.at < b && inCat(o));
+    const b = day + DAY, a = b - Number(days) * DAY;
+    const list = orders.filter((o) => o.at >= a && o.at < b && (online ? !isCounterSale(o) : true));
     return { total: list.length, by: GROUPS.map(([, keys]) => list.filter((o) => keys.includes(o.statusKey)).length) };
-  }, [orders, from, to, cat, GROUPS]);
+  }, [orders, days, day, GROUPS, online]);
   const R = 112, STEP = 11, SW = 7;
   const most = Math.max(1, ...counts.by);
   return (
-    <Card title="Order summary" className="hw-orders"
-      right={<><Range from={from} to={to} onFrom={setFrom} onTo={setTo} label="Order dates" /><Pick value={cat} onChange={setCat} label="Category" options={[['', 'All categories'], ...cats.map((c) => [c, c])]} /></>}>
+    <Card title="Order summary" className="hw-orders" right={<Pick value={days} onChange={setDays} label="Period" options={PERIODS} />}>
       <div className="hw-os">
         <svg viewBox="0 0 240 240" className="hw-rings" role="img" aria-label={`${counts.total} orders: ` + GROUPS.map(([l], i) => `${l} ${counts.by[i]}`).join(', ')}>
           {GROUPS.map(([l, , c], i) => {
@@ -228,9 +192,9 @@ function OrderSummary({ orders, cats, now, online = true }) {
           <text x="120" y="136" textAnchor="middle" className="hw-rings__n">{counts.total}</text>
         </svg>
         <ul className="hw-legend">
-          {GROUPS.map(([l, keys, c], i) => (
+          {GROUPS.map(([l, , c, tab], i) => (
             <li key={l}>
-              <Link href={'/merchant-orders?status=' + keys[0]} className="hw-legend__row"><span>{l}</span><b>{counts.by[i]}</b></Link>
+              <Link href={'/merchant-orders?status=' + tab} className="hw-legend__row"><span>{l}</span><b>{counts.by[i]}</b></Link>
               <span className="hw-legend__bar" style={{ '--c': c }}><i style={{ width: (counts.by[i] / most) * 100 + '%' }} /></span>
             </li>
           ))}
@@ -240,203 +204,46 @@ function OrderSummary({ orders, cats, now, online = true }) {
   );
 }
 
-// ---- Live visitors ------------------------------------------------------------------------------------------------
-const PLACES = [['Dhaka', '050', 50], ['Chattogram', '050', 14], ['Sylhet', '050', 6], ['Khulna', '050', 5], ['Rajshahi', '050', 4], ['Kolkata', '356', 3], ['Dubai', '784', 4], ['Riyadh', '682', 3], ['Kuala Lumpur', '458', 3], ['London', '826', 3], ['New York', '840', 2], ['Toronto', '124', 1], ['Sydney', '036', 1], ['Doha', '634', 1]];
-function split(total) {
-  const sum = PLACES.reduce((a, p) => a + p[2], 0);
-  const raw = PLACES.map(([n, c, w]) => ({ name: n, country: c, exact: (total * w) / sum }));
-  raw.forEach((r) => { r.n = Math.floor(r.exact); });
-  let left = total - raw.reduce((a, r) => a + r.n, 0);
-  raw.slice().sort((a, b) => (b.exact - b.n) - (a.exact - a.n)).forEach((r) => { if (left > 0) { r.n += 1; left -= 1; } });
-  return raw.filter((r) => r.n > 0);
-}
-function LiveVisitors({ now }) {
-  const [map, setMap] = useState(null);
-  const [tick, setTick] = useState(0);
-  useEffect(() => { import('@/lib/worldMap').then(setMap).catch(() => {}); }, []);
-  useEffect(() => { const id = window.setInterval(() => setTick((t) => t + 1), 8000); return () => window.clearInterval(id); }, []);
-  // people on the site in the last 5 minutes: this hour's pace from lib/traffic.js, with a little drift every 8 seconds
-  const online = useMemo(() => {
-    const t = Date.now();
-    const v = safe(() => visitsOn(t, t), { byHour: [] });
-    const hr = new Date(t).getHours();
-    const done = (t - dayStart(t) - hr * 36e5) / 36e5;
-    const pace = done > 0.05 ? (v.byHour[hr] || 0) / done : v.byHour[Math.max(0, hr - 1)] || 0;
-    return Math.max(1, Math.round(pace / 12) + ((hash(String(tick)) % 5) - 2));
-  }, [tick, now]);
-  const spots = split(online);
-  const lit = new Set(spots.map((s) => s.country));
+// ---- Stock alert --------------------------------------------------------------------------------------------------
+function LowStock({ place }) {
+  const rows = useMemo(() => safe(() => getCatalog().filter((r) => !isVirtualRow(r) && r.st !== 'archived' && r.st !== 'deleted')
+    .map((r) => ({ ...r, left: stockAt(r.sku, place || undefined).available }))
+    .filter((r) => r.left <= LOW_AT).sort((a, b) => a.left - b.left).slice(0, 5), []), [place]);
   return (
-    <Card title="Live visitors" className="hw-live" right={<Link href="/analytics-hub" className="hw-link">Website analytics</Link>}>
-      <p className="hw-online"><i aria-hidden="true" /><b>{online}</b> online now</p>
-      <div className="hw-map">
-        {map ? (
-          <svg viewBox={`0 0 ${map.W} ${map.H}`} role="img" aria-label={`${online} people on the website now: ` + spots.map((s) => `${s.name} ${s.n}`).join(', ')}>
-            {map.COUNTRIES.map(([id, name, d]) => <path key={id + name} d={d} className={'hw-land' + (lit.has(id) ? ' is-lit' : '')}><title>{name}</title></path>)}
-            {spots.map((s) => {
-              const p = map.CITIES[s.name];
-              if (!p) return null;
-              const r = 3 + Math.min(7, Math.sqrt(s.n) * 1.6);
-              return (
-                <g key={s.name} className="hw-spot">
-                  <circle cx={p[0]} cy={p[1]} r={r + 6} className="hw-spot__pulse" />
-                  <circle cx={p[0]} cy={p[1]} r={r} className="hw-spot__dot"><title>{`${s.name}: ${s.n} online`}</title></circle>
-                </g>
-              );
-            })}
-          </svg>
-        ) : <div className="hw-skel" aria-hidden="true" />}
-      </div>
-      <div className="hw-where">{spots.slice(0, 5).map((s) => <span key={s.name}>{s.name} <b>{s.n}</b></span>)}</div>
-    </Card>
-  );
-}
-
-// ---- Top customers ------------------------------------------------------------------------------------------------
-function TopCustomers({ lines, now }) {
-  const rows = useMemo(() => {
-    const a = now - 30 * DAY, by = {};
-    lines.forEach((l) => {
-      const c = l.customer || {};
-      if (l.at < a || !c.name || /walk-?in/i.test(c.name)) return;
-      const k = c.phone || c.name;
-      const r = by[k] || (by[k] = { name: c.name, phone: c.phone, sales: new Set(), spent: 0 });
-      r.sales.add(l.saleId || l.id); r.spent += l.revenue || 0;
-    });
-    return Object.values(by).map((r) => ({ ...r, orders: r.sales.size })).sort((x, y) => y.spent - x.spent).slice(0, 8);
-  }, [lines, now]);
-  return (
-    <Card title="Top customers" className="hw-tc" right={<Link href="/all-customers" className="hw-link">All customers</Link>}>
+    <Card title="Stock alert" right={<span className="hw-muted hw-small">{place || 'All places'}</span>}
+      foot={<Link href="/stock" className="hw-link">View all stock</Link>}>
       {rows.length ? (
-        <ul className="hw-tc__grid">
+        <ul className="hw-low">
           {rows.map((r) => (
-            <li key={r.phone || r.name}>
-              <Link href={'/all-customers?q=' + encodeURIComponent(r.phone || r.name)} className="hw-tc__card">
-                <Face name={r.name} size={44} />
-                <b>{r.name}</b>
-                <span className="hw-tc__foot">{r.orders} {r.orders === 1 ? 'order' : 'orders'} · {short(r.spent)}</span>
+            <li key={r.sku}>
+              <Link href={'/stock?q=' + encodeURIComponent(r.sku)} className="hw-low__row">
+                <span className="hw-2l"><b>{String(r.name).split(' · ')[0]}</b><small>{r.variant || String(r.name).split(' · ').slice(1).join(' · ') || r.sku}</small></span>
+                <span className={'hw-stock' + (r.left <= 0 ? ' is-out' : '')}>{r.left <= 0 ? 'Out of stock' : r.left + ' left'}</span>
               </Link>
             </li>
           ))}
         </ul>
-      ) : <p className="hw-empty">No sales to customers in the last 30 days.</p>}
-    </Card>
-  );
-}
-
-// ---- tables -------------------------------------------------------------------------------------------------------
-const toneOf = (key) => (ORDER_STATUSES.find((s) => s.key === key) || { tone: 'neutral' }).tone;
-function LatestOrders({ orders }) {
-  const rows = orders.slice().sort((a, b) => b.at - a.at).slice(0, 5);
-  return (
-    <Card title="Latest orders" right={<Link href="/merchant-orders" className="hw-link">All orders</Link>}>
-      <div className="hw-tw"><table className="hw-table">
-        <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th className="is-num">Amount</th><th>Status</th></tr></thead>
-        <tbody>{rows.map((o) => (
-          <tr key={o.id}>
-            <td><Link href={orderHref(o.id, 'home')} className="hw-strong">{o.id}</Link></td>
-            <td><span className="hw-who"><Face name={o.customer} size={28} /><span>{o.customer}</span></span></td>
-            <td className="hw-muted">{new Date(o.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-            <td className="is-num">{money(o.amount)}</td>
-            <td><StatusBadge tone={toneOf(o.statusKey)}>{o.status}</StatusBadge></td>
-          </tr>
-        ))}</tbody>
-      </table></div>
-    </Card>
-  );
-}
-function LatestCustomers({ people }) {
-  const rows = people.map((c) => ({ ...c, joined: Date.parse(c.signup) || 0 })).filter((c) => c.joined).sort((a, b) => b.joined - a.joined).slice(0, 5);
-  return (
-    <Card title="Latest customers" right={<Link href="/all-customers" className="hw-link">All customers</Link>}>
-      <div className="hw-tw"><table className="hw-table">
-        <thead><tr><th>Customer</th><th>Email</th><th>Phone</th><th>Joined</th></tr></thead>
-        <tbody>{rows.map((c) => (
-          <tr key={c.id}>
-            <td><Link href={'/customer-crm?id=' + encodeURIComponent(c.id)} className="hw-who hw-who--link"><Face name={c.name} size={28} /><b>{c.name}</b></Link></td>
-            <td className="hw-muted"><span className="hw-ell">{c.email || '—'}</span></td>
-            <td className="hw-data">{c.phone}</td>
-            <td className="hw-muted">{new Date(c.joined).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-          </tr>
-        ))}</tbody>
-      </table></div>
-    </Card>
-  );
-}
-function TopProducts({ lines, now }) {
-  const rows = useMemo(() => {
-    const a = now - 30 * DAY, by = {};
-    lines.forEach((l) => {
-      if (l.at < a || !l.name) return;
-      const k = l.sku || l.name;
-      const r = by[k] || (by[k] = { key: k, name: l.name, cat: topCat(l.cat), qty: 0 });
-      r.qty += l.qty || 0;
-    });
-    return Object.values(by).sort((x, y) => y.qty - x.qty).slice(0, 5).map((r) => ({ ...r, brand: (safe(() => productBy(r.key), null) || {}).brand || '—' }));
-  }, [lines, now]);
-  return (
-    <Card title="Top products" className="hw-wide" right={<span className="hw-muted hw-small">Last 30 days</span>}>
-      <div className="hw-tw"><table className="hw-table">
-        <thead><tr><th>Product</th><th>Category</th><th>Brand</th><th className="is-num">Sold</th></tr></thead>
-        <tbody>{rows.map((p) => (
-          <tr key={p.key}>
-            <td><span className="hw-who"><span className="hw-thumb" data-tone={hash(p.name) % 6} aria-hidden="true">{initials(p.name)}</span><b>{p.name}</b></span></td>
-            <td className="hw-muted">{p.cat || '—'}</td>
-            <td className="hw-muted">{p.brand}</td>
-            <td className="is-num"><span className="hw-qty">{p.qty}</span></td>
-          </tr>
-        ))}</tbody>
-      </table></div>
-    </Card>
-  );
-}
-function LowStock({ cats }) {
-  const [cat, setCat] = useState('');
-  const [place, setPlace] = useState('');
-  const places = useMemo(() => safe(() => getPlaces({ active: true }).filter((p) => p.type === 'Branch' || p.type === 'Warehouse').map((p) => p.name), []), []);
-  const rows = useMemo(() => safe(() => getCatalog().filter((r) => !isVirtualRow(r) && r.st !== 'archived' && r.st !== 'deleted' && (!cat || topCat(r.cat) === cat))
-    .map((r) => ({ ...r, left: stockAt(r.sku, place).available }))
-    .filter((r) => r.left <= LOW_AT).sort((a, b) => a.left - b.left).slice(0, 6), []), [cat, place]);
-  return (
-    <Card title={<>Stock alert <span className="hw-alert">(low stock)</span></>}
-      right={<><Pick value={cat} onChange={setCat} label="Category" options={[['', 'All categories'], ...cats.map((c) => [c, c])]} /><Pick value={place} onChange={setPlace} label="Place" options={[['', 'All places'], ...places.map((p) => [p, p])]} /></>}
-      foot={<Link href="/stock" className="hw-link">View all stock</Link>}>
-      {rows.length ? (
-        <div className="hw-tw"><table className="hw-table">
-          <thead><tr><th>Product</th><th>SKU</th><th className="is-num">Price</th><th>Stock</th></tr></thead>
-          <tbody>{rows.map((r) => (
-            <tr key={r.sku}>
-              <td><span className="hw-who hw-who--2"><span className="hw-thumb" data-tone={hash(r.name) % 6} aria-hidden="true">{initials(r.name)}</span><span className="hw-2l"><b>{String(r.name).split(' · ')[0]}</b>{r.variant || String(r.name).split(' · ')[1] ? <small>{r.variant || String(r.name).split(' · ').slice(1).join(' · ')}</small> : null}</span></span></td>
-              <td className="hw-data">{r.sku}</td>
-              <td className="is-num">{money(r.price)}</td>
-              <td><span className={'hw-stock' + (r.left <= 0 ? ' is-out' : '')}>{Math.max(0, r.left) + ' left'}</span></td>
-            </tr>
-          ))}</tbody>
-        </table></div>
       ) : <p className="hw-empty">Nothing is running low{place ? ' at ' + place : ''}.</p>}
     </Card>
   );
 }
 
-/** skip: widget keys to leave out (e.g. ['latest-orders'] on the Online Home, which has its own Latest orders card). */
-export function HomeWidgets({ has = () => true, skip = [] }) {
-  const no = (k) => skip.includes(k);
-  const [now] = useState(() => Date.now());
+/** day: the day the page shows (start, ms; default today) · place: the page's place ('' = all) · skip: kept for callers. */
+export function HomeWidgets({ has = () => true, day: dayIn, place = '' }) {
+  const [today] = useState(() => dayStart(Date.now()));
+  const day = dayIn || today;
   const lines = useMemo(() => safe(() => getSaleLines(), []), []);
   const orders = useMemo(() => safe(() => getOrders(), []), []);
-  const people = useMemo(() => safe(() => getDirectory(), []), []);
-  const cats = useMemo(() => [...new Set(safe(() => getCatalog(), []).map((r) => topCat(r.cat)).filter(Boolean))].sort(), []);
+  const showOrders = has('online') || has('commerce');
   return (
     <div className="hw">
-      <div className="hw-row hw-row--wide"><SalesSummary lines={lines} cats={cats} now={now} />{has('online') || has('commerce') ? <OrderSummary orders={orders} cats={cats} now={now} online={has('online')} /> : null}</div>
-      <div className="hw-row">{has('online') ? <LiveVisitors now={now} /> : null}<TopCustomers lines={lines} now={now} /></div>
-      {no('latest-orders') ? (<>
-        <div className="hw-row"><TopProducts lines={lines} now={now} /><LatestCustomers people={people} /></div>
-        {has('catalog') ? <div className="hw-row"><LowStock cats={cats} /></div> : null}
-      </>) : (<>
-        <div className="hw-row"><LatestOrders orders={orders} /><LatestCustomers people={people} /></div>
-        <div className="hw-row"><TopProducts lines={lines} now={now} />{has('catalog') ? <LowStock cats={cats} /> : null}</div>
-      </>)}
+      <div className="hw-row hw-row--one"><SalesSummary lines={lines} day={day} place={place} /></div>
+      {showOrders || has('catalog') ? (
+        <div className="hw-row">
+          {showOrders ? <OrderSummary orders={orders} day={day} online={has('online')} /> : null}
+          {has('catalog') ? <LowStock place={place} /> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -444,7 +251,11 @@ export function HomeWidgets({ has = () => true, skip = [] }) {
 export const WIDGETS_CSS = `
 .hw{display:flex;flex-direction:column;gap:var(--space-4)}
 .hw-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:var(--space-4);align-items:start}
-.hw-row--wide{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+.hw-row--one{grid-template-columns:minmax(0,1fr)}
+.hw-low{list-style:none;margin:0 calc(var(--space-4) * -1);padding:0}
+.hw-low__row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:44px;padding:var(--space-2) var(--space-4);border-top:1px solid var(--border-subtle);color:var(--text-heading);text-decoration:none}
+.hw-low li:first-child .hw-low__row{border-top:0}
+.hw-low__row:hover{background:var(--surface-page)}
 .hw-card{display:flex;flex-direction:column;min-width:0;overflow:hidden}
 .hw-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2) var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle)}
 .hw-head h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
@@ -551,14 +362,14 @@ export const WIDGETS_CSS = `
 .hw-alert{color:var(--text-danger)}
 .hw-stock{display:inline-flex;align-items:center;height:24px;padding:0 var(--space-2);border-radius:var(--radius-md);background:var(--fill-warning);color:var(--text-inverse);font-size:var(--text-xs);font-weight:var(--weight-semibold);white-space:nowrap}
 .hw-stock.is-out{background:var(--error)}
-@media (max-width:1100px){.hw-row--wide{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){
   .hw-tc__grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .hw-os{grid-template-columns:minmax(0,1fr)}
   .hw-rings{max-width:220px;margin:0 auto}
   .hw-head{padding:var(--space-3)}
   .hw-body{padding:var(--space-3)}
-  .hw-tw{margin:0 calc(var(--space-3) * -1)}
+  .hw-low{margin:0 calc(var(--space-3) * -1)}
+  .hw-low__row{padding:var(--space-2) var(--space-3)}
   .hw-totals{gap:var(--space-3) var(--space-5)}
 }
 @media (prefers-reduced-motion:reduce){.hw-series path,.hw-spot__pulse,.hw-online i{animation:none}.hw-arc,.hw-legend__bar i{transition:none}}

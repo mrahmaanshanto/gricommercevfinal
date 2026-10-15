@@ -1,0 +1,37 @@
+{
+ "id": "B1-access",
+ "kind": "new",
+ "section": "Module B · Services",
+ "area": "Module B · Services",
+ "title": "Owner approves an expert's store access",
+ "problem": "Experts needed the owner's password or a support PIN to work in a store.",
+ "now": "The owner approves a limited, timed access in the order; it opens a logged access session for the expert.",
+ "steps": [
+  "In super admin, ask for store access on an order.",
+  "In the merchant panel, approve it.",
+  "Back in super admin, Start session."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/platform/services.js",
+  "src/lib/admin/supportAccess.js",
+  "src/lib/admin/servicesSync.js"
+ ],
+ "notes": "Where: My services › an order · Super admin › Services › an order",
+ "shots": [
+  {
+   "route": "/my-services",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "My services: what needs the owner",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

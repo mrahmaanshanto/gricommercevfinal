@@ -1,0 +1,34 @@
+{
+ "id": "ON-U11",
+ "kind": "fix",
+ "section": "Online selling",
+ "area": "Online selling",
+ "title": "Return only after delivery",
+ "problem": "Return and Resend receipt showed on orders not delivered or paid yet.",
+ "now": "Return shows after delivery, Resend receipt once paid or delivered, and Cancel order before that.",
+ "steps": [
+  "Open an On hold order and see Cancel order",
+  "Open a delivered order and see Return"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/order-detail/OrderDetail.jsx"
+ ],
+ "notes": "Where: Order page header",
+ "shots": [
+  {
+   "route": "/order-detail?id=%23136771",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Order page header",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

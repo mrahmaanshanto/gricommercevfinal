@@ -663,7 +663,7 @@ export default class MerchantSignInScreen extends Component {
                   </div>
                   <label style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569", cursor: "pointer" }}>
                     <input id="su-terms" type="checkbox" aria-required="true" aria-invalid={!!v.err?.terms} aria-describedby={v.err?.terms ? "su-terms-err" : undefined} onChange={v.clr?.terms} style={{ width: "18px", height: "18px", margin: "0", flexShrink: "0", accentColor: "#003087" }} />
-                    <span>{v.t?.termsPre}<b style={{ fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.terms}</b>{v.t?.termsMid}<b style={{ fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.privacy}</b>{v.t?.termsPost}</span>
+                    <span>{v.t?.termsPre}<a href="https://gridcommerce.net/terms" target="_blank" rel="noreferrer" style={{ fontWeight: "var(--weight-medium)", color: "#003087" }}>{v.t?.terms}</a>{v.t?.termsMid}<a href="https://gridcommerce.net/privacy" target="_blank" rel="noreferrer" style={{ fontWeight: "var(--weight-medium)", color: "#003087" }}>{v.t?.privacy}</a>{v.t?.termsPost}</span>
                   </label>
                   <__Err id="su-terms-err" msg={v.err?.terms} />
                   <button type="submit" className="gc-btn gc-solid" style={{ marginTop: "12px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>

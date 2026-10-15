@@ -1,0 +1,36 @@
+{
+ "id": "PR-U10",
+ "kind": "fix",
+ "section": "Products & stock",
+ "area": "Products & stock",
+ "title": "No dead ends for one-place shops",
+ "problem": "One-place shops were sent to a blocked purchase order page and saw held stock and 'in 1 places'.",
+ "now": "Buttons open New purchase, held and in-transit figures are hidden, and the place reads 'at Central Warehouse'.",
+ "steps": [
+  "Open /stock?edition=online",
+  "Check there is no Held figure or column",
+  "Open a supplier, More › New purchase"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/purchase-stock/Stock.jsx",
+  "src/screens/purchase-stock/SupplierDetail.jsx"
+ ],
+ "notes": "Where: Inventory › Stock · /stock?edition=online, and a supplier page",
+ "shots": [
+  {
+   "route": "/stock?edition=online",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Stock in a one-place shop",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

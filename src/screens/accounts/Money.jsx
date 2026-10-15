@@ -6,6 +6,7 @@
 //   card      views by account type (with their balance), search, filters (account, kind, dates, moves
 //             between own accounts), the movements with a running balance for one account, the pager
 //   Add money · Take money out · Move money between accounts (for the chosen account, if any)
+//   a row opens the movement in a side panel (EntrySheet.jsx: details, note, receipts, Reverse); ?entry=<id> opens one
 // Money moved or taken out over an approval limit (lib/approvals.js) is not posted: it waits in Approvals.
 // ?account=<id> · ?type=Cash|Bank|Mobile · ?do=in|out|transfer (&from=<id>) opens that form
 // Front end only: balances are opening + every entry in lib/ledger.
@@ -19,6 +20,7 @@ import { OWN_ACCOUNTS, HOLDING_ACCOUNTS, accountBy, getEntries, balanceOf, postE
 import { clockNow, dayKey, startOfDay, partnerInEdition, partnerBy } from '@/lib/settlements';
 import { needsApproval, submit, limitText } from '@/lib/approvals';
 import { AccPage, AccountSelect, useBooks, useMe, money, signed, shortDate, accName } from './accShared';
+import { EntrySheet } from './EntrySheet';
 
 const TYPES = [['Cash', 'Cash'], ['Bank', 'Banks'], ['Mobile', 'Mobile wallets']];
 const PAGE = 50;
@@ -33,6 +35,8 @@ const CSS = `
 .mn-out{color:var(--text-danger)}
 .mn-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums}
 .mn-what .ac-trunc{max-width:460px}
+.mn-pbtn{width:100%;border-width:0 0 1px;background:none;font:inherit;text-align:left;cursor:pointer}
+.mn-tag{margin-left:6px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-warning)}
 @media (max-width:1279px){.mn-what .ac-trunc{max-width:300px}}
 `;
 
@@ -45,6 +49,7 @@ function approvalOf(form, amt) {
 }
 const timeOf = (t) => new Date(t).toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' });
 const whatOf = (e) => e.cat || KIND_LABEL[e.kind] || e.kind;
+const tagOf = (e) => (e.reverses ? 'Reversal' : e.reversedBy ? 'Reversed' : '');
 const subOf = (e) => [e.party, e.ref && !String(e.ref).includes(':') ? e.ref : '', e.note].filter(Boolean).join(' · ');
 
 export default function Money() {
@@ -60,6 +65,7 @@ export default function Money() {
   const [moves, setMoves] = useState(false);   // show moves between the shop's own accounts in the all-accounts view
   const [find, setFind] = useState(false);
   const [form, setForm] = useState(null);      // { mode: 'in'|'out'|'transfer', ... }
+  const [openId, setOpenId] = useState('');    // a movement opened in the side panel (EntrySheet)
   const booted = useRef(false);
 
   useEffect(() => {
@@ -70,6 +76,7 @@ export default function Money() {
     if (acc && acc.type !== 'Holding') setAccount(acc.id);
     const t = u.searchParams.get('type');
     if (!acc && TYPES.some((x) => x[0] === t)) setType(t);
+    if (u.searchParams.get('entry')) setOpenId(u.searchParams.get('entry'));   // ?entry=<id> opens one movement
     const act = u.searchParams.get('do');
     if (['in', 'out', 'transfer'].includes(act)) {
       openForm(act, u.searchParams.get('from') || (acc && acc.id));
@@ -217,21 +224,21 @@ export default function Money() {
           <ul className="ix-plist" aria-label={scopeName}>
             {rows.map((e) => (
               <li key={e.id}>
-                <div className="ix-pitem">
-                  <span className="ix-pitem__top"><b>{whatOf(e)}</b><span className={'mn-fig ' + (e.amount > 0 ? 'mn-in' : 'mn-out')}>{signed(e.amount)}</span></span>
+                <button type="button" className="ix-pitem mn-pbtn" onClick={() => setOpenId(e.id)}>
+                  <span className="ix-pitem__top"><b>{whatOf(e)}{tagOf(e) ? <span className="mn-tag">{tagOf(e)}</span> : null}</b><span className={'mn-fig ' + (e.amount > 0 ? 'mn-in' : 'mn-out')}>{signed(e.amount)}</span></span>
                   <span className="ix-pitem__mid">{shortDate(e.at)} {timeOf(e.at)} · {accName(e.account)}{subOf(e) ? ' · ' + subOf(e) : ''}</span>
-                </div>
+                </button>
               </li>
             ))}
           </ul>
           <div className="ix-table-wrap">
-            <table className="ix-table ix-table--static gc-table--keep">
+            <table className="ix-table gc-table--keep">
               <caption className="sr-only">Money in and out, {scopeName}</caption>
               <thead><tr><th scope="col">When</th><th scope="col">What</th>{account ? null : <th scope="col">Account</th>}<th scope="col" className="ix-num">In</th><th scope="col" className="ix-num">Out</th>{account ? <th scope="col" className="ix-num">Balance</th> : null}</tr></thead>
               <tbody>{rows.map((e) => (
-                <tr key={e.id} title={[e.by ? 'By ' + e.by : '', e.ref, e.note].filter(Boolean).join(' · ') || undefined}>
+                <tr key={e.id} tabIndex={0} onClick={() => setOpenId(e.id)} title={[e.by ? 'By ' + e.by : '', e.ref, e.note].filter(Boolean).join(' · ') || undefined}>
                   <td className="mn-when ix-nowrap">{shortDate(e.at)} <span className="ix-muted">{timeOf(e.at)}</span></td>
-                  <td className="mn-what"><span className="ac-trunc"><span className="ix-strong">{whatOf(e)}</span>{subOf(e) ? <span className="ix-muted"> · {subOf(e)}</span> : null}</span></td>
+                  <td className="mn-what"><span className="ac-trunc"><span className="ix-strong">{whatOf(e)}</span>{tagOf(e) ? <span className="mn-tag">{tagOf(e)}</span> : null}{subOf(e) ? <span className="ix-muted"> · {subOf(e)}</span> : null}</span></td>
                   {account ? null : <td className="ix-muted ix-nowrap">{accName(e.account)}</td>}
                   <td className="ix-num mn-fig mn-in">{e.amount > 0 ? money(e.amount) : ''}</td>
                   <td className="ix-num mn-fig mn-out">{e.amount < 0 ? money(e.amount) : ''}</td>
@@ -246,6 +253,7 @@ export default function Money() {
         <Pager label={shown.length ? `Showing ${first + 1}–${first + rows.length} of ${shown.length}` : 'No money moved here'} atStart={pg <= 1} atEnd={pg >= pages} prev={() => setPage(pg - 1)} next={() => setPage(pg + 1)} />
       </section>
       <LearnMore topic="money" />
+      <EntrySheet id={openId} onClose={() => setOpenId('')} onOpen={setOpenId} />
 
       {form ? (
         <Dialog open title={form.mode === 'transfer' ? 'Move money' : form.mode === 'in' ? 'Add money' : 'Take money out'} onClose={() => setForm(null)} width={540}

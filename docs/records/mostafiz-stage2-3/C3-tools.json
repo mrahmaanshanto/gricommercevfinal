@@ -1,0 +1,37 @@
+{
+ "id": "C3-tools",
+ "kind": "new",
+ "section": "Module C · SEO",
+ "area": "Module C · SEO",
+ "title": "SEO health, not found, sitemap and robots.txt",
+ "problem": "There was no way to see SEO problems across the store or control the sitemap.",
+ "now": "One page scores every live item, lists issues with Fix, logs missing addresses, shows the sitemap and robots.txt.",
+ "steps": [
+  "Open Online Store › SEO.",
+  "Press Fix on a row with no description.",
+  "Write one and save: the issue count drops."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/online-store/SeoTools.jsx",
+  "src/lib/seoItems.js",
+  "src/lib/redirects.js"
+ ],
+ "notes": "Where: Online Store › SEO · Needs the server: The not-found log has demo rows; on the live website it comes from the server's visits.",
+ "shots": [
+  {
+   "route": "/seo",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "SEO › Health",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,41 @@
+{
+ "id": "C1-schedule",
+ "kind": "new",
+ "section": "Module C · SEO",
+ "area": "Module C · SEO",
+ "title": "Schedule pages, products and landing pages",
+ "problem": "Only blog posts could go live later; a product's \"Go live on a date\" had no date.",
+ "now": "Pick a date and time in Bangladesh time; it goes live by itself then, or cancel it.",
+ "steps": [
+  "Open a draft page.",
+  "In Schedule pick tomorrow 9:00 AM and save.",
+  "The page says when it goes live."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/storePages.js",
+  "src/lib/landingPages.js",
+  "src/lib/products.js",
+  "src/screens/products/AddProduct.jsx"
+ ],
+ "notes": "Where: Editor › Search engine listing › Schedule",
+ "shots": [
+  {
+   "route": "/blog-editor",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Post editor: the SEO panel",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    },
+    {
+     "scroll": ".seo-p"
+    }
+   ]
+  }
+ ]
+}

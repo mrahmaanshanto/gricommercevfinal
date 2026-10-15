@@ -4,6 +4,7 @@ import { getLocale } from '../runtime/ui';
 
 const BN = {
   'Mobile app': 'মোবাইল অ্যাপ', 'Open on this phone': 'এই ফোনে খুলুন',
+  'What’s new': 'নতুন কী', 'News and maintenance from GridCommerce': 'GridCommerce-এর খবর ও রক্ষণাবেক্ষণ',
   // groups
   'General': 'সাধারণ', 'Purchase': 'ক্রয়', 'Stocks & Inventory': 'স্টক ও মজুদ', 'Tracking & analytics': 'ট্র্যাকিং ও বিশ্লেষণ',
   'Staff & HR': 'কর্মী ও এইচআর', 'Loyalty': 'লয়্যালটি', 'Promo': 'প্রোমো', 'Recovery': 'রিকভারি', 'Accounts': 'হিসাব',
@@ -67,6 +68,16 @@ const BN = {
   'Business plan · 3 branches': 'বিজনেস প্ল্যান · ৩টি শাখা', 'Recent files': 'সাম্প্রতিক ফাইল', 'File manager': 'ফাইল ম্যানেজার',
   'See all': 'সব দেখুন', 'New invoice': 'নতুন ইনভয়েস', 'Upload a file': 'ফাইল আপলোড করুন',
   'Language set to English. The menu and top bar follow it; page content is English for now.': 'ভাষা বাংলা করা হয়েছে। মেনু ও উপরের বার বাংলায় দেখাবে; পেজের ভেতরের লেখা আপাতত ইংরেজিতে।',
+  // Stage 3 · money, team & settings: the bell, Invoices, Scan, Files and the Analytics menu (gc-topbar.js, navigation.js)
+  'Find': 'খুঁজুন', 'Open order': 'Order খুলুন', 'Open product': 'Product খুলুন', 'Nothing found for': 'কিছু পাওয়া যায়নি:',
+  'Barcode, SKU, IMEI or order number': 'Barcode, SKU, IMEI বা Order নম্বর', 'Check the code, or search by name above.': 'কোডটি দেখে নিন, বা উপরে নাম দিয়ে খুঁজুন।',
+  'Scan with the USB scanner, or type the code and press Enter.': 'USB স্ক্যানার দিয়ে স্ক্যান করুন, বা কোড লিখে Enter চাপুন।',
+  'Loading…': 'লোড হচ্ছে…', 'Paid': 'Paid', 'To accept': 'গ্রহণ বাকি', 'Due': 'Due', 'Walk-in': 'সাধারণ ক্রেতা', 'No invoices yet': 'এখনো কোনো Invoice নেই',
+  'Sales on due get an invoice here.': 'বাকিতে বিক্রি হলে তার Invoice এখানে আসে।', 'Nothing needs you right now': 'এই মুহূর্তে আপনার কিছু করার নেই',
+  'Demo: switch profile': 'ডেমো: প্রোফাইল বদলান', 'Review tool · see the app as another team member': 'রিভিউয়ের টুল · টিমের অন্য কারও চোখে অ্যাপ দেখুন',
+  'now': 'এইমাত্র',
+  'Marketing performance': 'মার্কেটিংয়ের ফল', 'Attribution': 'অ্যাট্রিবিউশন', 'Team performance': 'টিমের কাজ', 'Alerts & report builder': 'অ্যালার্ট ও রিপোর্ট বিল্ডার',
+  'Traffic': 'ট্রাফিক', 'Alerts': 'অ্যালার্ট',
   // proposal switches (src/lib/proposal.js)
   'Proposal: {n} on': 'প্রস্তাব: {n}টি চালু', 'Proposal switches': 'প্রস্তাবের সুইচ',
   // business areas and their page tabs (navigation.js, Oct 2026)

@@ -1,0 +1,43 @@
+{
+ "id": "AP-F5",
+ "kind": "new",
+ "section": "Phone app",
+ "area": "Phone app",
+ "title": "Returns and exchanges on the phone",
+ "problem": "Every return in the app sent people to the web.",
+ "now": "The app finds the sale by number, mobile or a scan, takes items back, refunds or swaps them, and returns stock to sale or to damaged.",
+ "steps": [
+  "Open the app's POS, tap the shift, then Return or exchange",
+  "Search a sale or scan its receipt",
+  "Tick an item, pick a reason and Cash, then Confirm return",
+  "Try Exchange and pick another item",
+  "On an order page tap Return or exchange: the sale opens, and Back returns to the order"
+ ],
+ "status": "partly",
+ "left": "Courier return parcels are still received on the web (/courier-returns).",
+ "files": [
+  "src/screens/app/pos/MReturn.jsx",
+  "src/screens/app/pos/returnData.js",
+  "src/app/(phone-app)/m-return/page.jsx",
+  "src/screens/app/kit/appNav.js",
+  "src/screens/app/pos/MPos.jsx",
+  "src/screens/app/AppScreens.jsx",
+  "src/lib/i18n/bn.js"
+ ],
+ "notes": "Where: App: More › Return or exchange (/m-return); POS › shift sheet",
+ "shots": [
+  {
+   "route": "/m-return",
+   "query": "as=ceo",
+   "viewport": "phone",
+   "beforeToo": false,
+   "label": "Phone: Return or exchange",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

@@ -80,8 +80,10 @@ export const statusOf = (inv) => (inv.due <= 0 ? 'paid' : paidSoFar(inv) > 0 ? '
 // ---- accept, then pay -----------------------------------------------------------------------------
 // A member of staff checks an unpaid invoice (items, prices, customer) and accepts it before money is recorded
 // against it. Acceptance belongs to one revision: editing the invoice makes a new revision that must be accepted again.
-/** True when the invoice's current revision has been accepted. */
-export const isAccepted = (inv) => !!inv.acceptedAt && (inv.acceptedRev || 1) === (inv.rev || 1);
+/** A counter sale (POS, not wholesale): the customer and the cashier settled the bill at the counter. */
+export const isCounterSale = (inv) => !!inv && inv.src === 'pos' && !inv.wholesale && !!inv.counter;
+/** True when the invoice's current revision has been accepted. A counter sale counts as accepted until it is revised. */
+export const isAccepted = (inv) => (!!inv.acceptedAt && (inv.acceptedRev || 1) === (inv.rev || 1)) || (isCounterSale(inv) && (inv.rev || 1) === 1);
 /** 'review' (to accept), 'accepted' (to pay) or 'paid'. */
 export const stageOf = (inv) => (inv.due <= 0 ? 'paid' : isAccepted(inv) ? 'accepted' : 'review');
 export const STAGES = { review: { label: 'To accept', tone: 'warning', icon: 'clipboard-check' }, accepted: { label: 'Accepted', tone: 'info', icon: 'check' }, paid: { label: 'Paid', tone: 'success', icon: 'circle-check' } };

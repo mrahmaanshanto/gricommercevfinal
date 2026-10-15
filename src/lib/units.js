@@ -7,6 +7,7 @@
 //   a later change to the pack size never changes old quantities.
 //
 //   unitOf(key)            the unit's definition (accepts old labels such as 'Piece', 'Box', 'kg')
+//   getUnits() · addUnit({ label, short, frac }) · removeUnit(k)   the built-in units plus the shop's own
 //   packsOf(row)           the packs of a catalogue row or a product (demo packs for catalogue-only items)
 //   toBase(row, n, packId) n packs (or n base units when packId is empty) as base units
 //   fmtQty(row, base)      "3 cartons + 4 pcs" / "1.25 kg"
@@ -28,9 +29,43 @@ export const UNITS = [
   { k: 'sqft', label: 'Square foot', short: 'sq ft', one: 'sq ft', frac: true },
 ];
 const OLD = { piece: 'pc', pieces: 'pc', pcs: 'pc', box: 'box', pack: 'packet', kg: 'kg', litre: 'l', liter: 'l', gram: 'g' };
+
+// The shop's own units (Products › Catalog setup › Units): added next to the built-in ones above, which never change.
+// Kept in this browser (gc.units.custom). A unit in use on a product can't be removed (the product form says so).
+export const UNITS_KEY = 'gc.units.custom';
+export const UNITS_EVENT = 'gc:units';
+let memo = { raw: null, list: [] };   // unitOf runs for every row of a list: parse the saved units once per change
+const readCustom = () => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(UNITS_KEY);
+    if (raw !== memo.raw) { const v = JSON.parse(raw); memo = { raw, list: Array.isArray(v) ? v : [] }; }
+    return memo.list;
+  } catch { return []; }
+};
+const writeCustom = (list) => { try { window.localStorage.setItem(UNITS_KEY, JSON.stringify(list)); window.dispatchEvent(new CustomEvent(UNITS_EVENT)); } catch { /* storage blocked */ } };
+/** Every unit: the built-in ones, then the shop's own ({ custom: true }). */
+export const getUnits = () => [...UNITS, ...readCustom().map((u) => ({ ...u, custom: true }))];
+/** Add a unit: { label, short, frac }. Returns { ok, unit } or { ok: false, error }. */
+export function addUnit({ label, short, frac }) {
+  const l = String(label || '').trim(), sh = String(short || '').trim();
+  if (!l) return { ok: false, error: 'Give the unit a name.' };
+  if (!sh) return { ok: false, error: 'Give it a short name, for example ctn.' };
+  const all = getUnits();
+  if (all.some((u) => u.label.toLowerCase() === l.toLowerCase() || u.short.toLowerCase() === sh.toLowerCase())) return { ok: false, error: 'There is already a unit with this name.' };
+  let k = sh.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 12) || 'unit';
+  while (all.some((u) => u.k === k)) k += '2';
+  const unit = { k, label: l, short: sh, one: sh, frac: !!frac };
+  writeCustom([...readCustom(), unit]);
+  return { ok: true, unit };
+}
+/** Remove one of the shop's own units (built-in units stay). */
+export function removeUnit(k) { writeCustom(readCustom().filter((u) => u.k !== k)); }
+
 export const unitOf = (key) => {
   const k = String(key || 'pc').trim();
-  return UNITS.find((u) => u.k === k || u.label.toLowerCase() === k.toLowerCase()) || UNITS.find((u) => u.k === OLD[k.toLowerCase()]) || UNITS[0];
+  const all = getUnits();
+  return all.find((u) => u.k === k || u.label.toLowerCase() === k.toLowerCase()) || UNITS.find((u) => u.k === OLD[k.toLowerCase()]) || UNITS[0];
 };
 
 // Packs of stock-catalogue items that have no product record of their own (stock.js CATALOG). A product's own

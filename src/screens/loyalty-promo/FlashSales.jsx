@@ -12,6 +12,7 @@ import { DCLogic, Icon as __Icon } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { EmptyState as __EmptyState, StatusBadge as __StatusBadge } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
+import MarketingTabs from '@/screens/loyalty-promo/MarketingTabs';
 import { navigate } from '@/runtime/routes';
 import { clockNow } from '@/lib/settlements';
 import { listOffers, PROMO_EVENT } from '@/lib/promotions';
@@ -76,13 +77,14 @@ export default class FlashSalesScreen extends Component {
         <div className="gc-shell">
           <__Sidebar sticky="" active="promo-flash" />
           <main className="gc-shell__main">
-            <__Topbar crumb="Promo" page="Flash sales" placeholder="Search a sale" />
+            <__Topbar crumb="Marketing" page="Flash sales" placeholder="Search a sale" />
             <div className="gc-shell__content">
               <div className="ix-page">
                 <ShopHeader icon="zap" title="Flash sales"
                   about="Sales with a start and an end. Prices drop at the start time and go back to normal by themselves when time is up."
-                  more={[{ label: 'Offers', href: '/promo' }, { label: 'Coupons', href: '/coupons' }, { label: 'View offers page', icon: 'external-link', onClick: () => window.open('/offers', '_blank', 'noopener') }]}
+                  more={[{ label: 'View offers page', icon: 'external-link', onClick: () => window.open('/offers', '_blank', 'noopener') }]}
                   primary={{ label: 'Start a flash sale', href: '/new-flash-sale' }} />
+                <MarketingTabs group="offers" active="promo-flash" />
 
                 <MetricStrip label="This month" items={[
                   { label: 'Flash sale sales', value: '৳1,86,900', sub: 'this month' },

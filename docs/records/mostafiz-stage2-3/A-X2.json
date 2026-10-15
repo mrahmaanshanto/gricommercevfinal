@@ -1,0 +1,43 @@
+{
+ "id": "A-X2",
+ "kind": "new",
+ "section": "Module A · Storefront builder",
+ "area": "Module A · Storefront builder",
+ "title": "Super admin editing switches now work",
+ "problem": "Super admin's merchant-editing switches were marked Planned and changed nothing for stores.",
+ "now": "Switches lock the matching parts of the merchant's builder with the reason, and presets follow each theme's packages.",
+ "steps": [
+  "In the super admin open the Signal theme",
+  "Switch off Colours and fonts and read what it hides",
+  "In the merchant panel open Theme › Customize › Brand & colours: the options show as locked",
+  "Back in the super admin, see the Merchant preset card with its packages"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/admin/themes.js",
+  "src/screens/admin/themes/themeShared.jsx",
+  "src/screens/admin/themes/ThemeView.jsx",
+  "src/screens/admin/themes/ThemeLibrary.jsx",
+  "src/lib/storefront/access.js"
+ ],
+ "notes": "Where: Super admin › Storefront themes › a theme (/admin/themes/view?id=signal) · Needs the server: Locks apply to the theme assigned to Dazzle Shop; a store with no theme follows the default switches.",
+ "shots": [
+  {
+   "route": "/admin/themes/view?id=signal",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Super admin: merchant editing switches",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    },
+    {
+     "scroll": "#thm-me-signal"
+    }
+   ]
+  }
+ ]
+}

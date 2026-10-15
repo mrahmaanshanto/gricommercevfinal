@@ -10,7 +10,7 @@
 //   <ReleaseSheet item close pick />     newRelease (new version, notes, rollout); `pick` lets the person choose the item
 //   <DeprecateSheet item close />  <DisableSheet item close />      deprecate · setEnabled(false, reason)
 //   <ChangeSheet shopId | themeId close />   assignStore, with a preview of what changes for the store
-//   <MerchantEditing item />             which parts merchants may edit (Planned: UI only)
+//   <MerchantEditing item />             which parts merchants may edit (read by the merchant's storefront builder)
 // Themes are a future module: no theme files are rendered and nothing is sent anywhere.
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -22,7 +22,7 @@ import { useAdminStore } from '@/lib/admin/store';
 import { TZ, dm, dmy, hm, daysBetween } from '@/lib/platform/util';
 import { modulesOf } from '@/lib/admin/merchants';
 import {
-  themes, CATEGORIES, TEMPLATE_CATEGORIES, FAMILIES, PACKAGES, THEME_MODULES, TEAMS, EDITABLE, ROLLOUTS, STATUS_TONE,
+  themes, CATEGORIES, TEMPLATE_CATEGORIES, FAMILIES, PACKAGES, THEME_MODULES, TEAMS, EDITABLE, EDITABLE_HINT, ROLLOUTS, STATUS_TONE,
   packageLabel, moduleName, sectionName, familyName, itemById, itemsOf, liveVersion, publishedVersions, releasesOf, statusOf,
   storesOn, templateUse, usageCount, onlineStores, packageOfShop, changePreview, cmpVer, bump, isSemver,
   uploadItem, editItem, newRelease, deprecate, setEnabled, assignStore, setEditable, runSchedule,
@@ -672,13 +672,14 @@ export function ChangeSheet({ shopId: fixedShop, themeId: fixedTheme, close }) {
   );
 }
 
-// ---- merchant editing (Planned) ----------------------------------------------------------------------------------------
-/** Which parts merchants may change in their copy (UI only until merchant-side editing is built). */
+// ---- merchant editing ------------------------------------------------------------------------------------------------
+/** Which parts merchants may change in their copy. The merchant panel's storefront builder (Online Store › Theme,
+ *  Header builder, Layouts) reads these for the store the theme is assigned to and shows the locked parts with why. */
 export function MerchantEditing({ item, data }) {
   const vals = item ? item.editable : data.editing;
   const flip = (k) => {
     const r = setEditable(item ? item.id : null, k, !vals[k]);
-    if (r.ok) toast(`${EDITABLE.find((e) => e[0] === k)[1]}: ${!vals[k] ? 'merchants may edit' : 'locked'} (applies when merchant editing ships)`);
+    if (r.ok) toast(`${EDITABLE.find((e) => e[0] === k)[1]}: ${!vals[k] ? 'merchants may edit' : 'locked for merchants'}`);
     else toast(r.error);
   };
   return (
@@ -686,14 +687,13 @@ export function MerchantEditing({ item, data }) {
       <div className="ix-card__head">
         <h2 id={'thm-me-' + (item ? item.id : 'all')}>Merchant editing</h2>
         <span className="thm-headact">
-          <StatusBadge tone="neutral">Planned</StatusBadge>
-          <InfoTip label="About merchant editing" text={item ? 'When merchants can edit their storefront, these switches decide which parts of this theme they may change. Nothing reaches a store yet.' : 'The default for new themes: which parts merchants will be able to change once merchant-side editing is built. Each theme can differ on its own page.'} />
+          <InfoTip label="About merchant editing" text={item ? 'Which parts of this theme the stores using it may change in Online Store › Theme. A part switched off shows there as locked, with the reason.' : 'The default for new themes, and for stores with no theme assigned. Each theme can differ on its own page.'} />
         </span>
       </div>
       <div className="ix-card__body">
         {EDITABLE.map(([k, l]) => (
           <div key={k} className="thm-switch">
-            <span id={'thm-ed-' + k + (item ? item.id : '')}>{l}</span>
+            <span id={'thm-ed-' + k + (item ? item.id : '')}>{l}{!vals[k] && EDITABLE_HINT[k] ? <small className="thm-muted thm-small" style={{ display: 'block' }}>{EDITABLE_HINT[k]}</small> : null}</span>
             <button type="button" role="switch" className="gc-switch" aria-checked={!!vals[k]} aria-labelledby={'thm-ed-' + k + (item ? item.id : '')} onClick={() => flip(k)}><span className="gc-switch__knob" /></button>
           </div>
         ))}

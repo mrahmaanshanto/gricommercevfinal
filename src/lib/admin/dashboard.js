@@ -12,6 +12,8 @@ import { DAY, startOfDay, startOfMonth, addMonths, monthOf } from '@/lib/platfor
 import { subOf, subState, isPaying, isLiveStore, mrrOf, openInvoices, balance } from '@/lib/platform/billing';
 import { LADDERS as EDITION_LADDERS } from '@/lib/platform/catalogue';
 import { attention } from '@/lib/platform/views';
+import { kycQueue } from '@/lib/platform/shops';
+import { merchantList } from './merchants';
 import { otherIncome } from './company';
 import { ops, services, serverLoad } from './ops';
 import { analytics, acquisitions, growthFunnel } from './analytics';
@@ -184,6 +186,12 @@ export function alerts(db, t) {
   if (late.length) rows.push({ key: 'late', tone: 'err', title: `${late.length} store${late.length > 1 ? 's' : ''} behind on payment`, sub: late.slice(0, 3).map((a) => a.n).join(', '), href: '/admin/collections' });
   if (svc.length) rows.push({ key: 'svc', tone: 'err', title: `${svc[0].name}: ${svc[0].note}`, sub: `${svc[0].incident || 'Incident'} open · ${svc.length} service${svc.length > 1 ? 's' : ''} affected`, href: '/admin/incidents' });
   if (desk.critical) rows.push({ key: 'tickets', tone: 'err', title: `${desk.critical} critical tickets`, sub: desk.unassigned ? `${desk.unassigned} not assigned yet` : 'All assigned', href: '/admin/tickets?view=open' });
+  // health and churn (SA-F6) and business verifications waiting (SA-F3) come before the sales rows, so the five-row
+  // cut keeps them
+  const risky = merchantList(db, t).rows.filter((r) => r.atRisk).sort((a, b) => a.health - b.health);
+  if (risky.length) rows.push({ key: 'risk', tone: 'warn', title: `${risky.length} store${risky.length > 1 ? 's' : ''} at risk of leaving`, sub: risky.slice(0, 3).map((r) => r.name).join(', '), href: '/admin/merchants?view=risk&sort=health-asc' });
+  const kyc = kycQueue(db).filter((x) => x.kyc.state === 'submitted');
+  if (kyc.length) rows.push({ key: 'kyc', tone: 'warn', title: `${kyc.length} verification${kyc.length > 1 ? 's' : ''} to review`, sub: kyc.slice(0, 3).map((x) => x.shop.name).join(', '), href: '/admin/kyc' });
   if (trials.length) rows.push({ key: 'trials', tone: 'warn', title: `${trials.length} trial${trials.length > 1 ? 's' : ''} need a call`, sub: trials.slice(0, 3).map((a) => a.n).join(', '), href: '/admin/onboarding?tab=trials' });
   if (failed.length) rows.push({ key: 'setup', tone: 'warn', title: `${failed.length} store setup stopped`, sub: failed.map((s) => s.name).join(', '), href: '/admin/onboarding?tab=stopped' });
   if (limits.length) rows.push({ key: 'limits', tone: 'warn', title: `${limits.length} store${limits.length > 1 ? 's' : ''} near the order limit`, sub: 'Offer an upgrade', href: '/admin/merchants' });

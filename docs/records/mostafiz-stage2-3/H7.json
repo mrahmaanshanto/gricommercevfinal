@@ -1,0 +1,37 @@
+{
+ "id": "H7",
+ "kind": "new",
+ "section": "Hosting",
+ "area": "Hosting",
+ "title": "Website backups and bandwidth use",
+ "problem": "Merchants couldn’t back up their website or see how much bandwidth it uses.",
+ "now": "Back up, download and restore the website and settings, ask to restore a nightly backup, and see bandwidth against the plan.",
+ "steps": [
+  "Open Settings › Hosting › Backups and press Back up now.",
+  "Open the Usage tab."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/settings-console/hosting/HostingMore.jsx",
+  "src/screens/settings-console/SetHosting.jsx",
+  "src/screens/settings-console/SetSecurity.jsx",
+  "src/lib/hosting.js"
+ ],
+ "notes": "Where: Settings › Hosting › Backups and Usage (/set-hosting?tab=backups)",
+ "shots": [
+  {
+   "route": "/set-hosting?tab=usage",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Hosting › Usage",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

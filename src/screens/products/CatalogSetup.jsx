@@ -1,281 +1,369 @@
 'use client';
-// Generated from design/templates/products/CatalogSetup.dc.html by scripts/convert-design.mjs.
-// CatalogSetup — Products — Catalog setup, a Shopify-style settings page (docs/shopify-style.md).
-// Edit freely: this file is now the source for the screen.
+// CatalogSetup — Products › Catalog setup (/catalog-setup), a Shopify-style settings page (docs/shopify-style.md): the
+// product templates card, then one card whose tabs are the lists every product uses — the shop's own product fields,
+// brands, units, tax rates, size charts and warranty policies — with the list's Add button beside them. Each list is
+// real and shared with the product form (Add product):
+//   fields       lib/catalogSetup.js › getProductFields (Add product › Product data › Shop fields)
+//   brands       lib/brands.js (edited on Products › Brands)
+//   units        lib/units.js › getUnits / addUnit (Add product › Inventory, identifiers & units)
+//   tax rates    lib/vat.js › getTaxRates (Add product › Pricing › VAT / tax); category rates stay on Accounts › VAT
+//   size charts  lib/catalogSetup.js › getSizeCharts (Add product › Product data › Size guide)
+//   warranty     lib/warranty.js (edited on Products › Warranty policies)
+// A row opens in a side panel to change or delete it. Attributes such as colour and size are made on each product.
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import TemplatesCard from './TemplatesCard';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
-import { Dialog as __Dialog, InfoTip as __InfoTip } from '@/components/ui';
+import { Icon } from '@/runtime/dc';
+import { Sidebar, Topbar } from '@/shell/Shell';
+import { Sheet, InfoTip, StatusBadge } from '@/components/ui';
 import { ShopHeader, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
-import { toast as __toast } from '@/runtime/ui';
+import { toast, confirmDialog } from '@/runtime/ui';
+import { getProductFields, saveProductField, removeProductField, FIELD_TYPES, getSizeCharts, saveSizeChart, removeSizeChart, CATALOG_EVENT } from '@/lib/catalogSetup';
+import { getUnits, addUnit, removeUnit, UNITS_EVENT } from '@/lib/units';
+import { getTaxRates, saveTaxRate, removeTaxRate, loadVat, vatRateFor, VAT_CATEGORIES, TAX_RATES_EVENT } from '@/lib/vat';
+import { getPolicies, periodText, TYPES as WTYPES, productsUsing, POLICIES_EVENT } from '@/lib/warranty';
+import { getBrands, productCounts, BRANDS_EVENT } from '@/lib/brands';
+import { allProducts } from '@/lib/products';
+import { getCategories, CATEGORIES_EVENT } from '@/lib/productCategories';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
-
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m) { __toast(m); }
-var SECS = [['fields', 'Custom fields', 14], ['brands', 'Brands', 38], ['units', 'Units', 6], ['tax', 'Tax rates', 3], ['size', 'Size charts', 4], ['warranty', 'Warranty policies', 4]];
-var CF = [['RAM', 'Dropdown', '4 GB, 6 GB, 8 GB, 12 GB', 'Phones, Tablets', 'Yes', 'Yes', 'No'], ['Network', 'Dropdown', '4G, 5G', 'Phones', 'Yes', 'Yes', 'No'], ['PTA approved', 'Yes / no', '—', 'Phones', 'Yes', 'Yes', 'No'], ['Display size', 'Number · inch', '—', 'Phones, Tablets', 'No', 'Yes', 'Yes'], ['Compatible models', 'Checkboxes', 'Galaxy A55, Redmi Note 13, iPhone 15…', 'Accessories', 'Yes', 'Yes', 'Yes'], ['Wattage', 'Number · W', '—', 'Chargers & cables', 'No', 'Yes', 'Yes'], ['Battery capacity', 'Number · mAh', '—', 'Phones, Power banks', 'Yes', 'Yes', 'No'], ['Material', 'Text', '—', 'Cases & covers', 'Yes', 'Yes', 'Yes'], ['Country of origin', 'Dropdown', 'Bangladesh, China, South Korea, Vietnam…', 'All categories', 'No', 'Yes', 'Yes']];
-var CH = { case: ['Case sizes by model', 'Accessories › Cases & covers', ['Size', 'Height', 'Width', 'Depth', 'Fits'], [['S', 147.6, 71.6, 7.8, 'iPhone 15'], ['M', 161.1, 77.4, 8.2, 'Galaxy A55'], ['L', 163.3, 78.2, 8.0, 'Redmi Note 13'], ['XL', 167.7, 78.0, 8.4, 'Galaxy A15']]], strap: ['Watch and band straps', 'Wearables', ['Size', 'Wrist min', 'Wrist max', 'Width', 'Fits'], [['S', 130, 180, 18, 'Smart Band 8'], ['M', 150, 200, 20, 'Galaxy Watch FE'], ['L', 170, 220, 22, 'Smart Watch S2']]], glass: ['Screen protector sizes', 'Accessories › Screen protection', ['Size', 'Diagonal', 'Height', 'Width', 'Fits'], [['6.1', 6.1, 143, 66, 'iPhone 15'], ['6.6', 6.6, 155, 72, 'Galaxy A55'], ['6.7', 6.7, 157, 73, 'Redmi Note 13']]] };
-class Component extends DCLogic {
-  renderVals() {
-    var self = this, s = this.state || {}, sec = s.sec || 'fields', ch = s.ch || 'case', unit = s.unit || 'in';
-    var C = CH[ch];
-    var conv = function (x) { return typeof x === 'number' && unit === 'cm' && ch !== 'shoe' ? (x * 2.54).toFixed(1) : x; };
-    var v = {
-      secs: SECS.map(function (x) { var on = x[0] === sec; return { l: x[1], c: x[2], on: on, pick: function () { self.setState({ sec: x[0] }); } }; }),
-      cf: CF.map(function (r) { return { l: r[0], t: r[1], o: r[2], c: r[3], req: r[4], show: r[5], ai: r[6] }; }),
-      cfOpen: !!s.cfOpen, openCf: function () { self.setState({ cfOpen: true }); }, closeCf: function () { self.setState({ cfOpen: false }); }, saveCf: function () { self.setState({ cfOpen: false }); toast(self, 'Field added. Every Phones product now asks for it.'); },
-      brands: [['Samsung', 18, '#1428a0'], ['Apple', 9, '#0f172a'], ['Dazzle Shop', 96, '#003087'], ['Xiaomi', 22, '#ea580c'], ['Realme', 14, '#ca8a04'], ['Anker', 11, '#0284c7'], ['Baseus', 16, '#047857'], ['SoundMax', 6, '#6d28d9']].map(function (b) { return { l: b[0], n: b[1], bg: b[2], i: b[0].charAt(0) }; }),
-      units: [['Piece', 'pc', 'No', 312], ['Pack', 'pack', 'No', 12], ['Box', 'box', 'No', 8], ['Metre', 'm', 'Yes', 4], ['Pair', 'pr', 'No', 6], ['Dozen', 'dz', 'No', 3]].map(function (u) { return { l: u[0], s: u[1], d: u[2], n: u[3] }; }),
-      taxes: [['Standard VAT', '15%', 'Yes', 'Accessories, Audio, Wearables', 298], ['Reduced VAT', '7.5%', 'Yes', 'Phones', 25], ['No VAT', '0%', '—', 'Repairs', 8]].map(function (t) { return { l: t[0], r: t[1], inc: t[2], c: t[3], n: t[4] }; }),
-      charts: Object.keys(CH).map(function (k) { var on = k === ch; return { l: CH[k][0], u: CH[k][1], on: on, pick: function () { self.setState({ ch: k }); } }; }),
-      units2: [['in', 'Inches'], ['cm', 'Centimetres']].map(function (m) { var on = m[0] === unit; return { l: m[1], on: on, pick: function () { self.setState({ unit: m[0] }); } }; }),
-      chHead: C[2].map(function (t, i) { return { t: i && ch !== 'shoe' ? t + ' (' + unit + ')' : t }; }), chRows: C[3].map(function (r) { return { c: r.map(function (x) { return { t: conv(x) }; }) }; }), chUsed: C[1] + ' · 24 products',
-      wps: [['1 year official brand warranty', '1 year', 'Brand', 'Brand service centre', 31], ['6 months shop service warranty', '6 months', 'Shop service', 'Your shop', 12], ['7-day replacement only', '7 days', 'Replacement', 'Your shop', 64], ['2 years parts, 1 year service', '2 years', 'Parts + service', 'Brand centre', 7]].map(function (w) { return { l: w[0], p: w[1], t: w[2], c: w[3], n: w[4] }; }),
-      addItem: function () { toast(self, 'A new row is ready to fill in.'); }
-    };
-    SECS.forEach(function (x) { v['is_' + x[0]] = x[0] === sec; });
-    return v;
-  }
-}
-// ---- styles ----
+const SECS = [['fields', 'Product fields', 'Add field'], ['brands', 'Brands', 'Add brand'], ['units', 'Units', 'Add unit'], ['tax', 'Tax rates', 'Add tax rate'], ['size', 'Size charts', 'New size chart'], ['warranty', 'Warranty policies', 'New policy']];
+const NOTE = {
+  fields: 'Fields every product in a category asks for. Shown on the product page when you choose.',
+  brands: 'Shown on product pages and used in filters. Edit them on Brands.',
+  units: 'How a product is counted and sold. Built-in units can’t be removed.',
+  tax: 'Rates a product can be given. Each category’s own rate is set on Accounts › VAT.',
+  size: 'Show customers the right size. Measures are in mm.',
+  warranty: 'Written once, picked on any product. Edit them on Warranty policies.',
+};
+const yes = (b) => (b ? 'Yes' : 'No');
 
 const CSS = `
-.cs-wrap{overflow-x:auto}
-.cs-tools{gap:var(--space-2)}
 .cs-pill{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-body);white-space:nowrap}
 .cs-mono{font-family:var(--font-data)}
 .cs-brand{display:flex;align-items:center;gap:10px}
-.cs-brand>span:first-child{display:grid;flex:none;place-items:center;width:28px;height:28px;border-radius:var(--radius-md);color:#fff;font-size:var(--text-xs);font-weight:var(--weight-semibold)}
-.cs-size{display:grid;grid-template-columns:220px minmax(0,1fr);gap:var(--space-4);padding:var(--space-4)}
-.cs-charts{display:flex;flex-direction:column;gap:6px}
-.cs-charts>button{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;text-align:left;cursor:pointer}
-.cs-charts>button[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft)}
-.cs-charts b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.cs-charts small{font-size:var(--text-xs);color:var(--text-muted)}
-.cs-grid{display:flex;flex-direction:column;gap:var(--space-3);min-width:0}
-.cs-gridbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
-.cs-gridbar>.gc-label{margin:0}
-.cs-sizegrid{border-collapse:collapse}
-.cs-sizegrid th{padding:0 4px 6px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:left;white-space:nowrap}
-.cs-sizegrid td{padding:2px 4px}
-.cs-sizegrid .gc-input{width:72px;height:28px;padding:0 8px;font-variant-numeric:tabular-nums}
-.cs-note{margin:0;font-size:var(--text-xs-plus);color:var(--text-muted)}
+.cs-brand>span:first-child{display:grid;flex:none;place-items:center;width:28px;height:28px;border-radius:var(--radius-md);background:var(--brand-navy-deep);color:var(--text-on-dark);font-size:var(--text-xs);font-weight:var(--weight-semibold)}
+.cs-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .cs-field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .cs-field .gc-label{margin:0}
+.cs-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
 .cs-checks{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-5);font-size:var(--text-sm)}
-.cs-checks label{display:flex;align-items:center;gap:var(--space-2);cursor:pointer}
-@media (max-width:640px){
-  .cs-size{grid-template-columns:minmax(0,1fr);padding:var(--space-3)}
-  .cs-charts{flex-direction:row;overflow-x:auto;scrollbar-width:none}
-  .cs-charts>button{flex:none}
-}
+.cs-checks label{display:flex;align-items:center;gap:var(--space-2);min-height:36px;cursor:pointer}
+.cs-err{margin:0;font-size:var(--text-xs);color:var(--text-danger)}
+.cs-grid{border-collapse:collapse}
+.cs-grid th{padding:0 4px 6px;font-weight:var(--weight-medium);text-align:left}
+.cs-grid td{padding:2px 4px}
+.cs-grid .gc-input{width:96px;min-width:0;font-variant-numeric:tabular-nums}
+.cs-wrap{overflow-x:auto}
+.cs-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.cs-foot-note{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
+@media (max-width:640px){.cs-two{grid-template-columns:minmax(0,1fr)}}
 `;
 
-// ---- markup ----
+const BLANK_FIELD = { label: '', type: 'select', unit: '', options: [], optText: '', cats: [], req: false, show: true, filter: true, ai: false };
 
-// Shopify-style settings page (components/ui/IndexKit.jsx): one card whose tabs are the catalog's lists — custom
-// fields, brands, units, tax rates, size charts, warranty policies — with the list's Add button beside them. A new
-// custom field is made in a dialog. Attributes are not set up here: they are made on each product (Add product ›
-// Attributes, as WooCommerce does).
-const SEC = [['fields', 'Add field'], ['brands', 'Add brand'], ['units', 'Add unit'], ['tax', 'Add tax rate'], ['size', 'New size chart']];
-const NOTE = { brands: 'Shown on product pages and used in filters.', units: 'How a product is counted and sold.', tax: 'VAT added to prices. Each category has a default; a product can change it.', size: 'Show customers the right size. Fewer returns.', warranty: 'Made in Settings. Pick one on any product.' };
+export default function CatalogSetupScreen() {
+  const [ready, setReady] = useState(false);
+  const [tick, setTick] = useState(0);
+  const [sec, setSec] = useState('fields');
+  const [edit, setEdit] = useState(null);   // { kind: 'field' | 'unit' | 'tax' | 'chart', ...draft }
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    setReady(true);
+    const want = new URLSearchParams(window.location.search).get('tab');
+    if (SECS.some((x) => x[0] === want)) setSec(want);
+    const bump = () => setTick((n) => n + 1);
+    const evs = [CATALOG_EVENT, UNITS_EVENT, TAX_RATES_EVENT, POLICIES_EVENT, BRANDS_EVENT, CATEGORIES_EVENT];
+    evs.forEach((e) => window.addEventListener(e, bump));
+    return () => evs.forEach((e) => window.removeEventListener(e, bump));
+  }, []);
 
-export default class CatalogSetupScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    const keys = ['fields', 'brands', 'units', 'tax', 'size', 'warranty'];
-    const cur = keys.find((k) => v['is_' + k]) || 'fields';
-    const add = SEC.find((x) => x[0] === cur);
-    const tabs = __list(v.secs).map((n, i) => ({ key: keys[i], id: 'cs-tab-' + keys[i], label: n.l, count: n.c, on: n.on, onClick: n.pick }));
-    return (
-      <div className="dc-screen ds" data-screen="CatalogSetup">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell">
-          <__Sidebar sticky="" active="products-setup" />
-          <main className="gc-shell__main">
-            <__Topbar crumb="Products" page="Catalog setup" placeholder="Search products, SKU or barcode" />
-            <div className="gc-shell__content">
-              <div className="ix-page ix-page--narrow">
-                <ShopHeader icon="settings-2" title="Catalog setup"
-                  about="Custom fields, brands, units, tax rates, size charts and warranty policies that every product uses. Attributes such as colour and size are added on each product."
-                  more={[{ label: 'Categories', href: '/categories' }, { label: 'Warranty policies', href: '/warranty-policies' }, { label: 'All products', href: '/all-products' }]} />
+  // every list after mount (browser storage), the demo lists on the first render
+  const data = useMemo(() => {
+    void tick;
+    const products = ready ? allProducts().filter((p) => p.st !== 'deleted') : [];
+    const vat = ready ? loadVat() : null;
+    const cats = ready ? [...new Set(getCategories().filter((c) => c.lv === 0).map((c) => c.name).concat(VAT_CATEGORIES))] : VAT_CATEGORIES;
+    const brandN = ready ? productCounts() : {};
+    // the lists live in browser storage: read them after mount only, so the first render matches the prerender
+    const list = (fn) => (ready ? fn() : []);
+    return {
+      products, cats,
+      fields: list(getProductFields),
+      brands: list(getBrands).map((b) => ({ ...b, n: brandN[b.name.toLowerCase()] || 0 })),
+      units: list(getUnits).map((u) => ({ ...u, n: products.filter((p) => (p.unit || 'pc') === u.k).length })),
+      taxes: list(getTaxRates).map((t) => ({ ...t, cats: vat ? cats.filter((c) => vatRateFor(c, vat) === Number(t.rate)) : [], n: products.filter((p) => p.vatRate != null && p.vatRate !== '' && Number(p.vatRate) === Number(t.rate)).length })),
+      charts: list(getSizeCharts).map((c) => ({ ...c, n: products.filter((p) => p.sizeGuide === c.id).length })),
+      policies: list(getPolicies).map((p) => ({ ...p, n: productsUsing(p.key, products) })),
+    };
+  }, [ready, tick]);
 
-                <TemplatesCard />
+  const counts = { fields: data.fields.length, brands: data.brands.length, units: data.units.length, tax: data.taxes.length, size: data.charts.length, warranty: data.policies.length };
+  const tabs = SECS.map(([k, l]) => ({ key: k, id: 'cs-tab-' + k, label: l, count: ready ? counts[k] : null, on: k === sec, onClick: () => { setSec(k); window.history.replaceState(null, '', window.location.pathname + (k === 'fields' ? '' : '?tab=' + k)); } }));
+  const addLabel = (SECS.find((x) => x[0] === sec) || [])[2];
 
-                <section className="ix-card cs-card" aria-label="Catalog setup">
-                  <div className="ix-bar">
-                    <IndexTabs tabs={tabs} label="Catalog setup" />
-                    <span className="ix-tools cs-tools">
-                      {NOTE[cur] ? <__InfoTip text={NOTE[cur]} /> : null}
-                      {add ? (
-                        <button type="button" className="ix-btn ix-btn--sm" onClick={cur === 'fields' ? v.openCf : v.addItem} aria-haspopup={cur === 'fields' ? 'dialog' : undefined}><__Icon name="plus" width="16" height="16" aria-hidden="true" />{add[1]}</button>
-                      ) : (
-                        <__Link href="/warranty-policies" className="ix-btn ix-btn--sm">Manage policies</__Link>
-                      )}
-                    </span>
-                  </div>
+  const open = (draft) => { setErr(''); setEdit(draft); };
+  const close = () => { setEdit(null); setErr(''); };
+  const add = () => {
+    if (sec === 'fields') open({ kind: 'field', ...BLANK_FIELD });
+    else if (sec === 'units') open({ kind: 'unit', label: '', short: '', frac: false });
+    else if (sec === 'tax') open({ kind: 'tax', name: '', rate: '' });
+    else if (sec === 'size') open({ kind: 'chart', name: '', cat: '', head: ['Size', 'Height', 'Width', 'Fits'], rows: [['S', '', '', ''], ['M', '', '', ''], ['L', '', '', '']] });
+  };
 
-                  {v.is_fields ? (
-                    <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-fields">
-                      <table className="ix-table ix-table--static">
-                        <thead>
-                          <tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Choices</th><th scope="col">Categories</th><th scope="col">Required</th><th scope="col">Shown to customers</th><th scope="col">AI can fill</th></tr>
-                        </thead>
-                        <tbody>
-                          {__list(v.cf).map((r, i) => (
-                            <tr key={i}>
-                              <td className="ix-strong">{r.l}</td>
-                              <td><span className="cs-pill">{r.t}</span></td>
-                              <td className="ix-muted" style={{ maxWidth: "220px" }}>{r.o}</td>
-                              <td>{r.c}</td>
-                              <td>{r.req}</td>
-                              <td>{r.show}</td>
-                              <td>{r.ai}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : null}
+  const save = () => {
+    const e = edit;
+    let r;
+    if (e.kind === 'field') r = saveProductField({ ...e, options: String(e.optText != null && e.optText !== '' ? e.optText : (e.options || []).join('\n')).split('\n') });
+    else if (e.kind === 'unit') r = addUnit(e);
+    else if (e.kind === 'tax') r = saveTaxRate(e);
+    else if (e.kind === 'chart') r = saveSizeChart(e);
+    if (!r || !r.ok) { setErr((r && r.error) || 'Could not save.'); return; }
+    toast(e.kind === 'field' ? `${r.field.label} saved. Products in ${r.field.cats.length ? r.field.cats.join(', ') : 'every category'} ask for it.` : e.kind === 'unit' ? `${r.unit.label} added` : e.kind === 'tax' ? `${r.rate.name} · ${r.rate.rate}% saved` : `${r.chart.name} saved`);
+    close();
+  };
+  const remove = async () => {
+    const e = edit;
+    const used = e.kind === 'unit' ? (data.units.find((u) => u.k === e.k) || {}).n : e.kind === 'tax' ? (data.taxes.find((t) => t.id === e.id) || {}).n : e.kind === 'chart' ? (data.charts.find((c) => c.id === e.id) || {}).n : 0;
+    if (used) { setErr(`${used} product${used === 1 ? ' uses' : 's use'} it. Change ${used === 1 ? 'that product' : 'those products'} first.`); return; }
+    const name = e.label || e.name;
+    if (!(await confirmDialog({ title: `Delete ${name}?`, body: e.kind === 'field' ? 'Products keep the values they have, but no longer ask for this field.' : 'It is no longer offered on products.', confirmLabel: 'Delete', tone: 'danger' }))) return;
+    if (e.kind === 'field') removeProductField(e.key); else if (e.kind === 'unit') removeUnit(e.k); else if (e.kind === 'tax') removeTaxRate(e.id); else if (e.kind === 'chart') removeSizeChart(e.id);
+    toast(`${name} deleted`);
+    close();
+  };
+  const set = (patch) => { setEdit({ ...edit, ...patch }); setErr(''); };
 
+  const editable = edit && (edit.kind !== 'unit' || !edit.k);   // a saved unit is only removed, not changed
+  const title = !edit ? '' : edit.kind === 'field' ? (edit.key ? edit.label : 'New product field') : edit.kind === 'unit' ? (edit.k ? edit.label : 'New unit') : edit.kind === 'tax' ? (edit.id ? edit.name : 'New tax rate') : (edit.id ? edit.name : 'New size chart');
 
-                  {v.is_brands ? (
-                    <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-brands">
-                      <table className="ix-table ix-table--static">
-                        <thead><tr><th scope="col">Brand</th><th scope="col" className="ix-num">Products</th></tr></thead>
-                        <tbody>
-                          {__list(v.brands).map((b, i) => (
-                            <tr key={i}>
-                              <td><span className="cs-brand"><span style={{ background: b.bg }} aria-hidden="true">{b.i}</span><span className="ix-strong">{b.l}</span></span></td>
-                              <td className="ix-num">{b.n}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : null}
+  return (
+    <div className="dc-screen ds" data-screen="CatalogSetup">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <div className="gc-shell">
+        <Sidebar sticky="" active="products-setup" />
+        <main className="gc-shell__main">
+          <Topbar crumb="Products" page="Catalog setup" placeholder="Search products, SKU or barcode" />
+          <div className="gc-shell__content">
+            <div className="ix-page ix-page--narrow">
+              <ShopHeader icon="settings-2" title="Catalog setup"
+                about="Product fields, brands, units, tax rates, size charts and warranty policies that every product uses. Attributes such as colour and size are added on each product."
+                more={[{ label: 'Categories', href: '/categories' }, { label: 'Warranty policies', href: '/warranty-policies' }, { label: 'All products', href: '/all-products' }]} />
 
-                  {v.is_units ? (
-                    <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-units">
-                      <table className="ix-table ix-table--static">
-                        <thead><tr><th scope="col">Unit</th><th scope="col">Short</th><th scope="col">Half units allowed</th><th scope="col" className="ix-num">Products</th></tr></thead>
-                        <tbody>
-                          {__list(v.units).map((u, i) => (
-                            <tr key={i}><td className="ix-strong">{u.l}</td><td className="cs-mono">{u.s}</td><td>{u.d}</td><td className="ix-num">{u.n}</td></tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : null}
+              <TemplatesCard />
 
-                  {v.is_tax ? (
-                    <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-tax">
-                      <table className="ix-table ix-table--static">
-                        <thead><tr><th scope="col">Name</th><th scope="col" className="ix-num">Rate</th><th scope="col">Price includes VAT?</th><th scope="col">Default for</th><th scope="col" className="ix-num">Products</th></tr></thead>
-                        <tbody>
-                          {__list(v.taxes).map((t, i) => (
-                            <tr key={i}><td className="ix-strong">{t.l}</td><td className="ix-num ix-strong">{t.r}</td><td>{t.inc}</td><td className="ix-muted">{t.c}</td><td className="ix-num">{t.n}</td></tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : null}
+              <section className="ix-card" aria-label="Catalog setup">
+                <div className="ix-bar">
+                  <IndexTabs tabs={tabs} label="Catalog setup" />
+                  <span className="ix-tools">
+                    <InfoTip text={NOTE[sec]} />
+                    {sec === 'brands' ? <Link href="/brands" className="ix-btn ix-btn--sm"><Icon name="plus" width="16" height="16" aria-hidden="true" />{addLabel}</Link>
+                      : sec === 'warranty' ? <Link href="/warranty-policies?new=1" className="ix-btn ix-btn--sm"><Icon name="plus" width="16" height="16" aria-hidden="true" />{addLabel}</Link>
+                        : <button type="button" className="ix-btn ix-btn--sm" onClick={add} aria-haspopup="dialog"><Icon name="plus" width="16" height="16" aria-hidden="true" />{addLabel}</button>}
+                  </span>
+                </div>
 
-                  {v.is_size ? (
-                    <div className="cs-size" role="tabpanel" aria-labelledby="cs-tab-size">
-                      <div className="cs-charts">
-                        {__list(v.charts).map((c, i) => (
-                          <button key={i} type="button" onClick={c.pick} aria-pressed={!!c.on}><b>{c.l}</b><small>{c.u}</small></button>
+                {sec === 'fields' ? (
+                  <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-fields">
+                    <table className="ix-table">
+                      <thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Choices</th><th scope="col">Categories</th><th scope="col">Required</th><th scope="col">Shown to customers</th></tr></thead>
+                      <tbody>
+                        {data.fields.map((f) => (
+                          <tr key={f.key} onClick={() => open({ kind: 'field', ...f, optText: (f.options || []).join('\n') })}>
+                            <td><button type="button" className="ix-strong" onClick={(e) => { e.stopPropagation(); open({ kind: 'field', ...f, optText: (f.options || []).join('\n') }); }}>{f.label}</button></td>
+                            <td><span className="cs-pill">{FIELD_TYPES[f.type]}{f.unit ? ' · ' + f.unit : ''}</span></td>
+                            <td className="ix-muted">{(f.options || []).join(', ') || '—'}</td>
+                            <td>{f.cats && f.cats.length ? f.cats.join(', ') : 'All categories'}</td>
+                            <td>{yes(f.req)}</td>
+                            <td>{yes(f.show)}</td>
+                          </tr>
                         ))}
-                      </div>
-                      <div className="cs-grid">
-                        <div className="cs-gridbar">
-                          <span className="gc-label">Measure in</span>
-                          <div className="gc-seg" role="group" aria-label="Measure in">
-                            {__list(v.units2).map((m, i) => (
-                              <button key={i} type="button" className={'gc-seg__btn' + (m.on ? ' gc-seg__btn--active' : '')} aria-pressed={!!m.on} onClick={m.pick}>{m.l}</button>
-                            ))}
-                          </div>
-                          <span style={{ flex: 1 }} />
-                          <button type="button" className="ix-btn ix-btn--sm">+ Row</button>
-                          <button type="button" className="ix-btn ix-btn--sm">+ Column</button>
-                        </div>
-                        <div className="cs-wrap">
-                          <table className="cs-sizegrid gc-table--keep">
-                            <thead><tr>{__list(v.chHead).map((h, i) => <th key={i} scope="col">{h.t}</th>)}</tr></thead>
-                            <tbody>
-                              {__list(v.chRows).map((cr, i) => (
-                                <tr key={i}>{__list(cr.c).map((cx, j) => <td key={j}><input className="gc-input" defaultValue={cx.t} aria-label="Size value" /></td>)}</tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        <p className="cs-note">Used by <b>{v.chUsed}</b></p>
-                      </div>
-                    </div>
-                  ) : null}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
 
-                  {v.is_warranty ? (
-                    <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-warranty">
-                      <table className="ix-table ix-table--static">
-                        <thead><tr><th scope="col">Policy</th><th scope="col">Period</th><th scope="col">Type</th><th scope="col">Claim at</th><th scope="col" className="ix-num">Products</th></tr></thead>
-                        <tbody>
-                          {__list(v.wps).map((w, i) => (
-                            <tr key={i}><td className="ix-strong">{w.l}</td><td>{w.p}</td><td>{w.t}</td><td className="ix-muted">{w.c}</td><td className="ix-num">{w.n}</td></tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : null}
-                </section>
-                <LearnMore topic="catalog setup" />
-              </div>
-            </div>
-          </main>
-        </div>
+                {sec === 'brands' ? (
+                  <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-brands">
+                    <table className="ix-table">
+                      <thead><tr><th scope="col">Brand</th><th scope="col" className="ix-num">Products</th></tr></thead>
+                      <tbody>
+                        {data.brands.map((b) => (
+                          <tr key={b.id || b.name}>
+                            <td><span className="cs-brand"><span aria-hidden="true">{b.name.charAt(0)}</span><Link href="/brands" className="ix-strong">{b.name}</Link></span></td>
+                            <td className="ix-num">{ready ? b.n : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
 
-        <__Dialog open={!!v.cfOpen} title="New custom field" onClose={v.closeCf} width={560} footer={<>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeCf}>Cancel</button>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.saveCf}>Add field</button>
-        </>}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-            <label className="cs-field">
-              <span className="gc-label">Field name</span>
-              <input className="gc-input" defaultValue="Warranty card included" aria-label="Field name" data-autofocus="" />
-            </label>
-            <label className="cs-field">
-              <span className="gc-label">Type</span>
-              <select className="gc-input gc-select" aria-label="Field type">
-                <option>Yes / no</option>
-                <option>Text</option>
-                <option>Number with unit</option>
-                <option>Date</option>
-                <option>Dropdown (one choice)</option>
-                <option>Checkboxes (many)</option>
-                <option>Colour</option>
-                <option>File or PDF</option>
-              </select>
-            </label>
-            <label className="cs-field">
-              <span className="gc-label">Categories</span>
-              <select className="gc-input gc-select" aria-label="Categories">
-                <option>Electronics (and all inside)</option>
-                <option>All categories</option>
-              </select>
-            </label>
-            <div className="cs-checks">
-              <label><input type="checkbox" className="gc-check" />Required</label>
-              <label><input type="checkbox" className="gc-check" defaultChecked={true} />Show on product page</label>
-              <label><input type="checkbox" className="gc-check" defaultChecked={true} />Use in shop filters</label>
-              <label><input type="checkbox" className="gc-check" />AI can fill it</label>
+                {sec === 'units' ? (
+                  <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-units">
+                    <table className="ix-table">
+                      <thead><tr><th scope="col">Unit</th><th scope="col">Short</th><th scope="col">Half units allowed</th><th scope="col" className="ix-num">Products</th></tr></thead>
+                      <tbody>
+                        {data.units.map((u) => (
+                          <tr key={u.k} onClick={u.custom ? () => open({ kind: 'unit', ...u }) : undefined}>
+                            <td>{u.custom ? <button type="button" className="ix-strong" onClick={(e) => { e.stopPropagation(); open({ kind: 'unit', ...u }); }}>{u.label}</button> : <span className="ix-strong">{u.label}</span>}{u.custom ? null : <span className="ix-muted"> · built in</span>}</td>
+                            <td className="cs-mono">{u.short}</td>
+                            <td>{yes(u.frac)}</td>
+                            <td className="ix-num">{ready ? u.n : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+
+                {sec === 'tax' ? (
+                  <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-tax">
+                    <table className="ix-table">
+                      <thead><tr><th scope="col">Name</th><th scope="col" className="ix-num">Rate</th><th scope="col">Category default for</th><th scope="col" className="ix-num">Products</th></tr></thead>
+                      <tbody>
+                        {data.taxes.map((t) => (
+                          <tr key={t.id} onClick={() => open({ kind: 'tax', ...t, rate: String(t.rate) })}>
+                            <td><button type="button" className="ix-strong" onClick={(e) => { e.stopPropagation(); open({ kind: 'tax', ...t, rate: String(t.rate) }); }}>{t.name}</button></td>
+                            <td className="ix-num ix-strong">{t.rate}%</td>
+                            <td className="ix-muted">{t.cats.length ? t.cats.join(', ') : '—'}</td>
+                            <td className="ix-num">{ready ? t.n : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="ix-foot"><span>Category rates: <Link href="/vat">Accounts › VAT</Link></span></div>
+                  </div>
+                ) : null}
+
+                {sec === 'size' ? (
+                  <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-size">
+                    <table className="ix-table">
+                      <thead><tr><th scope="col">Chart</th><th scope="col">For</th><th scope="col">Sizes</th><th scope="col" className="ix-num">Products</th></tr></thead>
+                      <tbody>
+                        {data.charts.map((c) => (
+                          <tr key={c.id} onClick={() => open({ kind: 'chart', ...c })}>
+                            <td><button type="button" className="ix-strong" onClick={(e) => { e.stopPropagation(); open({ kind: 'chart', ...c }); }}>{c.name}</button></td>
+                            <td className="ix-muted">{c.cat || '—'}</td>
+                            <td>{c.rows.map((r) => r[0]).join(', ')}</td>
+                            <td className="ix-num">{ready ? c.n : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+
+                {sec === 'warranty' ? (
+                  <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-warranty">
+                    <table className="ix-table">
+                      <thead><tr><th scope="col">Policy</th><th scope="col">Period</th><th scope="col">Type</th><th scope="col">Claim at</th><th scope="col">Status</th><th scope="col" className="ix-num">Products</th></tr></thead>
+                      <tbody>
+                        {data.policies.map((w) => (
+                          <tr key={w.key}>
+                            <td><Link href={'/warranty-policies?key=' + encodeURIComponent(w.key)} className="ix-strong">{w.label}</Link>{w.isDefault ? <span className="ix-muted"> · store default</span> : null}</td>
+                            <td>{periodText(w)}</td>
+                            <td>{WTYPES[w.type]}</td>
+                            <td className="ix-muted">{w.claim}</td>
+                            <td><StatusBadge tone={w.status === 'published' ? 'success' : 'info'}>{w.status === 'published' ? 'Published' : 'Draft'}</StatusBadge></td>
+                            <td className="ix-num">{ready ? w.n : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+              </section>
+              <LearnMore topic="catalog setup" />
             </div>
           </div>
-        </__Dialog>
+        </main>
       </div>
-    );
-  }
+
+      <Sheet open={!!edit} title={title} onClose={close} footer={edit ? <>
+        {(edit.kind === 'field' && edit.key) || (edit.kind === 'unit' && edit.k) || ((edit.kind === 'tax' || edit.kind === 'chart') && edit.id)
+          ? <button type="button" className="gc-btn gc-btn--sm gc-btn--flat gc-btn--error" style={{ marginRight: 'auto' }} onClick={remove}>Delete</button> : null}
+        <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={close}>Cancel</button>
+        {editable ? <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={save}>Save</button> : null}
+      </> : null}>
+        {edit && edit.kind === 'field' ? (
+          <div className="cs-form">
+            <label className="cs-field"><span className="gc-label">Field name</span><input className="gc-input" value={edit.label} onChange={(e) => set({ label: e.target.value })} data-autofocus="" /></label>
+            <div className="cs-two">
+              <label className="cs-field"><span className="gc-label">Type</span>
+                <select className="gc-input gc-select" value={edit.type} onChange={(e) => set({ type: e.target.value })}>{Object.entries(FIELD_TYPES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+              </label>
+              {edit.type === 'number' ? <label className="cs-field"><span className="gc-label">Unit (optional)</span><input className="gc-input" placeholder="mAh, W, inch" value={edit.unit || ''} onChange={(e) => set({ unit: e.target.value })} /></label> : null}
+            </div>
+            {edit.type === 'select' || edit.type === 'multi' ? (
+              <label className="cs-field"><span className="gc-label">Choices, one per line</span><textarea className="gc-input" rows={4} value={edit.optText != null ? edit.optText : (edit.options || []).join('\n')} onChange={(e) => set({ optText: e.target.value })} /></label>
+            ) : null}
+            <fieldset className="cs-field" style={{ border: 0, margin: 0, padding: 0 }}>
+              <legend className="gc-label">Categories (none ticked = every product)</legend>
+              <div className="cs-checks">
+                {data.cats.map((c) => <label key={c}><input type="checkbox" className="gc-check" checked={(edit.cats || []).includes(c)} onChange={(e) => set({ cats: e.target.checked ? [...(edit.cats || []), c] : (edit.cats || []).filter((x) => x !== c) })} />{c}</label>)}
+              </div>
+            </fieldset>
+            <div className="cs-checks">
+              <label><input type="checkbox" className="gc-check" checked={!!edit.req} onChange={(e) => set({ req: e.target.checked })} />Required</label>
+              <label><input type="checkbox" className="gc-check" checked={edit.show !== false} onChange={(e) => set({ show: e.target.checked })} />Show on product page</label>
+              <label><input type="checkbox" className="gc-check" checked={!!edit.filter} onChange={(e) => set({ filter: e.target.checked })} />Use in shop filters</label>
+              <label><input type="checkbox" className="gc-check" checked={!!edit.ai} onChange={(e) => set({ ai: e.target.checked })} />AI can fill it</label>
+            </div>
+          </div>
+        ) : null}
+
+        {edit && edit.kind === 'unit' ? (
+          <div className="cs-form">
+            {edit.k ? <p className="cs-foot-note">{edit.short} · {edit.frac ? 'half units allowed' : 'whole units only'}. A unit can be removed when no product uses it.</p> : <>
+              <div className="cs-two">
+                <label className="cs-field"><span className="gc-label">Unit name</span><input className="gc-input" placeholder="Carton" value={edit.label} onChange={(e) => set({ label: e.target.value })} data-autofocus="" /></label>
+                <label className="cs-field"><span className="gc-label">Short name</span><input className="gc-input" placeholder="ctn" value={edit.short} onChange={(e) => set({ short: e.target.value })} /></label>
+              </div>
+              <div className="cs-checks"><label><input type="checkbox" className="gc-check" checked={!!edit.frac} onChange={(e) => set({ frac: e.target.checked })} />Half units allowed (weight, length)</label></div>
+            </>}
+          </div>
+        ) : null}
+
+        {edit && edit.kind === 'tax' ? (
+          <div className="cs-form">
+            <div className="cs-two">
+              <label className="cs-field"><span className="gc-label">Name</span><input className="gc-input" placeholder="Reduced VAT" value={edit.name} onChange={(e) => set({ name: e.target.value })} data-autofocus="" /></label>
+              <label className="cs-field"><span className="gc-label">Rate (%)</span><input className="gc-input" inputMode="decimal" value={edit.rate} onChange={(e) => set({ rate: e.target.value.replace(/[^0-9.]/g, '') })} /></label>
+            </div>
+            <p className="cs-foot-note">A product given this rate is taxed at it instead of its category’s.</p>
+          </div>
+        ) : null}
+
+        {edit && edit.kind === 'chart' ? (
+          <div className="cs-form">
+            <div className="cs-two">
+              <label className="cs-field"><span className="gc-label">Chart name</span><input className="gc-input" value={edit.name} onChange={(e) => set({ name: e.target.value })} data-autofocus="" /></label>
+              <label className="cs-field"><span className="gc-label">For (category)</span><input className="gc-input" placeholder="Wearables" value={edit.cat || ''} onChange={(e) => set({ cat: e.target.value })} /></label>
+            </div>
+            <div className="cs-row">
+              <span className="gc-label" style={{ margin: 0 }}>Sizes · mm</span>
+              <span style={{ flex: 1 }} />
+              <button type="button" className="ix-btn ix-btn--sm" onClick={() => set({ rows: [...edit.rows, edit.head.map(() => '')] })}><Icon name="plus" width="16" height="16" aria-hidden="true" />Row</button>
+              <button type="button" className="ix-btn ix-btn--sm" onClick={() => set({ head: [...edit.head, 'Column ' + (edit.head.length + 1)], rows: edit.rows.map((r) => [...r, '']) })}><Icon name="plus" width="16" height="16" aria-hidden="true" />Column</button>
+            </div>
+            <div className="cs-wrap">
+              <table className="cs-grid gc-table--keep">
+                <thead><tr>{edit.head.map((h, i) => <th key={i} scope="col"><input className="gc-input" aria-label={'Column ' + (i + 1) + ' name'} value={h} onChange={(e) => set({ head: edit.head.map((x, j) => (j === i ? e.target.value : x)) })} /></th>)}<th scope="col"><span className="sr-only">Remove</span></th></tr></thead>
+                <tbody>
+                  {edit.rows.map((r, ri) => (
+                    <tr key={ri}>
+                      {edit.head.map((_, ci) => <td key={ci}><input className="gc-input" aria-label={(edit.head[ci] || 'Value') + ', row ' + (ri + 1)} value={r[ci] == null ? '' : r[ci]} onChange={(e) => set({ rows: edit.rows.map((x, j) => (j === ri ? x.map((y, k) => (k === ci ? e.target.value : y)) : x)) })} /></td>)}
+                      <td><button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={'Remove row ' + (ri + 1)} onClick={() => set({ rows: edit.rows.filter((_, j) => j !== ri) })}><Icon name="x" width="14" height="14" aria-hidden="true" /></button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
+        {err ? <p className="cs-err" role="alert">{err}</p> : null}
+      </Sheet>
+    </div>
+  );
 }

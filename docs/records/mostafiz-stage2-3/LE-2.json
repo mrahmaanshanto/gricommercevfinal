@@ -1,0 +1,41 @@
+{
+ "id": "LE-2",
+ "kind": "fix",
+ "section": "Loose ends Nayeem listed",
+ "area": "Loose ends Nayeem listed",
+ "title": "A product keeps its own VAT rate",
+ "problem": "The VAT / tax box on Add product was not saved; every product used its category's rate.",
+ "now": "The product's VAT is saved; the register, Create order and order links use it before the category's.",
+ "steps": [
+  "Set a product to 5% VAT and save.",
+  "Ring it up at the register: VAT is 5%."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/products/AddProduct.jsx",
+  "src/lib/vat.js",
+  "src/lib/stock.js",
+  "src/screens/pos-register/Pos.jsx",
+  "src/screens/merchant-orders/NewOrder.jsx"
+ ],
+ "notes": "Where: Products › a product › Pricing",
+ "shots": [
+  {
+   "route": "/add-product?sku=PH-IPH-15",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Product editor",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    },
+    {
+     "scroll": "#ap-h-price"
+    }
+   ]
+  }
+ ]
+}

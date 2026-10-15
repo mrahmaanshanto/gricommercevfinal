@@ -35,6 +35,7 @@ export const CATEGORY_SEED = [
   C('ph', 'Phones', '', { tax: VAT, wp: '1 year official brand warranty', sg: 'No size guide', track: 'IMEI', unit: 'Piece' }),
   C('sm', 'Smartphones', 'ph'), C('fp', 'Feature phones', 'ph'),
   C('tab', 'Tablets', '', { tax: VAT, wp: '1 year official brand warranty', sg: 'No size guide', track: 'IMEI', unit: 'Piece' }),
+  C('lap', 'Laptops', '', { tax: VAT, wp: '1 year official brand warranty', sg: 'No size guide', track: 'Serial number', unit: 'Piece' }),
   C('acc', 'Accessories', '', { tax: VAT, wp: '6 months shop warranty', sg: 'Case sizes by model', track: 'No tracking', unit: 'Piece' }),
   C('cse', 'Cases & covers', 'acc'), C('sil', 'Silicone cases', 'cse'), C('arm', 'Rugged cases', 'cse'),
   C('chg', 'Chargers & cables', 'acc'), C('scr', 'Screen protection', 'acc'), C('hld', 'Holders & stands', 'acc'), C('bat', 'Batteries', 'acc', { hidden: true }),

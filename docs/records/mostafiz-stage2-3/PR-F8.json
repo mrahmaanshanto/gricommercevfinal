@@ -1,0 +1,40 @@
+{
+ "id": "PR-F8",
+ "kind": "new",
+ "section": "Products & stock",
+ "area": "Products & stock",
+ "title": "Catalog setup lists you can change",
+ "problem": "Catalog setup lists were fixed; Add only showed a message and products never used them.",
+ "now": "Product fields, units, tax rates and size charts can be added, changed and deleted, and the product form offers them.",
+ "steps": [
+  "Open Catalog setup, Units tab, add Carton (ctn)",
+  "Open Add product › Inventory, identifiers & units › Manage and pick Carton",
+  "Add a required field for Phones and save a phone without it",
+  "Delete Carton while a product uses it: it is refused"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/products/CatalogSetup.jsx",
+  "src/lib/catalogSetup.js",
+  "src/lib/units.js",
+  "src/lib/vat.js",
+  "src/screens/products/AddProduct.jsx"
+ ],
+ "notes": "Where: Products › Catalog setup · /catalog-setup",
+ "shots": [
+  {
+   "route": "/catalog-setup",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Catalog setup",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

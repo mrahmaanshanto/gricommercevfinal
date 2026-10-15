@@ -1,0 +1,274 @@
+{
+  "part": "Asked along the way · Inbox email, tickets, logos, hosting",
+  "entries": [
+    {
+      "id": "X-1",
+      "kind": "feature",
+      "module": "Inbox",
+      "title": "Shop email inside the Inbox",
+      "need": "Email to info@, sales@ and support@ had no place in the Inbox.",
+      "now": "Inbox › Email lists the shop’s mail as conversations: read, reply, forward, add a team note or assign it.",
+      "where": "Inbox › Email (/email-inbox)",
+      "try": [
+        "Open Inbox › Email.",
+        "Open the email from Arman Hossain.",
+        "Press Reply all, write a line and send."
+      ],
+      "files": [
+        "src/screens/merchant-inbox/EmailInbox.jsx",
+        "src/lib/emailInbox.js",
+        "src/lib/liveCounts.js",
+        "src/shell/navigation.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "X-2",
+      "kind": "feature",
+      "module": "Inbox",
+      "title": "Cc, Bcc and conversation threads",
+      "need": "Replies had no copy fields and long conversations were hard to follow.",
+      "now": "Every reply has To, Cc and Bcc; older messages fold, and a customer’s answer joins the same conversation.",
+      "where": "Inbox › Email › a conversation (/email-inbox)",
+      "try": [
+        "Open Inbox › Email › Sent.",
+        "Open “Corporate order: 15 Galaxy A15”.",
+        "Press “2 earlier messages”, then Reply all."
+      ],
+      "files": [
+        "src/screens/merchant-inbox/EmailInbox.jsx",
+        "src/lib/emailInbox.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "X-3",
+      "kind": "feature",
+      "module": "Inbox",
+      "title": "Find email by date and filter",
+      "need": "A long mailbox had no way to find a day’s mail or narrow the list.",
+      "now": "Filters for date (one day or a range), address, read, attachments, person, customers and orders; numbered pages with a page size.",
+      "where": "Inbox › Email › Filter (/email-inbox)",
+      "try": [
+        "Open Inbox › Email and press the filter button.",
+        "Choose Date › On a date… and pick a day.",
+        "Change to 10 a page and go to page 2."
+      ],
+      "files": [
+        "src/screens/merchant-inbox/EmailInbox.jsx",
+        "src/lib/emailInbox.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "X-4",
+      "kind": "feature",
+      "module": "Inbox",
+      "title": "Urgent tab on Support tickets",
+      "need": "Urgent tickets were mixed in with everything else in the list.",
+      "now": "An Urgent tab lists the open tickets marked Urgent, with its count.",
+      "where": "Inbox › Tickets (/support-tickets)",
+      "try": [
+        "Open Inbox › Tickets.",
+        "Press the Urgent tab."
+      ],
+      "files": [
+        "src/screens/support-tickets/SupportTickets.jsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "X-5",
+      "kind": "fix",
+      "module": "Customers",
+      "title": "Zoom and Google Meet logos",
+      "need": "Meetings showed plain words for Zoom and Google Meet.",
+      "now": "Meetings, the meeting form, the super admin’s meetings and Connections show the real Zoom and Google Meet logos.",
+      "where": "Customers › Meetings (/meetings)",
+      "try": [
+        "Open Customers › Meetings.",
+        "Press New meeting and look at Where."
+      ],
+      "files": [
+        "src/components/MeetingProvider.jsx",
+        "src/screens/customers-crm/Meetings.jsx",
+        "src/screens/admin/crm/*",
+        "public/assets/brands/zoom.png",
+        "public/assets/brands/google-meet.svg"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "X-6",
+      "kind": "fix",
+      "module": "Payments",
+      "title": "RedX shows its own logo",
+      "need": "RedX showed two letters in a red square instead of its logo.",
+      "now": "RedX shows its own logo in Connections, Payouts and delivery settings.",
+      "where": "Settings › Connections › Delivery (/connections?group=delivery)",
+      "try": [
+        "Open Settings › Connections.",
+        "Choose Delivery."
+      ],
+      "files": [
+        "src/components/BrandLogo.jsx",
+        "public/assets/brands/redx.png"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "X-7",
+      "kind": "fix",
+      "module": "Top bar",
+      "title": "A calmer top bar",
+      "need": "The top bar had Settings, Invoices and Files buttons that crowded the search and were rarely used.",
+      "now": "Those three buttons are gone; Store settings stays in the account menu, invoices in Orders, files in Settings › Media.",
+      "where": "Every page's top bar",
+      "try": [
+        "Open any page.",
+        "Look at the top bar: search, Scan, then View store."
+      ],
+      "files": [
+        "src/shell/gc-topbar.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "H1",
+      "kind": "feature",
+      "module": "Hosting",
+      "title": "A Hosting section in Settings",
+      "need": "Domains, DNS, email records, security and backups were missing or spread over several pages.",
+      "now": "Settings › Hosting holds what a web host offers, with an Overview of what needs doing first.",
+      "where": "Settings › Hosting & domains (/set-hosting)",
+      "try": [
+        "Open Settings › Hosting & domains.",
+        "Read the To do list and press Open on one."
+      ],
+      "files": [
+        "src/screens/settings-console/SetHosting.jsx",
+        "src/screens/settings-console/hosting/hsShared.jsx",
+        "src/lib/hosting.js",
+        "src/screens/settings-console/SetDomains.jsx",
+        "src/screens/settings-console/SetRail.jsx",
+        "src/lib/domains.js"
+      ],
+      "status": "done",
+      "left": "Front end only: the live platform’s DNS servers, CDN and certificate service do the real work."
+    },
+    {
+      "id": "H2",
+      "kind": "feature",
+      "module": "Hosting",
+      "title": "Keep the domain’s DNS at GridCommerce",
+      "need": "A merchant couldn’t manage the DNS records of their own domain.",
+      "now": "Point the nameservers here, then add, edit or delete any record; service templates, zone import and export, DNSSEC.",
+      "where": "Settings › Hosting › DNS (/set-hosting?tab=dns)",
+      "try": [
+        "Open Settings › Hosting › DNS.",
+        "Press Add record, choose A, name it shop and give an address.",
+        "Press Add for a service and add Google Search Console."
+      ],
+      "files": [
+        "src/screens/settings-console/hosting/HostingDns.jsx",
+        "src/lib/hosting.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "H3",
+      "kind": "feature",
+      "module": "Hosting",
+      "title": "Email records: SPF, DKIM and DMARC",
+      "need": "Shops couldn’t set up email checks, so their mail could land in spam.",
+      "now": "Pick the mailbox provider; MX, SPF, DKIM and DMARC are built, checked and added in one click, with a test email.",
+      "where": "Settings › Hosting › Email (/set-hosting?tab=email)",
+      "try": [
+        "Open Settings › Hosting › Email.",
+        "Set DMARC to Quarantine and save.",
+        "Press Add records for me, then Send a test email."
+      ],
+      "files": [
+        "src/screens/settings-console/hosting/HostingEmail.jsx",
+        "src/lib/hosting.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "H4",
+      "kind": "feature",
+      "module": "Hosting",
+      "title": "Certificates, HTTPS and site protection",
+      "need": "There were no controls for certificates, HTTPS or blocking attacks.",
+      "now": "Certificates renew by themselves; HTTPS, HSTS, headers, request limits, blocked countries and IPs, and a store password before launch.",
+      "where": "Settings › Hosting › SSL & security (/set-hosting?tab=security)",
+      "try": [
+        "Open Settings › Hosting › SSL & security.",
+        "Turn on HSTS.",
+        "Block an IP address."
+      ],
+      "files": [
+        "src/screens/settings-console/hosting/HostingSecurity.jsx",
+        "src/lib/hosting.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "H5",
+      "kind": "feature",
+      "module": "Hosting",
+      "title": "Speed settings and a speed test",
+      "need": "Merchants couldn’t clear the cache or see how fast the store loads.",
+      "now": "Cache times, clearing the cache, image formats and a speed test of the store home on a 3G phone.",
+      "where": "Settings › Hosting › Speed & cache (/set-hosting?tab=speed)",
+      "try": [
+        "Open Settings › Hosting › Speed & cache.",
+        "Press Run test."
+      ],
+      "files": [
+        "src/screens/settings-console/hosting/HostingMore.jsx",
+        "src/lib/hosting.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "H6",
+      "kind": "feature",
+      "module": "Hosting",
+      "title": "Site verification codes and root files",
+      "need": "Google, Meta and Apple Pay verification had nowhere to go.",
+      "now": "Paste verification codes (the store’s pages carry them) and add files like ads.txt at the domain’s root.",
+      "where": "Settings › Hosting › Files & verification (/set-hosting?tab=files)",
+      "try": [
+        "Open Settings › Hosting › Files & verification.",
+        "Press Add file and choose /ads.txt."
+      ],
+      "files": [
+        "src/screens/settings-console/hosting/HostingMore.jsx",
+        "src/components/seo/SeoHead.jsx",
+        "src/lib/hosting.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "H7",
+      "kind": "feature",
+      "module": "Hosting",
+      "title": "Website backups and bandwidth use",
+      "need": "Merchants couldn’t back up their website or see how much bandwidth it uses.",
+      "now": "Back up, download and restore the website and settings, ask to restore a nightly backup, and see bandwidth against the plan.",
+      "where": "Settings › Hosting › Backups and Usage (/set-hosting?tab=backups)",
+      "try": [
+        "Open Settings › Hosting › Backups and press Back up now.",
+        "Open the Usage tab."
+      ],
+      "files": [
+        "src/screens/settings-console/hosting/HostingMore.jsx",
+        "src/screens/settings-console/SetHosting.jsx",
+        "src/screens/settings-console/SetSecurity.jsx",
+        "src/lib/hosting.js"
+      ],
+      "status": "done"
+    }
+  ]
+}

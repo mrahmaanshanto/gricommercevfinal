@@ -19,9 +19,13 @@
 // SLA: the next reply is due REPLY_IN after the customer writes (by priority); a reply clears it; waiting on the
 // customer pauses it and closes the ticket after 5 days. Front end only: a real build keeps tickets on the server and
 // sends replies through the channel.
+// Messages (review CX-F3): a new ticket, a reply to the customer and solving it send "Ticket opened / replied / solved"
+// as Settings › Notifications turns them on (notifications.js › notifyCustomer; only tickets with a phone number).
+// ticketsFor(phones, name) = one customer's tickets (the customer profile, review CX-U5).
 
 import { currentUser, firstName } from './team';
 import { channelName } from './inbox';
+import { notifyCustomer } from './notifications';
 
 const KEY = 'gc.support.tickets';
 export const TICKETS_EVENT = 'gc:tickets';
@@ -146,6 +150,19 @@ export const getTickets = () => read().tickets.slice().sort((a, b) => Number(b.i
 export const demoTickets = () => seed(now0()).tickets.sort((a, b) => Number(b.id) - Number(a.id));
 export const ticketById = (id) => read().tickets.find((x) => x.id === String(id || '').replace(/^TKT-/i, '')) || null;
 export const isOpen = (t) => t.status !== 'Solved';
+const digitsOf = (p) => String(p || '').replace(/\D/g, '').replace(/^88/, '');
+/** One customer's tickets, newest first: by any of their numbers, or by name for a customer without one on file. */
+export function ticketsFor(phones = [], name = '') {
+  const want = new Set(phones.map(digitsOf).filter((d) => d.length >= 10));
+  const nm = String(name || '').trim().toLowerCase();
+  return getTickets().filter((t) => (t.phone && want.has(digitsOf(t.phone))) || (nm && String(t.customer || '').trim().toLowerCase() === nm));
+}
+/** Tell the customer about their ticket (Settings › Notifications decides what goes out). */
+function tell(event, id, vars = {}, extra = '') {
+  const t = ticketById(id);
+  if (!t || !t.phone) return null;
+  return notifyCustomer(event, { name: t.customer, phone: t.phone }, { ticket_id: ref(t), ticket_subject: t.subject, ...vars }, { ref: ref(t), once: ref(t) + '|' + event + (extra ? '|' + extra : '') });
+}
 
 /** "40m", "3h", "2d". */
 export function short(ms) {
@@ -260,14 +277,15 @@ export function addTicket(input) {
   if (assignee) push(d, t, now, 'system', 'Assigned to ' + assignee, { icon: 'user-round-check' });
   d.tickets.unshift(t);
   write(d);
-  return { ok: true, id };
+  const told = tell('ticket-opened', id);
+  return { ok: true, id, told };
 }
 
 /** A reply to the customer on the ticket's channel, or an internal note (internal: true). Files: names only. */
 export function reply(id, text, files = [], { internal = false, by } = {}) {
   const body = String(text || '').trim();
   if (!body && !files.length) return { ok: false, error: internal ? 'Write the note first.' : 'Write the reply first.' };
-  return change(id, (t, d, now) => {
+  const res = change(id, (t, d, now) => {
     if (!isOpen(t)) return { ok: false, error: 'Reopen the ticket to reply.' };
     const who = by || meName();
     push(d, t, now, internal ? 'note' : 'agent', body, { by: who, files: files.slice(0, 5) });
@@ -278,6 +296,8 @@ export function reply(id, text, files = [], { internal = false, by } = {}) {
     }
     return { ok: true };
   });
+  if (res.ok && !internal) res.told = tell('ticket-replied', id, { reply_text: body }, String(Date.now()));
+  return res;
 }
 
 /** Give the ticket to someone ('' = nobody). A new ticket becomes Assigned. */
@@ -329,7 +349,7 @@ export function setTeam(id, team) {
 
 /** Close the ticket as solved. */
 export function solve(id) {
-  return change(id, (t, d, now) => {
+  const res = change(id, (t, d, now) => {
     if (!isOpen(t)) return { ok: false, error: 'This ticket is already solved.' };
     t.status = 'Solved';
     t.solvedAt = now;
@@ -339,6 +359,8 @@ export function solve(id) {
     push(d, t, now, 'system', 'Solved by ' + meName(), { icon: 'circle-check' });
     return { ok: true };
   });
+  if (res.ok) { const t = ticketById(id); res.told = tell('ticket-solved', id, {}, String(t && t.solvedAt)); }
+  return res;
 }
 
 export function reopen(id) {

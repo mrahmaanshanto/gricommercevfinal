@@ -1,0 +1,36 @@
+{
+ "id": "RT-U11",
+ "kind": "fix",
+ "section": "Retail & POS",
+ "area": "Retail & POS",
+ "title": "Counter staff come from Staff & HR",
+ "problem": "The POS had its own six names, so new hires could not work a counter and roles disagreed.",
+ "now": "Counter staff and managers come from Staff & HR and Team by role and branch; new hires show up.",
+ "steps": [
+  "Add a cashier in Staff & HR",
+  "Open POS management › Counters › Edit",
+  "Tick the new cashier for the counter"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/posStore.js",
+  "src/screens/pos-register/PosManage.jsx"
+ ],
+ "notes": "Where: POS › POS management › Employees and shifts",
+ "shots": [
+  {
+   "route": "/pos-manage",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "POS staff",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

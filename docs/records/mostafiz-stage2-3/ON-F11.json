@@ -1,0 +1,37 @@
+{
+ "id": "ON-F11",
+ "kind": "new",
+ "section": "Online selling",
+ "area": "Online selling",
+ "title": "Assign orders to staff",
+ "problem": "Big shops could not split confirming and packing between staff.",
+ "now": "Each order can be given to a staff member, in bulk too, and each person has an Assigned to me view.",
+ "steps": [
+  "Tick two orders and press Assign",
+  "Choose yourself",
+  "Open the Assigned to me tab"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/orders.js",
+  "src/screens/merchant-orders/MerchantOrders.jsx",
+  "src/screens/order-detail/OrderDetail.jsx"
+ ],
+ "notes": "Where: Orders › All orders (select › Assign, Assigned to me tab); order page › Assigned to",
+ "shots": [
+  {
+   "route": "/merchant-orders",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "All orders",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

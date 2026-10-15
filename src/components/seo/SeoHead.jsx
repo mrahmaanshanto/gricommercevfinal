@@ -7,6 +7,7 @@
 // in the browser's inspector, Elements › head).
 
 import { useEffect } from 'react';
+import { verificationMeta } from '@/lib/hosting';
 
 const MARK = 'data-gc-seo';
 const FOREIGN = 'meta[name="description"],meta[name="robots"],link[rel="canonical"],meta[property^="og:"],meta[name^="twitter:"],script[type="application/ld+json"]';
@@ -16,7 +17,10 @@ export default function SeoHead({ head }) {
     if (!head || typeof document === 'undefined') return undefined;
     const h = document.head;
     const prevTitle = document.title;
-    const strip = () => h.querySelectorAll(FOREIGN).forEach((n) => { if (!n.hasAttribute(MARK)) n.remove(); });
+    // Next.js' tags are React's own (hoisted): park them in a detached template instead of removing them, so React can
+    // still take them out later (a removed one has no parent and React's unmount throws "reading 'removeChild'").
+    const parked = document.createElement('template');
+    const strip = () => h.querySelectorAll(FOREIGN).forEach((n) => { if (!n.hasAttribute(MARK)) parked.content.appendChild(n); });
     const fixTitle = () => { if (head.title && document.title !== head.title) document.title = head.title; };
     h.querySelectorAll('[' + MARK + ']').forEach((n) => n.remove());
     strip();
@@ -33,6 +37,8 @@ export default function SeoHead({ head }) {
     if (head.canonical) add('link', { rel: 'canonical', href: head.canonical });
     Object.entries(head.og || {}).forEach(([k, v]) => { if (v) add('meta', k.indexOf('twitter:') === 0 ? { name: k, content: v } : { property: k, content: v }); });
     (head.jsonld || []).forEach((j) => add('script', { type: 'application/ld+json' }, JSON.stringify(j)));
+    // site-verification codes (Settings › Hosting › Files & verification)
+    try { verificationMeta().forEach((m) => add('meta', { name: m.name, content: m.content })); } catch { /* storage blocked */ }
     // Next.js may write its metadata after this runs (and again on navigation): keep ours the only ones
     const watch = new MutationObserver(() => { strip(); fixTitle(); });
     watch.observe(h, { childList: true, subtree: true, characterData: true });

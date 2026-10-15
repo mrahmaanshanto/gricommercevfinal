@@ -6,6 +6,8 @@
 // Data: lib/admin/merchants.js (merchantList, assignManager) and lib/platform (setControl, sendPayLinks).
 // The view, search, filters and sort live in the URL (?view=late&pkg=online …) so other pages can link to a view;
 // they are read after mount. Rows are worked out once the saved data has loaded (usePlatform().live).
+// Health and churn (SA-F6): Health (score and band, lib/platform/views.js › health) and Last sign-in columns, both
+// sortable; the At risk view (a live store under 50) opens sorted by health. A store's verification shows under its name.
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -17,18 +19,19 @@ import { FilterBar } from '@/components/ui/FilterBar';
 import { ShopHeader, IndexTabs, Pager, Menu } from '@/components/ui/IndexKit';
 import { downloadCsv } from '@/lib/reports/period';
 import { formatBDT } from '@/lib/format';
-import { dmy, dm } from '@/lib/platform/util';
+import { dmy, dm, lastSeen } from '@/lib/platform/util';
 import { LADDERS, PLAN_IDS, PLAN_NAME, SOURCES, DISTRICTS, STAFF, CONTROL_REASONS } from '@/lib/platform/catalogue';
 import { sendPayLinks } from '@/lib/platform/billing';
 import { ask, rightOf, ruleFor } from '@/lib/admin/actionRights';
 import { VIEWS, merchantList, assignManager } from '@/lib/admin/merchants';
+import { KYC_STATES } from '@/lib/platform/shops';
 import { AdminShell, usePlatform } from '../AdminShell';
 
 const PAGE = 20;
 const NONE = '__none';   // the "No account manager" filter value
 const MANAGERS = STAFF.filter((s) => !s.invite && !s.inactive).map((s) => s.name);
 const FILTER_KEYS = ['pkg', 'plan', 'am', 'src', 'dist'];
-const SORTS = { registered: 'Registered', renewal: 'Renewal', monthly: 'Monthly' };
+const SORTS = { registered: 'Registered', renewal: 'Renewal', monthly: 'Monthly', health: 'Health', lastActive: 'Last sign-in' };
 
 const CSS = `
 .mer-filters{padding:8px;border-bottom:1px solid var(--border-subtle)}
@@ -54,6 +57,14 @@ th.ix-num .mer-sort{flex-direction:row-reverse}
 .mer-form{display:flex;flex-direction:column;gap:var(--space-3)}
 .mer-form p{margin:0;font-size:var(--text-sm);color:var(--text-body)}
 .mer-ids{font-family:var(--font-data);color:var(--text-heading)}
+.mer-health{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.mer-health b{min-width:22px;font-family:var(--font-data);font-weight:var(--weight-semibold);color:var(--text-heading);text-align:right}
+.mer-health i{width:8px;height:8px;border-radius:var(--radius-full);background:var(--success)}
+.mer-health i.is-warn{background:var(--warning)}
+.mer-health i.is-err{background:var(--error)}
+.mer-kyc{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--text-muted)}
+.mer-kyc svg{color:var(--text-success)}
+.mer-kyc.is-wait svg{color:var(--text-warning)}
 .mer-skel{height:420px;border-radius:var(--radius-xl);background:linear-gradient(90deg,var(--surface-card),var(--surface-subtle),var(--surface-card));background-size:200% 100%;animation:mer-sk 1.4s ease infinite}
 @keyframes mer-sk{from{background-position:100% 0}to{background-position:-100% 0}}
 @media (prefers-reduced-motion:reduce){.mer-skel{animation:none}}
@@ -85,8 +96,8 @@ function toUrl({ view, q, f, sort }) {
 }
 
 const csvRows = (rows) => [
-  ['Merchant ID', 'Business name', 'Domain', 'Owner', 'Phone', 'Email', 'Package', 'Active modules', 'Registered', 'Renewal', 'Status', 'Monthly (BDT)', 'Owed (BDT)', 'Account manager', 'Source', 'District'],
-  ...rows.map((r) => ['#' + r.id, r.name, r.domain, r.owner, r.phone, r.email, r.packageName, r.modules.join('; '), dmy(r.registered), renewalText(r), r.stateLabel, Math.round(r.monthly), Math.round(r.owed), r.am || '', r.src || '', r.dist || '']),
+  ['Merchant ID', 'Business name', 'Domain', 'Owner', 'Phone', 'Email', 'Package', 'Active modules', 'Registered', 'Renewal', 'Status', 'Monthly (BDT)', 'Owed (BDT)', 'Account manager', 'Source', 'District', 'Health', 'Health band', 'Days since sign-in', 'Verification'],
+  ...rows.map((r) => ['#' + r.id, r.name, r.domain, r.owner, r.phone, r.email, r.packageName, r.modules.join('; '), dmy(r.registered), renewalText(r), r.stateLabel, Math.round(r.monthly), Math.round(r.owed), r.am || '', r.src || '', r.dist || '', r.health, r.healthBand, r.lastActive, (KYC_STATES[r.kyc] || KYC_STATES.none).label]),
 ];
 
 export default function Merchants() {
@@ -120,7 +131,7 @@ export default function Merchants() {
   const digits = s.replace(/\D/g, '');
   const filtered = (() => {
     const out = all.filter((r) => {
-      if (view !== 'all' && r.view !== view) return false;
+      if (view === 'risk' ? !r.atRisk : view !== 'all' && r.view !== view) return false;
       if (f.pkg && r.ladder !== f.pkg) return false;
       if (f.plan && r.plan !== f.plan) return false;
       if (f.am && (f.am === NONE ? r.am : r.am !== f.am)) return false;
@@ -132,7 +143,7 @@ export default function Merchants() {
       return digits.length >= 3 && r.phone.replace(/\D/g, '').includes(digits);
     });
     const dir = sort.dir === 'asc' ? 1 : -1;
-    const val = (r) => (sort.key === 'renewal' ? (r.renewal == null ? null : r.renewal) : r[sort.key]);
+    const val = (r) => (sort.key === 'renewal' ? (r.renewal == null ? null : r.renewal) : sort.key === 'lastActive' ? (r.stateKey === 'setup' ? null : r.lastActive) : r[sort.key]);
     return out.sort((a, b) => {
       const x = val(a), y = val(b);
       if (x == null && y == null) return b.registered - a.registered;
@@ -160,7 +171,7 @@ export default function Merchants() {
   const setFilter = (k) => (v) => setF((old) => ({ ...old, [k]: v }));
   const open = (id) => router.push('/admin/merchant?id=' + id);
 
-  const sortBy = (key) => setSort((old) => (old.key === key ? { key, dir: old.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'renewal' ? 'asc' : 'desc' }));
+  const sortBy = (key) => setSort((old) => (old.key === key ? { key, dir: old.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'renewal' || key === 'health' ? 'asc' : 'desc' }));
   const sortHead = (k, num) => {
     const on = sort.key === k;
     return (
@@ -209,7 +220,7 @@ export default function Merchants() {
     toast(r.pending ? `Sent to ${r.request.approver} for a second approval` : `${plural(r.result.n, 'store')} suspended`);
   };
 
-  const tabs = VIEWS.map(([k, label]) => ({ key: k, id: 'mer-tab-' + k, label, count: live ? counts[k] || 0 : null, on: view === k, onClick: () => { setView(k); } }));
+  const tabs = VIEWS.map(([k, label]) => ({ key: k, id: 'mer-tab-' + k, label, count: live ? counts[k] || 0 : null, on: view === k, onClick: () => { setView(k); if (k === 'risk') setSort({ key: 'health', dir: 'asc' }); } }));
 
   const filters = [
     { key: 'pkg', label: 'Package', all: 'All packages', value: f.pkg, options: LADDERS.map((l) => [l.id, l.label]), onChange: setFilter('pkg') },
@@ -276,6 +287,7 @@ export default function Merchants() {
                     <span className="ix-pitem__tags">
                       <StatusBadge tone={r.tone}>{r.stateLabel}</StatusBadge>
                       {r.renewal ? <span className="ix-pitem__mid">{r.stateKey === 'trial' ? renewalText(r) : 'Renews ' + dm(r.renewal)}</span> : null}
+                      {r.atRisk ? <StatusBadge tone="error">At risk · {r.health}</StatusBadge> : null}
                     </span>
                   </Link>
                 </li>
@@ -290,13 +302,14 @@ export default function Merchants() {
                     <th scope="col">ID</th>
                     <th scope="col">Business</th>
                     <th scope="col">Owner</th>
-                    <th scope="col">Email</th>
+                    <th scope="col">Status</th>
+                    {sortHead('health')}
+                    {sortHead('lastActive')}
+                    {sortHead('monthly', true)}
                     <th scope="col">Package</th>
                     <th scope="col" className="ix-num">Modules</th>
                     {sortHead('registered')}
                     {sortHead('renewal')}
-                    <th scope="col">Status</th>
-                    {sortHead('monthly', true)}
                   </tr>
                 </thead>
                 <tbody>
@@ -309,16 +322,22 @@ export default function Merchants() {
                         <span className="mer-name">
                           <Link href={'/admin/merchant?id=' + r.id} className="ix-strong" onClick={(e) => e.stopPropagation()}>{r.name}</Link>
                           <small>{r.domain}</small>
+                          {r.kyc === 'verified' ? <span className="mer-kyc"><Icon name="shield-check" width="12" height="12" aria-hidden="true" />Verified</span>
+                            : r.kyc === 'submitted' ? <span className="mer-kyc is-wait"><Icon name="shield" width="12" height="12" aria-hidden="true" />Verification to review</span> : null}
                         </span>
                       </td>
                       <td><span className="mer-owner"><span>{r.owner || '—'}</span>{r.phone ? <small>{r.phone}</small> : null}</span></td>
-                      <td className="ix-muted"><span className="mer-email" title={r.email || undefined}>{r.email || '—'}</span></td>
+                      <td><StatusBadge tone={r.tone}>{r.stateLabel}</StatusBadge></td>
+                      <td title={r.healthWhy ? r.healthBand + ': ' + r.healthWhy : r.healthBand}>
+                        {r.stateKey === 'setup' || r.stateKey === 'failed' ? <span className="ix-muted">—</span>
+                          : <span className="mer-health"><i className={r.healthTone === 'err' ? 'is-err' : r.healthTone === 'warn' ? 'is-warn' : ''} aria-hidden="true" /><b>{r.health}</b><span className="ix-muted">{r.healthBand}</span></span>}
+                      </td>
+                      <td className={r.lastActive >= 7 && r.stateKey !== 'setup' ? 'ix-warn' : 'ix-muted'}>{r.stateKey === 'setup' || r.stateKey === 'failed' ? '—' : lastSeen(r.lastActive)}</td>
+                      <td className="ix-num"><span className="mer-money">{r.monthly ? money(r.monthly) : '—'}</span></td>
                       <td>{r.packageName}</td>
                       <td className="ix-num"><span className="mer-mods" title={r.modules.length ? r.modules.join(', ') : 'No modules on'}>{r.moduleCount}</span></td>
                       <td className="ix-muted">{dmy(r.registered)}</td>
                       <td className={r.stateKey === 'trial' && r.trialLeft != null && r.trialLeft <= 3 ? 'ix-warn' : 'ix-muted'}>{renewalText(r)}</td>
-                      <td><StatusBadge tone={r.tone}>{r.stateLabel}</StatusBadge></td>
-                      <td className="ix-num"><span className="mer-money">{r.monthly ? money(r.monthly) : '—'}</span></td>
                     </tr>
                   ))}
                 </tbody>

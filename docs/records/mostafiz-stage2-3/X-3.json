@@ -1,0 +1,39 @@
+{
+ "id": "X-3",
+ "kind": "new",
+ "section": "Inbox, tickets and logos",
+ "area": "Inbox, tickets and logos",
+ "title": "Find email by date and filter",
+ "problem": "A long mailbox had no way to find a day’s mail or narrow the list.",
+ "now": "Filters for date (one day or a range), address, read, attachments, person, customers and orders; numbered pages with a page size.",
+ "steps": [
+  "Open Inbox › Email and press the filter button.",
+  "Choose Date › On a date… and pick a day.",
+  "Change to 10 a page and go to page 2."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/merchant-inbox/EmailInbox.jsx",
+  "src/lib/emailInbox.js"
+ ],
+ "notes": "Where: Inbox › Email › Filter (/email-inbox)",
+ "shots": [
+  {
+   "route": "/email-inbox",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Filters and pages",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    },
+    {
+     "click": ".em-fbtn"
+    }
+   ]
+  }
+ ]
+}

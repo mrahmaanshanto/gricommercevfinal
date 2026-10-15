@@ -1092,6 +1092,16 @@ html.gc-pop-open,html.gc-pop-open body{overflow:hidden;overscroll-behavior:none}
 .gc-toasts{bottom:80px}
 @media (max-width:767px){.gc-ai{right:16px;bottom:16px}.gc-toasts{bottom:72px}}
 @media (prefers-reduced-motion:reduce){.gc-ai__panel,.gc-ai__dot{animation:none}}
+/* desktop (review CX-U11): the button is a round 44px icon that shows "GridAI" on hover, on focus and while the panel is
+   open, and pages keep room at their end so the last row (a table's Pause button, a card) scrolls clear of it */
+@media (min-width:641px){
+  .gc-ai__fab{gap:0;padding:0 13px}
+  .gc-ai__fab .gc-ai__label{display:inline-block;max-width:0;overflow:hidden;white-space:nowrap;transition:max-width var(--duration-base) var(--ease-out)}
+  .gc-ai__fab:hover,.gc-ai__fab:focus-visible,.gc-ai__fab[aria-expanded="true"]{gap:var(--space-2);padding:0 var(--space-5) 0 var(--space-4)}
+  .gc-ai__fab:hover .gc-ai__label,.gc-ai__fab:focus-visible .gc-ai__label,.gc-ai__fab[aria-expanded="true"] .gc-ai__label{max-width:80px}
+  body:has(.gc-ai__fab) .gc-shell__content:not(.ibx-content),body:has(.gc-ai__fab) .set-content{padding-bottom:88px!important}
+}
+@media (min-width:641px) and (prefers-reduced-motion:reduce){.gc-ai__fab .gc-ai__label{transition:none}}
 
 /* ---- the hosting badge -----------------------------------------------------------------------------------
    Netlify adds its own badge (an iframe, #nl-badge-frame, fixed at the bottom right, about 190 × 48 px) on the

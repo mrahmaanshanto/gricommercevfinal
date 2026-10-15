@@ -1,0 +1,37 @@
+{
+ "id": "CX-F4",
+ "kind": "new",
+ "section": "Customers & marketing",
+ "area": "Customers & marketing",
+ "title": "Create order and New ticket on the profile",
+ "problem": "Staff on a customer's page could not start an order or a support ticket for that customer.",
+ "now": "The profile's More menu and Overview have Create order and New ticket; the ticket form opens with the name and phone filled in.",
+ "steps": [
+  "Open a customer",
+  "Tap More › New ticket and check the name and phone",
+  "Make the ticket and see it on the customer's Overview",
+  "Tap Create order: the order form opens with the customer picked"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/customers-crm/CustomerCRM.jsx",
+  "src/screens/support-tickets/SupportTickets.jsx"
+ ],
+ "notes": "Where: Customers › All customers › a customer (/customer-crm)",
+ "shots": [
+  {
+   "route": "/customer-crm",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "A customer",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

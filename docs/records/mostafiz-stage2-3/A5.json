@@ -1,0 +1,38 @@
+{
+ "id": "A5",
+ "kind": "new",
+ "section": "Module A · Storefront builder",
+ "area": "Module A · Storefront builder",
+ "title": "Mega menu in Menus",
+ "problem": "A header item could only open a short drop-down list, so big catalogues were hard to browse.",
+ "now": "Any top header item can open a mega menu of two to five columns with categories, links, a picture or a block; phones get a plain list.",
+ "steps": [
+  "Open Online Store › Menus and edit Accessories",
+  "Turn on Open a mega menu, add a Category list for Audio and an image banner",
+  "Watch the preview in the panel (it starts with the item's own category), press Done and Save menu",
+  "Hover Accessories on the store; on a phone open ☰ and see a normal list"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/storeMenus.js",
+  "src/screens/online-store/StoreMenus.jsx",
+  "src/screens/storefront/storeHeader.jsx"
+ ],
+ "notes": "Where: Online Store › Menus (/store-menus), edit a Main menu item",
+ "shots": [
+  {
+   "route": "/store-menus",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Menus: top items can open a mega menu",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

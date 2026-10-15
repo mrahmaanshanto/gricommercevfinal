@@ -14,6 +14,7 @@ import { Icon } from '@/runtime/dc';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { EmptyState, Sheet, StatusBadge, InfoTip } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
+import MarketingTabs from '@/screens/loyalty-promo/MarketingTabs';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { formatBDT, formatDateTime } from '@/lib/format';
 import {
@@ -175,8 +176,9 @@ export default function SmartOffers() {
               <ShopHeader icon="sparkles" title="Smart offers"
                 about="Offers that go out by themselves when a customer does something — buys from a category, stops buying, looks at a product without buying — or that you send to a customer group. Every customer gets their own one-time code. Send rules keep anyone from getting too many messages."
                 secondary={[{ label: 'Send rules', onClick: () => setRuleSheet({ ...rules }) }]}
-                more={[{ label: 'Coupons', href: '/coupons' }, { label: 'Abandoned carts', href: '/abandoned-carts' }, { label: 'Auto reminders', href: '/auto-reminders' }]}
+                more={[{ label: 'Abandoned carts', href: '/abandoned-carts' }, { label: 'Automations', href: '/automations' }]}
                 primary={{ label: 'New smart offer', onClick: openNew }} />
+              <MarketingTabs group="offers" active="rec-offers" />
 
               <MetricStrip label="Smart offers this month" items={[
                 { label: 'Offers sent', value: ready ? num(t.sent) : '—', sub: 'this month' },

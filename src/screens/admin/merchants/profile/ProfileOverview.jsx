@@ -1,6 +1,7 @@
 'use client';
 // Merchant 360° profile › Overview: five key facts, what needs someone for this store (at most five rows), notes, and
-// on the right the owner with call / WhatsApp / email, the account manager and the store's facts.
+// on the right the owner with call / WhatsApp / email, the account manager, business verification (KycCard, SA-F3),
+// the billing details GridCommerce's bills carry (SA-F14) and the store's facts.
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -10,7 +11,8 @@ import { MetricStrip, KV } from '@/components/ui/IndexKit';
 import { dm, dmy, daysBetween, taka, lastSeen } from '@/lib/platform/util';
 import { PLAN_IDS, PLAN_NAME } from '@/lib/platform/catalogue';
 import { openInvoices, balance } from '@/lib/platform/billing';
-import { addNote, pinNote, toggleTask, sendReset } from '@/lib/platform/shops';
+import { addNote, pinNote, toggleTask, sendReset, billingProfileOf } from '@/lib/platform/shops';
+import { KycCard } from '../kycShared';
 import { ownerOf, walletOf, usageOf } from '@/lib/admin/merchants';
 import { Card, Row, Empty, when, dueText } from './profileShared';
 
@@ -111,6 +113,7 @@ export function OverviewTab({ ctx }) {
     toast(r && r.ok ? `Reset link sent to ${r.phone || 'the owner'} by SMS` : 'The link could not be sent');
   };
   const late = openInvoices(db, shop.id).filter((i) => daysBetween(i.dueAt, t) > 0);
+  const bt = billingProfileOf(shop);
   return (
     <div className="ix-record">
       <div className="ix-main">
@@ -147,6 +150,12 @@ export function OverviewTab({ ctx }) {
         <Card title="Account manager" action={<button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => open('manager')}>{shop.am ? 'Change' : 'Assign'}</button>}>
           {shop.am ? <Row icon="user-round" title={shop.am} sub={`Onboarded by ${shop.by}${shop.helper && shop.helper !== shop.by ? ' · helper ' + shop.helper : ''}`} />
             : <Empty text="Nobody yet." action={{ label: 'Assign', onClick: () => open('manager') }} />}
+        </Card>
+
+        <KycCard shop={shop} Card={Card} Row={Row} />
+
+        <Card title="Billing details" action={<button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => open('billto')}>Edit</button>}>
+          <KV rows={[['Name on bills', bt.name], ['BIN', bt.bin ? <span key="b" className="mp-data">{bt.bin}</span> : '—'], ['Email', bt.email || '—']]} />
         </Card>
 
         <Card title="Store" action={<button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => open('edit')}>Edit</button>}>

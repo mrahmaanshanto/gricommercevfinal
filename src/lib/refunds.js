@@ -19,6 +19,8 @@ import { postEntry, accountForMethod, accountBy } from './ledger';
 import { needsApproval, submit, saveRequest, requestBy } from './approvals';
 import { currentUser } from './team';
 import { claimRef, releaseRef } from './paymentRefs';
+import { notifyCustomer } from './notifications';
+import { formatBDT } from './format';
 
 const KEY = 'gc.refunds';
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
@@ -110,6 +112,8 @@ export function sendRefund(id, { providerRef = '', account, method } = {}, user 
   const acc = account || rf.account;
   const entry = postEntry({ account: acc, amount: -rf.amount, kind: 'refund', ref: rf.ref || rf.id, party: rf.customer, note: `Refund ${rf.id}${providerRef ? ' · ' + providerRef : ''}`, by: user.name, txn: providerRef || undefined });
   const row = step(rf, 'sent', user, providerRef ? `${method || rf.method} ref ${providerRef}` : `From ${(accountBy(acc) || {}).name || acc}`, { account: acc, method: method || rf.method, providerRef, tries: (rf.tries || 0) + 1, posted: [...(rf.posted || []), entry && entry.id].filter(Boolean), failReason: '' });
+  // the customer is told the money is on its way (Settings › Notifications › Refund sent); once per refund
+  try { notifyCustomer('refund-sent', { name: row.customer, phone: row.phone }, { refund_amount: formatBDT(row.amount), refund_method: row.method, ref_id: row.providerRef || row.id }, { ref: row.id, once: row.id + '|sent' }); } catch { /* messages are not essential to the refund */ }
   return { ok: true, refund: row };
 }
 /** The customer or provider confirmed it. */

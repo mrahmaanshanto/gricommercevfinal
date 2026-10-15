@@ -1,0 +1,43 @@
+{
+ "id": "A1",
+ "kind": "new",
+ "section": "Module A · Storefront builder",
+ "area": "Module A · Storefront builder",
+ "title": "Theme settings with live preview",
+ "problem": "The shop's website looked the same for everyone; colours were written into each page and nothing could be changed.",
+ "now": "About sixty options in nine groups change colours, fonts, cards, product and category pages, cart, footer and extras, with a live preview, draft and publish.",
+ "steps": [
+  "Open Online Store › Theme and press Customize",
+  "Type WhatsApp in the search box and change the chat button",
+  "Open Brand & colours, change the primary colour and watch the preview on Phone",
+  "Press Publish, then open the store: the new colour shows; Undo in the message puts it back"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/storefront/theme.js",
+  "src/lib/storefront/store.js",
+  "src/lib/storefront/access.js",
+  "src/screens/online-store/ThemeEditor.jsx",
+  "src/screens/online-store/Theme.jsx",
+  "src/screens/online-store/sfShared.jsx",
+  "src/screens/storefront/storeChrome.jsx",
+  "src/screens/storefront/storeKit.jsx"
+ ],
+ "notes": "Where: Online Store › Theme › Customize (/theme-editor)",
+ "shots": [
+  {
+   "route": "/theme-editor",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Customize: options with search, live preview",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

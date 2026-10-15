@@ -2,6 +2,7 @@
 // MoneyReceipt — the money receipt (মানি রিসিট) a buyer gets for one payment (Collections, WH-F7): the shop's letterhead,
 // receipt number and date, who paid, the amount in figures and in words, how it was paid (method and reference), the
 // invoices it paid and what is still owed, who received it, signatures. It is one allocation of lib/allocations.js.
+// `alloc.leftOn` ({ invoice id: owed after this payment }) keeps each receipt of a split payment true to its own moment.
 //   <MoneyReceiptPaper alloc />          the paper (on screen in the dialog, printed with printDoc)
 //   <ReceiptView alloc />                 the paper + PDF / Send on WhatsApp (inside a dialog the caller owns)
 
@@ -40,7 +41,7 @@ export function MoneyReceiptPaper({ alloc, innerRef }) {
         <thead><tr><th style={S.th}>Against invoice</th><th style={S.th}>Invoice date</th><th style={{ ...S.th, ...S.num }}>Paid now</th><th style={{ ...S.th, ...S.num }}>Still owed on it</th></tr></thead>
         <tbody>
           {alloc.lines.map((l) => { const x = inv(l.id); return (
-            <tr key={l.id}><td style={{ ...S.td, fontFamily: 'var(--font-data)' }}>{l.id}</td><td style={S.td}>{x ? formatDate(x.at) : '—'}</td><td style={{ ...S.td, ...S.num }}>{money(l.amount)}</td><td style={{ ...S.td, ...S.num }}>{x ? money(Math.max(0, x.due)) : '—'}</td></tr>
+            <tr key={l.id}><td style={{ ...S.td, fontFamily: 'var(--font-data)' }}>{l.id}</td><td style={S.td}>{x ? formatDate(x.at) : '—'}</td><td style={{ ...S.td, ...S.num }}>{money(l.amount)}</td><td style={{ ...S.td, ...S.num }}>{alloc.leftOn && alloc.leftOn[l.id] != null ? money(Math.max(0, alloc.leftOn[l.id])) : x ? money(Math.max(0, x.due)) : '—'}</td></tr>
           ); })}
           {alloc.extra ? <tr><td style={S.td} colSpan={2}>Kept as advance credit</td><td style={{ ...S.td, ...S.num }}>{money(alloc.extra)}</td><td style={S.td} /></tr> : null}
         </tbody>

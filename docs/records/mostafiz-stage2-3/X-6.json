@@ -1,0 +1,35 @@
+{
+ "id": "X-6",
+ "kind": "fix",
+ "section": "Inbox, tickets and logos",
+ "area": "Inbox, tickets and logos",
+ "title": "RedX shows its own logo",
+ "problem": "RedX showed two letters in a red square instead of its logo.",
+ "now": "RedX shows its own logo in Connections, Payouts and delivery settings.",
+ "steps": [
+  "Open Settings › Connections.",
+  "Choose Delivery."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/components/BrandLogo.jsx",
+  "public/assets/brands/redx.png"
+ ],
+ "notes": "Where: Settings › Connections › Delivery (/connections?group=delivery)",
+ "shots": [
+  {
+   "route": "/connections?group=delivery",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Connections › Delivery",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

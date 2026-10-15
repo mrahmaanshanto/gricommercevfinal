@@ -125,7 +125,7 @@ class Component extends DCLogic {
     var liveRows = mine.slice(0, HIST_MAX).map(function (r) { var d = new Date(r.at); return { d: d.getDate() + ' ' + MONTHS[d.getMonth()], what: r.label, qty: (r.qty > 0 ? '+' : '−') + Math.abs(r.qty), up: r.qty > 0, note: [r.reason, place ? '' : r.place, r.ref, r.by].filter(Boolean).join(' · ') }; });
     var link = hr ? '?sku=' + encodeURIComponent(hr.p.sku) + (place ? '&place=' + encodeURIComponent(place) : '') : '';
     var sheet = hr ? {
-      title: hr.p.name, code: [hr.p.sku, hr.p.variant].filter(Boolean).join(' · '), where: place || (st.one ? whl[0] : 'All places'),
+      one: !!st.one, title: hr.p.name, code: [hr.p.sku, hr.p.variant].filter(Boolean).join(' · '), where: place || (st.one ? whl[0] : 'All places'),
       onHand: hr.n.onHand, held: hr.n.held, damaged: hr.n.damaged, available: hr.n.available, transit: hr.n.transit, reorder: hr.i.re,
       // the alert level can be changed for one place (a place picked, or a one-place shop); All places adds them up
       reAt: place || (st.one ? whl[0] : ''), reOwn: place || st.one ? placeLevel(hr.p, place || whl[0]) != null : false, reDefault: productLevel(hr.p),
@@ -166,7 +166,7 @@ class Component extends DCLogic {
       reN: st.reN != null ? st.reN : sheet ? String(sheet.reorder) : '', typeReN: function (e) { self.setState({ reN: e.target.value.replace(/\D/g, '') }); },
       saveRe: function (e) { if (e && e.preventDefault) e.preventDefault(); reSave(false); }, clearRe: function () { reSave(true); }, loading: !ready, one: !!st.one, place: place, kVendor: vendorAll,
       kitN: st.kitN || '1', typeKitN: function (e) { self.setState({ kitN: e.target.value.replace(/\D/g, '') }); }, assemble: function () { kitRun(false); }, takeApart: function () { kitRun(true); },
-      kValue: ready ? bdt(value) : '—', kInStock: ready ? String(inStock) : '—', kPlaces: place ? 'at ' + place : 'in ' + whl.length + ' places',
+      kValue: ready ? bdt(value) : '—', kInStock: ready ? String(inStock) : '—', kPlaces: place ? 'at ' + place : whl.length === 1 ? 'at ' + whl[0] : 'in ' + whl.length + ' places',
       kHeld: ready ? String(here.reduce(function (a, r) { return a + r.n.held; }, 0)) : '—', kTransit: ready ? String(here.reduce(function (a, r) { return a + r.n.transit; }, 0)) : '—',
       kBuy: lowN + outN, showLow: function () { self.setState({ f: 'low' }); setQuery('filter', 'low'); },
       wh: wh, whOpts: [{ k: 'all', l: 'All places' }].concat(whl.map(function (x) { return { k: whKey(x), l: x }; })),
@@ -245,8 +245,9 @@ export default class StockScreen extends Component {
                   items={[
                     { label: 'Stock value', value: v.kValue, sub: 'at cost' },
                     { label: 'Products in stock', value: v.kInStock },
-                    { label: 'Held for orders', value: v.kHeld, href: v.one ? undefined : '/stock-holds' },
-                    { label: 'In transit', value: v.kTransit, href: v.one ? undefined : '/transfers' },
+                    // one place (Online edition): no stock holds and no transfers, so neither figure is shown
+                    v.one ? null : { label: 'Held for orders', value: v.kHeld, href: '/stock-holds' },
+                    v.one ? null : { label: 'In transit', value: v.kTransit, href: '/transfers' },
                     v.kVendor ? { label: 'With vendors', value: String(v.kVendor), href: '/stock-activity' } : null,
                   ]} />
 
@@ -254,7 +255,7 @@ export default class StockScreen extends Component {
                   <p className="st-buy" role="status">
                     <__Icon name="trending-down" width="16" height="16" aria-hidden="true" />
                     <button type="button" onClick={v.showLow}>{v.kBuy === 1 ? '1 product needs buying' : `${v.kBuy} products need buying`}</button>
-                    <__Link href="/new-po">Make purchase order</__Link>
+                    {v.one ? <__Link href="/buy-goods">New purchase</__Link> : <__Link href="/new-po">Make purchase order</__Link>}
                   </p>
                 ) : null}
 
@@ -293,7 +294,7 @@ export default class StockScreen extends Component {
                             <th scope="col">Product</th>
                             <th scope="col">SKU</th>
                             <th scope="col" className="ix-num">Damaged</th>
-                            <th scope="col" className="ix-num">Held</th>
+                            {v.one ? null : <th scope="col" className="ix-num">Held</th>}
                             <th scope="col" className="ix-num">Available</th>
                             <th scope="col" className="ix-num">On hand</th>
                             <th scope="col" className="ix-num">In transit</th>
@@ -311,7 +312,7 @@ export default class StockScreen extends Component {
                               </td>
                               <td className="ix-muted st-sku">{r.sku}</td>
                               <td className={'ix-num' + (r.damaged ? '' : ' ix-muted')}>{r.damaged}</td>
-                              <td className={'ix-num' + (r.held ? '' : ' ix-muted')}>{r.held && !v.one ? <__Link href="/stock-holds" className="st-held" aria-label={`${r.held} held for orders · open stock holds`}>{r.held}</__Link> : r.held}</td>
+                              {v.one ? null : <td className={'ix-num' + (r.held ? '' : ' ix-muted')}>{r.held ? <__Link href="/stock-holds" className="st-held" aria-label={`${r.held} held for orders · open stock holds`}>{r.held}</__Link> : r.held}</td>}
                               <td className={'ix-num ix-strong ' + r.tone}>{r.available}</td>
                               <td className="ix-num">{r.onHand}</td>
                               <td className={'ix-num' + (r.transit ? '' : ' ix-muted')}>{r.transit}</td>
@@ -336,9 +337,9 @@ export default class StockScreen extends Component {
             <KV rows={[
               ['On hand', s.onHand],
               ['Damaged', s.damaged],
-              ['Held for orders', s.held],
+              s.one ? null : ['Held for orders', s.held],
               ['Available', <b key="a">{s.available}</b>],
-              ['In transit', s.transit],
+              s.one ? null : ['In transit', s.transit],
               s.vendor ? ['With vendor', s.vendor] : null,
               s.packs ? ['In packs', s.packs] : null,
               s.kind ? ['Kind', s.kind] : null,

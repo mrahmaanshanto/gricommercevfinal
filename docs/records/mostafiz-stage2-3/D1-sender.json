@@ -1,0 +1,36 @@
+{
+ "id": "D1-sender",
+ "kind": "new",
+ "section": "Module D · Business email",
+ "area": "Module D · Business email",
+ "title": "Order emails from the shop's domain",
+ "problem": "Order emails always came from a GridCommerce address.",
+ "now": "Once SPF and DKIM are green, order and notification emails go out from orders@ the shop's domain.",
+ "steps": [
+  "Open Domain & DNS.",
+  "See the sending address.",
+  "Open Order notifications: it shows there too."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/platform/mail.js",
+  "src/screens/settings-console/SetNotifications.jsx"
+ ],
+ "notes": "Where: Business email › Domain & DNS · Order notifications · Needs the server: The send layer must use this address on the server.",
+ "shots": [
+  {
+   "route": "/set-notifications",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Notifications: the sending address",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

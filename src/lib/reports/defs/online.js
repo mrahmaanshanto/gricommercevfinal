@@ -5,7 +5,8 @@
 // sale lines (salesBook), so they match Sales & profit.
 
 import { getOrders, isCounterSale, duplicatesOf, rtoState, logOf } from '../../orders';
-import { courierHistory, DELIVERY_RATES } from '../../orderLinks';
+import { courierHistory } from '../../orderLinks';
+import { zoneFee } from '../../deliveryRates';
 import { getItems, getPayouts, costsOf, partnerBy, courierPartner, courierChargeOf, PARTNERS } from '../../settlements';
 import { productBy, unitValue } from '../../stock';
 import * as salesBook from '../../salesBook';
@@ -78,7 +79,8 @@ function onlineSales(from, to) {
   return onlineOrders().filter((o) => inP(o.at, from, to) && keyOf(o) !== 'cancelled')
     .map((o) => ({ id: o.id, at: o.at, zone: zoneOf(o.zone), source: sourceOf(o), revenue: Number(o.subtotal) || 0, delivery: Number(o.shipping) || 0, est: false }));
 }
-const feeOf = (zone) => (DELIVERY_RATES.find((r) => r.label === zone) || {}).fee || 0;
+// the charge from Settings › Delivery (deliveryRates.js)
+const feeOf = (zone) => zoneFee(zone);
 
 // ---- order funnel ---------------------------------------------------------------------------------
 const RANK = { pending: 0, approved: 1, ready: 1, shipped: 2, delivered: 3, returned: 2, cancelled: 0 };

@@ -1,0 +1,36 @@
+{
+ "id": "RT-F3",
+ "kind": "new",
+ "section": "Retail & POS",
+ "area": "Retail & POS",
+ "title": "Collect old dues at the counter",
+ "problem": "Old dues could only be paid in the back office, behind the accept step.",
+ "now": "Collect due finds the customer, shows what they owe, takes cash or bKash (split is fine), pays oldest invoices first and prints a money receipt.",
+ "steps": [
+  "Open a shift, press Collect due",
+  "Pick Nusrat Jahan, take ৳1,000 cash",
+  "Print or send the money receipt"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/pos-register/Pos.jsx",
+  "src/lib/posStore.js"
+ ],
+ "notes": "Where: POS › register top bar › Collect due · /pos",
+ "shots": [
+  {
+   "route": "/pos",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "The register",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

@@ -91,7 +91,7 @@ const changed = () => { try { window.dispatchEvent(new CustomEvent('gc:ledger'))
 const read = () => { try { return JSON.parse(window.localStorage.getItem(KEY)) || []; } catch { return []; } };
 /** Every entry, newest first: the ones made in this browser, the platform's own monthly bills (platformCosts.js),
  *  the counters' takings after September (liveCounterSales.js), then the demo month (ledgerSeed.js). */
-export const getEntries = () => (typeof window === 'undefined' ? [...platformRows(), ...LEDGER_SEED] : [...read(), ...platformRows(), ...liveCounterLedger(), ...LEDGER_SEED].sort((a, b) => b.at - a.at));
+export const getEntries = () => (typeof window === 'undefined' ? [...platformRows(), ...LEDGER_SEED] : withMeta([...read(), ...platformRows(), ...liveCounterLedger(), ...recurringRows(), ...LEDGER_SEED]).sort((a, b) => b.at - a.at));
 
 /**
  * Record money moving. amount > 0 comes in, amount < 0 goes out.
@@ -115,8 +115,10 @@ function addSettleItem(it) {
 }
 /** Move money between two of the shop's own accounts (e.g. drawer → safe). */
 export function transferBetween(from, to, amount, meta = {}) {
-  postEntry({ ...meta, account: from, amount: -Math.abs(amount), kind: meta.kind || 'transfer' });
-  postEntry({ ...meta, account: to, amount: Math.abs(amount), kind: meta.kind || 'transfer' });
+  // both sides carry the same `pair`, so opening one finds the other (and reversing one reverses both)
+  const pair = meta.pair || 'TP-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  postEntry({ ...meta, pair, account: from, amount: -Math.abs(amount), kind: meta.kind || 'transfer' });
+  postEntry({ ...meta, pair, account: to, amount: Math.abs(amount), kind: meta.kind || 'transfer' });
 }
 /** Current balance: opening + every entry. */
 export function balanceOf(idOrName, entries = getEntries()) {
@@ -186,4 +188,168 @@ export function restoreAccount(id) {
   if (!acc) return { ok: false, message: 'That account could not be found.' };
   setAccountProps(acc.id, { status: 'active', archivedAt: null, archivedBy: null });
   return { ok: true, message: `${acc.name} restored.` };
+}
+
+// ---- open a movement: its note, receipts and a reversal (MS-F7) ------------------------------------
+// Nothing is ever edited or deleted. A wrong entry is put right by a reversal: a mirror entry (same account,
+// kind and category, the opposite amount, dated when it is made) that names the entry it reverses (`reverses`),
+// while the original gets `reversedBy`. Both stay in the books, so balances, profit and reports net out and
+// the trail shows who reversed what and why. A move between two of the shop's accounts is reversed on both
+// sides. Rows GridCommerce works out by itself (platform bills `auto`, the counters' live takings `live`)
+// and money that belongs to another record (a sale, an invoice, a payout, a supplier bill, a bill to pay)
+// can't be reversed here: they are put right where they were made (reverseCheck says where).
+// Notes and receipt photos added later, and the reversal links, are kept per entry id in gc.ledger.meta, so
+// they work for the demo month and the generated rows too. Front end only: a real build keeps this server-side.
+const META_KEY = 'gc.ledger.meta';
+const readMeta = () => { try { return JSON.parse(window.localStorage.getItem(META_KEY)) || {}; } catch { return {}; } };
+const writeMeta = (m) => { try { window.localStorage.setItem(META_KEY, JSON.stringify(m)); } catch { /* storage full or blocked */ } };
+function withMeta(rows) {
+  const m = readMeta();
+  if (!Object.keys(m).length) return rows;
+  return rows.map((r) => {
+    const x = m[r.id];
+    if (!x) return r;
+    const { files, ...rest } = x;
+    return { ...r, ...rest, files: [...(r.files || []), ...(files || [])] };
+  });
+}
+export const entryBy = (id, entries = getEntries()) => entries.find((e) => e.id === id) || null;
+/** Worked out by GridCommerce (platform bills, the counters' live takings): not a record anyone made. */
+export const isGenerated = (e) => !!(e && (e.auto || e.live));
+
+const FROM_RECORD = {
+  sale: ['It comes from a sale. Return or cancel the sale instead.', '/sales-book', 'Sales book'],
+  'order payment': ['It is an order’s payment. Change it on the order.', '', 'Order'],
+  'invoice payment': ['It is an invoice payment. Void the payment on the invoice.', '/sales-invoices', 'Invoices'],
+  refund: ['It is a refund. Refunds are handled in Payment operations.', '/payment-ops', 'Payment operations'],
+  'supplier payment': ['It pays a supplier’s bill. Change it on the supplier’s bills.', '/dues?tab=owe', 'Dues'],
+  'staff loan': ['It is a staff loan. Change it in Loans & advances.', '/loans-advances', 'Loans & advances'],
+  'loan repayment': ['It is a loan repayment. Change it in Loans & advances.', '/loans-advances', 'Loans & advances'],
+  'wallet top-up': ['It is store credit. Change it in Store credit.', '/wallet', 'Store credit'],
+  'wallet refund': ['It is store credit. Change it in Store credit.', '/wallet', 'Store credit'],
+  'loyalty reward': ['It is a loyalty reward. Change it in Loyalty & rewards.', '/loyalty', 'Loyalty & rewards'],
+  'referral reward': ['It is a referral reward. Change it in Invite a friend.', '/referrals', 'Invite a friend'],
+};
+const PAYOUT_KINDS = ['collected', 'settlement', 'partner fee', 'courier charge', 'settlement difference', 'withdraw'];
+/** Can this entry be reversed here? { ok } or { ok: false, why, href, label } (where it is put right instead). */
+export function reverseCheck(e) {
+  if (!e) return { ok: false, why: 'That entry could not be found.' };
+  if (e.reverses) return { ok: false, why: 'This entry is a reversal. It can’t be reversed again.' };
+  if (e.reversedBy) return { ok: false, why: 'This entry is already reversed.' };
+  if (e.auto) return { ok: false, why: 'GridCommerce adds this bill every month. Ask GridCommerce support if it is wrong.', href: '/help-support', label: 'Help & support' };
+  if (e.live) return { ok: false, why: 'It is worked out from the counters’ sales. Return or cancel the sale instead.', href: '/sales-book', label: 'Sales book' };
+  const acc = accountBy(e.account);
+  if ((acc && acc.type === 'Holding') || PAYOUT_KINDS.includes(e.kind)) return { ok: false, why: 'It is money a payment partner holds or paid out. Put it right in Payouts.', href: '/settlements', label: 'Payouts' };
+  if (e.liab) return { ok: false, why: 'It pays a bill in Bills to pay. Change it there.', href: '/liabilities', label: 'Bills to pay' };
+  const rec = FROM_RECORD[e.kind];
+  if (rec) return { ok: false, why: rec[0], href: rec[1], label: rec[2] };
+  return { ok: true };
+}
+/** The other side of a move between two of the shop's accounts (transfer, cash pickup), or null. */
+export function pairOf(e, entries = getEntries()) {
+  if (!e || !['transfer', 'cash pickup'].includes(e.kind)) return null;
+  if (e.pair) return entries.find((x) => x.pair === e.pair && x.id !== e.id) || null;
+  return entries.find((x) => x.id !== e.id && x.kind === e.kind && Math.abs(x.amount + e.amount) < 0.005 && Math.abs(x.at - e.at) <= 5 * 60000
+    && (x.ref || '') === (e.ref || '') && (x.note || '') === (e.note || '')) || null;
+}
+/**
+ * Reverse an entry (and the other side of a move between accounts): posts the mirror entry and links both ways.
+ * Returns { ok, message, rows }.
+ */
+export function reverseEntry(id, why, by = 'Staff') {
+  const all = getEntries();
+  const e = entryBy(id, all);
+  const chk = reverseCheck(e);
+  if (!chk.ok) return { ok: false, message: chk.why };
+  const reason = String(why || '').trim();
+  if (!reason) return { ok: false, message: 'Say why it is reversed.' };
+  const other = pairOf(e, all);
+  const meta = readMeta();
+  const rows = [e, other].filter(Boolean).map((x) => {
+    const row = postEntry({
+      account: x.account, amount: -x.amount, kind: x.kind, cat: x.cat, channel: x.channel, place: x.place, party: x.party,
+      ref: x.ref, pair: x.pair ? x.pair + '-R' : undefined, note: reason, by, reverses: x.id, item: false,
+    });
+    if (row) meta[x.id] = { ...(meta[x.id] || {}), reversedBy: row.id, reversedAt: row.at, reversedByName: by, reversedWhy: reason };
+    return row;
+  }).filter(Boolean);
+  writeMeta(meta);
+  changed();
+  return { ok: rows.length > 0, rows, message: rows.length > 1 ? 'Both sides of the move were reversed.' : 'Entry reversed.' };
+}
+/** Change an entry's note (the old one is kept in its history). */
+export function setEntryNote(id, note, by = 'Staff') {
+  const e = entryBy(id);
+  if (!e) return null;
+  const meta = readMeta();
+  const cur = meta[id] || {};
+  const log = [...(cur.noteLog || []), { at: Date.now(), by, was: e.note || '' }].slice(-10);
+  meta[id] = { ...cur, note: String(note || '').trim(), noteBy: by, noteAt: Date.now(), noteLog: log };
+  writeMeta(meta);
+  changed();
+  return entryBy(id);
+}
+/** Add a receipt or other file (a data URL, already made small) to an entry. Returns false when storage is full. */
+export function addEntryFile(id, { name, url, type }, by = 'Staff') {
+  const meta = readMeta();
+  const cur = meta[id] || {};
+  const file = { id: 'F-' + Date.now().toString(36), name: name || 'Receipt', url, type: type || 'image', at: Date.now(), by };
+  meta[id] = { ...cur, files: [...(cur.files || []), file] };
+  try { window.localStorage.setItem(META_KEY, JSON.stringify(meta)); } catch { return false; }
+  changed();
+  return true;
+}
+export function removeEntryFile(id, fileId) {
+  const meta = readMeta();
+  const cur = meta[id];
+  if (!cur || !cur.files) return;
+  meta[id] = { ...cur, files: cur.files.filter((f) => f.id !== fileId) };
+  writeMeta(meta);
+  changed();
+}
+
+// ---- expenses that repeat every month (MS-F8) -------------------------------------------------------
+// Rent, internet, a guard's pay …: the first payment is recorded as usual; the rule then adds the same expense on
+// the same day of every following month (generated rows `recurring: <rule id>`, part of getEntries) until it is
+// stopped. A generated month can be reversed like any entry (a month that was not paid). Rules are kept in
+// gc.ledger.recurring. They post without the approval limits (lib/approvals.js): a real build runs them on the
+// server and sends the month's payment for approval when it is over a limit.
+const REC_KEY = 'gc.ledger.recurring';
+const nowMs = () => { try { return Date.now() + (Number(window.localStorage.getItem('gc.clock.offset')) || 0); } catch { return Date.now(); } };
+export const getRecurring = () => { try { return JSON.parse(window.localStorage.getItem(REC_KEY)) || []; } catch { return []; } };
+const saveRecurring = (list) => { try { window.localStorage.setItem(REC_KEY, JSON.stringify(list)); } catch { /* ignore */ } changed(); };
+/** { cat, kind, party, amount, account, place, channel, vat, note, startAt (the first payment), by } */
+export function addRecurring(r) {
+  const start = new Date(r.startAt || nowMs());
+  const row = { ...r, id: 'RE-' + Date.now().toString(36), amount: Math.abs(Number(r.amount) || 0), day: Math.min(28, start.getDate()), startAt: start.getTime(), createdAt: Date.now() };
+  saveRecurring([...getRecurring(), row]);
+  return row;
+}
+export function stopRecurring(id, by = 'Staff') {
+  saveRecurring(getRecurring().map((r) => (r.id === id ? { ...r, stoppedAt: nowMs(), stoppedBy: by } : r)));
+}
+const monthAt = (y, m, day) => new Date(y, m, day, 10, 0, 0, 0).getTime();
+/** When a rule adds its next month (ms), or null when it is stopped. */
+export function nextRun(r, now = nowMs()) {
+  if (r.stoppedAt) return null;
+  const s = new Date(r.startAt);
+  let y = s.getFullYear(), m = s.getMonth() + 1;
+  for (let i = 0; i < 600; i += 1) { const at = monthAt(y, m, r.day); if (at > now) return at; m += 1; if (m > 11) { m = 0; y += 1; } }
+  return null;
+}
+/** Every month a rule has added so far (newest dates last). */
+export function recurringRows(now = nowMs()) {
+  if (typeof window === 'undefined') return [];
+  const out = [];
+  getRecurring().forEach((r) => {
+    const s = new Date(r.startAt);
+    let y = s.getFullYear(), m = s.getMonth() + 1;
+    for (let i = 0; i < 600; i += 1) {
+      const at = monthAt(y, m, r.day);
+      if (at > now || (r.stoppedAt && at > r.stoppedAt)) break;
+      out.push({ id: `REC-${r.id}-${y}${String(m + 1).padStart(2, '0')}`, at, account: r.account, amount: -r.amount, kind: r.kind || 'expense', cat: r.cat, channel: r.channel, place: r.place, vat: r.vat, party: r.party, note: r.note, by: r.by || 'Staff', recurring: r.id });
+      m += 1; if (m > 11) { m = 0; y += 1; }
+    }
+  });
+  return out;
 }

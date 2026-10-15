@@ -1,0 +1,38 @@
+{
+ "id": "A3",
+ "kind": "new",
+ "section": "Module A · Storefront builder",
+ "area": "Module A · Storefront builder",
+ "title": "Reusable HTML blocks",
+ "problem": "The same delivery note or banner had to be retyped on every page, and nothing could go into the footer or menus.",
+ "now": "Blocks made with the page editor are placed in headers, layouts, mega menus, the footer and the product tab; the list shows where each is used.",
+ "steps": [
+  "Open Online Store › HTML blocks",
+  "Open Phone deals and change its text, then Save",
+  "Open the store and hover Phones: the mega menu shows the new text",
+  "Back in the list, delete a used block: it warns where it is used first"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/storefront/blocks.js",
+  "src/screens/online-store/HtmlBlocks.jsx",
+  "src/screens/online-store/HtmlBlockEdit.jsx"
+ ],
+ "notes": "Where: Online Store › HTML blocks (/html-blocks, /html-block-edit)",
+ "shots": [
+  {
+   "route": "/html-blocks",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "HTML blocks with “used in”",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

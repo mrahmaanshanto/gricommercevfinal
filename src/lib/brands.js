@@ -10,14 +10,35 @@ export const BRANDS_EVENT = 'gc:brands';
 export const BRAND_NAME_MAX = 60;
 export const BRAND_DESC_MAX = 500;
 
-const SEED = ['Samsung', 'Apple', 'Xiaomi', 'Realme', 'Symphony', 'Nokia', 'Anker', 'Baseus', 'Spigen', 'SoundMax', 'Dazzle Shop']
-  .map((name, i) => ({ id: 'b-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name, description: '', image: '', at: Date.UTC(2026, 8, 1) + i }));
+// the brand wall's logos (Oct 2026; public/assets/brand-logos, cut from the shop's logo sheet)
+const LOGOS = { apple: 'apple', samsung: 'samsung', xiaomi: 'xiaomi', honor: 'honor', iqoo: 'iqoo', amazfit: 'amazfit', oppo: 'oppo', dji: 'dji',
+  anker: 'anker', 'bang & olufsen': 'bang-olufsen', belkin: 'belkin', asus: 'asus', aukey: 'aukey', baseus: 'baseus', beats: 'beats', beko: 'beko',
+  a4tech: 'a4tech', meizu: 'meizu', bellroy: 'bellroy', benq: 'benq', blupebble: 'blupebble', boat: 'boat', bomidi: 'bomidi', bose: 'bose' };
+const logoOf = (name) => { const f = LOGOS[String(name).toLowerCase()]; return f ? '/assets/brand-logos/' + f + '.webp' : ''; };
+const SEED = ['Samsung', 'Apple', 'Xiaomi', 'Realme', 'Symphony', 'Nokia', 'Anker', 'Baseus', 'Spigen', 'SoundMax', 'Fastrack', 'SKE', 'Dazzle Shop',
+  'OnePlus', 'Google', 'Sony', 'Belkin', 'Benks', 'Amazfit', 'Kieslect', 'CCA', 'QKZ', 'Remax', 'BLON', 'UiiSii', 'USAMS', 'Wavefun',
+  'Honor', 'iQOO', 'OPPO', 'DJI', 'Bang & Olufsen', 'ASUS', 'AUKEY', 'Beats', 'Beko', 'A4TECH', 'Meizu', 'Bellroy', 'BenQ', 'Blupebble', 'boAt', 'BOMIDI', 'Bose']
+  .map((name, i) => ({ id: 'b-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name, description: '', image: logoOf(name), at: Date.UTC(2026, 8, 1) + i }));
 /** The demo brands (also what the server renders before the browser list is read). */
 export const DEMO_BRANDS = SEED;
 
+// a saved list from before a seed brand was added gets the new ones once (a brand removed later stays removed)
+const SEED_V = 3;
 const read = () => {
   if (typeof window === 'undefined') return null;
-  try { const v = JSON.parse(window.localStorage.getItem(KEY)); return Array.isArray(v) ? v : null; } catch { return null; }
+  let v = null;
+  try { v = JSON.parse(window.localStorage.getItem(KEY)); } catch { v = null; }
+  if (!Array.isArray(v)) return null;
+  try {
+    if (Number(window.localStorage.getItem(KEY + '.v') || 1) < SEED_V) {
+      const have = new Set(v.map((b) => String(b.name).toLowerCase()));
+      // new seed brands, and the wall's logo for a saved brand that has none yet
+      v = [...v.map((b) => (b.image ? b : { ...b, image: logoOf(b.name) })), ...SEED.filter((b) => !have.has(b.name.toLowerCase()))];
+      window.localStorage.setItem(KEY, JSON.stringify(v));
+      window.localStorage.setItem(KEY + '.v', String(SEED_V));
+    }
+  } catch { /* ignore */ }
+  return v;
 };
 function write(list) {
   try { window.localStorage.setItem(KEY, JSON.stringify(list)); } catch { return false; }

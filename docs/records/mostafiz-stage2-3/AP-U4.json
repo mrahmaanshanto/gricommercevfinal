@@ -1,0 +1,35 @@
+{
+ "id": "AP-U4",
+ "kind": "fix",
+ "section": "Phone app",
+ "area": "Phone app",
+ "title": "Needs you rows open the right tab",
+ "problem": "Send to courier on Home opened Orders on the first tab, not the ready-for-courier list.",
+ "now": "Verify orders opens the On hold tab and Send to courier opens the Ready for courier list.",
+ "steps": [
+  "Open the app's Home",
+  "Tap Send to courier",
+  "Orders opens on the ready list"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/app/MHome.jsx"
+ ],
+ "notes": "Where: App: Home › Needs you (/m-home)",
+ "shots": [
+  {
+   "route": "/m-home",
+   "query": "as=ceo",
+   "viewport": "phone",
+   "beforeToo": true,
+   "label": "Phone: Needs you",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

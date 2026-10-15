@@ -1,0 +1,36 @@
+{
+ "id": "D1-plan",
+ "kind": "new",
+ "section": "Module D · Business email",
+ "area": "Module D · Business email",
+ "title": "Buy mailboxes and storage",
+ "problem": "Mail could not be sized or billed.",
+ "now": "Plan & usage shows seats, storage and the monthly cost, and buys more mailboxes or storage; a plan includes some free.",
+ "steps": [
+  "Open Plan & usage.",
+  "Buy 10 GB more.",
+  "See the new monthly cost."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/platform/mail.js",
+  "src/screens/settings-console/BusinessEmail.jsx"
+ ],
+ "notes": "Where: Business email › Plan & usage",
+ "shots": [
+  {
+   "route": "/email",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Business email",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

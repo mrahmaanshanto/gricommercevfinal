@@ -98,8 +98,7 @@ export default function Loyalty() {
   return (
     <LoyPage screen="Loyalty" active="loy-home" title="Loyalty & rewards" icon="crown" css={CSS}
       about="Reward loyal customers. They collect points when they buy and use them as money off next time; points they hold are a promise you keep until they are used."
-      secondary={[{ label: 'See members', href: '/members' }]}
-      more={[{ label: 'Product points', href: '/product-points' }, { label: 'Store credit', href: '/wallet' }, { label: 'Invite a friend', href: '/referrals' }, { label: 'Bills to pay', href: '/liabilities' }, { label: 'Sales & profit', href: '/sales-profit' }]}
+      more={[{ label: 'Bills to pay', href: '/liabilities' }, { label: 'Sales & profit', href: '/sales-profit' }]}
       primary={{ label: 'Save rules', onClick: save }}>
       <MetricStrip items={[
         { label: 'Members', value: data ? pts(data.members.length) : '—', sub: data ? `+${data.joined} joined in ${data.monthLabel}` : '', href: '/members' },

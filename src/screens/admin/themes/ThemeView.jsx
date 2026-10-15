@@ -4,7 +4,9 @@
 // Disable / Deprecate / Export stores under More. Main column: placeholder preview (Desktop · Tablet · Phone frames with
 // the theme's sections as blocks), features, version history with release notes, the stores using it (version, waiting
 // for the next visit, change theme) and the update history. Side: overview, compatibility (modules, packages), who may
-// edit and publish, and Merchant editing (Planned). Data: lib/admin/themes.js. ?id= is read after mount.
+// edit and publish, Merchant editing (what stores on this theme may change in the merchant's storefront builder) and,
+// for Signal, Nokshi and Counter, the one-click preset merchants are offered on this theme's packages.
+// Data: lib/admin/themes.js. ?id= is read after mount.
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -16,7 +18,7 @@ import { downloadCsv } from '@/lib/reports/period';
 import { dmy } from '@/lib/platform/util';
 import {
   itemById, statusOf, liveVersion, releasesOf, pendingReleaseOf, storesOn, logOf, familyBy, packageLabel, rolloutLabel, stageLabel,
-  setEnabled, applyPending,
+  setEnabled, applyPending, PRESET_FAMILIES,
 } from '@/lib/admin/themes';
 import { AdminShell } from '../AdminShell';
 import {
@@ -239,6 +241,17 @@ export default function ThemeView() {
                 <KV rows={[['Can edit', item.access.edit.join(', ')], ['Can publish', item.access.publish.join(', ')]]} />
               </div>
             </section>
+
+            {PRESET_FAMILIES.includes(item.id) ? (
+              <section className="ix-card" aria-labelledby="thv-pre">
+                <div className="ix-card__head"><h2 id="thv-pre">Merchant preset</h2></div>
+                <div className="ix-card__body thv-feat">
+                  <p>Stores see {item.name} as a one-click preset in Online Store › Theme{item.state === 'disabled' ? ' — hidden while the theme is off' : ''}. They get it on these packages:</p>
+                  <PkgChips ids={item.packages} />
+                  <p className="thm-small thm-muted">Taking a package off here hides the preset for stores on it.</p>
+                </div>
+              </section>
+            ) : null}
 
             <MerchantEditing item={item} data={data} />
           </div>

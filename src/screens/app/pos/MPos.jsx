@@ -21,7 +21,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { AppScreen, Content, AppBar, ActionBar, Button, IconButton, Field, TextInput, Stepper, Segmented, Chips, Sheet, SearchField, ListRow, Note, Pill, EmptyState, Skeleton, Icon, useAppData, money, toast, confirmDialog } from '../kit/AppKit';
-import { POS_KEYS as KEYS, load, save, getCounters, getCash, saveCash, getShifts, saveShifts, getSettings, shiftReport, nextId, postCashMove, postVariance, claimCounter, counterBusy, releaseCounter } from '@/lib/posStore';
+import { POS_KEYS as KEYS, load, save, getCounters, getCash, saveCash, getShifts, saveShifts, getSettings, shiftReport, nextId, postCashMove, postVariance, claimCounter, counterBusy, releaseCounter, limitsFor } from '@/lib/posStore';
 import { commitSale, queueSale, newOpId, saleForOp, getQueue, queuedQty, nextSaleNo } from '@/lib/posSale';
 import { trackingOf, checkSerial, serialsAt } from '@/lib/serials';
 import { payAccounts, devicesAt } from '@/lib/hardware';
@@ -178,9 +178,10 @@ export default function MPos() {
   const units = t.units;
   const setDisc = (patch) => {
     const next = { type: 'amount', value: 0, ...(discount || {}), ...patch };
-    const capPct = (cfg && cfg.maxDiscount) || 15;
+    // the cashier's own limit (POS management › Settings › POS limits); more needs the web register's approval
+    const capPct = shift && shift.cashier ? safe(() => limitsFor(shift.cashier).discount, 0) : 0;
     const cap = next.type === 'percent' ? capPct : Math.floor((t.gross - t.lineDisc) * capPct / 100);
-    if (next.value > cap) { next.value = cap; toast(`A cashier can give up to ${capPct}% discount`, { tone: 'error' }); }
+    if (next.value > cap) { next.value = cap; toast(`${(shift && shift.cashier) || 'You'} can give up to ${capPct}% discount`, { tone: 'error' }); }
     setDiscount(next.value > 0 ? next : { ...next, value: 0 });
   };
 
@@ -480,7 +481,7 @@ export default function MPos() {
         {waiting.length ? <Note tone="warn" icon="alert" style={{ marginTop: '12px' }}>{plural(waiting.length, 'sale')} waiting to sync.</Note> : null}
         <div className="card" style={{ boxShadow: 'none', border: '1px solid var(--line)', marginTop: '14px' }}>
           <ListRow href="/pos?panel=cash" icon="cash" title="Cash pickups and paid out" sub="On the register" />
-          <ListRow href="/return-exchange" icon="undo" title="Return or exchange" sub="On the web" />
+          <ListRow href="/m-return?back=/m-pos" icon="undo" title="Return or exchange" sub="Find the sale, refund or swap" />
         </div>
       </Sheet>
 

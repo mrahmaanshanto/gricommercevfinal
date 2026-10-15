@@ -6,6 +6,11 @@
 // message whether the send layer would send it (consent, suppression, quiet hours, caps). Nothing is sent. Its
 // Versions tab lists every change to the rule; an old version can be brought back (src/lib/automationRules.js).
 // On / off is kept in this browser.
+// One place for automatic work (review CX-U6): the tabs are the rule categories, AI (Grid AI's rules on the same engine,
+// cat 'ai'; opened and changed in Grid AI › Automations, switched only by people who may configure Grid AI), then the
+// automatic work kept on its own page — Notifications (Settings › Notifications), Reminders (cart reminders), Smart
+// offers and Auto-call — each a short summary read from its lib with a button to open it. A tab shows only in editions
+// and for people who can open its page; ?tab= opens one. Those pages fold under Automations in the menu.
 // Edit freely: this file is the source for the screen.
 
 import React, { useEffect, useState } from 'react';
@@ -18,12 +23,27 @@ import { Sheet, StatusBadge, EmptyState } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, Menu } from '@/components/ui/IndexKit';
 import { getRules, setRuleOn, ruleBy, ruleVersions, restoreVersion, simulate, conditionLabel, SAMPLE_EVENTS, TRIGGERS, RULES_EVENT } from '@/lib/automationRules';
 import { formatDate } from '@/lib/format';
+import { EVENTS as NOTIFY_EVENTS, getNotifySettings, NOTIFY_EVENT } from '@/lib/notifications';
+import { getReminderSettings, RECOVERY_EVENT } from '@/lib/recovery';
+import { getOffers as getSmartOffers, OFFERS_EVENT } from '@/lib/smartOffers';
+import { hasModule } from '@/lib/edition';
+import { currentUser } from '@/lib/team';
+import { can, why } from '@/lib/permissions';
+import { openablePages } from '@/screens/loyalty-promo/MarketingTabs';
 
 // ---- logic ----
 
-const CATS = [['all', 'All'], ['orders', 'Orders'], ['delivery', 'Delivery'], ['customers', 'Customers'], ['stock', 'Stock'], ['marketing', 'Marketing']];
+const CATS = [['all', 'All'], ['orders', 'Orders'], ['delivery', 'Delivery'], ['customers', 'Customers'], ['stock', 'Stock'], ['marketing', 'Marketing'], ['ai', 'AI']];
+// automatic work kept on its own page: key, tab, page, menu id (who may open it), module
+const LINKS = [
+  ['notify', 'Notifications', '/set-notifications', '', 'core'],
+  ['reminders', 'Reminders', '/auto-reminders', 'rec-auto', 'online'],
+  ['smart', 'Smart offers', '/smart-offers', 'rec-offers', 'online'],
+  ['autocall', 'Auto-call', '/auto-call-settings', 'comm-ai', 'comms'],
+];
+const isLink = (k) => LINKS.some((l) => l[0] === k);
 // each row: id, cat, name, when, then, on, runs 7d, cost note, custom — built from the rules in src/lib/automationRules.js
-// (Grid AI's own rules are listed in Grid AI › Automations)
+// (Grid AI's own rules, cat 'ai', are the AI tab; they are edited in Grid AI › Automations)
 const lc = (t) => (t ? t.charAt(0).toLowerCase() + t.slice(1) : '');
 const waitWords = (h) => (h >= 24 && h % 24 === 0 ? `${h / 24} ${h / 24 === 1 ? 'day' : 'days'}` : `${h} ${h === 1 ? 'hour' : 'hours'}`);
 function describe(r) {
@@ -31,22 +51,68 @@ function describe(r) {
   const then = r.actions.map((a) => (a.kind === 'message' ? 'send ' + (a.channel === 'sms' ? 'an SMS' : a.channel === 'email' ? 'an email' : 'a WhatsApp message') : lc(a.label))).join(', then ') || 'nothing yet';
   return [r.id, r.cat, r.name, when, then, r.on, r.runs || 0, r.cost || 'No charge', !!r.custom];
 }
-const listRules = () => getRules().filter((r) => r.cat !== 'ai').map(describe);
+const listRules = () => getRules().map(describe);
+const waitShort = (h) => (h >= 24 && h % 24 === 0 ? (h / 24) + (h === 24 ? ' day' : ' days') : h + (h === 1 ? ' hour' : ' hours'));
+/** What each linked tab shows: a line, a few facts and its count (read from the libs after mount). */
+function linkSummary(key) {
+  if (key === 'notify') {
+    const st = getNotifySettings();
+    const evs = NOTIFY_EVENTS.filter((e) => !e.owner && hasModule(e.scope === 'customer' ? e.mod : 'online'));
+    const on = (e) => { const t = st.events[e.key] || {}; return (t.customer || t.merchant) && (t.sms || t.email || t.whatsapp); };
+    const groups = [...new Set(evs.map((e) => e.group))];
+    return { lead: 'SMS, WhatsApp and email that go out by themselves when something happens.', count: evs.filter(on).length,
+      facts: groups.map((g) => { const list = evs.filter((e) => e.group === g); return [g, list.filter(on).length + ' of ' + list.length + ' on']; }), cta: 'Open notifications' };
+  }
+  if (key === 'reminders') {
+    const r = getReminderSettings();
+    const steps = (r.steps || []).filter((x) => x.on !== false);
+    return { lead: 'Messages to customers who left a cart, with a coupon on the later ones.', count: r.on ? steps.length : 0,
+      facts: [['Reminders', r.on ? 'On' : 'Off'], ...steps.map((x, i) => ['Reminder ' + (i + 1), (x.title || '') + ' · after ' + waitShort(x.wait)])], cta: 'Open reminders' };
+  }
+  if (key === 'smart') {
+    const list = getSmartOffers();
+    return { lead: 'Offers that go out by themselves when a customer does something.', count: list.filter((o) => o.on).length,
+      facts: list.slice(0, 6).map((o) => [o.name, o.on ? 'On' : 'Off']), cta: 'Open smart offers' };
+  }
+  return { lead: 'The AI calls new cash-on-delivery orders to confirm them: when it calls, how often it tries again and what it says.', count: null, facts: [], cta: 'Open auto-call settings' };
+}
 const RUNS = [['3:12 PM', 'Thank customers after AI confirmation', 'WhatsApp sent to Farhana Akter · #ORD-0929-011', 'ok'], ['2:55 PM', 'Book the courier when an order is packed', 'Pathao booked · #ORD-0929-004 · from Central Warehouse', 'ok'], ['1:40 PM', 'Big orders need a manager call', 'Held #ORD-0929-007 · ৳12,400 · new customer', 'ok'], ['11:20 AM', 'Ask for a review after delivery', 'SMS to 01911-204417 failed: number switched off', 'fail'], ['10:05 AM', 'Request stock when it runs low', 'Request PR-0929-02 · Braided Lightning Cable at Mirpur', 'ok'], ['9:00 AM', 'Win back quiet customers', '12 WhatsApp offers sent', 'ok']];
-const catName = (k) => (CATS.find((c) => c[0] === k) || CATS[0])[1];
+const catName = (k) => (CATS.find((c) => c[0] === k) || LINKS.find((c) => c[0] === k) || CATS[0])[1];
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 const BUILDER = '/workflow-builder';
-const openRule = (id) => BUILDER + '?id=' + encodeURIComponent(id);
+// an AI rule opens in Grid AI › Automations (its own editor); the others in the workflow builder
+const openRule = (id, cat) => (cat === 'ai' ? '/ai-automations' : BUILDER + '?id=' + encodeURIComponent(id));
+const SOURCES_EVENTS = [RULES_EVENT, NOTIFY_EVENT, RECOVERY_EVENT, OFFERS_EVENT];
 
 class Component extends DCLogic {
-  state = { f: 'all', on: {}, rules: [], q: '', find: false, status: '', kind: '', sel: {}, runsOpen: false, lab: '' };
-  componentDidMount() { this.readOn(); window.addEventListener(RULES_EVENT, this.readOn); }
-  componentWillUnmount() { window.removeEventListener(RULES_EVENT, this.readOn); }
-  readOn = () => { const rules = listRules(); const on = {}; rules.forEach((r) => { on[r[0]] = r[5]; }); this.setState({ rules, on, loaded: true }); };
+  state = { f: 'all', on: {}, rules: [], q: '', find: false, status: '', kind: '', sel: {}, runsOpen: false, lab: '', ai: true, mayAi: false, links: [], sum: {} };
+  componentDidMount() {
+    // tabs this person can open in this edition; AI rules only where Grid AI › Automations opens
+    const ok = openablePages();
+    const has = (id) => !id || !ok || ok.has(id);
+    const links = LINKS.filter(([, , , id, mod]) => hasModule(mod) && has(id)).map((l) => l[0]);
+    const ai = hasModule('gridai') && has('ai-automations');
+    let f = 'all';
+    try { const t = new URLSearchParams(window.location.search).get('tab'); if (t && (CATS.some((c) => c[0] === t) || links.includes(t)) && (t !== 'ai' || ai)) f = t; } catch { /* no URL */ }
+    this.setState({ links, ai, f, mayAi: can(currentUser(), 'ai-configure') }, this.readOn);
+    SOURCES_EVENTS.forEach((e) => window.addEventListener(e, this.readOn));
+  }
+  componentWillUnmount() { SOURCES_EVENTS.forEach((e) => window.removeEventListener(e, this.readOn)); }
+  readOn = () => {
+    const rules = listRules().filter((r) => r[1] !== 'ai' || this.state.ai);
+    const on = {}; rules.forEach((r) => { on[r[0]] = r[5]; });
+    const sum = {}; this.state.links.forEach((k) => { try { sum[k] = linkSummary(k); } catch { /* storage blocked */ } });
+    this.setState({ rules, on, sum, loaded: true });
+  };
+  setTab(k) {
+    this.setState({ f: k, sel: {}, find: false, q: '', status: '', kind: '' });
+    try { const u = new URL(window.location.href); if (k === 'all') u.searchParams.delete('tab'); else u.searchParams.set('tab', k); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); } catch { /* no URL */ }
+  }
   isOn(r) { return this.state.on[r[0]] == null ? r[5] : this.state.on[r[0]]; }
   /** Turn the selected rules on or off. */
   setMany(ids, value) {
     const RULES = this.state.rules;
+    if (!this.state.mayAi && RULES.some((r) => ids.includes(r[0]) && r[1] === 'ai')) { toast(why('ai-configure'), { tone: 'info' }); ids = ids.filter((id) => !RULES.some((r) => r[0] === id && r[1] === 'ai')); }
     const list = RULES.filter((r) => ids.includes(r[0]) && this.isOn(r) !== value);
     if (!list.length) { toast(value ? 'The selected rules are already on' : 'The selected rules are already off', { tone: 'info' }); return; }
     const on = { ...this.state.on };
@@ -66,14 +132,19 @@ class Component extends DCLogic {
       && (!st.kind || (st.kind === 'custom') === r[8]);
     const counts = {};
     CATS.forEach(([k]) => { counts[k] = RULES.filter((r) => k === 'all' || r[1] === k).length; });
-    const rows = RULES.filter((r) => (st.f === 'all' || r[1] === st.f) && matches(r));
+    const link = isLink(st.f) ? LINKS.find((l) => l[0] === st.f) : null;
+    const rows = link ? [] : RULES.filter((r) => (st.f === 'all' || r[1] === st.f) && matches(r));
     const selIds = rows.filter((r) => st.sel[r[0]]).map((r) => r[0]);
     const allChecked = rows.length > 0 && rows.every((r) => st.sel[r[0]]);
     const hasFilters = !!(needle || st.status || st.kind);
     const clear = () => this.setState({ q: '', status: '', kind: '' });
     return {
-      tabs: CATS.map(([k, l]) => ({ key: k, label: l, count: counts[k], id: 'au-tab-' + k, on: st.f === k, onClick: () => this.setState({ f: k, sel: {} }) })),
-      tabLabel: st.f === 'all' ? 'All rules' : catName(st.f) + ' rules',
+      tabs: [
+        ...CATS.filter(([k]) => k !== 'ai' || st.ai).map(([k, l]) => ({ key: k, label: l, count: counts[k], id: 'au-tab-' + k, on: st.f === k, onClick: () => this.setTab(k) })),
+        ...LINKS.filter(([k]) => st.links.includes(k)).map(([k, l]) => ({ key: k, label: l, count: st.sum[k] && st.sum[k].count != null ? st.sum[k].count : undefined, id: 'au-tab-' + k, on: st.f === k, onClick: () => this.setTab(k) })),
+      ],
+      tabLabel: st.f === 'all' ? 'All rules' : link ? link[1] : catName(st.f) + ' rules',
+      link: link ? { key: link[0], label: link[1], href: link[2], ...(st.sum[link[0]] || { lead: '', facts: [], cta: 'Open' }) } : null,
       figures: [
         { label: 'Rules on', value: live.length + ' / ' + RULES.length, sub: RULES.filter((r) => r[8]).length + ' custom' },
         { label: 'Runs, 7 days', value: String(runs) },
@@ -87,7 +158,7 @@ class Component extends DCLogic {
       status: st.status, onStatus: (e) => this.setState({ status: e.target.value }),
       kind: st.kind, onKind: (e) => this.setState({ kind: e.target.value }),
       hasFilters, clear,
-      empty: !!st.loaded && rows.length === 0,
+      empty: !!st.loaded && !link && rows.length === 0,
       emptyTitle: needle ? 'No rules match “' + st.q.trim() + '”' : 'No rules match these filters',
       countLabel: rows.length ? 'Showing ' + plural(rows.length, 'rule') : 'No rules to show',
       selCount: selIds.length, allChecked,
@@ -103,13 +174,13 @@ class Component extends DCLogic {
       rows: rows.map((r) => {
         const on = this.isOn(r);
         return {
-          id: r[0], name: r[2], cat: catName(r[1]), custom: r[8], when: 'When ' + r[3], full: 'When ' + r[3] + ', then ' + r[4] + '.',
+          id: r[0], name: r[2], cat: catName(r[1]), custom: r[8], when: 'When ' + r[3], full: 'When ' + r[3] + ', then ' + r[4] + '.', locked: r[1] === 'ai' && !st.mayAi,
           runs: on ? String(r[6]) : '—', cost: r[7], on,
           checked: !!st.sel[r[0]],
           onToggle: () => this.setState((s) => ({ sel: { ...s.sel, [r[0]]: !s.sel[r[0]] } })),
           onSwitch: () => this.setMany([r[0]], !on),
-          href: openRule(r[0]),
-          onRowClick: (e) => { if (e.target.closest('a,button,input,label,select')) return; navigate(openRule(r[0])); },
+          href: openRule(r[0], r[1]),
+          onRowClick: (e) => { if (e.target.closest('a,button,input,label,select')) return; navigate(openRule(r[0], r[1])); },
         };
       }),
     };
@@ -142,6 +213,12 @@ const CSS = `
 .au-ver__text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .au-ver__text b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .au-ver__text span{font-size:var(--text-xs);color:var(--text-muted)}
+.au-link{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-3);padding:var(--space-4)}
+.au-link p{margin:0;font-size:var(--text-sm);color:var(--text-body)}
+.au-facts{display:flex;flex-direction:column;align-self:stretch;margin:0;padding:0;list-style:none;border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.au-facts li{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:40px;padding:var(--space-2) var(--space-3);border-top:1px solid var(--border-subtle);font-size:var(--text-sm);color:var(--text-body)}
+.au-facts li:first-child{border-top:0}
+.au-facts b{font-weight:var(--weight-medium);color:var(--text-heading);text-align:right}
 `;
 
 const STEP_ICON = { trigger: 'zap', condition: 'git-branch', wait: 'clock', action: 'send', stop: 'circle-x', note: 'info' };
@@ -209,11 +286,11 @@ export default class AutomationsScreen extends Component {
         <div className="gc-shell">
           <Sidebar sticky="" active="auto-rules" />
           <main className="gc-shell__main">
-            <Topbar crumb="Automation" page="Rules" />
+            <Topbar crumb="Communications" page="Automations" />
             <div className="gc-shell__content">
               <div className="ix-page">
-                <ShopHeader icon="zap" title="Rules"
-                  about="Ready-made rules and your own When / Then workflows. Turn a rule on or off, open it to change what it does, and check what ran in Recent runs."
+                <ShopHeader icon="zap" title="Automations"
+                  about="Everything that runs by itself: ready-made rules and your own When / Then workflows, Grid AI's rules, order and customer notifications, cart reminders, smart offers and auto-call. Turn a rule on or off, open it to change what it does, and check what ran in Recent runs."
                   secondary={[{ label: 'Test a rule', onClick: v.openLab }, { label: 'Recent runs', onClick: v.openRuns }]}
                   more={[{ label: 'Workflow settings', href: '/workflow-settings' }]}
                   primary={{ label: 'New workflow', href: BUILDER }} />
@@ -235,10 +312,10 @@ export default class AutomationsScreen extends Component {
                         <SearchField value={v.q} onChange={v.onSearch} placeholder="Search rules" onDone={v.closeFind} autoFocus />
                         <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.closeFind}>Cancel</button>
                       </>) : (<>
-                        <IndexTabs tabs={v.tabs} label="Rule category" />
-                        <span className="ix-tools">
+                        <IndexTabs tabs={v.tabs} label="Automation category" />
+                        {v.link ? null : <span className="ix-tools">
                           <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={v.openFind}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
-                        </span>
+                        </span>}
                       </>)}
                     </div>
                   )}
@@ -254,7 +331,13 @@ export default class AutomationsScreen extends Component {
                     </div>
                   ) : null}
 
-                  {v.empty ? (
+                  {v.link ? (
+                    <div className="au-link" role="tabpanel" aria-label={v.link.label}>
+                      <p>{v.link.lead}</p>
+                      {v.link.facts.length ? <ul className="au-facts">{v.link.facts.map(([k, val]) => <li key={k}><span>{k}</span><b>{val}</b></li>)}</ul> : null}
+                      <Link href={v.link.href} className="ix-btn ix-btn--primary">{v.link.cta}</Link>
+                    </div>
+                  ) : v.empty ? (
                     <div className="ix-empty"><EmptyState icon="workflow" title={v.emptyTitle} actionLabel={v.hasFilters ? 'Clear filters' : undefined} onAction={v.hasFilters ? v.clear : undefined} /></div>
                   ) : (<>
                     <ul className="ix-plist" aria-label={v.tabLabel}>
@@ -290,14 +373,14 @@ export default class AutomationsScreen extends Component {
                               <td className="ix-muted">{r.cat}{r.custom ? ' · Custom' : ''}</td>
                               <td className="ix-num">{r.runs}</td>
                               <td className="ix-muted">{r.cost}</td>
-                              <td><button type="button" role="switch" aria-checked={r.on} aria-label={(r.on ? 'Turn off ' : 'Turn on ') + r.name} className="gc-switch" onClick={r.onSwitch}><span className="gc-switch__knob" /></button></td>
+                              <td><button type="button" role="switch" aria-checked={r.on} aria-label={(r.on ? 'Turn off ' : 'Turn on ') + r.name} className="gc-switch" onClick={r.onSwitch} aria-disabled={r.locked || undefined} title={r.locked ? 'Only people who may configure Grid AI can switch this' : undefined}><span className="gc-switch__knob" /></button></td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
                   </>)}
-                  <div className="ix-foot"><span>{v.countLabel}</span></div>
+                  {v.link ? null : <div className="ix-foot"><span>{v.countLabel}</span></div>}
                 </section>
                 <LearnMore topic="rules" />
               </div>

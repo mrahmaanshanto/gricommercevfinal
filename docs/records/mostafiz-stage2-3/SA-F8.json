@@ -1,0 +1,38 @@
+{
+ "id": "SA-F8",
+ "kind": "new",
+ "section": "Super admin",
+ "area": "Super admin",
+ "title": "Failed automatic charges in Collections",
+ "problem": "A failed bKash or card charge was hidden in one bill's history until the bill went overdue.",
+ "now": "Collections has an Auto-charge failed group with Retry now and Ask owner to update payment method, which logs it and sends the store a notice.",
+ "steps": [
+  "Open Collections: Mehedi Traders is under Auto-charge failed",
+  "Press Retry now and read the result",
+  "From the row's menu choose Ask owner to update payment method",
+  "Open the bill to see each try in its timeline"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/platform/billing.js",
+  "src/lib/platform/seed.js",
+  "src/screens/admin/billing/Collections.jsx"
+ ],
+ "notes": "Where: Super admin: Billing & credits › Collections (/admin/collections) · Needs the server: The retry result is a demo; a live build calls bKash or the card gateway.",
+ "shots": [
+  {
+   "route": "/admin/collections",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Super admin: Collections",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

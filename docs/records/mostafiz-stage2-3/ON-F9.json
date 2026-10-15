@@ -1,0 +1,38 @@
+{
+ "id": "ON-F9",
+ "kind": "new",
+ "section": "Online selling",
+ "area": "Online selling",
+ "title": "Order source on Create order",
+ "problem": "Hand-made orders all looked the same, so nobody knew which came from Facebook, WhatsApp or phone.",
+ "now": "Create order asks where the order came from, and All orders can be filtered by source.",
+ "steps": [
+  "Create an order with source WhatsApp",
+  "Open All orders and press Search",
+  "Pick Source: WhatsApp"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/merchant-orders/NewOrder.jsx",
+  "src/screens/merchant-orders/MerchantOrders.jsx",
+  "src/screens/app/MNewOrder.jsx",
+  "src/lib/orderLinks.js"
+ ],
+ "notes": "Where: Orders › Create order (/new-order); All orders › Search and filter › Source; app New order",
+ "shots": [
+  {
+   "route": "/new-order",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Create order",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

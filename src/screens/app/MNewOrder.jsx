@@ -7,7 +7,8 @@
 //              (restrictions.checkOrder: blocked, no COD, advance above an amount, order limit, method off)
 //   products   what can be sold (sellable.orderableItems, with free stock at the place online orders ship from;
 //              pre-order items may go below zero); a scanned code arriving as ?code= is added (identifiers.resolveScan)
-//   delivery   the web's rates (orderLinks.DELIVERY_RATES), the charge can be changed; courier (optional)
+//   delivery   Settings › Delivery's rates (deliveryRates.js), the charge can be changed; courier (optional)
+//   source     where the order came from (Facebook, WhatsApp, Phone …), as on the web
 //   payment    Cash on delivery, paid in full (bKash, Nagad, Card) or an advance; VAT 5% as on the web; discount
 //   create     orderLinks.addOrder (the same order sent twice within 20 s returns the first one), money taken now
 //              posted to its account (ledger.postEntry), the customer kept (customers.saveCustomerOnce), approved
@@ -28,7 +29,9 @@ import { orderableItems, canAdd } from '@/lib/sellable';
 import { resolveScan } from '@/lib/identifiers';
 import { announceNewOrder, COURIERS, courierCharge, updatePrep } from '@/lib/orderFlow';
 import { notify } from '@/lib/notifications';
-import { addOrder, DELIVERY_RATES, PAYMENT_LABEL, BD_MOBILE, cleanPhone, prettyPhone } from '@/lib/orderLinks';
+import { addOrder, DELIVERY_RATES as DEFAULT_RATES, PAYMENT_LABEL, BD_MOBILE, cleanPhone, prettyPhone, ORDER_SOURCES } from '@/lib/orderLinks';
+import { deliveryRates, feeFor } from '@/lib/deliveryRates';
+import { guessArea, zoneOf } from '@/lib/bdAreas';
 import { addHolds } from '@/lib/stockHolds';
 import { postEntry, accountForMethod } from '@/lib/ledger';
 import { onlinePlace } from '@/lib/locations';
@@ -43,8 +46,8 @@ const ADV_METHODS = [['bkash', 'bKash'], ['nagad', 'Nagad'], ['cash', 'Cash']];
 const SUB_DHAKA = /savar|gazipur|narayanganj|keraniganj|tongi|ashulia/i;
 const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch { return fb; } };
 const num = (t) => Math.max(0, Math.round(Number(String(t || '').replace(/[^0-9.]/g, '')) || 0));
-/** The delivery rate an address suggests. */
-const rateFor = (address) => (!address ? '' : SUB_DHAKA.test(address) ? 'sub' : /dhaka/i.test(address) ? 'dhaka' : 'outside');
+/** The delivery rate an address suggests: its area's zone (bdAreas.js), else a guess from the words in it. */
+const rateFor = (address) => { if (!address) return ''; const g = guessArea(address); if (g && g.area) return zoneOf(g.district, g.area); return SUB_DHAKA.test(address) ? 'sub' : /dhaka/i.test(address) ? 'dhaka' : 'outside'; };
 /** A customer's usable mobile number (directory rows may carry several). */
 function mobileOf(c) {
   const list = [...(c.phones || []).map((p) => p.value), c.phone].filter(Boolean);
@@ -82,6 +85,8 @@ export default function MNewOrderScreen() {
   const [picker, setPicker] = useState(false);
   const [pq, setPq] = useState('');
   const [place, setPlace] = useState('Central Warehouse');
+  const [source, setSource] = useState('Phone');
+  const [DELIVERY_RATES, setRates] = useState(DEFAULT_RATES);   // Settings › Delivery, read after mount
   const creating = useRef(false);
 
   const online = ctx ? hasModule('online', ctx.ed) : true;
@@ -90,7 +95,7 @@ export default function MNewOrderScreen() {
     if (!ctx || hasModule('online', ctx.ed)) return;
     router.replace(canUse('/m-pos', ctx) ? '/m-pos' : '/pos');
   }, [ctx, router]);
-  useEffect(() => { if (ready) setPlace(safe(() => onlinePlace(), 'Central Warehouse')); }, [ready]);
+  useEffect(() => { if (ready) { setPlace(safe(() => onlinePlace(), 'Central Warehouse')); setRates(safe(() => deliveryRates(), DEFAULT_RATES)); } }, [ready]);
 
   const catalog = useMemo(() => (ready ? safe(() => orderableItems({ place }), []) : []), [ready, tick, place]);
   const directory = useMemo(() => (ready ? safe(() => getDirectory().filter((c) => c.kind !== 'company'), []) : []), [ready, tick]);
@@ -119,7 +124,7 @@ export default function MNewOrderScreen() {
     setCustomer({ name: c.name, phone, address: c.address || '', id: c.id, known: true, orders: pastOrders(digitsOf(phone)) });
     setAddress(c.address || '');
     setQ('');
-    if (!rate) { const r = rateFor(c.address); if (r) { setRate(r); setFee(String((DELIVERY_RATES.find((x) => x.id === r) || {}).fee || 0)); } }
+    if (!rate) { const r = rateFor(c.address); if (r) { setRate(r); setFee(String(feeFor(r, Math.max(1, items), DELIVERY_RATES))); } }
   };
   // ?phone= starts with that customer; ?code= adds a scanned product
   useEffect(() => {
@@ -184,7 +189,7 @@ export default function MNewOrderScreen() {
     const paidNow = terms === 'full' ? total : terms === 'partial' ? adv : 0;
     const row = addOrder({
       lines, customer: customer.name, phone, zone, total, status: approveNow ? 'Approved' : 'New', payment: PAYMENT_LABEL[terms],
-      address: address.trim(), shipping: deliveryFee, paid: paidNow, discount: disc, discountReason: '', vat: tax, vatRate: vat ? VAT_RATE * 100 : 0, note: note.trim(), tags: [],
+      address: address.trim(), shipping: deliveryFee, paid: paidNow, discount: disc, discountReason: '', vat: tax, vatRate: vat ? VAT_RATE * 100 : 0, note: note.trim(), tags: [], source,
     });
     const open = (id) => router.push('/m-order-detail?id=' + encodeURIComponent(id));
     // the same order sent twice is one order: nothing is posted or held again
@@ -298,7 +303,7 @@ export default function MNewOrderScreen() {
             {/* delivery */}
             <div className="field">
               <span className="lab">Delivery</span>
-              <Segmented style={{ margin: '0' }} value={rate} onChange={(k) => { setRate(k); setFee(String((DELIVERY_RATES.find((r) => r.id === k) || {}).fee || 0)); }} items={DELIVERY_RATES.map((r) => ({ key: r.id, label: SHORT_RATE[r.id] || r.label }))} />
+              <Segmented style={{ margin: '0' }} value={rate} onChange={(k) => { setRate(k); setFee(String(feeFor(k, Math.max(1, items), DELIVERY_RATES))); }} items={DELIVERY_RATES.map((r) => ({ key: r.id, label: SHORT_RATE[r.id] || r.label }))} />
               {rateRow ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span className="help" style={{ flex: '1' }}>{rateRow.note}</span>
@@ -324,6 +329,10 @@ export default function MNewOrderScreen() {
                   {adv > 0 && adv < total ? <span className="help">Cash on delivery after the advance: {money(total - adv)}</span> : null}
                 </div>
               ) : null}
+            </div>
+            <div className="field">
+              <span className="lab">Source</span>
+              <Chips value={source} onChange={setSource} items={ORDER_SOURCES.map((x) => ({ key: x, label: x }))} />
             </div>
             <Field label="Discount">
               <TextInput value={discount} onChange={(t) => setDiscount(t.replace(/[^0-9]/g, ''))} prefix="৳" inputMode="numeric" placeholder="0" />

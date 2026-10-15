@@ -1,6 +1,7 @@
 'use client';
 // Collections (/admin/collections) — the day's call list: every store that owes (a bill issued and not paid), one row
-// per store, grouped by how far it has gone: Grace (days 1–7, full access) · Read-only (days 8–14) · Suspended
+// per store, grouped by how far it has gone: Auto-charge failed (SA-F8: Retry now re-runs the charge, "Ask owner to
+// update payment method" logs it and sends the store a notice) · Grace (days 1–7, full access) · Read-only (days 8–14) · Suspended
 // (day 15+) · Due soon (issued, not yet due; last, as a pay link usually does). Each row: owed, days overdue, the last call and its outcome, the promise-to-pay day, the next
 // call and the collector, with Log a call as the row's action and Record payment, Extend grace, Send pay link and the
 // store's profile under its menu. Four figures that the groups don't show: collected today, promised this week, calls
@@ -16,7 +17,9 @@ import { FilterBar } from '@/components/ui/FilterBar';
 import { ShopHeader, MetricStrip, Menu } from '@/components/ui/IndexKit';
 import { DAY, dm, startOfDay, hash, taka } from '@/lib/platform/util';
 import { COLLECTORS, GRACE_DAYS, READONLY_DAYS } from '@/lib/platform/catalogue';
-import { shopOf, outcomeLabel, openInvoices, sendPayLinks } from '@/lib/platform/billing';
+import { shopOf, outcomeLabel, openInvoices, sendPayLinks, failedCharges, retryCharge, askUpdateMethod } from '@/lib/platform/billing';
+import { noticeToStore } from '@/lib/platform/notices';
+import { staff } from '@/lib/platform/store';
 import { collections } from '@/lib/platform/views';
 import { downloadCsv } from '@/lib/reports/period';
 import { toast, confirmDialog } from '@/runtime/ui';
@@ -37,9 +40,11 @@ const CSS = `
 .col-who i{display:grid;place-items:center;width:22px;height:22px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);font-style:normal;font-weight:var(--weight-medium);color:var(--text-heading)}
 .col-group .ix-table td{vertical-align:middle}
 .col-filters{margin-bottom:0}
+.col-dot.is-autofail{background:var(--error)}
 `;
 
 const GROUPS = [
+  ['autofail', 'Auto-charge failed', 'Stores that pay by automatic bKash or card charge whose last try did not go through. Retry now, or ask the owner to update the saved payment method.'],
   ['grace', 'Grace', `Days 1–${GRACE_DAYS} overdue: the store still has full access, with a banner.`],
   ['readonly', 'Read-only', `Days ${GRACE_DAYS + 1}–${READONLY_DAYS}: the owner's admin is read-only; the storefront keeps selling.`],
   ['suspended', 'Suspended', `Day ${READONLY_DAYS + 1} on: the store and its admin are off until it pays.`],
@@ -57,6 +62,8 @@ function storeRows(db, t) {
     if (!x) by.set(r.shopId, { rows: [r] }); else x.rows.push(r);
   }
   const today0 = startOfDay(t);
+  const fails = new Map();
+  for (const f of failedCharges(db, t)) if (!fails.has(f.shopId)) fails.set(f.shopId, f);
   const out = [];
   for (const [shopId, { rows }] of by) {
     const shop = shopOf(db, shopId);
@@ -79,7 +86,18 @@ function storeRows(db, t) {
       noAnswer: calls.filter((c) => c.outcome === 'noanswer').length,
       promiseAt: promise ? promise.promiseAt : null, promiseBroken: promise ? promise.promiseAt < today0 : false, promiseMethod: promise ? promise.method : null,
       nextAt: oldest.nextAt, collector,
+      fail: fails.get(shopId) || null,
     });
+    const row = out[out.length - 1];
+    if (row.fail) {
+      // a failed automatic charge goes first: its own group, the failure as the last thing that happened
+      row.stage = 'autofail';
+      row.lastText = row.fail.asked ? 'Asked for a new method' : `${row.fail.last.method} charge failed${row.fail.failed > 1 ? ' × ' + row.fail.failed : ''}`;
+      row.lastNote = row.fail.last.reason || '';
+      row.lastTone = row.fail.asked ? '' : 'bl-bad';
+      row.last = { at: row.fail.asked ? row.fail.asked.at : row.fail.last.at, outcome: 'charge' };
+      if (row.fail.retryAt && row.fail.retryAt > t) row.nextAt = row.fail.retryAt;
+    }
   }
   return { rows: out.sort((a, b) => b.od - a.od || b.owed - a.owed), view };
 }
@@ -89,7 +107,7 @@ function figures(db, t, rows) {
   const today0 = startOfDay(t);
   const collected = db.payments.filter((p) => p.at >= today0 && p.at <= t && p.status === 'ok' && p.via !== 'auto');
   const promised = rows.filter((r) => r.promiseAt && r.promiseAt >= today0 && r.promiseAt < today0 + 8 * DAY);
-  const calls = db.calls.filter((c) => c.outcome !== 'reminder');
+  const calls = db.calls.filter((c) => c.outcome !== 'reminder' && c.outcome !== 'method');
   const today = calls.filter((c) => c.at >= today0 && c.at <= t);
   const month = calls.filter((c) => c.at >= t - 30 * DAY && c.at <= t);
   const good = month.filter((c) => ['paid', 'promised', 'panel'].includes(c.outcome)).length;
@@ -144,7 +162,22 @@ export default function Collections() {
     toast(n ? `Pay links sent for ${plural(n, 'bill')}` : 'No bill is due yet');
   };
 
+  const retry = (r) => {
+    const res = retryCharge(r.fail.inv.id);
+    if (!res.ok) { toast(res.error, { tone: 'error' }); return; }
+    toast(res.paid ? `${r.name}: ${r.fail.inv.id} paid by ${res.method}` : `${r.name}: the ${res.method} charge failed again · ${res.reason}`, res.paid ? undefined : { tone: 'error' });
+  };
+  const askMethod = (r) => {
+    askUpdateMethod(r.shopId, r.fail ? r.fail.inv.id : null);
+    noticeToStore(r.shopId, {
+      title: 'Update your payment method',
+      text: `We couldn’t charge your saved ${r.fail ? r.fail.last.method : 'payment method'} for ${r.fail ? r.fail.inv.id : 'your bill'}. Update it or pay the bill now to keep full access.`,
+      link: { label: 'Update payment', href: '/subscription' }, days: 7, by: staff().name,
+    });
+    toast(`${r.owner || r.name} asked to update the payment method · SMS and a notice in their panel`);
+  };
   const actions = (r) => [
+    r.fail ? { label: 'Ask owner to update payment method', onClick: () => askMethod(r) } : null,
     { label: 'Record payment', onClick: () => open('pay', r.shopId) },
     { label: 'Send pay link', onClick: () => payLink(r.shopId) },
     r.od > 0 && rightOf('grace').ok ? { label: 'Extend grace', onClick: () => open('grace', r.shopId), tone: 'danger' } : null,
@@ -207,7 +240,8 @@ export default function Collections() {
                       <span className="ix-pitem__mid">{odText(r)} · {r.lastText}{r.promiseAt ? ` · promised ${dm(r.promiseAt)}` : ''}</span>
                       <span className="ix-pitem__mid">Next call {r.nextAt ? when(r.nextAt, t) : '—'} · {r.collector}</span>
                       <span className="bl-pact">
-                        <button type="button" className="ix-btn ix-btn--sm" onClick={() => open('call', r.shopId)}><Icon name="phone" width="16" height="16" aria-hidden="true" />Log a call</button>
+                        {r.fail ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => retry(r)}><Icon name="refresh-cw" width="16" height="16" aria-hidden="true" />Retry now</button>
+                          : <button type="button" className="ix-btn ix-btn--sm" onClick={() => open('call', r.shopId)}><Icon name="phone" width="16" height="16" aria-hidden="true" />Log a call</button>}
                         {r.phone ? <a className="ix-btn ix-btn--sm" href={'tel:' + r.phone}>Call</a> : null}
                         <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" items={actions(r)} />
                       </span>
@@ -257,7 +291,8 @@ export default function Collections() {
                         <td><span className="col-who"><i aria-hidden="true">{ini(r.collector)}</i>{r.collector.split(' ')[0]}</span></td>
                         <td className="bl-act">
                           <span className="bl-act__in">
-                            <button type="button" className="ix-btn ix-btn--sm" onClick={() => open('call', r.shopId)} aria-label={'Log a call to ' + r.name}><Icon name="phone" width="16" height="16" aria-hidden="true" />Log a call</button>
+                            {r.fail ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => retry(r)} aria-label={'Retry the charge for ' + r.name}><Icon name="refresh-cw" width="16" height="16" aria-hidden="true" />Retry now</button>
+                              : <button type="button" className="ix-btn ix-btn--sm" onClick={() => open('call', r.shopId)} aria-label={'Log a call to ' + r.name}><Icon name="phone" width="16" height="16" aria-hidden="true" />Log a call</button>}
                             <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" items={actions(r)} />
                           </span>
                         </td>

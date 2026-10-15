@@ -1,5 +1,5 @@
 /* <gc-topbar> — the one top bar every merchant screen shares.
-   Left to right: page crumb and title · search with scope and barcode scan · Settings, Invoice, Files ·
+   Left to right: page crumb and title · search with scope and barcode scan ·
    View store · Notifications · the signed-in user (always rightmost). Below 1024px a menu button opens the
    sidebar as a drawer, and the quick-access links move into the account menu.
    Attributes: crumb, page (the page title), placeholder, base (path to templates/, default "../"), theme="dark", height.
@@ -148,7 +148,8 @@ input::placeholder{color:var(--muted)}
 .sep{width:1px;height:28px;background:var(--line);margin:0 4px}
 .store{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg);color:var(--ink);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);text-decoration:none;white-space:nowrap;cursor:pointer}
 .store:hover{border-color:var(--navy);color:var(--navy)}
-.badge{position:absolute;top:4px;right:4px;min-width:17px;height:17px;padding:0 4px;border-radius:var(--radius-full);background:#c2380f;color:#fff;font-size:var(--text-2xs);font-weight:var(--weight-medium);line-height:17px;text-align:center;border:2px solid var(--bg)}
+/* the count sits on the icon's top-right corner and grows outward, so two or three digits never cover the icon */
+.badge{position:absolute;top:-3px;left:calc(50% + 2px);right:auto;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;white-space:nowrap;pointer-events:none;border-radius:var(--radius-full);background:#c2380f;color:#fff;font-size:var(--text-2xs);font-weight:var(--weight-medium);line-height:1;font-variant-numeric:tabular-nums;border:2px solid var(--bg)}
 .spin{animation:sp .8s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 .ok{color:var(--text-success)}
 .me{display:flex;align-items:center;gap:8px;height:40px;margin-left:4px;padding:0 8px 0 4px;border:0;border-radius:var(--radius-xl);background:transparent;font:inherit;cursor:pointer;text-align:left}
@@ -206,6 +207,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 .scanbox{position:relative;height:120px;margin:4px 8px 10px;border-radius:var(--radius-xl);background:#0f172a;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:var(--text-xs-plus)}
 .scanbox::before{content:"";position:absolute;left:16px;right:16px;top:20px;height:2px;background:#ff5724;box-shadow:0 0 12px #ff5724;animation:sl 1.6s ease-in-out infinite alternate}
 @keyframes sl{to{top:98px}}
+.scanq{flex:1;min-width:0;height:36px;padding:0 10px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--field);font:inherit;font-size:var(--text-sm);color:var(--ink)}.scanq:focus{outline:none;border-color:var(--navy);background:var(--bg)}
 .hit{display:flex;align-items:center;gap:10px;margin:0 8px 8px;padding:10px;border-radius:var(--radius-lg);background:rgba(16,185,129,.1);font-size:var(--text-xs-plus);color:var(--ink)}
 .row2{display:flex;gap:8px;padding:0 8px 6px}
 .pb{flex:1;height:36px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer}
@@ -215,7 +217,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 @container (max-width:1180px){.mnm,.kbd{display:none}.me{padding-right:4px}}
 @container (max-width:1060px){.store span,.scanbtn .lbl{display:none}.store{width:38px;padding:0;justify-content:center}.store svg+svg{display:none}}
 @container (max-width:900px){.grp,.sep,.store{display:none}.only-narrow{display:flex}}
-@container (max-width:640px){.helpbtn{display:none}.it.only-phone{display:flex}.ib.aibtn{display:inline-flex}.ib{width:36px;height:36px}.me{height:44px;margin-left:0;padding:0 2px}.me .chev{display:none}.sic{padding:0 4px 0 8px}.scanbtn{padding:0 8px}.pchip{padding:0 10px;gap:4px}.pchip .pl{display:none}.pchip .pn{display:inline}.bar{padding:0 8px 0 12px;gap:6px}.id{display:none}.scope{display:none}.search{min-width:0;flex:1 1 80px}.pop{position:fixed;left:12px!important;right:12px!important;top:72px;width:auto!important;max-height:calc(100dvh - 84px - env(safe-area-inset-bottom))}}
+@container (max-width:640px){.helpbtn{display:none}.it.only-phone{display:flex}.ib.aibtn{display:inline-flex}.ib{width:36px;height:36px}.me{height:44px;margin-left:8px;padding:0 2px}.me .chev{display:none}.sic{padding:0 4px 0 8px}.scanbtn{padding:0 8px}.pchip{padding:0 10px;gap:4px}.pchip .pl{display:none}.pchip .pn{display:inline}.bar{padding:0 8px 0 12px;gap:6px}.id{display:none}.scope{display:none}.search{min-width:0;flex:1 1 80px}.pop{position:fixed;left:12px!important;right:12px!important;top:72px;width:auto!important;max-height:calc(100dvh - 84px - env(safe-area-inset-bottom))}}
 @media (max-width:1023px){.ib.menu{display:inline-flex}.bar{border-radius:0}}
 .lsel{margin-left:auto;max-width:150px;height:28px;padding:0 6px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg);font:inherit;font-size:var(--text-xs);color:var(--body);cursor:pointer}
 .setup{display:flex;align-items:center;gap:10px;min-height:40px;padding:6px 12px 6px 20px;border-bottom:1px solid var(--border-subtle,#e2e8f0);background:var(--fill-warning-soft,#fef3c7);font-size:var(--text-sm);color:var(--text-heading,#0f172a)}
@@ -227,25 +229,13 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 @container (max-width:640px){.setup{padding:6px 8px 6px 12px;flex-wrap:wrap}.setup .sx{width:36px;height:36px}}
 @media (prefers-reduced-motion:reduce){.pop{animation:none}.scanbox::before{animation:none;top:58px}.spin{animation:none}}`;
 
-  const NOTES = [
-    { i: 'cart', t: 'New order #136812', d: 'Nusrat Jahan · ৳2,450 · bKash paid', w: '2 min', u: 1 },
-    { i: 'box', t: 'Low stock: Anker 20W charger', d: '4 left at Dhanmondi branch', w: '18 min', u: 1 },
-    { i: 'truck', t: 'Steadfast pickups delayed', d: '23 parcels waiting for tracking numbers', w: '1 h', u: 1 },
-    { i: 'wallet', t: 'COD payout received', d: 'Pathao · ৳48,300 for 31 orders', w: '3 h', u: 0 },
-    { i: 'zap', t: 'Flash sale starts in 5 hours', d: 'Weekend Mega Sale · 6:00 PM', w: 'Today', u: 0 }
-  ];
-  // a shop without online selling: counter sales, dues and stock (no couriers, COD or online payments)
-  const RETAIL_NOTES = [
-    { i: 'cart', t: 'Counter sale #136812', d: 'Dhanmondi · Counter 1 · ৳2,450 cash', w: '2 min', u: 1 },
-    { i: 'box', t: 'Low stock: Anker 20W charger', d: '4 left at Dhanmondi branch', w: '18 min', u: 1 },
-    { i: 'wallet', t: 'Payment due today', d: 'Shirin Akter · ৳3,200 on due', w: '1 h', u: 1 },
-    { i: 'wallet', t: 'Card machine payout received', d: 'City Bank · ৳48,300 for 31 sales', w: '3 h', u: 0 },
-    { i: 'truck', t: 'Stock transfer arrived', d: 'Central Warehouse → Dhanmondi · 24 items', w: 'Today', u: 0 }
-  ];
+  // the bell reads lib/notificationCentre.js (loaded after the first paint, like the search): no sample rows (MS-F12)
+  const NOTE_ICON = { orders: 'cart', dues: 'receipt', stock: 'box', payouts: 'wallet', approvals: 'check', meetings: 'video', tickets: 'help', mentions: 'chat', todo: 'flag' };
+  const SHOW_DEMO_TOOLS = process.env.NEXT_PUBLIC_SHOW_STORYBOARD === 'true';   // review tools (Profile type) only on a storyboard build (MS-U13)
 
   class GcTopbar extends HTMLElement {
     static get observedAttributes() { return ['crumb', 'page', 'placeholder', 'base', 'theme', 'height']; }
-    constructor() { super(); this.root = this.attachShadow({ mode: 'open' }); this._open = ''; this._unread = 3; this._scanHit = false; this._q = ''; this._scope = 'all'; this._sel = 0; this._gs = null; }
+    constructor() { super(); this.root = this.attachShadow({ mode: 'open' }); this._open = ''; this._scanHit = null; this._scanQ = ''; this._q = ''; this._scope = 'all'; this._sel = 0; this._gs = null; }
     connectedCallback() {
       this.render();
       this._doc = (e) => { if (this._open && !e.composedPath().includes(this)) { this._open = ''; this.render(); } };
@@ -270,6 +260,11 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       this._setup();
       // the search lib (lib/globalSearch.js) loads once the page is up; its index is built on the first search
       window.setTimeout(() => this.loadSearch(), 1200);
+      // the bell, the Invoices list and Scan read the shared books (lib/notificationCentre, invoices, identifiers)
+      window.setTimeout(() => this.loadLibs(), 900);
+      this._books = () => { if (this._nc) { this._nc.refreshFeed(); this.render(); } };
+      ['gc:notify', 'gc:actions', 'gc:orders', 'gc:ledger', 'gc:tickets', 'gc:meetings'].forEach((ev) => window.addEventListener(ev, this._books));
+      this._bookT = window.setInterval(this._books, 60000);   // new orders keep arriving with the clock (liveOrders.js)
       this._key = (e) => {
         if (e.key === 'Escape' && this._open) { this.close(true); }
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); const i = this.root.querySelector('input[type="search"]'); if (i) { i.focus(); i.select(); } }
@@ -277,7 +272,36 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       if (!this._navBound) { this._navBound = true; this.root.addEventListener('click', (e) => { const a = e.composedPath().find((el) => el.matches && el.matches('a[href^="/"]')); if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); this._open = ''; document.documentElement.classList.remove('gc-pop-open'); navigate(a.getAttribute('href')); } }); }
       document.addEventListener('pointerdown', this._doc); document.addEventListener('keydown', this._key);
     }
-    disconnectedCallback() { document.documentElement.classList.remove('gc-pop-open'); document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener(EDITION_EVENT, this._loc); window.removeEventListener(PROPOSAL_EVENT, this._loc); window.removeEventListener('gc:settle', this._loc); window.removeEventListener('gc:meet', this._loc); window.removeEventListener(SESSION_EVENT, this._loc); window.removeEventListener(PLAN_EVENT, this._loc); window.removeEventListener(NAV_PROFILE_EVENT, this._loc); window.removeEventListener(LIVE_EVENT, this._inbox); if (this._setup) ['gc:connections', 'gc:ledger', 'gc:pos', 'gc:route', 'focus'].forEach((ev) => window.removeEventListener(ev, this._setup)); }
+    disconnectedCallback() { if (this._books) ['gc:notify', 'gc:actions', 'gc:orders', 'gc:ledger', 'gc:tickets', 'gc:meetings'].forEach((ev) => window.removeEventListener(ev, this._books)); window.clearInterval(this._bookT); document.documentElement.classList.remove('gc-pop-open'); document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener(EDITION_EVENT, this._loc); window.removeEventListener(PROPOSAL_EVENT, this._loc); window.removeEventListener('gc:settle', this._loc); window.removeEventListener('gc:meet', this._loc); window.removeEventListener(SESSION_EVENT, this._loc); window.removeEventListener(PLAN_EVENT, this._loc); window.removeEventListener(NAV_PROFILE_EVENT, this._loc); window.removeEventListener(LIVE_EVENT, this._inbox); if (this._setup) ['gc:connections', 'gc:ledger', 'gc:pos', 'gc:route', 'focus'].forEach((ev) => window.removeEventListener(ev, this._setup)); }
+    /** The shared-book libs the bell, Invoices and Scan read; loaded once after the first paint. */
+    loadLibs() {
+      if (this._libsP) return this._libsP;
+      this._libsP = Promise.all([import('../lib/notificationCentre'), import('../lib/invoices'), import('../lib/identifiers'), import('../lib/orders'), import('../lib/stock')])
+        .then(([nc, inv, ids, ord, st]) => { this._nc = nc; this._inv = inv; this._ids = ids; this._ord = ord; this._st = st; this.render(); })
+        .catch(() => null);
+      return this._libsP;
+    }
+    /** Scan: the code typed or scanned (a USB scanner types and presses Enter) → product, serial / IMEI or order. */
+    lookup(code) {
+      const raw = String(code || '').trim();
+      this._scanQ = raw;
+      if (!raw || !this._ids) { this._scanHit = null; this.render(); return; }
+      let hit = null;
+      try { hit = this._ids.resolveScan(raw); } catch { hit = null; }
+      if (hit) {
+        const r = hit.row || {};
+        let left = null;
+        try { left = this._st.stockAt(r.sku).available; } catch { /* ignore */ }
+        this._scanHit = { kind: 'product', title: String(r.name || hit.sku).split(' · ')[0], sub: [hit.serial ? 'IMEI / serial ' + hit.serial : hit.sku, left != null ? left + ' in stock' : '', r.price ? '৳' + Number(r.price).toLocaleString('en-IN') : ''].filter(Boolean).join(' · '),
+          href: r.productId ? '/add-product?id=' + encodeURIComponent(r.productId) : '/add-product?sku=' + encodeURIComponent(r.sku || hit.sku) };
+      } else {
+        let o = null;
+        try { const all = this._ord.getOrders(); o = this._ord.findOrder(raw, all) || this._ord.findOrder('#' + raw.replace(/^#/, ''), all); } catch { o = null; }
+        this._scanHit = o ? { kind: 'order', title: 'Order ' + o.id, sub: [o.customer, o.status].filter(Boolean).join(' · '), href: this._ord.orderHref(o.id) } : { kind: 'none' };
+      }
+      this.render();
+      const i = this.root.querySelector('[data-act="scanq"]'); if (i) { i.focus(); i.select(); }
+    }
     /** Closes the open popover; from the keyboard, focus goes back to the button that opened it. */
     close(refocus) { const k = this._open; this._open = ''; this.render(); if (refocus && k) { const el = this.root.querySelector(k === 'search' ? 'input[type="search"]' : `[data-act="${k}"]`); if (el) { this._squelch = k === 'search'; el.focus(); this._squelch = false; } } }
     // ---- global search (MS-F1; the matching is lib/globalSearch.js) ----
@@ -369,7 +393,13 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       }
     }
     attributeChangedCallback() { if (this.isConnected) this.render(); }
-    toggle(k) { this._open = this._open === k ? '' : k; if (k === 'scan' && this._open) { this._scanHit = false; clearTimeout(this._st); this._st = setTimeout(() => { this._scanHit = true; if (this._open === 'scan') this.render(); }, 1400); } this.render(); }
+    toggle(k) {
+      this._open = this._open === k ? '' : k;
+      if (this._open) this.loadLibs();
+      if (k === 'scan' && this._open) { this._scanHit = null; this._scanQ = ''; }
+      this.render();
+      if (k === 'scan' && this._open) { const i = this.root.querySelector('[data-act="scanq"]'); if (i) i.focus(); }
+    }
     render() {
       const a = (n, d) => this.getAttribute(n) || d;
       const ed = currentEdition();
@@ -381,27 +411,35 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const exp = (k) => `aria-expanded="${o === k}" aria-haspopup="true"`;
       const pop = (k, html, style) => (o === k ? `<div class="pop" role="dialog" style="${style}">${html}</div>` : '');
       const searchPop = o === 'search' ? `<div data-gs>${this.searchBody(L, has)}</div>` : '';
-      const scanPop = `<div class="ph">Scan a barcode <span style="text-transform:none;letter-spacing:0;font-weight:var(--weight-medium)">USB scanner ready</span></div>
-        <div class="scanbox">Point the camera at a barcode, or scan with the USB scanner</div>
-        ${this._scanHit ? `<div class="hit" role="status"><span class="ok">${ic('check', 16, 2.5)}</span><span><b style="display:block">Baseus Car Phone Holder</b><span style="font-family:var(--font-data);font-size:11.5px;color:var(--muted)">8941200200214 · 40 in stock · ৳1,890</span></span></div>
-        <div class="row2"><a class="pb p" href="${routeOf('products/AddProduct.dc.html')}" style="display:flex;align-items:center;justify-content:center;text-decoration:none">Open product</a><a class="pb s" href="${routeOf('pos-register/Pos.dc.html')}" style="display:flex;align-items:center;justify-content:center;text-decoration:none">Add to POS cart</a></div>` : `<div class="row2"><button class="pb s" data-act="cam">${ic('camera', 14)} Use phone camera</button></div>`}`;
-      const invPop = `<div class="ph">Invoices <a href="${routeOf('order-detail/OrderDetail.dc.html')}">See all</a></div>
-        <a class="it" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('plus', 16, 2.2)}</span><span><b>New invoice</b><small>For a phone or walk-in sale</small></span></a>
-        <div class="hr"></div>
-        ${[['INV-2026-0931', 'Nusrat Jahan · ৳2,450', 'Paid'], ['INV-2026-0930', 'Rahim Traders · ৳38,200', 'Due 25 Sep'], ['INV-2026-0929', 'Walk-in · ৳890', 'Paid']].map((r) => `<a class="it" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('receipt', 16)}</span><span><b>${r[0]}</b><small>${r[1]}</small></span><span class="t">${r[2]}</span></a>`).join('')}`;
-      const filesPop = `<div class="ph">Recent files <a href="${routeOf('settings-console/SetMedia.dc.html')}">File manager</a></div>
-        ${[['file', 'products-import-sep.csv', 'Product import · 412 rows', '1 h'], ['image', 'eid-banner-1200x400.jpg', 'Storefront banner', 'Yesterday'], ['file', 'INV-2026-0930.pdf', 'Invoice · Rahim Traders', 'Yesterday'], ['file', 'stock-count-18-sep.xlsx', 'Stock count export', '2 days']].map((r) => `<a class="it" href="${routeOf('settings-console/SetMedia.dc.html')}"><span class="ico">${ic(r[0], 16)}</span><span><b>${r[1]}</b><small>${r[2]}</small></span><span class="t">${r[3]}</span></a>`).join('')}
-        <div class="hr"></div><button class="it" data-act="upload"><span class="ico">${ic('plus', 16, 2.2)}</span><span><b>Upload a file</b><small>Images, PDF, CSV or Excel · up to 20 MB</small></span></button>`;
+      // Scan: a USB scanner types into the field and presses Enter; the code is looked up in the catalogue (barcode,
+      // SKU, pack, IMEI / serial; lib/identifiers.js resolveScan), then as an order number (MS-U5)
+      const sh = this._scanHit;
+      const scanPop = `<div class="ph">${L('Scan a barcode')}</div>
+        <form class="row2" data-act="scanform" style="padding-top:2px"><input data-act="scanq" class="scanq" value="${esc(this._scanQ)}" placeholder="${esc(L('Barcode, SKU, IMEI or order number'))}" aria-label="${esc(L('Barcode, SKU, IMEI or order number'))}" autocomplete="off" inputmode="search"><button class="pb p" type="submit" style="flex:none;padding:0 14px">${L('Find')}</button></form>
+        ${sh && sh.kind !== 'none' ? `<div class="hit" role="status"><span class="ok">${ic('check', 16, 2.5)}</span><span style="min-width:0"><b style="display:block">${esc(sh.title)}</b><span style="font-family:var(--font-data);font-size:var(--text-xs);color:var(--muted)">${esc(sh.sub)}</span></span></div>
+        <div class="row2"><a class="pb p" href="${esc(sh.href)}" style="display:flex;align-items:center;justify-content:center;text-decoration:none">${L(sh.kind === 'order' ? 'Open order' : 'Open product')}</a></div>`
+        : sh ? `<p class="gs-none" role="status">${L('Nothing found for')} “${esc(this._scanQ)}”<small>${L('Check the code, or search by name above.')}</small></p>` : `<p class="gs-none" style="margin-top:0"><small>${L('Scan with the USB scanner, or type the code and press Enter.')}</small></p>`}`;
       // payouts waiting for the evening check (components/EveningCheck.jsx)
       const settle = (typeof window !== 'undefined' && window.__gcSettle) || { count: 0 };
       const settleNote = settle.count ? `<a class="it note unread" href="/settlements?check=1"><span class="ico">${ic('wallet', 16)}</span><span><b>${esc(settle.text)}</b><small>Did the expected money reach your bank? Tap to answer.</small></span><span class="t">Now</span><i class="dot" role="img" aria-label="Unread"></i></a>` : '';
       // meetings starting soon or waiting for a note (components/MeetingAlerts.jsx)
       const meet = ((typeof window !== 'undefined' && window.__gcMeet) || { items: [] }).items;
       const meetNotes = meet.map((m) => `<a class="it note unread" href="/meetings?id=${encodeURIComponent(m.id)}"><span class="ico">${ic('video', 16)}</span><span><b>${esc(m.t)}</b><small>${esc(m.d)}</small></span><span class="t">${esc(m.w)}</span><i class="dot" role="img" aria-label="Unread"></i></a>`).join('');
-      const unread = this._unread + (settle.count ? 1 : 0) + meet.length;
-      const notePop = `<div class="ph">${L('Notifications')} <button data-act="readall">${L('Mark all read')}</button></div>
-        ${settleNote}${meetNotes}${(has('online') ? NOTES : RETAIL_NOTES).map((n, i) => { const un = n.u && i < this._unread; return `<a class="it note${un ? ' unread' : ''}" href="${routeOf(has('commerce') ? 'merchant-orders/MerchantOrders.dc.html' : 'merchant-inbox/MerchantInbox.dc.html')}"><span class="ico">${ic(n.i, 16)}</span><span><b>${n.t}</b><small>${n.d}</small></span><span class="t">${n.w}</span><i class="dot"${un ? ' role="img" aria-label="Unread"' : ' aria-hidden="true"'}></i></a>`; }).join('')}
-        <a class="foot" href="${routeOf(has('comms') ? 'merchant-inbox/MerchantInbox.dc.html' : 'merchant-orders/MerchantOrders.dc.html')}">${L('View all notifications')}</a>`;
+      // the person's notifications (lib/notificationCentre.js): the newest six; the page has them all
+      let notes = [];
+      try { notes = this._nc ? this._nc.feed().filter((n) => !(meet.length && n.type === 'meetings')) : []; } catch { notes = []; }
+      const noteUnread = notes.filter((n) => !n.read);
+      const unread = noteUnread.length + (settle.count ? 1 : 0) + meet.length;
+      // a sound for new unread ones, when the person keeps sound on for that type and it is not quiet hours
+      if (this._nc && this._seenIds) {
+        const fresh = noteUnread.filter((n) => !this._seenIds.has(n.id));
+        try { const pr = this._nc.getPrefs(); if (fresh.some((n) => pr.types[n.type] && pr.types[n.type].sound) && !this._nc.isQuiet(pr)) this._nc.chime(); } catch { /* no sound */ }
+      }
+      if (this._nc) this._seenIds = new Set(noteUnread.map((n) => n.id));
+      const noteRow = (n) => `<a class="it note${n.read ? '' : ' unread'}" href="${esc(n.href)}" data-nid="${esc(n.id)}"><span class="ico">${ic(NOTE_ICON[n.type] || 'flag', 16)}</span><span style="min-width:0"><b>${esc(n.title)}</b><small>${esc(n.detail)}</small></span><span class="t">${esc(L(this._nc.agoText(n.at)))}</span><i class="dot"${n.read ? ' aria-hidden="true"' : ' role="img" aria-label="Unread"'}></i></a>`;
+      const notePop = `<div class="ph">${L('Notifications')} ${noteUnread.length ? `<button data-act="readall">${L('Mark all read')}</button>` : ''}</div>
+        ${settleNote}${meetNotes}${notes.slice(0, 6).map(noteRow).join('')}${!notes.length && !settle.count && !meet.length ? `<p class="gs-none">${this._nc ? L('Nothing needs you right now') : L('Loading…')}</p>` : ''}
+        <a class="foot" href="/notifications">${L('View all notifications')}</a>`;
       // parts of Nayeem's proposal switched on (src/lib/proposal.js): say so, so a screenshot is never taken for today's build
       const pOn = proposalsOn().length;
       const pText = L('Proposal: {n} on').replace('{n}', pOn);
@@ -421,7 +459,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         <div class="chf" role="group" aria-label="${L('Show')}"><button data-chatf="all" class="${this._chatF !== 'unread' ? 'on' : ''}" aria-pressed="${this._chatF !== 'unread'}">${L('All')}</button><button data-chatf="unread" class="${this._chatF === 'unread' ? 'on' : ''}" aria-pressed="${this._chatF === 'unread'}">${L('Unread')}${chatN ? ' · ' + chatN : ''}</button></div>
         <div class="chl">${list.length ? list.map(row).join('') : `<p style="margin:12px 8px;font-size:var(--text-sm);color:var(--muted)">${L('No unread chats')}</p>`}</div>
         <div class="hr"></div>
-        <div class="chq"><a href="/merchant-inbox?view=comments">${L('Comments')} ${n('comments')}</a><a href="/merchant-inbox?view=mentions">${L('Mentions')} ${n('mentions')}</a><a href="/support-tickets">${L('Support tickets')} <b>5</b></a></div>`;
+        <div class="chq"><a href="/merchant-inbox?view=comments">${L('Comments')} ${n('comments')}</a><a href="/merchant-inbox?view=mentions">${L('Mentions')} ${n('mentions')}</a><a href="/support-tickets">${L('Support tickets')} ${n('tickets')}</a></div>`;
       })();
       const plan = currentPlan();
       // the person's menu (role(s), edition, plan) with the "Set up" checks still to do; the area of this page
@@ -445,11 +483,10 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         <button class="it only-phone" data-act="help"><span class="ico">${ic('help', 16)}</span><span><b>${L('Help')}</b><small>${L('Help for this page')}</small></span></button>
         <a class="it" href="/my-dashboard"><span class="ico">${ic('user', 16)}</span><span><b>${L('My dashboard')}</b><small>${L('Your tasks, numbers and team for today')}</small></span></a>
         <a class="it" href="/tasks"><span class="ico">${ic('check', 16)}</span><span><b>${L('My tasks')}</b></span></a>
+        <button class="it" data-act="whatsnew" style="width:100%;text-align:left"><span class="ico">${ic('bell', 16)}</span><span><b>${L('What’s new')}</b><small>${L('News and maintenance from GridCommerce')}</small></span></button>
         <a class="it" href="/my-account"><span class="ico">${ic('user', 16)}</span><span><b>${L('My account')}</b><small>${L('Details, password and two-step sign-in')}</small></span></a>
         <a class="it" href="${routeOf('settings-console/SetGeneral.dc.html')}"><span class="ico">${ic('gear', 16)}</span><span><b>${L('Store settings')}</b></span></a>
         ${has('online') ? `<a class="it only-narrow" href="${routeOf('storefront/Offers.dc.html')}"><span class="ico">${ic('store', 16)}</span><span><b>${L('View store')}</b></span></a>` : ''}
-        ${has('commerce') ? `<a class="it only-narrow" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('receipt', 16)}</span><span><b>${L('Invoices')}</b></span></a>` : ''}
-        <a class="it only-narrow" href="${routeOf('settings-console/SetMedia.dc.html')}"><span class="ico">${ic('folder', 16)}</span><span><b>${L('Files')}</b></span></a>
         <label class="it" style="cursor:default;align-items:center"><span class="ico">${ic('flag', 16)}</span><b style="white-space:nowrap">${L('Start page')}</b><select class="lsel" data-act="landing" aria-label="${L('Start page')}">${landingOpts}</select></label>
         <a class="it" href="/subscription"><span class="ico">${ic('store', 16)}</span><span><b>${esc(shopName())}</b><small>${esc(L(plan.name + ' plan'))} · ${esc(L(placesLine()))}</small></span><span class="t" style="color:#047857">${ic('check', 14, 2.5)}</span></a>
         <div class="it" style="cursor:default;align-items:center"><span class="ico">${ic('kb', 16)}</span><b>${L('Language')}</b><span class="seg" role="group" aria-label="${L('Language')}"><button data-lang="en" class="${locale === 'en' ? 'on' : ''}" aria-pressed="${locale === 'en'}">EN</button><button data-lang="bn" lang="bn" class="${locale === 'bn' ? 'on' : ''}" aria-pressed="${locale === 'bn'}">বাংলা</button></span></div>
@@ -462,8 +499,8 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
             + SYSTEMS.map((x) => `<button class="it" data-act="system" data-ed="${esc(x.ed)}" style="width:100%;text-align:left"><span class="ico">${ic(SI[x.ed] || 'store', 16)}</span><span><b>${esc(L(EDITIONS[x.ed].short))}</b><small>${esc(L(x.blurb))}</small></span>${x.ed === ed ? `<span class="t" style="color:#047857">${ic('check', 14, 2.5)}</span>` : ''}</button>`).join('')
             + `<a class="it" href="/admin"><span class="ico" style="background:#003087;color:#fff">${ic('shield', 16)}</span><span><b>${L('Super admin')}</b><small>${L('GridCommerce team · merchants, billing, company')}</small></span></a>`;
         })()}
-        <div class="hr"></div>
-        <a class="it" href="/set-profile"><span class="ico">${ic('user', 16)}</span><span><b>${L('Profile type')}</b><small>${L('Switch to a team member’s profile')}</small></span></a>
+        ${SHOW_DEMO_TOOLS ? `<div class="hr"></div>
+        <a class="it" href="/set-profile"><span class="ico">${ic('flask', 16)}</span><span><b>${L('Demo: switch profile')}</b><small>${L('Review tool · see the app as another team member')}</small></span></a>` : ''}
         <div class="hr"></div>
         <button class="it" data-act="signout" style="width:100%;text-align:left"><span class="ico" style="color:#c2410c">${ic('out', 16)}</span><span><b>${L('Sign out')}</b></span></button>`;
       // a re-render while typing in the search keeps the field focused with its caret
@@ -482,16 +519,11 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       <button class="scanbtn" data-act="scan" ${exp('scan')} aria-label="${L('Scan a barcode')}">${ic('scan', 16)}<span class="lbl">${L('Scan')}</span></button></div>
     ${pop('search', searchPop, 'left:0;right:0')}${pop('scan', scanPop, 'right:0;width:340px')}
   </div>
-  <div class="grp" role="group" aria-label="Quick access">
-    <a class="ib" href="${routeOf('settings-console/SetGeneral.dc.html')}" aria-label="${L('Settings')}">${ic('gear')}<span class="tip">${L('Settings')}</span></a>
-    ${has('commerce') ? `<span class="wrap"><button class="ib" data-act="inv" ${exp('inv')} aria-label="${L('Invoices')}">${ic('receipt')}<span class="tip">${L('Invoices')}</span></button>${pop('inv', invPop, 'right:-60px;width:330px')}</span>` : ''}
-    <span class="wrap"><button class="ib" data-act="files" ${exp('files')} aria-label="${L('Files')}">${ic('folder')}<span class="tip">${L('Files')}</span></button>${pop('files', filesPop, 'right:-20px;width:340px')}</span>
-  </div>
   <span class="sep" aria-hidden="true"></span>
   ${has('online') ? `<a class="store" href="${routeOf('storefront/Offers.dc.html')}" aria-label="View store (opens the storefront)">${ic('store', 16)}<span>${L('View store')}</span>${ic('ext', 13)}</a>` : ''}
   <button class="ib aibtn" data-act="gridai" aria-label="${L('Ask GridAI')}">${ic('sparkles')}</button>
-  ${showChats ? `<span class="wrap"><button class="ib chatbtn" data-act="chats" ${exp('chats')} aria-label="${L('Chats')}${chatN ? ', ' + L('{n} unread').replace('{n}', chatN) : ''}">${ic('chat')}${chatN ? `<span class="badge chat-n">${chatN}</span>` : ''}<span class="tip">${L('Chats')}</span></button>${pop('chats', chatPop, 'right:-48px;width:360px')}</span>` : ''}
-  <span class="wrap"><button class="ib" data-act="notes" ${exp('notes')} aria-label="${L('Notifications')}${unread ? ', ' + unread + ' unread' : ''}">${ic('bell')}${unread ? `<span class="badge">${unread}</span>` : ''}<span class="tip">${L('Notifications')}</span></button>${pop('notes', notePop, 'right:-8px;width:360px')}</span>
+  ${showChats ? `<span class="wrap"><button class="ib chatbtn" data-act="chats" ${exp('chats')} aria-label="${L('Chats')}${chatN ? ', ' + L('{n} unread').replace('{n}', chatN) : ''}">${ic('chat')}${chatN ? `<span class="badge chat-n">${chatN > 99 ? '99+' : chatN}</span>` : ''}<span class="tip">${L('Chats')}</span></button>${pop('chats', chatPop, 'right:-48px;width:360px')}</span>` : ''}
+  <span class="wrap"><button class="ib" data-act="notes" ${exp('notes')} aria-label="${L('Notifications')}${unread ? ', ' + unread + ' unread' : ''}">${ic('bell')}${unread ? `<span class="badge">${unread > 99 ? '99+' : unread}</span>` : ''}<span class="tip">${L('Notifications')}</span></button>${pop('notes', notePop, 'right:-8px;width:360px')}</span>
   <span class="wrap" style="margin-left:auto"><button class="me" data-act="me" ${exp('me')} aria-label="${L('Account menu')}, ${esc(me.name)}"><span class="av">${avatar}<i></i></span><span class="mnm"><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr">${esc(L(titles[0] || myRole.title))}${titles.length > 1 ? ' +' + (titles.length - 1) : ''}</span></span><span class="chev">${ic('chev', 16)}</span></button>${pop('me', mePop, 'right:0;width:300px')}</span>
 </div>${setupBar}`;
       // phones: while a menu is open the page behind it doesn't scroll (a swipe moves the menu, not the page)
@@ -499,8 +531,6 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const on = (sel, ev, fn) => this.root.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn));
       on('[data-act="nav"]', 'click', () => window.dispatchEvent(new CustomEvent('gc:nav-toggle')));
       on('[data-act="scan"]', 'click', () => this.toggle('scan'));
-      on('[data-act="inv"]', 'click', () => this.toggle('inv'));
-      on('[data-act="files"]', 'click', () => this.toggle('files'));
       on('[data-act="notes"]', 'click', () => this.toggle('notes'));
       on('[data-act="chats"]', 'click', () => this.toggle('chats'));
       on('[data-chatf]', 'click', (e) => { this._chatF = e.currentTarget.getAttribute('data-chatf'); this.render(); });
@@ -514,6 +544,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       });
       on('[data-act="me"]', 'click', () => this.toggle('me'));
       on('[data-act="help"]', 'click', () => { this._open = ''; this.render(); window.dispatchEvent(new CustomEvent('gc:help')); });
+      on('[data-act="whatsnew"]', 'click', () => { this._open = ''; this.render(); window.dispatchEvent(new CustomEvent('gc:whats-new')); });
       on('[data-act="gridai"]', 'click', () => { this._open = ''; this.render(); window.dispatchEvent(new CustomEvent('gc:gridai', { detail: { q: '' } })); });
       const openSearch = () => { if (this._open !== 'search' && !this._squelch) { this._open = 'search'; this._sel = 0; this._moved = false; this.loadSearch(); this.render(); } };
       on('[data-act="sfocus"]', 'focus', openSearch);
@@ -529,9 +560,9 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       });
       if (o === 'search') this.bindSearchBody();
       if (typing) { const i = this.root.querySelector('input[type="search"]'); if (i) { this._squelch = true; i.focus(); try { i.setSelectionRange(caret, caret); } catch { /* ignore */ } this._squelch = false; } }
-      on('[data-act="readall"]', 'click', () => { this._unread = 0; this.render(); });
-      on('[data-act="upload"]', 'click', () => { this.close(true); toast('Choose a file to upload', { tone: 'info' }); });
-      on('[data-act="cam"]', 'click', () => { this._scanHit = true; this.render(); });
+      on('[data-act="readall"]', 'click', () => { if (this._nc) this._nc.markAllRead(); this.render(); });
+      on('[data-nid]', 'click', (e) => { if (this._nc) this._nc.markRead(e.currentTarget.getAttribute('data-nid')); });
+      on('[data-act="scanform"]', 'submit', (e) => { e.preventDefault(); const i = this.root.querySelector('[data-act="scanq"]'); this.lookup(i ? i.value : ''); });
       on('[data-switch]', 'click', (e) => {
         const u = signInAs(e.currentTarget.getAttribute('data-switch'));
         this._open = '';
@@ -552,7 +583,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         const next = e.currentTarget.getAttribute('data-lang');
         if (next === getLocale()) return;
         setLocale(next); // re-renders the shell through the gc:locale event
-        toast(t('Language set to English. The menu and top bar follow it; page content is English for now.', next), { tone: 'info' });
+        toast(next === 'bn' ? 'ভাষা বাংলা করা হয়েছে।' : 'Language set to English.', { tone: 'info' });
       });
     }
   }

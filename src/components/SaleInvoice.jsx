@@ -5,6 +5,8 @@
 //   invoiceFromSale(sale)          a POS sale (Pos.jsx receipt) → the invoice's data
 //   invoiceFromOrder(order, sale)  an order (its POS sale when it came from the counter) → the invoice's data
 //   <SaleInvoice doc innerRef />   the paper, kept off screen; printInvoice(node, doc) prints it
+// Settings › Invoices & receipts (lib/docSettings.js) sets the number prefix, the look (classic, compact, brand colour),
+// the footer note and whether the BIN and each item's warranty are printed.
 
 import React from 'react';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
@@ -14,6 +16,8 @@ import { printNode } from '@/lib/printNode';
 import { coverOf } from '@/lib/warranty';
 import { productOfLine, serialsOfLine, coverStart } from '@/lib/customerWarranty';
 import { unitsFor, packText } from '@/lib/wholesalePrice';
+import { docSettings, docNumber } from '@/lib/docSettings';
+import { businessProfile } from '@/lib/businessProfile';
 
 const r2 = (n) => Math.round(n * 100) / 100;
 // a line sold in cartons or boxes: "2 cartons + 4 pcs" under its quantity (WH-F3)
@@ -60,20 +64,24 @@ const S = {
 export function SaleInvoice({ doc, innerRef }) {
   if (!doc) return null;
   const id = (() => { try { return invoiceIdentity(); } catch { return {}; } })();
+  const ds = docSettings();
+  const brand = ds.template === 'brand' ? ((() => { try { return businessProfile().brand.color; } catch { return ''; } })() || 'var(--brand-navy-deep)') : '';
+  const page = ds.template === 'compact' ? { ...S.page, fontSize: 'var(--text-xs)', gap: '3mm' } : S.page;
+  const td = ds.template === 'compact' ? { ...S.td, padding: '1mm' } : S.td;
   const sum = [['Subtotal', doc.subtotal], doc.discount ? ['Discount', -doc.discount] : null, doc.shipping ? ['Delivery', doc.shipping] : null, doc.vat && !doc.vatIncluded ? ['VAT', doc.vat] : null].filter(Boolean);
   return (
     <div style={{ position: 'absolute', left: '-10000px', top: 0, width: '190mm' }} aria-hidden="true">
-      <div ref={innerRef} style={S.page}>
-        <div style={{ ...S.row, borderBottom: '2px solid #0f172a', paddingBottom: '3mm' }}>
+      <div ref={innerRef} style={page}>
+        <div style={{ ...S.row, borderBottom: '2px solid ' + (brand || '#0f172a'), paddingBottom: '3mm', ...(brand ? { borderTop: '6mm solid ' + brand, paddingTop: '3mm' } : {}) }}>
           <div>
             <b style={{ fontSize: 'var(--text-xl)' }}>{id.tradingName || MERCHANT.name}</b>
             <div style={S.muted}>{id.address || MERCHANT.address}</div>
             <div style={S.muted}>{id.phone || MERCHANT.phone}{id.email || MERCHANT.email ? ' · ' + (id.email || MERCHANT.email) : ''}</div>
-            <div style={S.muted}>BIN {id.bin || MERCHANT.bin}</div>
+            {ds.showBin ? <div style={S.muted}>BIN {id.bin || MERCHANT.bin}</div> : null}
           </div>
           <div style={{ textAlign: 'right' }}>
             <b style={{ fontSize: 'var(--text-lg)' }}>Invoice</b>
-            <div style={{ fontFamily: 'var(--font-data)' }}>{doc.id}</div>
+            <div style={{ fontFamily: 'var(--font-data)' }}>{docNumber(doc.id, ds)}</div>
             <div style={S.muted}>{formatDate(doc.at)}, {formatTime(doc.at)}</div>
             {doc.place ? <div style={S.muted}>{doc.place}</div> : null}
           </div>
@@ -86,10 +94,10 @@ export function SaleInvoice({ doc, innerRef }) {
           <thead><tr><th style={S.th}>Item</th><th style={{ ...S.th, ...S.num }}>Qty</th><th style={{ ...S.th, ...S.num }}>Unit price</th><th style={{ ...S.th, ...S.num }}>Amount</th></tr></thead>
           <tbody>{doc.lines.map((l, i) => (
             <tr key={i}>
-              <td style={S.td}><b style={{ fontWeight: 'var(--weight-medium)' }}>{l.name}</b>
+              <td style={td}><b style={{ fontWeight: 'var(--weight-medium)' }}>{l.name}</b>
                 {l.serials.length ? <div style={{ ...S.muted, fontFamily: 'var(--font-data)' }}>{(l.serials.every((x) => /^\d{15}$/.test(x)) ? 'IMEI ' : 'Serial ') + l.serials.join(', ')}</div> : null}
-                {l.warranty ? <div style={S.muted}>Warranty: {l.warranty}</div> : null}</td>
-              <td style={{ ...S.td, ...S.num }}>{l.qty}{packsOf(l) ? <div style={S.muted}>{packsOf(l)}</div> : null}</td><td style={{ ...S.td, ...S.num }}>{money(l.price)}</td><td style={{ ...S.td, ...S.num }}>{money(l.amount)}</td>
+                {l.warranty && ds.showWarranty ? <div style={S.muted}>Warranty: {l.warranty}</div> : null}</td>
+              <td style={{ ...td, ...S.num }}>{l.qty}{packsOf(l) ? <div style={S.muted}>{packsOf(l)}</div> : null}</td><td style={{ ...td, ...S.num }}>{money(l.price)}</td><td style={{ ...td, ...S.num }}>{money(l.amount)}</td>
             </tr>
           ))}</tbody>
         </table>
@@ -103,10 +111,10 @@ export function SaleInvoice({ doc, innerRef }) {
             {doc.due ? <div style={{ ...S.row, fontWeight: 'var(--weight-semibold)' }}><span>Due</span><span style={S.num}>{money(doc.due)}</span></div> : null}
           </div>
         </div>
-        <div style={{ ...S.muted, borderTop: '1px solid #e2e8f0', paddingTop: '2mm' }}>Thank you for shopping at {MERCHANT.name}. Keep this invoice for warranty claims; bring it with the product and its box.</div>
+        {ds.footer ? <div style={{ ...S.muted, borderTop: '1px solid #e2e8f0', paddingTop: '2mm', whiteSpace: 'pre-line' }}>{ds.footer}</div> : null}
       </div>
     </div>
   );
 }
 /** Print the invoice paper. */
-export const printInvoice = (node, doc) => printNode(node, { title: 'Invoice ' + (doc ? doc.id : ''), css: '@page{size:A4;margin:12mm}' });
+export const printInvoice = (node, doc) => printNode(node, { title: 'Invoice ' + (doc ? docNumber(doc.id) : ''), css: '@page{size:A4;margin:12mm}' });

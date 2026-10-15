@@ -1,0 +1,41 @@
+{
+ "id": "ON-F7",
+ "kind": "new",
+ "section": "Online selling",
+ "area": "Online selling",
+ "title": "Customer order tracking page",
+ "problem": "The SMS tracking link pointed to a page that did not exist, so customers kept calling.",
+ "now": "Customers open the link, type their mobile number and see the steps, courier, tracking ID, cash to pay and items.",
+ "steps": [
+  "Open any order sent to the courier",
+  "Press Track",
+  "Type the order's mobile number",
+  "See the steps and courier scans"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/storefront/TrackOrder.jsx",
+  "src/app/(storefront)/track/page.jsx",
+  "src/lib/orderStatus.js",
+  "src/lib/orderFlow.js",
+  "src/lib/notifications.js",
+  "src/lib/liveOrders.js"
+ ],
+ "notes": "Where: Customer page /track?id=<order number> (SMS link, thank-you page, order page › Track)",
+ "shots": [
+  {
+   "route": "/track?id=%23136737",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "The customer’s tracking page",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

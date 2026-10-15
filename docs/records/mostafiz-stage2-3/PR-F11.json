@@ -1,0 +1,37 @@
+{
+ "id": "PR-F11",
+ "kind": "new",
+ "section": "Products & stock",
+ "area": "Products & stock",
+ "title": "Edit, archive and print a supplier",
+ "problem": "A supplier's details could not be changed after adding it, and Print ledger only showed a message.",
+ "now": "Edit opens a side panel for contacts, terms, bank and bKash, opening balance and advance; Archive hides a settled supplier; Print ledger prints.",
+ "steps": [
+  "Open Kazi Power Solutions, press Edit",
+  "Add an opening balance of 5,000 and save",
+  "Press Print / PDF ledger"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/supplierBills.js",
+  "src/screens/purchase-stock/SupplierDetail.jsx",
+  "src/screens/purchase-stock/Suppliers.jsx"
+ ],
+ "notes": "Where: Inventory › Purchasing › Suppliers › a supplier · /supplier-detail",
+ "shots": [
+  {
+   "route": "/supplier-detail?id=kf",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "A supplier",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

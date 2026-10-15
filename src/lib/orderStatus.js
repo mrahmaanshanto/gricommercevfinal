@@ -68,3 +68,18 @@ export const ORDER_TABS = [
 ];
 /** The saved statuses a tab (or a single status, e.g. ?status=ready from Home) shows. */
 export const tabKeys = (tab) => (ORDER_TABS.find((t) => t.key === tab) || { keys: [tab] }).keys;
+/** The tab a saved status sits under (ON-U10): badges use the tab's word, the saved status shows as the sub-step.
+ *  → { key, label, keys, sub } where sub is the saved status' own label when it differs (e.g. Approved), else ''. */
+export function tabOf(statusKey) {
+  const t = ORDER_TABS.find((x) => x.keys.includes(statusKey));
+  if (!t) { const s = orderStatus(statusKey); return s ? { key: s.key, label: s.label, keys: [s.key], sub: '' } : null; }
+  const s = orderStatus(statusKey);
+  return { ...t, sub: s && s.label !== t.label ? s.label : '' };
+}
+
+/** The customer's tracking page for an order (screens/storefront/TrackOrder.jsx, /track?id=). In the demo it opens in
+ *  this app; the live shop serves the same page on its own domain, so an SMS link works from any phone. */
+export function trackingLink(orderId) {
+  const origin = typeof window !== 'undefined' && window.location && /^https?:/.test(window.location.origin) ? window.location.origin : 'https://dazzleshop.com.bd';
+  return origin + '/track?id=' + encodeURIComponent(String(orderId || ''));
+}

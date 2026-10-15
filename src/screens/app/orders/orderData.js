@@ -10,7 +10,7 @@
 //   digitsOf(p) · plural(n, one, many?) · byName()
 // Front end only: no server; the libs keep everything in this browser.
 
-import { ORDER_TABS, tabKeys, orderStatus } from '@/lib/orderStatus';
+import { ORDER_TABS, tabKeys, orderStatus, tabOf } from '@/lib/orderStatus';
 import { isCounterSale } from '@/lib/orders';
 import { currentUser } from '@/lib/team';
 import { startOfDay } from '@/lib/settlements';
@@ -28,6 +28,13 @@ const RETAIL_TABS = [
   { key: 'cancelled', label: 'Cancelled' },
   { key: 'returned', label: 'Returned' },
 ];
+/** The status pill as the web shows it (ON-U10): the tab's word and tone, with the saved step (Approved, Ready for
+ *  courier, Pending) as grey text beside it. → { label, tone, sub } */
+export function statusPill(statusKey) {
+  const t = tabOf(statusKey);
+  const s = orderStatus((t && t.key) || statusKey) || orderStatus(statusKey);
+  return { label: t ? t.label : s ? s.label : statusKey, tone: s ? s.tone : 'neutral', sub: t ? t.sub : '' };
+}
 /** The list's tabs. Online editions open on On hold (the work); All is last. */
 export const listTabs = (online) => (online ? [...ORDER_TABS.map((t) => ({ key: t.key, label: t.label })), { key: 'all', label: 'All' }] : RETAIL_TABS);
 export const inTab = (o, tab) => tab === 'all' || tabKeys(tab).includes(o.statusKey);

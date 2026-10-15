@@ -1,0 +1,37 @@
+{
+ "id": "CX-U5",
+ "kind": "fix",
+ "section": "Customers & marketing",
+ "area": "Customers & marketing",
+ "title": "Full picture for every customer",
+ "problem": "Only the demo customer showed tickets, coupons and messages, and those were made up.",
+ "now": "Every customer shows their real tickets, store credit, loyalty progress, offers used, messages sent, next meeting and an Insights card.",
+ "steps": [
+  "Open a customer who has a support ticket",
+  "See Support tickets and Insights on Overview",
+  "Open Orders for store credit and offers used",
+  "Open Messages & activity for messages sent"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/customers-crm/CustomerCRM.jsx",
+  "src/lib/supportTickets.js"
+ ],
+ "notes": "Where: Customers › All customers › a customer (/customer-crm)",
+ "shots": [
+  {
+   "route": "/customer-crm",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "A customer’s overview",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

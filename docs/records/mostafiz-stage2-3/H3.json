@@ -1,0 +1,36 @@
+{
+ "id": "H3",
+ "kind": "new",
+ "section": "Hosting",
+ "area": "Hosting",
+ "title": "Email records: SPF, DKIM and DMARC",
+ "problem": "Shops couldn’t set up email checks, so their mail could land in spam.",
+ "now": "Pick the mailbox provider; MX, SPF, DKIM and DMARC are built, checked and added in one click, with a test email.",
+ "steps": [
+  "Open Settings › Hosting › Email.",
+  "Set DMARC to Quarantine and save.",
+  "Press Add records for me, then Send a test email."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/settings-console/hosting/HostingEmail.jsx",
+  "src/lib/hosting.js"
+ ],
+ "notes": "Where: Settings › Hosting › Email (/set-hosting?tab=email)",
+ "shots": [
+  {
+   "route": "/set-hosting?tab=email",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Hosting › Email",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

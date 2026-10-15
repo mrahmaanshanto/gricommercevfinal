@@ -1,0 +1,37 @@
+{
+ "id": "B2-catalogue",
+ "kind": "new",
+ "section": "Module B · Services",
+ "area": "Module B · Services",
+ "title": "Catalogue, brief builder and experts",
+ "problem": "Services, prices and the questions asked had no place to be managed.",
+ "now": "Edit services, packages, add-ons, brief questions, who may buy them, and experts with skills, load and commission.",
+ "steps": [
+  "Open Catalogue and a service.",
+  "Add a brief question and save.",
+  "See it on the merchant's order page."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/admin/services/SvcCatalogue.jsx",
+  "src/screens/admin/services/SvcEdit.jsx",
+  "src/screens/admin/services/SvcExperts.jsx"
+ ],
+ "notes": "Where: Super admin › Services › Catalogue / Experts",
+ "shots": [
+  {
+   "route": "/admin/services/catalogue",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Super admin: catalogue and packages",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

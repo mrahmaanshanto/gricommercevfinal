@@ -1,0 +1,35 @@
+{
+ "id": "H5",
+ "kind": "new",
+ "section": "Hosting",
+ "area": "Hosting",
+ "title": "Speed settings and a speed test",
+ "problem": "Merchants couldn’t clear the cache or see how fast the store loads.",
+ "now": "Cache times, clearing the cache, image formats and a speed test of the store home on a 3G phone.",
+ "steps": [
+  "Open Settings › Hosting › Speed & cache.",
+  "Press Run test."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/settings-console/hosting/HostingMore.jsx",
+  "src/lib/hosting.js"
+ ],
+ "notes": "Where: Settings › Hosting › Speed & cache (/set-hosting?tab=speed)",
+ "shots": [
+  {
+   "route": "/set-hosting?tab=speed",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Hosting › Speed & cache",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

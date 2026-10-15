@@ -20,10 +20,12 @@ import { navigate } from '@/runtime/routes';
 import { formatBDT } from '@/lib/format';
 import { Dialog as __Dialog, EmptyState as __EmptyState, StatusBadge as __StatusBadge } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, Pager, LearnMore, Menu } from '@/components/ui/IndexKit';
-import { ORDER_STATUSES, ORDER_TOTAL, orderStatus, ORDER_TABS, tabKeys, NEW_KEYS } from '@/lib/orderStatus';
+import { ORDER_STATUSES, ORDER_TOTAL, orderStatus, ORDER_TABS, tabKeys, NEW_KEYS, tabOf } from '@/lib/orderStatus';
+import { ORDER_SOURCES } from '@/lib/orderLinks';
+import { allUsers, canSee, currentUser } from '@/lib/team';
 import { getStockPlaces, onlinePlace } from '@/lib/locations';
 import { holdsFor } from '@/lib/stockHolds';
-import { demoOrders, getOrders, duplicatesOf, orderHref, invoiceHref, availability, approveOrder, cancelOrder, heldText, CAN_APPROVE, CAN_CANCEL, DEFAULT_HOLD_PLACE } from '@/lib/orders';
+import { demoOrders, getOrders, duplicatesOf, orderHref, invoiceHref, availability, approveOrder, cancelOrder, heldText, assignOrder, CAN_APPROVE, CAN_CANCEL, DEFAULT_HOLD_PLACE } from '@/lib/orders';
 import { syncCourier, verifyOf } from '@/lib/orderFlow';
 import { holdsStock, wholesaleOn, hasModule } from '@/lib/edition';
 import { orderStates } from '@/lib/orderStates';
@@ -43,7 +45,8 @@ import { formatDate, formatTime } from '@/lib/format';
 const PAGE_SIZE = 20;
 // The tabs are the shop's standard statuses (orderStatus.js › ORDER_TABS): each groups one or more saved statuses.
 // Two more views are worked out, not saved statuses: a payment proof waiting, and Completed by the shop's rule.
-const VIEWS = [{ key: 'review', label: 'Payment to review' }, { key: 'completed', label: 'Completed' }];
+// Assigned to me (ON-F11): the orders given to the person signed in.
+const VIEWS = [{ key: 'mine', label: 'Assigned to me' }, { key: 'review', label: 'Payment to review' }, { key: 'completed', label: 'Completed' }];
 const TABS = [{ key: 'all', label: 'All', count: ORDER_TOTAL }, ...ORDER_TABS, ...VIEWS];
 // Retail (no online module): every order is a counter sale, finished or on due, so the courier steps don't apply.
 const RETAIL_TABS = [{ key: 'all', label: 'All' }, { key: 'pending', label: 'Payment due' }, { key: 'delivered', label: 'Completed' }, orderStatus('cancelled'), orderStatus('returned')];
@@ -57,7 +60,8 @@ const PAYMENTS = {
   Partial: { tone: 'warning', icon: 'circle-dashed' },
   COD: { tone: 'neutral', icon: 'banknote' }
 };
-const NO_EXTRA = { channel: '', assigned: '', minTotal: '' };
+// `tracking` = has a courier tracking ID or not (it was called `assigned` before orders could be assigned to staff)
+const NO_EXTRA = { channel: '', tracking: '', minTotal: '' };
 // placed-date filter and sort (?date=&from=&to=&sort=)
 const DATES = [['', 'Any date'], ['today', 'Today'], ['yesterday', 'Yesterday'], ['7d', 'Last 7 days'], ['month', 'This month'], ['custom', 'Custom dates']];
 const SORTS = [['', 'Newest first'], ['oldest', 'Oldest first'], ['total-desc', 'Total: high to low'], ['total-asc', 'Total: low to high'], ['unconfirmed', 'Oldest unconfirmed']];
@@ -93,7 +97,7 @@ const digits = (t) => String(t).replace(/[^0-9]/g, '');
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
 class Component extends DCLogic {
-  state = { online: true, all: DEMO_ORDERS, status: 'all', q: '', courier: '', payment: '', zone: '', sub: '', date: '', from: '', to: '', sort: '', page: 1, sel: {}, find: false, filtersOpen: false, extra: NO_EXTRA, draft: NO_EXTRA, approve: null, drafts: [] };
+  state = { online: true, all: DEMO_ORDERS, status: 'all', q: '', courier: '', payment: '', zone: '', sub: '', source: '', date: '', from: '', to: '', sort: '', page: 1, sel: {}, find: false, filtersOpen: false, extra: NO_EXTRA, draft: NO_EXTRA, approve: null, drafts: [], me: null, staff: [], assign: null };
   componentDidMount() {
     this.paint();
     this.readUrl();
@@ -106,7 +110,21 @@ class Component extends DCLogic {
     this._onDrafts = () => this.setState({ drafts: getDrafts() });
     window.addEventListener(DRAFTS_EVENT, this._onDrafts);
   }
-  reload() { syncCourier(); this.setState({ ready: true, online: hasModule('online'), all: annotate(getOrders()), rules: getOrderRules(), drafts: getDrafts() }); }
+  reload() {
+    let me = null, staff = [];
+    try { me = currentUser(); staff = allUsers().filter((u) => canSee(u, 'orders-all')); } catch { /* signed out */ }
+    syncCourier(); this.setState({ ready: true, online: hasModule('online'), all: annotate(getOrders()), rules: getOrderRules(), drafts: getDrafts(), me, staff });
+  }
+  /** Give the selected orders to one staff member (or to no one). */
+  doAssign() {
+    const { assign, staff, me } = this.state;
+    const u = staff.find((x) => x.id === assign.to) || null;
+    const list = this.state.all.filter((o) => this.state.sel[o.id]);
+    const n = list.filter((o) => assignOrder(o, u, (me && me.name) || 'Staff')).length;
+    this.setState({ assign: null, sel: {} });
+    this.reload();
+    toast(n ? plural(n, 'order') + (u ? ' assigned to ' + u.name : ' unassigned') : 'Nothing changed', n ? undefined : { tone: 'info' });
+  }
   async removeDraft(d) {
     const ok = await confirmDialog({ title: 'Delete draft ' + d.id + '?', body: 'The products, customer and notes saved in it are lost.', confirmLabel: 'Delete draft', tone: 'danger' });
     if (!ok) return;
@@ -194,7 +212,7 @@ class Component extends DCLogic {
     const status = p.get('status');
     this.setState({
       status: orderStatus(status) || isView(status) ? status : 'all',
-      q: p.get('q') || '', courier: p.get('courier') || '', payment: p.get('payment') || '', zone: p.get('zone') || '', sub: p.get('sub') || '',
+      q: p.get('q') || '', courier: p.get('courier') || '', payment: p.get('payment') || '', zone: p.get('zone') || '', sub: p.get('sub') || '', source: p.get('source') || '',
       date: DATES.some((d) => d[0] && d[0] === p.get('date')) ? p.get('date') : '', from: isDay(p.get('from')) ? p.get('from') : '', to: isDay(p.get('to')) ? p.get('to') : '',
       sort: SORTS.some((x) => x[0] && x[0] === p.get('sort')) ? p.get('sort') : '',
       page: Math.max(1, parseInt(p.get('page'), 10) || 1),
@@ -211,6 +229,7 @@ class Component extends DCLogic {
     if (st.payment) p.set('payment', st.payment);
     if (st.zone) p.set('zone', st.zone);
     if (st.sub) p.set('sub', st.sub);
+    if (st.source) p.set('source', st.source);
     if (st.date) p.set('date', st.date);
     if (st.date === 'custom' && st.from) p.set('from', st.from);
     if (st.date === 'custom' && st.to) p.set('to', st.to);
@@ -231,7 +250,7 @@ class Component extends DCLogic {
     });
   }
   filtered() {
-    const { status, q, courier, payment, zone, sub, extra, date, from, to, sort } = this.state;
+    const { status, q, courier, payment, zone, sub, source, extra, date, from, to, sort, me } = this.state;
     if (status === 'drafts') return [];
     const needle = q.trim().toLowerCase();
     const needleDigits = digits(needle);
@@ -239,7 +258,8 @@ class Component extends DCLogic {
     const range = this.state.ready ? dateRange(date, from, to) : null;
     const found = this.state.all.filter(o => {
       if (range && !((o.at || 0) >= range[0] && (o.at || 0) < range[1])) return false;
-      if (status === 'review' ? !o.toReview : status === 'completed' ? !o.done : status !== 'all' && !tabKeys(status).includes(o.statusKey)) return false;
+      if (status === 'mine' ? !(me && o.assignee && o.assignee.id === me.id) : status === 'review' ? !o.toReview : status === 'completed' ? !o.done : status !== 'all' && !tabKeys(status).includes(o.statusKey)) return false;
+      if (source && o.source !== source) return false;
       if (sub && !(o.sub2 && o.sub2.id === sub)) return false;
       if (courier && o.courier !== courier) return false;
       if (payment && o.payment !== payment) return false;
@@ -248,11 +268,11 @@ class Component extends DCLogic {
       if (extra.channel === 'online' && /^(POS|Wholesale)/.test(o.channel)) return false;
       if (extra.channel === 'pos' && !o.channel.startsWith('POS')) return false;
       if (extra.channel === 'wholesale' && !o.channel.startsWith('Wholesale')) return false;
-      if (extra.assigned === 'yes' && !/^[A-Z]{2}-/.test(o.consignment)) return false;
-      if (extra.assigned === 'no' && /^[A-Z]{2}-/.test(o.consignment)) return false;
+      if (extra.tracking === 'yes' && !/^[A-Z]{2}-/.test(o.consignment)) return false;
+      if (extra.tracking === 'no' && /^[A-Z]{2}-/.test(o.consignment)) return false;
       if (min && o.amount < min) return false;
       if (!needle) return true;
-      const text = [o.id, o.invoiceId, o.customer, o.phone, o.itemTitle, o.courier, o.consignment].join(' ').toLowerCase();
+      const text = [o.id, o.invoiceId, o.customer, o.phone, o.itemTitle, o.courier, o.consignment, o.assignee ? o.assignee.name : ''].join(' ').toLowerCase();
       return text.includes(needle) || (needleDigits.length > 2 && digits(o.id + ' ' + o.phone + ' ' + o.consignment).includes(needleDigits));
     });
     // newest first unless another order is chosen (the unconfirmed check is worked out once per order)
@@ -262,9 +282,9 @@ class Component extends DCLogic {
   exportCsv(rows) {
     if (!rows.length) { toast('Nothing to export: no orders match these filters', { tone: 'info' }); return; }
     // the order's separate states (orderStates.js) go out with it, so a sheet can filter by what is waiting
-    const head = ['Order', 'Placed', 'Channel', 'Customer', 'Phone', 'Zone', 'Items', 'Courier', 'Tracking', 'Status', 'Payment', 'Total (BDT)', 'Confirmation', 'Payment state', 'Fulfilment', 'Delivery', 'Due (BDT)', 'Next step', 'Sub-status', 'Completed'];
+    const head = ['Order', 'Placed', 'Channel', 'Source', 'Assigned to', 'Customer', 'Phone', 'Zone', 'Items', 'Courier', 'Tracking', 'Status', 'Payment', 'Total (BDT)', 'Confirmation', 'Payment state', 'Fulfilment', 'Delivery', 'Due (BDT)', 'Next step', 'Sub-status', 'Completed'];
     const cell = (c) => '"' + String(c).replace(/"/g, '""') + '"';
-    const lines = [head, ...rows.map(o => { const st = orderStates(o, { held: holdsFor(o.id).length > 0 }) || {}; return [o.id, o.placed, o.channel, o.customer, o.phone, o.zone, o.itemTitle + ' (' + o.itemMeta + ')', o.courier, o.consignment, o.status, o.payment, o.amount, st.confirmation, st.payment, st.fulfilment, st.delivery, st.due, (st.next || {}).label, st.custom, st.completed ? 'Yes' : 'No']; })];
+    const lines = [head, ...rows.map(o => { const st = orderStates(o, { held: holdsFor(o.id).length > 0 }) || {}; return [o.id, o.placed, o.channel, o.source || '', o.assignee ? o.assignee.name : '', o.customer, o.phone, o.zone, o.itemTitle + ' (' + o.itemMeta + ')', o.courier, o.consignment, o.status, o.payment, o.amount, st.confirmation, st.payment, st.fulfilment, st.delivery, st.due, (st.next || {}).label, st.custom, st.completed ? 'Yes' : 'No']; })];
     const blob = new Blob(['﻿' + lines.map(l => l.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -293,11 +313,12 @@ class Component extends DCLogic {
     if (st.online) ORDER_TABS.forEach(t => { counts[t.key] = t.keys.reduce((n, k) => n + inView.filter(o => o.statusKey === k).length, 0); });
     counts.review = inView.filter(o => o.toReview).length;
     counts.completed = inView.filter(o => o.done).length;
+    counts.mine = st.me ? inView.filter(o => o.assignee && o.assignee.id === st.me.id).length : 0;
     counts.drafts = st.drafts.length;
     const showDrafts = st.online && (st.drafts.length > 0 || st.status === 'drafts');
     const dayFrom = new Date(); dayFrom.setHours(0, 0, 0, 0);
-    const extraCount = (st.extra.channel ? 1 : 0) + (st.extra.assigned ? 1 : 0) + (Number(st.extra.minTotal) > 0 ? 1 : 0);
-    const hasFilters = !!(st.q || st.courier || st.payment || st.zone || st.sub || st.date || extraCount);
+    const extraCount = (st.extra.channel ? 1 : 0) + (st.extra.tracking ? 1 : 0) + (Number(st.extra.minTotal) > 0 ? 1 : 0);
+    const hasFilters = !!(st.q || st.courier || st.payment || st.zone || st.sub || st.source || st.date || extraCount);
     const setDraft = (k) => (e) => { const value = e.target.value; this.setState(s => ({ draft: { ...s.draft, [k]: value } })); };
     // bulk approve: one hold place for every selected Pending order, with free stock per product there
     let approveVals = null;
@@ -333,9 +354,9 @@ class Component extends DCLogic {
       newOrderHref: !st.online || st.extra.channel === 'pos' || st.extra.channel === 'wholesale' ? '/pos' : '/new-order',
       sparkOrders: Array.from({ length: 7 }, (_, i) => { const a = dayFrom.getTime() - (6 - i) * 864e5; return inView.filter(o => (o.at || 0) >= a && (o.at || 0) < a + 864e5).length; }),
       sparkValue: Array.from({ length: 7 }, (_, i) => { const a = dayFrom.getTime() - (6 - i) * 864e5; return inView.filter(o => (o.at || 0) >= a && (o.at || 0) < a + 864e5).reduce((n, o) => n + (o.amount || 0), 0); }),
-      find: !!(st.find || st.q || st.courier || st.payment || st.zone || st.sub || st.date || extraCount),
+      find: !!(st.find || st.q || st.courier || st.payment || st.zone || st.sub || st.source || st.date || extraCount),
       openFind: () => this.setState({ find: true }),
-      closeFind: () => { this.setState({ find: false, extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '', sub: '', date: '', from: '', to: '' }); },
+      closeFind: () => { this.setState({ find: false, extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '', sub: '', source: '', date: '', from: '', to: '' }); },
       kpiToday: inView.filter(o => (o.at || 0) >= dayFrom.getTime()).length,
       kpiTodayValue: formatBDT(inView.filter(o => (o.at || 0) >= dayFrom.getTime()).reduce((a, o) => a + (o.amount || 0), 0)),
       kpiCod: formatBDT(inView.filter(o => o.payment === 'COD' && ['approved', 'ready', 'shipped'].includes(o.statusKey)).reduce((a, o) => a + (o.amount || 0), 0)),
@@ -353,6 +374,7 @@ class Component extends DCLogic {
       sortLabel: (SORTS.find((x) => x[0] === st.sort) || SORTS[0])[1],
       subs: (st.rules || { custom: [] }).custom.map(c => ({ ...c, base: (orderStatus(c.base) || {}).label || c.base })),
       onSub: (e) => this.view({ sub: e.target.value }),
+      source: st.source, onSource: (e) => this.view({ source: e.target.value }),
       reload: () => this.reload(),
       onSearch: (e) => this.view({ q: e.target.value }),
       onCourier: (e) => this.view({ courier: e.target.value }),
@@ -363,15 +385,15 @@ class Component extends DCLogic {
       filtersOpen: st.filtersOpen, draft: st.draft, extraCount,
       openFilters: () => this.setState(s => ({ filtersOpen: true, draft: s.extra })),
       closeFilters: () => this.setState({ filtersOpen: false }),
-      setChannel: setDraft('channel'), setAssigned: setDraft('assigned'), setMinTotal: setDraft('minTotal'),
+      setChannel: setDraft('channel'), setTracking: setDraft('tracking'), setMinTotal: setDraft('minTotal'),
       applyFilters: () => { this.setState(s => ({ extra: s.draft, filtersOpen: false, page: 1 })); toast('Filters applied'); },
       resetFilters: () => this.setState({ extra: NO_EXTRA, draft: NO_EXTRA, filtersOpen: false, page: 1 }),
       // table
       empty: found.length === 0,
       emptyTitle: st.q.trim() ? 'No orders match “' + st.q.trim() + '”' : 'No demo orders match these filters',
       emptyBody: 'The demo carries ' + st.all.length + ' orders. ' + (hasFilters ? 'Clear the search and filters to see the ones in this tab.' : 'Pick another status tab.'),
-      hasFilters, filterCount: (st.courier ? 1 : 0) + (st.payment ? 1 : 0) + (st.zone ? 1 : 0) + (st.sub ? 1 : 0) + (st.date ? 1 : 0) + extraCount,
-      clearFilters: () => { this.setState({ extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '', sub: '', date: '', from: '', to: '' }); },
+      hasFilters, filterCount: (st.courier ? 1 : 0) + (st.payment ? 1 : 0) + (st.zone ? 1 : 0) + (st.sub ? 1 : 0) + (st.source ? 1 : 0) + (st.date ? 1 : 0) + extraCount,
+      clearFilters: () => { this.setState({ extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '', sub: '', source: '', date: '', from: '', to: '' }); },
       caption: tabLabel + ', page ' + page + ' of ' + pages + ', ' + found.length + ' demo orders',
       countLabel: found.length === 0 ? 'No orders to show'
         : 'Showing ' + (first + 1) + '–' + (first + rows.length) + ' of ' + found.length + (found.length === 1 ? ' demo order' : ' demo orders'),
@@ -390,6 +412,8 @@ class Component extends DCLogic {
       sendReceipts: () => this.bulkReceipts(),
       bulkApprove: () => this.startApprove(),
       bulkCancel: () => this.bulkCancel(),
+      bulkAssign: () => this.setState({ assign: { to: (st.me && st.me.id) || '' } }),
+      staff: st.staff, assign: st.assign, setAssignTo: (e) => { const to = e.target.value; this.setState((s) => ({ assign: { ...s.assign, to } })); }, closeAssign: () => this.setState({ assign: null }), confirmAssign: () => this.doAssign(),
       approve: approveVals,
       // pagination
       page, pages,
@@ -404,7 +428,8 @@ class Component extends DCLogic {
         dups: duplicatesOf(o, st.all).map(d => d.id),
         onRowClick: (e) => { if (e.target.closest('a,button,input,label,select,.mo-sel')) return; navigate(orderHref(o.id, from)); },
         onMore: () => toast('Open ' + o.id + ' to verify, approve or ship it', { tone: 'info' }),
-        statusInfo: o.done ? { label: 'Completed', tone: 'success' } : orderStatus(o.statusKey),
+        // the badge uses the tab's word (On hold, Processing …); the saved step (Pending, Approved …) shows beside it
+        statusInfo: o.done ? { label: 'Completed', tone: 'success', sub: '' } : (() => { const s = orderStatus(o.statusKey); const t = st.online ? tabOf(o.statusKey) : null; return s ? { ...s, label: t ? t.label : s.label, sub: t ? t.sub : '' } : null; })(),
         pay: PAYMENTS[o.payment] || PAYMENTS.COD,
         tracked: o.consignment !== '—',
         checked: !!sel[o.id],
@@ -433,6 +458,7 @@ const CSS = `
 .mo-sort.is-set{color:var(--primary);border-color:var(--primary);background:var(--fill-primary-soft)}
 .mo-sort:focus-within{outline:2px solid var(--primary);outline-offset:2px}
 .mo-day{background-image:none;padding-right:10px}
+.mo-step{align-self:center;font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap}
 `;
 
 // ---- markup ----
@@ -444,6 +470,7 @@ export default class MerchantOrdersScreen extends Component {
     const v = this.renderVals() || {};
     const bulk = v.online ? [
       { label: 'Approve', icon: 'check', onClick: v.bulkApprove },
+      { label: 'Assign', icon: 'user-check', onClick: v.bulkAssign },
       { label: 'Send to courier', icon: 'truck', onClick: v.sendToCourier },
       { label: 'Print labels', icon: 'printer', onClick: v.printLabels },
       { label: 'Send receipts', icon: 'send', onClick: v.sendReceipts },
@@ -460,7 +487,7 @@ export default class MerchantOrdersScreen extends Component {
                 <ShopHeader icon="inbox" title={v.pageTitle}
                   about="Every order in one list: online, counter and wholesale. Open an order to verify, approve, pack and send it."
                   secondary={[{ label: 'Export', onClick: v.exportCsv }]}
-                  more={!v.online ? [{ label: 'Quotes', href: '/quotes' }, { label: 'Return history', href: '/return-history' }] : [{ label: 'Order work', href: '/order-work' }, { label: 'Quotes', href: '/quotes' }, { label: 'Courier returns', href: '/courier-returns' }, ...(wholesaleOn() ? [{ label: 'Wholesale orders', href: '/wholesale-orders' }] : []), { label: 'Order settings', href: '/order-settings' }, { label: 'Order notifications', href: '/set-notifications' }]}
+                  more={!v.online ? [{ label: 'Quotes', href: '/quotes' }, { label: 'Return history', href: '/return-history' }] : [{ label: 'Order work', href: '/order-work' }, { label: 'Courier handover', href: '/courier-handover' }, { label: 'Return requests', href: '/return-requests' }, { label: 'Quotes', href: '/quotes' }, { label: 'Courier returns', href: '/courier-returns' }, ...(wholesaleOn() ? [{ label: 'Wholesale orders', href: '/wholesale-orders' }] : []), { label: 'Order settings', href: '/order-settings' }, { label: 'Order notifications', href: '/set-notifications' }]}
                   primary={{ label: 'Create order', href: v.newOrderHref }} />
 
                 <ModuleSetup area="area-orders" />
@@ -522,6 +549,9 @@ export default class MerchantOrdersScreen extends Component {
                       {v.online ? <select aria-label="Delivery zone" className={'ix-filter' + (v.zone ? ' is-set' : '')} value={v.zone} onChange={v.onZone}>
                         <option value="">Delivery zone</option><option>Inside Dhaka</option><option>Sub-Dhaka</option><option>Outside Dhaka</option>
                       </select> : null}
+                      {v.online ? <select aria-label="Source" className={'ix-filter' + (v.source ? ' is-set' : '')} value={v.source} onChange={v.onSource}>
+                        <option value="">Source</option>{ORDER_SOURCES.map((x) => <option key={x} value={x}>{x}</option>)}
+                      </select> : null}
                       {v.subs.length ? <select aria-label="Sub-status" className={'ix-filter' + (v.sub ? ' is-set' : '')} value={v.sub} onChange={v.onSub}>
                         <option value="">Sub-status</option>{v.subs.map((c) => <option key={c.id} value={c.id}>{c.label} · {c.base}</option>)}
                       </select> : null}
@@ -577,6 +607,7 @@ export default class MerchantOrdersScreen extends Component {
                             <span className="ix-pitem__mid">{o.customer} · {o.placed}</span>
                             <span className="ix-pitem__tags">
                               <__StatusBadge tone={o.statusInfo ? o.statusInfo.tone : 'neutral'}>{o.statusInfo ? o.statusInfo.label : o.status}</__StatusBadge>
+                              {o.statusInfo && o.statusInfo.sub ? <span className="mo-step">{o.statusInfo.sub}</span> : null}
                               {o.sub2 ? <__StatusBadge tone={o.sub2.tone} icon="tag">{o.sub2.label}</__StatusBadge> : null}
                               <__StatusBadge tone={o.pay.tone} icon={o.pay.icon}>{o.payment === 'Partial' ? 'Partly paid' : o.payment}</__StatusBadge>
                             </span>
@@ -610,10 +641,10 @@ export default class MerchantOrdersScreen extends Component {
                               </td>
                               <td className="ix-muted">{o.placed}</td>
                               <td><span className="mo-cust">{o.customer}</span></td>
-                              <td className="ix-muted">{o.channel}</td>
+                              <td className="ix-muted">{o.channel}{o.source && o.channel === 'Manual order' ? ' · ' + o.source : ''}</td>
                               <td className="ix-num">{o.total}</td>
                               <td><__StatusBadge tone={o.pay.tone} icon={o.pay.icon}>{o.payment === 'Partial' ? 'Partly paid' : o.payment}</__StatusBadge></td>
-                              <td><span className="mo-badges"><__StatusBadge tone={o.statusInfo ? o.statusInfo.tone : 'neutral'}>{o.statusInfo ? o.statusInfo.label : o.status}</__StatusBadge>{o.sub2 ? <__StatusBadge tone={o.sub2.tone} icon="tag">{o.sub2.label}</__StatusBadge> : o.toReview ? <__StatusBadge tone="warning" icon="receipt">Payment to review</__StatusBadge> : null}</span></td>
+                              <td><span className="mo-badges"><__StatusBadge tone={o.statusInfo ? o.statusInfo.tone : 'neutral'}>{o.statusInfo ? o.statusInfo.label : o.status}</__StatusBadge>{o.statusInfo && o.statusInfo.sub ? <span className="mo-step">{o.statusInfo.sub}</span> : null}{o.sub2 ? <__StatusBadge tone={o.sub2.tone} icon="tag">{o.sub2.label}</__StatusBadge> : o.toReview ? <__StatusBadge tone="warning" icon="receipt">Payment to review</__StatusBadge> : null}</span></td>
                               <td className="ix-muted">{items(o)}</td>
                             </tr>
                           ))}
@@ -660,6 +691,20 @@ export default class MerchantOrdersScreen extends Component {
             </div>
           ) : null}
         </__Dialog>
+        <__Dialog open={!!v.assign} title="Assign orders" onClose={v.closeAssign} width={420} footer={<>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeAssign}>Cancel</button>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.confirmAssign}>Assign</button>
+        </>}>
+          {v.assign ? (
+            <div>
+              <label className="gc-label" htmlFor="mo-assign-to">Assign {v.selectionLabel.replace(' selected', '')} to</label>
+              <select id="mo-assign-to" className="gc-input gc-select" data-autofocus value={v.assign.to} onChange={v.setAssignTo}>
+                <option value="">No one</option>
+                {v.staff.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </div>
+          ) : null}
+        </__Dialog>
         <__Dialog open={!!v.filtersOpen} title="More filters" onClose={v.closeFilters} width={420} footer={<>
           <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={v.resetFilters}>Reset</button>
           <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.applyFilters}>Apply filters</button>
@@ -675,8 +720,8 @@ export default class MerchantOrdersScreen extends Component {
               </select>
             </div>
             <div>
-              <label className="gc-label" htmlFor="mo-f-assigned">Courier tracking</label>
-              <select id="mo-f-assigned" className="gc-input" value={v.draft ? v.draft.assigned : ""} onChange={v.setAssigned}>
+              <label className="gc-label" htmlFor="mo-f-tracking">Courier tracking</label>
+              <select id="mo-f-tracking" className="gc-input" value={v.draft ? v.draft.tracking : ""} onChange={v.setTracking}>
                 <option value="">Any</option>
                 <option value="yes">Has a tracking ID</option>
                 <option value="no">No tracking ID yet</option>

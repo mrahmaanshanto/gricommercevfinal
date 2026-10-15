@@ -17,7 +17,7 @@ import {
   Sheet, Button, Field, TextInput, Chips, Stepper, Note, Icon, ListRow, SearchField, money, dateText, timeText, toast,
 } from '../kit/AppKit';
 import { patchOrder, logOrder, findOrder } from '@/lib/orders';
-import { DELIVERY_RATES } from '@/lib/orderLinks';
+import { deliveryRates } from '@/lib/deliveryRates';
 import { orderableItems } from '@/lib/sellable';
 import { draftOf, previewEdit, applyEdit, requestEdit, applyEditRequest, discardEditRequest, versionOf } from '@/lib/orderEdit';
 import { PROOF_METHODS, REJECT_REASONS, methodLabel, submitProof, acceptProof, rejectProof, txnUsed } from '@/lib/paymentProof';
@@ -83,6 +83,7 @@ export function EditOrderSheet({ open, order, request, by, onClose }) {
     setDraft({ ...draft, lines });
     setQ('');
   };
+  const DELIVERY_RATES = deliveryRates();   // Settings › Delivery's charges
   const zones = [...DELIVERY_RATES.map((r) => r.label), ...(DELIVERY_RATES.some((r) => r.label === order.zone) || !order.zone ? [] : [order.zone])];
   const setZone = (z) => { const r = DELIVERY_RATES.find((x) => x.label === z); setDraft({ ...draft, zone: z, shipping: r ? r.fee : draft.shipping }); };
   const needle = q.trim().toLowerCase();

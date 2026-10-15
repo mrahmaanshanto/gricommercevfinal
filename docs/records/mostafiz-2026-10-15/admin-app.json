@@ -1,0 +1,95 @@
+{
+  "part": "Stage 3 · Super admin + Phone app",
+  "entries": [
+    {
+      "id": "SA-F3", "kind": "feature", "module": "Stage 3 · Super admin",
+      "title": "Business verification for every store",
+      "need": "Staff could not check a store's trade licence, TIN or owner's NID, and nothing showed which stores were real.",
+      "now": "Owners send their licence, TIN, NID and photos from Settings; staff approve or reject them in a review queue, and the state shows everywhere.",
+      "where": "Merchant: Settings › Business verification (/set-verification) · Super admin: Merchants › Verification (/admin/kyc), merchant profile",
+      "try": ["In the merchant panel open Settings › Business verification and send the form with two photos", "In the super admin open Merchants › Verification and approve or reject it", "Open Dazzle Shop's profile and see the Verification card", "Back in Settings the shop shows Verified or the reason it was rejected"],
+      "files": ["src/lib/platform/shops.js", "src/lib/platform/seed.js", "src/screens/settings-console/SetVerification.jsx", "src/app/(settings)/set-verification/page.jsx", "src/screens/admin/merchants/kycShared.jsx", "src/screens/admin/merchants/Verification.jsx", "src/app/(admin)/admin/kyc/page.jsx", "src/screens/admin/merchants/profile/ProfileOverview.jsx", "src/screens/admin/merchants/Merchants.jsx", "src/lib/admin/merchants.js", "src/screens/admin/adminNav.js", "src/screens/settings-console/SetRail.jsx", "src/lib/edition.js", "src/lib/help.js", "src/lib/i18n/bn.js"],
+      "status": "done", "left": "Photos are kept as file names only; a server must store the files and check the numbers."
+    },
+    {
+      "id": "SA-F4", "kind": "feature", "module": "Stage 3 · Super admin",
+      "title": "Announcements inside the merchant panel",
+      "need": "GridCommerce had no way to tell stores about news or planned downtime inside their panel.",
+      "now": "Staff write, schedule and stop notices for all stores, a plan, an edition or chosen stores; shops see a banner and a What's new list.",
+      "where": "Super admin: Communications › Merchant notices (/admin/notices) · Merchant: banner under the top bar, account menu › What's new",
+      "try": ["In the super admin open Communications › Merchant notices and press New notice", "Pick Maintenance, give the down time and publish", "Open any merchant page: the banner shows under the top bar", "Dismiss it, then open What's new from the account menu"],
+      "files": ["src/lib/platform/notices.js", "src/components/MerchantNotices.jsx", "src/app/layout.jsx", "src/shell/gc-topbar.js", "src/screens/admin/comms/Notices.jsx", "src/app/(admin)/admin/notices/page.jsx", "src/screens/admin/adminNav.js", "src/lib/i18n/bn.js"],
+      "status": "done", "left": "Dismissals are kept per person in this browser; a live build keeps them on the account."
+    },
+    {
+      "id": "SA-F6", "kind": "feature", "module": "Stage 3 · Super admin",
+      "title": "Health and last sign-in on Merchants",
+      "need": "Health was visible one store at a time, so nobody saw which stores were slipping away.",
+      "now": "The list shows each store's health and last sign-in, sorts by them, has an At risk view, and the dashboard counts at-risk stores.",
+      "where": "Super admin: Merchants › All merchants (/admin/merchants?view=risk) · Dashboard",
+      "try": ["Open All merchants and look at the Health and Last sign-in columns (right after Status)", "Press the At risk tab: it opens sorted by health", "Filter by an account manager to see their at-risk stores", "On the Dashboard, open the At risk row in the Merchants card or the at-risk row under Needs someone today"],
+      "files": ["src/screens/admin/merchants/Merchants.jsx", "src/lib/admin/merchants.js", "src/lib/admin/dashboard.js", "src/screens/admin/Dashboard.jsx"],
+      "status": "done", "left": ""
+    },
+    {
+      "id": "SA-F8", "kind": "feature", "module": "Stage 3 · Super admin",
+      "title": "Failed automatic charges in Collections",
+      "need": "A failed bKash or card charge was hidden in one bill's history until the bill went overdue.",
+      "now": "Collections has an Auto-charge failed group with Retry now and Ask owner to update payment method, which logs it and sends the store a notice.",
+      "where": "Super admin: Billing & credits › Collections (/admin/collections)",
+      "try": ["Open Collections: Mehedi Traders is under Auto-charge failed", "Press Retry now and read the result", "From the row's menu choose Ask owner to update payment method", "Open the bill to see each try in its timeline"],
+      "files": ["src/lib/platform/billing.js", "src/lib/platform/seed.js", "src/screens/admin/billing/Collections.jsx"],
+      "status": "done", "left": "The retry result is a demo; a live build calls bKash or the card gateway."
+    },
+    {
+      "id": "SA-F14", "kind": "feature", "module": "Stage 3 · Super admin",
+      "title": "VAT and billing details on bills",
+      "need": "Subscription bills had no VAT line and a store's BIN, invoice name and billing email could not be kept.",
+      "now": "New bills carry 15% VAT and the store's billing name, BIN and email; staff or the owner can change those details.",
+      "where": "Super admin: Billing & credits › Invoices › a bill; merchant profile › Billing details · Merchant: Settings › Business verification",
+      "try": ["Open a bill issued in the last few days: it has a VAT 15% line", "Its Facts show who it is billed to; Print shows both BINs", "On a merchant profile press Edit on Billing details and save a BIN", "The next bill keeps the new details"],
+      "files": ["src/lib/platform/billing.js", "src/lib/platform/seed.js", "src/lib/platform/shops.js", "src/screens/admin/billing/InvoiceView.jsx", "src/screens/admin/merchants/profile/ProfileActions.jsx", "src/screens/admin/merchants/profile/ProfileOverview.jsx", "src/lib/admin/finance.js"],
+      "status": "done", "left": "Bills issued before the rule started keep no VAT line."
+    },
+    {
+      "id": "AP-F5", "kind": "feature", "module": "Stage 3 · Phone app",
+      "title": "Returns and exchanges on the phone",
+      "need": "Every return in the app sent people to the web.",
+      "now": "The app finds the sale by number, mobile or a scan, takes items back, refunds or swaps them, and returns stock to sale or to damaged.",
+      "where": "App: More › Return or exchange (/m-return); POS › shift sheet",
+      "try": ["Open the app's POS, tap the shift, then Return or exchange", "Search a sale or scan its receipt", "Tick an item, pick a reason and Cash, then Confirm return", "Try Exchange and pick another item", "On an order page tap Return or exchange: the sale opens, and Back returns to the order"],
+      "files": ["src/screens/app/pos/MReturn.jsx", "src/screens/app/pos/returnData.js", "src/app/(phone-app)/m-return/page.jsx", "src/screens/app/kit/appNav.js", "src/screens/app/pos/MPos.jsx", "src/screens/app/AppScreens.jsx", "src/lib/i18n/bn.js"],
+      "status": "partly", "left": "Courier return parcels are still received on the web (/courier-returns)."
+    },
+    {
+      "id": "AP-F6", "kind": "feature", "module": "Stage 3 · Phone app",
+      "title": "Today's cash card for managers",
+      "need": "On the phone the owner could not see where today's money was, and Finance and Home disagreed with no reason shown.",
+      "now": "Home and Finance show each open drawer's expected cash, today's pickups, shifts closed and the COD couriers still hold.",
+      "where": "App: Home and Finance (/m-home, /m-finance)",
+      "try": ["Sign in as the owner and open the app's Home", "Find Today's cash under Needs you", "Open Finance: the same card is under the figures", "Tap COD with couriers to open Payouts"],
+      "files": ["src/screens/app/money/TodayCash.jsx", "src/screens/app/MHome.jsx", "src/screens/app/money/MFinance.jsx"],
+      "status": "done", "left": "A drawer open on another device only counts the sales this phone has seen."
+    },
+    {
+      "id": "AP-U3", "kind": "fix", "module": "Stage 3 · Phone app",
+      "title": "More of the phone app in Bangla",
+      "need": "Many lines with numbers and some labels stayed in English when the app was switched to Bangla.",
+      "now": "Stock, POS, Home and Finance lines with numbers and the remaining labels now show in Bangla, as do the new screens.",
+      "where": "App: Home, Stock, POS, Finance, Return or exchange",
+      "try": ["Switch the app to বাংলা on Home", "Open Stock and a product: on hand, held and on the way read in Bangla", "Open POS: the cart and charge buttons read in Bangla", "Open Finance and Today's cash"],
+      "files": ["src/lib/i18n/bn.js"],
+      "status": "partly", "left": "The order page and order list belong to the online work and were not changed here."
+    },
+    {
+      "id": "AP-U4", "kind": "fix", "module": "Stage 3 · Phone app",
+      "title": "Needs you rows open the right tab",
+      "need": "Send to courier on Home opened Orders on the first tab, not the ready-for-courier list.",
+      "now": "Verify orders opens the On hold tab and Send to courier opens the Ready for courier list.",
+      "where": "App: Home › Needs you (/m-home)",
+      "try": ["Open the app's Home", "Tap Send to courier", "Orders opens on the ready list"],
+      "files": ["src/screens/app/MHome.jsx"],
+      "status": "done", "left": ""
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+ "id": "B2-money",
+ "kind": "new",
+ "section": "Module B · Services",
+ "area": "Module B · Services",
+ "title": "Service money reaches Finance by itself",
+ "problem": "Service sales, partner payouts and refunds were not in the books.",
+ "now": "Paid charges show in Finance › Income, partner earnings as expenses owed, and sent refunds in Refunds; Reports show the totals.",
+ "steps": [
+  "Pay for a service in the merchant panel.",
+  "Open super admin › Finance › Income.",
+  "Find the service charge."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/admin/servicesSync.js",
+  "src/lib/admin/finance.js",
+  "src/screens/admin/services/SvcReports.jsx",
+  "src/screens/admin/AdminShell.jsx"
+ ],
+ "notes": "Where: Super admin › Finance › Income / Expenses · Services › Reports",
+ "shots": [
+  {
+   "route": "/admin/services/reports",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Super admin: service reports",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,42 @@
+{
+ "id": "MS-F7",
+ "kind": "new",
+ "section": "Money, team & settings",
+ "area": "Money, team & settings",
+ "title": "Open and reverse a money movement",
+ "problem": "A wrong expense or transfer could not be opened or put right, so balances drifted with no trail.",
+ "now": "Any money row opens a side panel with its details, note and receipts; Reverse asks why and adds a mirror entry.",
+ "steps": [
+  "Open Income & expenses and tap an expense",
+  "Press Reverse, write why and confirm",
+  "See the Reversal row and the Reversed tag",
+  "Open a transfer in Cash, bank & wallets and reverse it: both sides go back"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/ledger.js",
+  "src/screens/accounts/EntrySheet.jsx",
+  "src/screens/accounts/Money.jsx",
+  "src/screens/accounts/ExpensesBills.jsx",
+  "src/lib/profit.js",
+  "src/lib/reports/dailySummary.js",
+  "src/lib/reports/defs/finance.js"
+ ],
+ "notes": "Where: Finances › Cash, bank & wallets (/money) and Finances › Income & expenses (/expenses-bills), tap a row",
+ "shots": [
+  {
+   "route": "/money",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Money",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

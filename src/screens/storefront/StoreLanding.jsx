@@ -34,7 +34,7 @@ export default function StoreLanding() {
   return (
     <StoreChrome screen="StoreLanding" head={st.ready ? st.head : null} movedFrom={st.movedFrom} css={CSS}
       preview={st.ready && st.shows && lp && lp.status !== 'published' ? <>Preview · this page is a draft{lp.goLiveAt ? ', going live ' + dhakaText(lp.goLiveAt) : ''} <Link href={`/landing-page-builder?id=${lp.id}`} style={{ color: 'inherit' }}>Edit page</Link></> : null}>
-      {() => (!st.ready ? <div style={{ minHeight: 400 }} aria-busy="true" /> : st.shows ? (
+      {(shell) => (!st.ready ? <div style={{ minHeight: 400 }} aria-busy="true" /> : st.shows ? (
         <article className="spg-card slp">
           <span className="slp-photo" style={{ background: (p && p.tbg) || '#eef2f6' }}>{ctx.images[0] ? <img src={ctx.images[0].src} alt={ctx.images[0].alt || lp.title} /> : <span aria-hidden="true">{(lp.title || 'P').slice(0, 1)}</span>}</span>
           {lp.offerLine ? <span className="slp-offer">{lp.offerLine}</span> : null}
@@ -43,7 +43,7 @@ export default function StoreLanding() {
           {ctx.description ? <p>{String(ctx.description).slice(0, 280)}</p> : null}
           <Link href="/checkout" className="gc-btn gc-btn--solid" style={{ textDecoration: 'none' }}><Icon name="shopping-bag" width="16" height="16" aria-hidden="true" />Order now · cash on delivery</Link>
         </article>
-      ) : <NotFound />)}
+      ) : <NotFound shell={shell} />)}
     </StoreChrome>
   );
 }

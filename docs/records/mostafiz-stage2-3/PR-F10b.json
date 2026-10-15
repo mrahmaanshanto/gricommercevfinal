@@ -1,0 +1,34 @@
+{
+ "id": "PR-F10b",
+ "kind": "new",
+ "section": "Products & stock",
+ "area": "Products & stock",
+ "title": "Customer order from profile opens POS",
+ "problem": "Create order on a Retail customer's profile opened an empty register.",
+ "now": "The register starts the sale with that customer's name and phone.",
+ "steps": [
+  "Open /pos?phone=01553336655&name=Nusrat Jahan",
+  "Check the customer is set on the sale"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/pos-register/Pos.jsx"
+ ],
+ "notes": "Where: Customers › a customer › Create order (Retail) · /pos?phone=&name=",
+ "shots": [
+  {
+   "route": "/pos?phone=01553336655&name=Nusrat%20Jahan",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "The register with the customer set",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

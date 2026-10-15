@@ -1,0 +1,38 @@
+{
+ "id": "B1",
+ "kind": "new",
+ "section": "Module B · Services",
+ "area": "Module B · Services",
+ "title": "Buy expert help inside GridCommerce",
+ "problem": "Merchants had to find agencies outside for SEO, ads, design or product upload.",
+ "now": "A Services shop lists ten services with packages, a short brief and payment; monthly ones bill with the subscription.",
+ "steps": [
+  "Open Services › Get expert help.",
+  "Open SEO and choose Standard.",
+  "Answer the brief and pay."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/platform/services.js",
+  "src/screens/services/Services.jsx",
+  "src/screens/services/ServiceDetail.jsx",
+  "src/screens/services/ServiceOrder.jsx"
+ ],
+ "notes": "Where: Team & settings › Services › Get expert help (/services) · Needs the server: Payment is a demo; the gateway is the server's.",
+ "shots": [
+  {
+   "route": "/services",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Services the shop can buy",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

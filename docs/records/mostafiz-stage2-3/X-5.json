@@ -1,0 +1,38 @@
+{
+ "id": "X-5",
+ "kind": "fix",
+ "section": "Inbox, tickets and logos",
+ "area": "Inbox, tickets and logos",
+ "title": "Zoom and Google Meet logos",
+ "problem": "Meetings showed plain words for Zoom and Google Meet.",
+ "now": "Meetings, the meeting form, the super admin’s meetings and Connections show the real Zoom and Google Meet logos.",
+ "steps": [
+  "Open Customers › Meetings.",
+  "Press New meeting and look at Where."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/components/MeetingProvider.jsx",
+  "src/screens/customers-crm/Meetings.jsx",
+  "src/screens/admin/crm/*",
+  "public/assets/brands/zoom.png",
+  "public/assets/brands/google-meet.svg"
+ ],
+ "notes": "Where: Customers › Meetings (/meetings)",
+ "shots": [
+  {
+   "route": "/meetings",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Meetings",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

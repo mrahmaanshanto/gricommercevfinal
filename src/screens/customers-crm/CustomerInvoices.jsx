@@ -5,6 +5,8 @@
 // invoice, then records the payment. Edit opens the invoice page, where a change makes a new revision that has to be
 // accepted again (invoices.js › reviseInvoice, acceptInvoice).
 // Front end only: the invoices come from src/lib/invoices.js (POS sales on due plus the demo invoices).
+// Send reminder / Send a pay link (review CX-F3) go out as "Payment reminder" or, after the due date, "Overdue
+// reminder" through Settings › Notifications (notifications.js › notifyCustomer → the shared send layer and log).
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -17,6 +19,8 @@ import { getInvoices, stageOf, STAGES, acceptInvoice, recordPayment, revisionsOf
 import { EMPLOYEES } from '@/lib/posStore';
 import { hasModule } from '@/lib/edition';
 import { createLink, linkUrl } from '@/lib/paymentLinks';
+import { notifyCustomer, notifyWords } from '@/lib/notifications';
+import { MERCHANT } from '@/lib/merchant';
 
 const money = (n) => formatBDT(n, { decimals: Number.isInteger(n) ? 0 : 2 });
 const digits = (p) => String(p || '').replace(/[^0-9]/g, '').replace(/^88/, '');
@@ -87,11 +91,21 @@ export default function CustomerInvoices({ phones = [], name = 'This customer', 
     if (next.due <= 0) setOpenId('');
     else setPay({ ...pay, amount: '', ref: '' });
   };
-  const sendLink = () => {
-    const link = createLink({ ref: inv.id, refKind: 'invoice', customer: inv.customer.name, phone: inv.customer.phone, amount: inv.due, days: 3 });
-    try { navigator.clipboard.writeText(linkUrl(link)); } catch { /* no clipboard */ }
-    toast(`Pay link for ${money(inv.due)} sent to ${inv.customer.phone} by SMS · link copied`);
+  // a reminder for what is still due, with a pay link when the shop takes online payments
+  const remind = (withLink) => {
+    let url = '';
+    if (withLink) {
+      const link = createLink({ ref: inv.id, refKind: 'invoice', customer: inv.customer.name, phone: inv.customer.phone, amount: inv.due, days: 3 });
+      url = linkUrl(link);
+      try { navigator.clipboard.writeText(url); } catch { /* no clipboard */ }
+    }
+    const late = isOverdue(inv);
+    const r = notifyCustomer(late ? 'invoice-overdue' : 'invoice-due', { name: inv.customer.name, phone: inv.customer.phone, email: inv.customer.email },
+      { invoice_id: inv.id, invoice_total: money(inv.totals.total), due_amount: money(inv.due), due_date: formatDate(dueDateOf(inv)), payment_link: url || 'call ' + MERCHANT.phone },
+      { ref: inv.id, once: inv.id + '|remind|' + Date.now() });
+    toast(notifyWords(r, inv.customer.name.split(' ')[0]) + (withLink ? ' · link copied' : ''), r.sent ? undefined : { tone: 'info' });
   };
+  const sendLink = () => remind(true);
 
   const tabs = TABS.map(([k, l]) => ({ key: k, id: 'ci-tab-' + k, label: l, count: counts[k], on: cur === k, onClick: () => setTab(k) }));
   const stage = inv ? stageOf(inv) : '';
@@ -196,7 +210,10 @@ export default function CustomerInvoices({ phones = [], name = 'This customer', 
                   <div><label className="gc-label" htmlFor="ci-b">Received by</label><select id="ci-b" className="gc-input gc-select" value={pay.by} onChange={(e) => setPay({ ...pay, by: e.target.value })}>{EMPLOYEES.map((m) => <option key={m.name}>{m.name}</option>)}</select></div>
                   {pay.method !== 'Cash' ? <div><label className="gc-label" htmlFor="ci-r">{pay.method === 'Bank' ? 'Slip or cheque no.' : 'Transaction ID'}</label><input id="ci-r" className="gc-input" value={pay.ref} onChange={(e) => setPay({ ...pay, ref: e.target.value })} /></div> : null}
                 </div>
-                {hasModule('online') && inv.customer.phone ? <span><button type="button" className="ix-btn ix-btn--sm" onClick={sendLink}><Icon name="link" width="16" height="16" aria-hidden="true" />Send a pay link instead</button></span> : null}
+                {inv.customer.phone ? <span style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                  {hasModule('online') ? <button type="button" className="ix-btn ix-btn--sm" onClick={sendLink}><Icon name="link" width="16" height="16" aria-hidden="true" />Send a pay link instead</button> : null}
+                  <button type="button" className="ix-btn ix-btn--sm" onClick={() => remind(false)}><Icon name="bell" width="16" height="16" aria-hidden="true" />{isOverdue(inv) ? 'Send overdue reminder' : 'Send reminder'}</button>
+                </span> : null}
               </form>
             ) : null}
           </>

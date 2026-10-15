@@ -105,7 +105,7 @@ export function dailySummary(day, now = clockNow()) {
 
   // ---- dues collected, expenses ----
   const duesList = entries.filter((e) => e.kind === 'invoice payment' && e.amount > 0 && ownIds.has(e.account) && inDay(e.at, from, to));
-  const expList = entries.filter((e) => EXPENSE_KINDS.includes(e.kind) && e.amount < 0 && inDay(e.at, from, to));
+  const expList = entries.filter((e) => EXPENSE_KINDS.includes(e.kind) && (e.amount < 0 || e.reverses) && inDay(e.at, from, to));
   const expCats = new Map();
   expList.forEach((e) => { const k = e.cat || (e.kind === 'paid out' ? 'Paid out at counters' : e.kind === 'salary' ? 'Salary' : 'Other'); expCats.set(k, r2((expCats.get(k) || 0) - e.amount)); });
 

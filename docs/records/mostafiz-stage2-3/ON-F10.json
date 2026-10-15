@@ -1,0 +1,39 @@
+{
+ "id": "ON-F10",
+ "kind": "new",
+ "section": "Online selling",
+ "area": "Online selling",
+ "title": "District and area address picker",
+ "problem": "The address was one free box, so customers picked the wrong zone and paid the wrong delivery charge.",
+ "now": "District then area is chosen from all 64 districts; the area sets the delivery zone and charge.",
+ "steps": [
+  "Open the store checkout",
+  "Choose Dhaka, then Savar",
+  "See Sub-Dhaka chosen and its charge"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/bdAreas.js",
+  "src/components/AreaPicker.jsx",
+  "src/screens/merchant-orders/NewOrder.jsx",
+  "src/screens/storefront/OrderLink.jsx",
+  "src/screens/storefront/Checkout.jsx"
+ ],
+ "notes": "Where: Create order customer card, order link page, store checkout",
+ "shots": [
+  {
+   "route": "/checkout",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Checkout: district and area",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

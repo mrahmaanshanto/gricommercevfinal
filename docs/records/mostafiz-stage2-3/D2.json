@@ -1,0 +1,39 @@
+{
+ "id": "D2",
+ "kind": "new",
+ "section": "Module D · Business email",
+ "area": "Module D · Business email",
+ "title": "Mail directory, prices and abuse in super admin",
+ "problem": "GridCommerce could not see stores' mail, price it or stop abuse.",
+ "now": "A directory with DNS health, usage, revenue against provider cost and alerts; plans and provider; sending limits and suspension.",
+ "steps": [
+  "Open Business email › Directory.",
+  "Open a domain with an alert.",
+  "Suspend a mailbox with a reason."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/admin/email/MailDirectory.jsx",
+  "src/screens/admin/email/MailPlans.jsx",
+  "src/screens/admin/email/MailAbuse.jsx",
+  "src/screens/admin/adminNav.js",
+  "src/lib/admin/roles.js"
+ ],
+ "notes": "Where: Super admin › Business email",
+ "shots": [
+  {
+   "route": "/admin/email",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Super admin: Business email directory",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

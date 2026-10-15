@@ -13,11 +13,11 @@ import { SUBDOMAIN_BASE } from '@/lib/domains';
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 var SLIDES = [
-  { img: '/assets/cfbbbbd758347fbb3f71590345d24674.webp', alt: 'Fashion boutique owner packing an order', tag: 'Fashion boutique · Dhaka', quote: 'Facebook orders, courier booking and stock used to live in three notebooks. Now it’s one screen.', who: 'Nusrat Jahan', where: 'Nusrat’s Closet · Online fashion' },
-  { img: '/assets/99e39eac40a8abf8968649c253b23f9e.webp', alt: 'Phone accessories shop owner at a POS counter', tag: 'Electronics shop · Dhaka', quote: 'The counter and the website share one stock. When a case sells in the shop, it disappears online.', who: 'Rakib Hasan', where: 'Rakib Mobile Corner · Phones & accessories' },
-  { img: '/assets/dec2496b57e91a856eaa9f8fd17d9124.webp', alt: 'Skincare seller preparing a live sale', tag: 'Beauty & skincare · Live selling', quote: 'I go live, orders come in, and bKash links go out before the video ends.', who: 'Tania Islam', where: 'Glow by Tania · Skincare' },
-  { img: '/assets/901f735d539a8b71fb8e8162bb755ec3.webp', alt: 'Warehouse staff scanning a parcel barcode', tag: 'Warehouse · Scan in, scan out', quote: 'Every parcel is scanned in and out. We know where each piece is.', who: 'Kamal Uddin', where: 'Kamal Traders · Distribution' },
-  { img: '/assets/937ca529653ad58861f011f257ebc4df.webp', alt: 'Senior business owner in a Dhaka office', tag: 'Growing brands · Multi-branch', quote: 'Serious retail needs serious systems — built for how Bangladesh buys and sells.', who: 'Farzana Rahman', where: 'Deshi Bazaar Group · Managing director' }
+  { img: '/assets/cfbbbbd758347fbb3f71590345d24674.webp', alt: 'Fashion boutique owner packing an order', tag: 'Fashion boutique · Dhaka', quote: 'Facebook orders, courier booking and stock on one screen.' },
+  { img: '/assets/99e39eac40a8abf8968649c253b23f9e.webp', alt: 'Phone accessories shop owner at a POS counter', tag: 'Electronics shop · Dhaka', quote: 'The counter and the website share one stock: a case sold in the shop disappears online.' },
+  { img: '/assets/dec2496b57e91a856eaa9f8fd17d9124.webp', alt: 'Skincare seller preparing a live sale', tag: 'Beauty & skincare · Live selling', quote: 'Go live, take the orders and send bKash links before the video ends.' },
+  { img: '/assets/901f735d539a8b71fb8e8162bb755ec3.webp', alt: 'Warehouse staff scanning a parcel barcode', tag: 'Warehouse · Scan in, scan out', quote: 'Scan every parcel in and out, and know where each piece is.' },
+  { img: '/assets/937ca529653ad58861f011f257ebc4df.webp', alt: 'Senior business owner in a Dhaka office', tag: 'Growing brands · Multi-branch', quote: 'Built for how Bangladesh buys and sells, from one shop to many branches.' }
 ];
 var CATS = [
   { k: 'fashion', label: 'Fashion & clothing', slide: 0 }, { k: 'beauty', label: 'Beauty & skincare', slide: 2 }, { k: 'elec', label: 'Phones & electronics', slide: 1 },
@@ -27,8 +27,8 @@ var CATS = [
 // site keep the online questions). LOCKED and the edition are fixed at build time, so server and browser agree.
 var RETAIL = LOCKED && currentEditionId() === 'retail-wholesale';
 if (RETAIL) SLIDES = [
-  { ...SLIDES[1], quote: 'Every phone’s IMEI is scanned at the counter. The receipt shows the warranty, and the stock is right in both branches.' },
-  { ...SLIDES[3], quote: 'Stock comes in at the warehouse and goes to the branches by transfer. We know where each piece is.' },
+  { ...SLIDES[1], quote: 'Scan each phone’s IMEI at the counter: the receipt shows the warranty and both branches see the stock.' },
+  { ...SLIDES[3], quote: 'Stock comes in at the warehouse and goes to the branches by transfer, so you know where each piece is.' },
   SLIDES[4],
 ];
 var RETAIL_SLIDE = { fashion: 2, beauty: 2, elec: 0, food: 1, home: 1, other: 2 };
@@ -133,7 +133,7 @@ class Component extends DCLogic {
       slides: SLIDES.map(function (x, i) { return { img: x.img, hasImg: !!x.img, noImg: !x.img, alt: x.alt, n: i + 1, cls: i === slide ? 'slide on' : 'slide', hidden: i !== slide }; }),
       bars: SLIDES.map(function (x, i) { return { cls: i < slide ? 'fill done' : (i === slide ? (gen % 2 ? 'fill run-b' : 'fill run-a') : 'fill') }; }),
       cur: SLIDES[slide],
-      curList: [0].map(function () { var x = SLIDES[slide]; return { quote: x.quote, who: x.who, where: x.where, initial: x.who.replace('[', '').charAt(0), cls: gen % 2 ? 'qtb' : 'qt' }; }),
+      curList: [0].map(function () { var x = SLIDES[slide]; return { quote: x.quote, cls: gen % 2 ? 'qtb' : 'qt' }; }),
       dots: SLIDES.map(function (x, i) { var on = i === slide; return { n: i + 1, on: on, current: on ? 'true' : undefined, pick: function () { self.go(i); } }; }),
       prev: function () { self.go((slide + SLIDES.length - 1) % SLIDES.length); }, nextSlide: function () { self.go((slide + 1) % SLIDES.length); },
       hoverOn: function () { set({ hover: true }); }, hoverOff: function () { set({ hover: false }); },
@@ -307,22 +307,11 @@ export default class MerchantOnboardingScreen extends Component {
             </div>
             <div style={{ position: "absolute", left: "32px", right: "32px", top: "52px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
               <span style={{ minHeight: "24px", padding: "2px 8px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.16)", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center", gap: "6px", backdropFilter: "blur(8px)" }}>{v.cur?.tag}</span>
-              <span style={{ minHeight: "24px", padding: "2px 8px", borderRadius: "var(--radius-full)", background: "#ff9800", color: "#3b1d00", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>Sample story — replace with a real merchant</span>
             </div>
             <div className="ob-quote">
               {__list(v.curList).map((q, $index) => (<React.Fragment key={$index}>
                   <div className={q?.cls} style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
-                    <svg width="36" height="28" viewBox="0 0 36 28" fill="#009cde" aria-hidden="true">
-                      <path d="M0 28V16.6C0 7.4 5 1.8 14.2 0l1.6 3.6C10.6 5 8 8.2 7.6 12.6H14V28H0Zm20 0V16.6C20 7.4 25 1.8 34.2 0l1.6 3.6C30.6 5 28 8.2 27.6 12.6H34V28H20Z" />
-                    </svg>
                     <p className="ob-q" style={{ margin: "0", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-tight)", color: "#ffffff", textWrap: "pretty" }}>{q?.quote}</p>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <div style={{ width: "44px", height: "44px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.16)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "var(--weight-medium)" }}>{q?.initial}</div>
-                      <div>
-                        <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#fff" }}>{q?.who}</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", color: "rgba(255,255,255,.78)" }}>{q?.where}</div>
-                      </div>
-                    </div>
                   </div>
                 </React.Fragment>))}
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "12px", paddingTop: "18px", borderTop: "1px solid rgba(255,255,255,.18)" }}>
@@ -419,7 +408,7 @@ export default class MerchantOnboardingScreen extends Component {
                       </button>
                     </div>
                   </div>
-                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "18px", color: "var(--text-muted)" }}>By continuing you agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "18px", color: "var(--text-muted)" }}>By continuing you agree to the <a href="https://gridcommerce.net/terms" target="_blank" rel="noreferrer">Terms</a> and <a href="https://gridcommerce.net/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</p>
                 </div>
               </>) : null}
               {v.s2 ? (<>

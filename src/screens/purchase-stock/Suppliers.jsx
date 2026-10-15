@@ -69,7 +69,7 @@ export default function Suppliers() {
   useEffect(() => { reload(); setToday(dayStart()); }, []);
   const offOf = (ms) => Math.round((dayStart(ms) - today) / 864e5);
 
-  const all = db.suppliers;
+  const all = db.suppliers.filter((s) => !s.archived);   // archived suppliers keep their ledger (Supplier page) but leave the list
   const bills = db.bills.map((b) => ({ ...b, sup: b.supplier, bought: b.at, left: billLeft(b) })).filter((b) => b.left > 0);
   const billsOf = (id) => bills.filter((b) => b.sup === id).sort((a, b) => a.due - b.due);
   const unusedOf = (id) => db.credits.filter((c) => c.supplier === id).reduce((a, c) => a + (c.unused || 0), 0);

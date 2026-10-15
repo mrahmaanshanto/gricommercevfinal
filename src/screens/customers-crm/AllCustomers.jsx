@@ -11,6 +11,7 @@
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
+import { notifyCustomer, notifyWords } from '@/lib/notifications';
 import { addCustomer, PRICE_TIERS, updateCustomer, mergeCustomers, phoneDigits, customerMatches, addCompany, resolveCustomer, DEMO_LIST, CUSTOMER_STATUSES } from '@/lib/customers';
 import { getCrmRows } from '@/lib/crm';
 import { TERMS } from '@/lib/buyerTerms';
@@ -264,7 +265,9 @@ class Component extends DCLogic {
     this.setState({ addOpen: false, q: '', sel: {} });
     this.load(d);
     if (!keep) this.setView('all');
-    uiToast(name + ' was added to your customers.', { undo: function () { removeFromBook(d); self.load(); } });
+    // "Welcome" goes out only when Settings › Notifications turns it on (off by default; review CX-F3)
+    var hi = notifyCustomer('welcome', { name: name, phone: d }, {}, { ref: d });
+    uiToast(name + ' was added to your customers.' + (hi.sent ? ' ' + notifyWords(hi, name.split(' ')[0]) + '.' : ''), { undo: function () { removeFromBook(d); self.load(); } });
   };
 
   // ---- bulk ----

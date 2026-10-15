@@ -1,0 +1,46 @@
+{
+ "id": "A4",
+ "kind": "new",
+ "section": "Module A · Storefront builder",
+ "area": "Module A · Storefront builder",
+ "title": "Page layouts built from sections",
+ "problem": "Home, product and category pages had one fixed design; the shop could not add a flash sale, brands or reviews to its home page.",
+ "now": "Layouts for seven page kinds are built from fifteen sections, for all pages or one category, product or page, with draft, preview, publish and undo.",
+ "steps": [
+  "Open Online Store › Layouts and open Home",
+  "Add a Video section (paste a YouTube link in its settings) and a FAQ (it starts with two questions), move the countdown up and hide the blog",
+  "Watch the preview on Computer and Phone",
+  "Press Publish and open the store's home page"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/storefront/layouts.js",
+  "src/lib/storefront/catalog.js",
+  "src/screens/online-store/Layouts.jsx",
+  "src/screens/online-store/LayoutEdit.jsx",
+  "src/screens/storefront/sections.jsx",
+  "src/screens/storefront/StoreHome.jsx",
+  "src/screens/storefront/StoreProduct.jsx",
+  "src/screens/storefront/StoreCategory.jsx",
+  "src/screens/storefront/StorePage.jsx",
+  "src/screens/storefront/StoreCart.jsx",
+  "src/screens/storefront/StoreSearch.jsx"
+ ],
+ "notes": "Where: Online Store › Layouts (/layouts, /layout-edit)",
+ "shots": [
+  {
+   "route": "/layouts",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Layouts for each page type",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

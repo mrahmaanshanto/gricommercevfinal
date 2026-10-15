@@ -5,6 +5,9 @@
 // The tickets are the shared book lib/supportTickets.js (the mobile app's /m-tickets reads and writes the same one):
 // every change here is saved and shows in the app, and the other way round. Before the page has mounted it shows the
 // demo's own SLA words (sla0 / hot0), so the server render and the first client render match.
+// New ticket (review CX-F4) opens a side panel (customer, phone, channel, topic, priority, owner, order, details) and
+// saves through addTicket, which also sends "Ticket opened" as Settings › Notifications says. ?new=1&phone=&name= opens
+// it with the customer filled in (the customer profile's New ticket); ?id= opens a ticket.
 // Edit freely: this file is the source for the screen.
 
 import React from 'react';
@@ -17,9 +20,11 @@ import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, Menu, KV } 
 import { MessageList, THREAD_CSS } from '@/components/inbox/Thread';
 import { PARTS_CSS } from '@/components/inbox/parts';
 import {
-  getTickets, demoTickets, slaShort, isHot, threadMessages, averageRating, TICKETS_EVENT, TEAMS,
-  reply as replyTo, assign as assignTo, setStatus as setTicketStatus, setTeam as setTicketTeam, solve as solveTicket,
+  getTickets, demoTickets, slaShort, isHot, threadMessages, averageRating, TICKETS_EVENT, TEAMS, TOPICS, PRIORITIES, CHANNELS,
+  reply as replyTo, assign as assignTo, setStatus as setTicketStatus, setTeam as setTicketTeam, solve as solveTicket, addTicket,
 } from '@/lib/supportTickets';
+import { notifyWords } from '@/lib/notifications';
+import { resolveCustomer } from '@/lib/customers';
 
 // ---- logic ----
 
@@ -34,12 +39,13 @@ const SOON = 'This action is not available in the demo yet.';
 // Urgent = open tickets marked Urgent (any status but Solved), right after All
 const TABS = [['all', 'All'], ['urgent', 'Urgent'], ...STATUSES.map((s) => [s, s])];
 const isUrgent = (t) => t.priority === 'Urgent' && t.status !== 'Solved';
+const BLANK = { customer: '', phone: '', ch: 'phone', topic: TOPICS[0], priority: 'Normal', assignee: '', order: '', details: '' };
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { view: props.view === 'board' ? 'board' : 'list', tab: 'all', q: '', find: false, ch: '', pri: '', who: '', hot: false, sel: '', reply: 'public', draft: '', ready: false, tick: 0 };
+    this.state = { view: props.view === 'board' ? 'board' : 'list', tab: 'all', q: '', find: false, ch: '', pri: '', who: '', hot: false, sel: '', reply: 'public', draft: '', ready: false, tick: 0, nt: null, ntErr: null };
   }
   componentDidMount() {
     // the board is five columns wide: phones open on the list, the board stays one tap away
@@ -48,7 +54,21 @@ class Component extends DCLogic {
     this._again = () => this.setState((s) => ({ tick: s.tick + 1 }));
     [TICKETS_EVENT, 'storage', 'focus'].forEach((e) => window.addEventListener(e, this._again));
     this._iv = window.setInterval(this._again, 60000);
-    this.setState({ ready: true });
+    // ?id= opens a ticket; ?new=1&phone=&name= opens New ticket with the customer filled in (customer profile)
+    const patch = { ready: true };
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      if (qs.get('id')) patch.sel = String(qs.get('id')).replace(/^TKT-/i, '');
+      if (qs.get('new')) {
+        const phone = qs.get('phone') || '';
+        const known = phone ? resolveCustomer(phone) : null;
+        patch.nt = { ...BLANK, phone, customer: qs.get('name') || (known && known.name) || '' };
+        const u = new URL(window.location.href);
+        ['new', 'phone', 'name'].forEach((k) => u.searchParams.delete(k));
+        window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash);
+      }
+    } catch { /* no URL access */ }
+    this.setState(patch);
   }
   componentWillUnmount() {
     [TICKETS_EVENT, 'storage', 'focus'].forEach((e) => window.removeEventListener(e, this._again));
@@ -104,7 +124,17 @@ class Component extends DCLogic {
       countLabel: rows.length ? 'Showing ' + plural(rows.length, 'ticket') : 'No tickets to show',
       rows: rows.map(decorate),
       columns: STATUSES.map((s) => ({ s, note: COL_NOTE[s] || '', items: found.filter((t) => t.status === s).map(decorate) })),
-      newTicket: () => toast(SOON, { tone: 'info' }),
+      newTicket: () => this.setState({ nt: { ...BLANK }, ntErr: null }),
+      nt: st.nt, ntErr: st.ntErr,
+      setNt: (k) => (e) => this.setState({ nt: { ...st.nt, [k]: e.target.value }, ntErr: st.ntErr && st.ntErr.field === k ? null : st.ntErr }),
+      closeNew: () => this.setState({ nt: null, ntErr: null }),
+      saveNew: () => {
+        const res = addTicket({ ...st.nt, assignee: st.nt.assignee });
+        if (!res.ok) { this.setState({ ntErr: { field: res.field || '', text: res.error } }); return; }
+        const told = res.told && res.told.sent ? ' · ' + notifyWords(res.told, st.nt.customer.split(' ')[0]) : '';
+        toast('TKT-' + res.id + ' made' + told);
+        this.setState({ nt: null, ntErr: null, sel: res.id, tab: 'all' });
+      },
       // the open ticket
       t: cur ? decorate(cur) : null,
       close: () => this.setState({ sel: '' }),
@@ -352,6 +382,38 @@ export default class SupportTicketsScreen extends Component {
               <button type="button" className="ix-btn ix-btn--sm">Payment link</button>
               <button type="button" className="ix-btn ix-btn--sm">Dispatch time</button>
               <button type="button" className="ix-btn ix-btn--sm">Bangla version</button>
+            </div>
+          </>) : null}
+        </Sheet>
+
+        <Sheet open={!!v.nt} title="New ticket" label="New ticket" onClose={v.closeNew}
+          footer={v.nt ? <>
+            <button type="button" className="gc-btn gc-btn--neutral" onClick={v.closeNew}>Cancel</button>
+            <button type="button" className="gc-btn gc-btn--solid" onClick={v.saveNew}>Make ticket</button>
+          </> : null}>
+          {v.nt ? (<>
+            {v.ntErr ? <p className="gc-help gc-help--error" role="alert" style={{ margin: 0 }}>{v.ntErr.text}</p> : null}
+            <div>
+              <label className="gc-label" htmlFor="nt-name">Customer</label>
+              <input id="nt-name" className="gc-input" value={v.nt.customer} onChange={v.setNt('customer')} aria-invalid={v.ntErr && v.ntErr.field === 'customer' ? true : undefined} />
+            </div>
+            <div>
+              <label className="gc-label" htmlFor="nt-phone">Phone</label>
+              <input id="nt-phone" className="gc-input" type="tel" inputMode="tel" value={v.nt.phone} onChange={v.setNt('phone')} placeholder="01XXXXXXXXX" />
+            </div>
+            <div className="gc-cols-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 'var(--space-3)' }}>
+              <div><label className="gc-label" htmlFor="nt-topic">About</label><select id="nt-topic" className="gc-input gc-select" value={v.nt.topic} onChange={v.setNt('topic')}>{TOPICS.map((x) => <option key={x}>{x}</option>)}</select></div>
+              <div><label className="gc-label" htmlFor="nt-ch">Came in by</label><select id="nt-ch" className="gc-input gc-select" value={v.nt.ch} onChange={v.setNt('ch')}>{CHANNELS.map((x) => <option key={x} value={x}>{CHANNEL_NAME[x] || x}</option>)}</select></div>
+              <div><label className="gc-label" htmlFor="nt-pri">Priority</label><select id="nt-pri" className="gc-input gc-select" value={v.nt.priority} onChange={v.setNt('priority')}>{PRIORITIES.map((x) => <option key={x}>{x}</option>)}</select></div>
+              <div><label className="gc-label" htmlFor="nt-who">Assignee</label><select id="nt-who" className="gc-input gc-select" value={v.nt.assignee} onChange={v.setNt('assignee')}><option value="">Unassigned</option>{AGENTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></div>
+            </div>
+            <div>
+              <label className="gc-label" htmlFor="nt-order">Order (optional)</label>
+              <input id="nt-order" className="gc-input" value={v.nt.order} onChange={v.setNt('order')} placeholder="e.g. GC-10482" />
+            </div>
+            <div>
+              <label className="gc-label" htmlFor="nt-details">What do they need?</label>
+              <textarea id="nt-details" className="gc-input" rows="4" value={v.nt.details} onChange={v.setNt('details')} aria-invalid={v.ntErr && v.ntErr.field === 'details' ? true : undefined} />
             </div>
           </>) : null}
         </Sheet>

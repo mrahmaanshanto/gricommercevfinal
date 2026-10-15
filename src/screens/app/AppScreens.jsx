@@ -9,7 +9,7 @@ const SECTIONS = [
   ] },
   { title: 'Sell', screens: [
     ['/m-order-detail?id=136811', 'Order details'], ['/m-new-order', 'New order'], ['/m-customers', 'Customers'],
-    ['/m-customer?id=C-08020', 'Customer'], ['/m-pos', 'POS register'], ['/m-calls', 'Calls'],
+    ['/m-customer?id=C-08020', 'Customer'], ['/m-pos', 'POS register'], ['/m-return', 'Return or exchange'], ['/m-calls', 'Calls'],
     ['/m-call-active?preview=1', 'On a call'], ['/m-call-settings', 'Call settings'],
   ] },
   { title: 'Products & stock', screens: [

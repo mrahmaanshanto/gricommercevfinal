@@ -1,0 +1,41 @@
+{
+ "id": "C3-redirects",
+ "kind": "new",
+ "section": "Module C · SEO",
+ "area": "Module C · SEO",
+ "title": "Redirects made when an address changes",
+ "problem": "Renaming a product or page broke every old link to it (review ON-F19).",
+ "now": "A live item's old address redirects to the new one by itself; loops and chains are flagged.",
+ "steps": [
+  "Rename a live product and save.",
+  "Open SEO › Redirects: old → new is listed.",
+  "Open the old address: it lands on the product."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/redirects.js",
+  "src/lib/storePages.js",
+  "src/lib/blog.js",
+  "src/lib/products.js",
+  "src/lib/productCategories.js",
+  "src/lib/landingPages.js",
+  "src/screens/online-store/SeoTools.jsx"
+ ],
+ "notes": "Where: Online Store › SEO › Redirects",
+ "shots": [
+  {
+   "route": "/seo?tab=redirects",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "SEO › Redirects",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

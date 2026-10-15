@@ -34,6 +34,17 @@
 //     per account, and a difference above the POS limit needs a manager's PIN and posts to the ledger.
 //   - one shift per counter and drawer across devices; held sales hold their stock until they expire;
 //     a product out here shows the stock at another place and can be sold here and shipped from there.
+// Stage 3 (Oct 2026):
+//   - the people on a counter come from Staff & HR / Team (posStore.getEmployees); what each role may do on its own
+//     (discount %, price change, void, drawer without a sale, selling on due) is POS management › Settings › POS limits
+//     (posStore.limitsFor); over it, someone who may approve enters their own PIN (ManagerPin, `need`).
+//   - Collect due: find a customer, see what they owe on unpaid invoices, take cash / bKash / Nagad / card (split OK);
+//     the money goes on their invoices oldest first (lib/allocations.js), cash into the drawer, and a money receipt prints.
+//   - Due is always tappable: it says why it can't be used (selling on due off, offline) with a link to Credit & dues.
+//   - a counter sale becomes an invoice only when money is left unpaid; the receipt prints the shop from Settings ›
+//     General (name, address, phone, BIN), a warranty line under each IMEI item, and the width and footer from
+//     Settings › Invoices & receipts (lib/docSettings.js). End shift prints the Z-report (80 mm or A4, ZReport.jsx).
+//   - /pos?phone=&name= starts the sale for that customer (Create order on a Retail customer's profile).
 // Front end only: the shift, held sales and completed sales are kept in this browser.
 // Counters, employees, shifts, cash movements and settings are shared with POS management (posStore).
 
@@ -47,7 +58,17 @@ import { addOrder } from '@/lib/orderLinks';
 import { getLocale, setLocale } from '@/runtime/ui';
 import { Sidebar } from '@/shell/Shell';
 import { PaymentLogo } from '@/components/PaymentLogo';
-import { POS_KEYS as KEYS, load, save, getCounters, getCash, saveCash, getShifts, saveShifts, getSettings, shiftReport, nextId, EMPLOYEES, MANAGERS, CASH_PLACES, CASH_LABEL, DEFAULT_SETTINGS, postCashMove, postVariance, claimCounter, counterBusy, releaseCounter, addDrawerOpen } from '@/lib/posStore';
+import { POS_KEYS as KEYS, load, save, getCounters, getCash, saveCash, getShifts, saveShifts, getSettings, shiftReport, nextId, EMPLOYEES, MANAGERS, CASH_PLACES, CASH_LABEL, DEFAULT_SETTINGS, postCashMove, postVariance, claimCounter, counterBusy, releaseCounter, addDrawerOpen, getEmployees, limitsFor, POS_ROLES, addCollection } from '@/lib/posStore';
+import { getInvoices } from '@/lib/invoices';
+import { openInvoicesOf, splitOldestFirst, allocatePayment, customerKeyOf } from '@/lib/allocations';
+import { transferBetween } from '@/lib/ledger';
+import { ReceiptView } from '@/components/docs/MoneyReceipt';
+import { invoiceIdentity } from '@/lib/businessProfile';
+import { docSettings, docNumber, DOC_DEFAULTS } from '@/lib/docSettings';
+import { coverOf } from '@/lib/warranty';
+import { productOfLine } from '@/lib/customerWarranty';
+import { formatDate } from '@/lib/format';
+import { ZReport, printZ } from './ZReport';
 import { commitSale, queueSale, newOpId, saleForOp, getQueue, pendingQueue, queuedQty, syncQueue, resolveConflict, holdSale, releaseHeld, expireHeld, nextSaleNo } from '@/lib/posSale';
 import { trackingOf, checkSerial, serialsAt, getSerials } from '@/lib/serials';
 import { decodeScale, isWeighed, kgText, r3 } from '@/lib/scaleBarcode';
@@ -268,10 +289,17 @@ export default function Pos() {
   const [drawerOpen, setDrawerOpen] = useState(0);    // the drawer shows open until this time
   const [closeCounts, setCloseCounts] = useState({}); // closing: counted per non-cash account
   const [noSaleWhy, setNoSaleWhy] = useState(null);   // { reason, note } waiting for a manager's PIN
+  const [docs, setDocs] = useState(DOC_DEFAULTS);      // Settings › Invoices & receipts (receipt width, footer, BIN, warranty)
+  const [dueWhy, setDueWhy] = useState('');           // why Due can't be used right now (shown under the tenders)
+  const [col, setCol] = useState(null);               // Collect due: { q, key, method, amount, ref, parts, done }
+  const zRef = useRef(null);                           // the Z-report paper (ZReport.jsx)
+  const [zSize, setZSize] = useState('80');
   const searchRef = useRef(null);
   const doneRef = useRef('');                         // the operation id being completed right now (double tap guard)
 
   useEffect(() => {
+    getEmployees();   // the counter staff from Staff & HR (new hires included)
+    setDocs(docSettings());
     const list = getCounters().filter((c) => c.active);
     const set = getSettings();
     setCounters(list); setCfg(set); setRequireFull(set.requireFull); setPrintReceipt(set.printReceipt);
@@ -293,8 +321,11 @@ export default function Pos() {
     setProducts(posProducts(getCatalog().filter(isStatusSellable)));
     setPoints(load(KEYS.points, {}));
     setLoy(getLoyaltySettings()); setLoyMembers(getLoyaltyMembers()); setPtModes(getProductPoints());
-    const want = new URLSearchParams(window.location.search).get('panel');
-    if (['recent', 'held', 'close', 'cash', 'keys'].includes(want)) setPanel(want);
+    const qs0 = new URLSearchParams(window.location.search);
+    const want = qs0.get('panel');
+    if (['recent', 'held', 'close', 'cash', 'keys', 'collect'].includes(want)) { if (want === 'collect') setCol({ q: qs0.get('phone') || '', key: '', method: 'Cash', amount: '', ref: '', parts: [], done: null }); setPanel(want); }
+    // Create order on a customer's profile (Retail edition) opens the register for that customer
+    else if (qs0.get('phone') || qs0.get('name')) setCustomer({ name: (qs0.get('name') || '').trim(), phone: (qs0.get('phone') || '').trim() });
     setLoc(getLocale());
     setOffline(!window.navigator.onLine);
     if (!window.navigator.onLine) setOfflineAt(Date.now());
@@ -377,6 +408,13 @@ export default function Pos() {
   const overToast = (name, avail) => toast(`${name}: selling past the ${avail} available at ${warehouse}. Negative stock is allowed here.`, { tone: 'info' });
   // the payment offers follow the method really chosen: the first part taken, else the one picked now
   const t = totalsOf(lines, discount, coupon, member, redeem, vat, loy, (tenders[0] || tender).method);
+  // what the person on the shift may do on their own (POS management › Settings › POS limits); a custom role of the
+  // signed-in person (Settings › Users & roles) may allow less
+  const lim = (() => {
+    const l = limitsFor(shift ? shift.cashier : '', cfg);
+    const own = ready ? posLimitsOf(currentUser()) : null;
+    return own ? { ...l, discount: Math.min(l.discount, own.maxDiscount), price: own.priceChange === 'yes' ? l.price : 'pin' } : l;
+  })();
   // points this sale earns: each line after its share of the discounts, by the product's points setting
   const earnShare = t.gross - t.lineDisc ? t.taxable / (t.gross - t.lineDisc) : 0;
   const earnNow = member ? pointsForSale(lines.map((l) => ({ sku: l.sku || (productBy(l.name) || {}).sku, amount: (l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0)) * earnShare })), { mult: member.mult || 1 }, loy, ptModes) : 0;
@@ -523,10 +561,12 @@ export default function Pos() {
   const newSale = async () => {
     if (!lines.length || await confirmDialog({ title: 'Start a new sale?', body: 'The items in the cart will be removed. Hold the sale first if you need it later.', confirmLabel: 'New sale' })) { clearSale(); focusId('pos-scan'); }
   };
-  const cancelSale = async () => {
+  const cancelSale = async (approver) => {
     if (!lines.length) return;
-    if (await confirmDialog({ title: 'Cancel this sale?', body: `${t.units} item${t.units > 1 ? 's' : ''} will be removed from the cart.`, confirmLabel: 'Cancel sale', cancelLabel: 'Keep sale', tone: 'danger' })) {
-      logAudit({ action: 'Void sale', detail: `Sale cancelled at the counter: ${t.units} item${t.units > 1 ? 's' : ''} removed from the cart`, by: (shift && shift.cashier) || 'Staff', approvedBy: '', ok: true, ref: '', amount: t.total, counter: (shift && shift.counter) || '', place: warehouse });
+    const by = typeof approver === 'string' ? approver : '';
+    if (lim.void !== 'yes' && !by) { setPin({ kind: 'cancel', need: { perm: 'void' }, action: 'Void sale', amount: t.total, reason: `Cancel this sale: ${t.units} item${t.units > 1 ? 's' : ''}, ${money(t.total)}.` }); return; }
+    if (by || await confirmDialog({ title: 'Cancel this sale?', body: `${t.units} item${t.units > 1 ? 's' : ''} will be removed from the cart.`, confirmLabel: 'Cancel sale', cancelLabel: 'Keep sale', tone: 'danger' })) {
+      logAudit({ action: 'Void sale', detail: `Sale cancelled at the counter: ${t.units} item${t.units > 1 ? 's' : ''} removed from the cart`, by: (shift && shift.cashier) || 'Staff', approvedBy: by, ok: true, ref: '', amount: t.total, counter: (shift && shift.counter) || '', place: warehouse });
       clearSale(); toast('Sale cancelled');
     }
   };
@@ -584,17 +624,19 @@ export default function Pos() {
     setPanel('checkout');
   };
   const closeCheckout = () => { setPanel(''); setReceipt(null); focusId('pos-scan'); };
-  const setDisc = (patch) => {
+  // a bill discount above the role's limit waits for someone who may give it to enter their PIN
+  const setDisc = (patch, approver) => {
     const next = { type: 'amount', value: 0, ...(discount || {}), ...patch };
-    // the signed-in person's role may allow less than the register (Settings › Users & roles › POS limits)
-    const lim = posLimitsOf(currentUser());
-    const maxPct = lim ? Math.min(cfg.maxDiscount, lim.maxDiscount) : cfg.maxDiscount;
-    const cap = next.type === 'percent' ? maxPct : Math.floor((t.gross - t.lineDisc) * maxPct / 100);
-    if (next.value > cap) {
-      next.value = cap;
-      toast(`${lim && lim.maxDiscount < cfg.maxDiscount ? 'Your role can' : 'A cashier can'} give up to ${maxPct}% discount${next.type === 'percent' ? '' : ` (${formatBDT(cap)} on this sale)`}`, { tone: 'error' });
+    const base = t.gross - t.lineDisc;
+    const pct = next.type === 'percent' ? next.value : base ? (next.value / base) * 100 : 0;
+    const by = typeof approver === 'string' ? approver : (discount && discount.by && next.value <= discount.value ? discount.by : '');
+    if (pct > lim.discount + 0.001 && !by) {
+      setPin({ kind: 'disc', disc: next, need: { perm: 'discount', pct: Math.ceil(pct) }, action: 'Bill discount', amount: next.type === 'percent' ? Math.round(base * next.value) / 100 : next.value,
+        reason: `Give ${next.type === 'percent' ? next.value + '%' : formatBDT(next.value) + ' (' + Math.round(pct) + '%)'} off this bill. ${shift && shift.cashier ? shift.cashier + ' (' + POS_ROLES[lim.role].toLowerCase() + ')' : POS_ROLES[lim.role]} can give up to ${lim.discount}%.` });
+      return;
     }
-    setDiscount(next.value > 0 ? next : (patch.type ? { ...next, value: 0 } : null));
+    setDiscount(next.value > 0 ? { ...next, ...(by ? { by } : {}) } : (patch.type ? { ...next, value: 0 } : null));
+    if (typeof approver === 'string') toast(`Discount approved by ${approver}`);
   };
   const applyCoupon = () => {
     const code = couponText.trim().toUpperCase();
@@ -612,8 +654,13 @@ export default function Pos() {
     }
     const m = TENDERS.find((x) => x.id === id);
     if (offline && !(m && m.offline)) { toast('Offline: only cash can be taken right now', { tone: 'error' }); return; }
-    if (id === CREDIT && !tier && !dueRules.allowRetailDue) { toast('Selling on due is off. Turn it on in Settings › Customers › Credit & dues.', { tone: 'error' }); return; }
-    if (id === CREDIT && requireFull && !tier) { toast('Turn off “Require full payment” to leave money on the customer’s account', { tone: 'error' }); return; }
+    // Due is always tappable: it says why it can't be used, or turns off "Require full payment" for this sale
+    if (id === CREDIT) {
+      const why = offline && !tier ? 'Offline: selling on due needs the connection, to check what the customer owes.' : !tier && !dueRules.allowRetailDue ? 'Selling on due is off for this shop.' : '';
+      setDueWhy(why);
+      if (why) return;
+      if (requireFull && !tier) setRequireFull(false);
+    } else setDueWhy('');
     if (id === 'Card' && shift && !payAccounts('Card', counterRow0, devices).some((o) => !o.down)) { toast('No card terminal is connected. Check Hardware.', { tone: 'error' }); return; }
     setTender({ method: id, amount: '' }); focusId('pos-amt');
   };
@@ -656,8 +703,10 @@ export default function Pos() {
     const dueCheck = phoneDigits(customer.phone) ? creditCheck(buyer || customer.phone, owedNow, { owedBefore, phone: customer.phone, rules: dueRules }) : checkDue({ phone: customer.phone, customer: buyer, owedNow, owedBefore, wholesale: !!tier }, dueRules);
     if (!dueCheck.ok) { toast(dueCheck.reason, { tone: 'error' }); if (/mobile/.test(dueCheck.reason)) focusId('pos-mobile'); return; }
     const creditBy = typeof approver === 'string' ? approver : '';
-    if (dueCheck.needPin && !creditBy) {
-      setPin({ kind: 'credit', reason: `${dueCheck.reason || 'Over the credit limit.'} A manager approves ${owedNow > 0 ? `leaving ${money(owedNow)} unpaid on this sale` : 'this sale'}.` });
+    // leaving money unpaid: over the credit limit, or a role that may not sell on due on its own, needs a PIN
+    const dueByRole = owedNow > 0 && !tier && lim.due !== 'yes';
+    if ((dueCheck.needPin || dueByRole) && !creditBy) {
+      setPin({ kind: 'credit', need: { perm: 'due' }, action: dueCheck.needPin ? 'Credit limit' : 'Sell on due', amount: owedNow, reason: `${dueCheck.needPin ? (dueCheck.reason || 'Over the credit limit.') + ' ' : ''}Approve ${owedNow > 0 ? `leaving ${money(owedNow)} unpaid on this sale` : 'this sale'}.` });
       return;
     }
     const onAccount = list.filter((x) => x.method === CREDIT).reduce((s, x) => s + x.amount, 0);
@@ -672,7 +721,7 @@ export default function Pos() {
     // Stock: a retail sale, or a wholesale customer taking the goods now, takes them out of this place.
     // A wholesale customer who does not take them now gets them held here for the invoice.
     const stockOut = !tier || takesNow;
-    const sale = { id: nextSaleNo(counterRow0, Date.now(), [...load(KEYS.sales, []), ...getQueue()]), opId, wholesale: !!tier, tier: tier ? tier.label : '', atRetail, invoice: !!(who.name || who.phone), rev: 1, payments: [], at: Date.now(), lines: soldLines, customer: who, member, earned: earnNow, totals: t, coupon: t.offers.some((o) => o.code === coupon) ? coupon : '', tenders: list, change, due: owed, creditBy, printed: printReceipt, cashier: shift.cashier, salesperson: soldBy || shift.cashier, counter: shift.counter, counterId: shift.counterId, place: warehouse, offline, returned: {}, stockOut, deliveries: [], ...(away.length ? { ship: { address: shipTo } } : {}) };
+    const sale = { id: nextSaleNo(counterRow0, Date.now(), [...load(KEYS.sales, []), ...getQueue()]), opId, wholesale: !!tier, tier: tier ? tier.label : '', atRetail, invoice: owed > 0, rev: 1, payments: [], at: Date.now(), lines: soldLines, customer: who, member, earned: earnNow, totals: t, coupon: t.offers.some((o) => o.code === coupon) ? coupon : '', tenders: list, change, due: owed, creditBy, printed: printReceipt, cashier: shift.cashier, salesperson: soldBy || shift.cashier, counter: shift.counter, counterId: shift.counterId, place: warehouse, offline, returned: {}, stockOut, deliveries: [], ...(away.length ? { ship: { address: shipTo } } : {}) };
     // online: the sale is posted now (orders, stock, money, serials). Offline: it waits in the queue.
     if (owed > 0 && !tier) sale.dueAt = dueDateFor(sale.at, dueRules);   // when the customer has to pay (Credit & dues)
     if (owed > 0 && tier) { const tm = termsOf(buyer); const at = dueByTerms(buyer, sale.at); if (at) sale.dueAt = at; if (tm) sale.terms = tm.terms; }   // the buyer's payment terms (Net 7, Net 30 …)
@@ -771,6 +820,8 @@ export default function Pos() {
     setCloseCounts(Object.fromEntries((rep ? rep.byAccount : []).filter((a) => a.account !== 'drawer').map((a) => [acctKey(a), String(a.expected)])));
     setPanel('close');
   };
+  // the shift so far on paper (X-report while it is open), on the receipt roll or A4 (ZReport.jsx)
+  const printReport = (size) => { setZSize(size); window.setTimeout(() => printZ(zRef.current, size, `Shift report · ${shift.counter}`), 0); };
   const openCash = (type) => { setMove({ type: type || 'pickup', amount: '', by: MANAGERS[0], to: CASH_PLACES[0], note: '' }); setPanel('cash'); };
   // Closing: expected vs counted per account. A cash difference above the POS limit, or sales not synced yet,
   // need a manager's PIN; the cash difference posts to the ledger as a shortage or overage.
@@ -835,12 +886,15 @@ export default function Pos() {
     const lower = price < line.price;
     const moreDisc = disc > (line.disc || 0);
     const by = typeof approver === 'string' ? approver : '';
-    // a custom role may change prices freely, only with a manager PIN (the default) or not at all (Users & roles)
-    const lim = posLimitsOf(currentUser());
-    if (lower && lim && lim.priceChange === 'no') { toast('Your role can’t lower a price. Ask a manager.', { tone: 'error' }); return; }
-    if ((lower || moreDisc) && !by && !(lim && lim.priceChange === 'yes' && (!moreDisc || disc <= price * qty * lim.maxDiscount / 100))) {
+    // the role's POS limits: a lower price needs 'Change a price'; a line discount up to the role's % is fine
+    const own = posLimitsOf(currentUser());
+    if (lower && own && own.priceChange === 'no') { toast('Your role can’t lower a price. Ask a manager.', { tone: 'error' }); return; }
+    const discPct = price * qty ? (disc / (price * qty)) * 100 : 0;
+    const okPrice = !lower || lim.price === 'yes';
+    const okDisc = !moreDisc || discPct <= lim.discount + 0.001;
+    if ((lower || moreDisc) && !by && !(okPrice && okDisc)) {
       const what = [lower && `lower the price of ${line.name} from ${money(line.price)} to ${money(price)}`, moreDisc && `give ${money(disc)} discount on ${lower ? 'the line' : line.name}`].filter(Boolean).join(' and ');
-      setPin({ kind: 'edit', reason: `A manager approves this change: ${what}.` });
+      setPin({ kind: 'edit', need: !okPrice ? { perm: 'price' } : { perm: 'discount', pct: Math.ceil(discPct) }, reason: `Approve this change: ${what}.` });
       return;
     }
     if (want > edit.stock) { if (negOk && !line.from) overToast(line.name, edit.stock); else toast(`Only ${edit.kg ? kgText(edit.stock) : edit.stock} of ${line.name} available at ${line.from || warehouse}`, { tone: 'error' }); }
@@ -862,17 +916,19 @@ export default function Pos() {
     else if (asked && asked.kind === 'close') closeShift(null, manager);
     else if (asked && asked.kind === 'nosale') openNoSale(noSaleWhy, manager);
     else if (asked && asked.kind === 'void') resolve(asked.sale, null, 'void', {}, manager);
+    else if (asked && asked.kind === 'disc') setDisc(asked.disc, manager);
+    else if (asked && asked.kind === 'cancel') cancelSale(manager);
   };
 
   // ---- hardware, drawer without a sale ----------------------------------------------------------
   const counterNow = shift ? counterOf(shift.counter) || { id: shift.counterId, name: shift.counter, printer: '' } : null;
-  const isManager = shift && (EMPLOYEES.find((x) => x.name === shift.cashier) || {}).role === 'Branch manager';
+  const isManager = !!shift && lim.drawer === 'yes';   // may open the drawer without a sale on their own
   const onTest = (d) => { const r = testDevice(counterNow.id, d); toast(r.message, { tone: r.ok ? 'success' : 'error' }); if (r.ok && d.kind === 'drawer') setDrawerOpen(Date.now() + 6000); setHwTick((n) => n + 1); };
   const onDeviceState = (d, state) => { setDeviceState(counterNow.id, d.key, state); setHwTick((n) => n + 1); };
   // a cashier without the permission needs a manager's PIN; every open is recorded (POS manage › Cash pickups)
   const openNoSale = (why, manager) => {
     if (!why) return;
-    if (!isManager && !manager) { setNoSaleWhy(why); setPin({ kind: 'nosale', action: 'No-sale drawer open', reason: `Open the drawer without a sale: ${why.reason}${why.note ? ' · ' + why.note : ''}.` }); return; }
+    if (!isManager && !manager) { setNoSaleWhy(why); setPin({ kind: 'nosale', need: { perm: 'drawer' }, action: 'No-sale drawer open', reason: `Open the drawer without a sale: ${why.reason}${why.note ? ' · ' + why.note : ''}.` }); return; }
     const drawer = devices.find((d) => d.kind === 'drawer');
     if (drawer && drawer.state !== 'ok') { toast('The cash drawer is not connected', { tone: 'error' }); return; }
     addDrawerOpen({ counter: shift.counter, cashier: shift.cashier, reason: why.reason, note: why.note, approvedBy: manager || '' });
@@ -909,7 +965,7 @@ export default function Pos() {
   }, [drawerOpen]);
   // `manager` approved a void (its PIN was asked first)
   const resolve = (sale, c, action, extra = {}, manager) => {
-    if (action === 'void' && !manager) { setPin({ kind: 'void', sale, action: 'Void sale', amount: sale.totals.total, reason: `Void offline sale ${sale.id}: give ${money(sale.totals.total)} back to the customer.` }); return; }
+    if (action === 'void' && !manager && lim.void !== 'yes') { setPin({ kind: 'void', need: { perm: 'void' }, sale, action: 'Void sale', amount: sale.totals.total, reason: `Void offline sale ${sale.id}: give ${money(sale.totals.total)} back to the customer.` }); return; }
     const res = resolveConflict(sale.id, c ? c.id : null, action, { ...extra, by: shift.cashier, approvedBy: manager || '' });
     if (res.error) { toast(res.error, { tone: 'error' }); return; }
     setQueue(getQueue()); setSales(load(KEYS.sales, [])); setStockTick((n) => n + 1);
@@ -960,6 +1016,121 @@ export default function Pos() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+
+  // ---- collect an old due at the counter (RT-F3) --------------------------------------------------------------------
+  // The customer's unpaid invoices (lib/invoices.js) are paid oldest first through lib/allocations.js (one allocation =
+  // one money receipt per payment method); cash goes into this drawer, the rest into its account; the shift report
+  // counts it (posStore.addCollection).
+  const COLLECT_METHODS = ['Cash', 'bKash', 'Nagad', 'Card'];
+  const openCollect = () => {
+    if (offline) { toast('Offline: collecting a due needs the connection, to see what the customer owes', { tone: 'error' }); return; }
+    setCol({ q: phoneDigits(customer.phone) ? customer.phone : '', key: '', method: 'Cash', amount: '', ref: '', parts: [], done: null });
+    setPanel('collect');
+  };
+  const owers = () => {
+    const map = {};
+    getInvoices().filter((i) => i.due > 0).forEach((i) => {
+      const k = customerKeyOf(i);
+      const m = map[k] || (map[k] = { key: k, name: (i.customer && i.customer.name) || 'Walk-in customer', phone: (i.customer && i.customer.phone) || '', owed: 0, n: 0 });
+      m.owed = r2(m.owed + i.due); m.n += 1;
+    });
+    return Object.values(map).sort((a, b) => b.owed - a.owed);
+  };
+  const takeDue = () => {
+    const who = owers().find((o) => o.key === col.key);
+    if (!who) return;
+    const pend = num(col.amount);
+    const parts = [...col.parts, ...(pend ? [{ method: col.method, amount: pend, ref: col.ref.trim() }] : [])];
+    const total = r2(parts.reduce((a, x) => a + x.amount, 0));
+    if (!total) { toast('Enter the amount received', { tone: 'error' }); focusId('pos-col-amt'); return; }
+    if (total > who.owed + 0.001) { toast(`${who.name} owes ${money(who.owed)}. Take that much or less.`, { tone: 'error' }); return; }
+    const missingRef = parts.find((x) => (x.method === 'bKash' || x.method === 'Nagad') && !x.ref);
+    if (missingRef) { toast(`Type the ${missingRef.method} transaction ID`, { tone: 'error' }); focusId('pos-col-ref'); return; }
+    const done = [];
+    for (const x of parts) {
+      const open = openInvoicesOf(col.key);
+      const before = r2(open.reduce((a, i) => a + i.due, 0));
+      const lines = splitOldestFirst(open, x.amount).filter((l) => l.amount > 0);
+      const r = allocatePayment({ customer: who.name, method: x.method, amount: x.amount, ref: x.ref, lines, meta: { phone: who.phone, owedBefore: before, owedAfter: r2(before - x.amount), counter: shift.counter, leftOn: Object.fromEntries(lines.map((l) => [l.id, r2(((open.find((i) => i.id === l.id) || {}).due || 0) - l.amount)])) } }, { name: shift.cashier });
+      if (!r.ok) { toast(r.message, { tone: 'error' }); break; }
+      // cash taken at the counter lands in the cash account; it is in this drawer, so it moves there
+      if (x.method === 'Cash') transferBetween('cash-shop', 'drawer', x.amount, { ref: r.allocation.id, by: shift.cashier, party: who.name, note: `Due collected at ${shift.counter}`, kind: 'cash in' });
+      addCollection({ id: r.allocation.id, at: r.allocation.at, counter: shift.counter, cashier: shift.cashier, shiftAt: shift.openedAt, customer: who.name, phone: who.phone, method: x.method, amount: x.amount, account: x.method === 'Cash' ? 'drawer' : accountBy(x.method === 'Card' ? 'card' : x.method.toLowerCase()) ? (x.method === 'Card' ? 'card' : x.method.toLowerCase()) : '', invoices: lines });
+      logAudit({ action: 'Due collected', detail: `${x.method} ${money(x.amount)} from ${who.name} on ${lines.map((l) => l.id).join(', ')}`, by: shift.cashier, approvedBy: '', ok: true, ref: r.allocation.id, amount: x.amount, counter: shift.counter, place: warehouse });
+      done.push(r.allocation);
+    }
+    if (!done.length) return;
+    if (done.some((a) => a.method === 'Cash')) setDrawerOpen(Date.now() + 6000);
+    setSales(load(KEYS.sales, []));
+    setCol({ ...col, parts: [], amount: '', ref: '', done });
+    toast(`${money(done.reduce((a, d) => a + d.amount, 0))} collected from ${who.name}`);
+  };
+  const collectBody = () => {
+    if (col.done) return (
+      <div className="pos-form">
+        {col.done.map((a) => <ReceiptView key={a.id} alloc={a} />)}
+        <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--solid" onClick={() => { setPanel(''); setCol(null); }}>Done</button></div>
+      </div>
+    );
+    const q = col.q.trim().toLowerCase(), qd = phoneDigits(col.q);
+    const list = owers();
+    const who = list.find((o) => o.key === col.key);
+    if (!who) {
+      const hits = list.filter((o) => !q || (qd.length >= 3 && phoneDigits(o.phone).includes(qd)) || o.name.toLowerCase().includes(q)).slice(0, 8);
+      return (
+        <div className="pos-form">
+          <div><label className="gc-label" htmlFor="pos-col-q">Customer</label><input id="pos-col-q" className="gc-input" placeholder="Mobile number or name" data-autofocus value={col.q} onChange={(e) => setCol({ ...col, q: e.target.value })} /></div>
+          {hits.length ? (
+            <ul className="pos-list pos-list--pick" aria-label="Customers who owe">
+              {hits.map((o) => <li key={o.key}><div><b>{o.name}</b><span className="pos-muted">{o.phone || 'No phone'} · {o.n} unpaid invoice{o.n === 1 ? '' : 's'}</span></div><span className="pos-line__amt">{money(o.owed)}</span><button type="button" className="pos-softbtn" onClick={() => setCol({ ...col, key: o.key, amount: String(o.owed) })} aria-label={`Collect from ${o.name}`}>Choose</button></li>)}
+            </ul>
+          ) : <p className="pos-empty"><Icon name="hand-coins" width="28" height="28" aria-hidden="true" />{q ? 'Nobody with that number or name owes the shop.' : 'No customer owes the shop.'}</p>}
+        </div>
+      );
+    }
+    const invs = openInvoicesOf(col.key);
+    const taken = r2(col.parts.reduce((a, x) => a + x.amount, 0));
+    const left = r2(Math.max(0, who.owed - taken));
+    const pend = num(col.amount);
+    const addPart = () => {
+      if (!pend) return;
+      if (pend > left + 0.001) { toast(`Only ${money(left)} is left to collect`, { tone: 'error' }); return; }
+      if ((col.method === 'bKash' || col.method === 'Nagad') && !col.ref.trim()) { toast(`Type the ${col.method} transaction ID`, { tone: 'error' }); focusId('pos-col-ref'); return; }
+      setCol({ ...col, parts: [...col.parts, { method: col.method, amount: pend, ref: col.ref.trim() }], amount: String(r2(left - pend) || ''), ref: '' });
+    };
+    return (
+      <div className="pos-form">
+        <div className="pos-member" role="status">
+          <div className="pos-member__head">
+            <span className="pos-sel__ico pos-sel__ico--sky" aria-hidden="true">{who.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}</span>
+            <span><b>{who.name} owes {money(who.owed)}</b><small>{who.phone || 'No phone'} · <button type="button" className="pos-link" onClick={() => setCol({ ...col, key: '', parts: [] })}>Change customer</button></small></span>
+          </div>
+        </div>
+        <ul className="pos-paid" aria-label="Unpaid invoices, oldest first">
+          {invs.map((i) => <li key={i.id}><span>{i.id} · {formatDate(i.at)}</span><span>{money(i.due)}</span></li>)}
+        </ul>
+        <span className="pos-cap">Payment · paid on the oldest invoice first</span>
+        <div className="pos-tenders pos-tenders--3" role="group" aria-label="Payment method">
+          {COLLECT_METHODS.map((m) => { const t0 = TENDERS.find((x) => x.id === m) || {}; return <button key={m} type="button" className={'pos-tender' + (col.method === m ? ' is-on' : '')} aria-pressed={col.method === m} onClick={() => setCol({ ...col, method: m, ref: '' })}>{t0.logo ? <PaymentLogo provider={t0.logo} size={24} radius={6} decorative /> : <Icon name={t0.icon || 'banknote'} width="18" height="18" aria-hidden="true" />}<span>{m}</span></button>; })}
+        </div>
+        <div className="pos-two">
+          <div><label className="gc-label" htmlFor="pos-col-amt">Amount (৳)</label><input id="pos-col-amt" className="gc-input pos-bignum" type="number" min="0" step="0.01" inputMode="decimal" value={col.amount} onChange={(e) => setCol({ ...col, amount: e.target.value })} /></div>
+          {col.method !== 'Cash' ? <div><label className="gc-label" htmlFor="pos-col-ref">{col.method === 'Card' ? 'Card slip number (optional)' : 'Transaction ID'}</label><input id="pos-col-ref" className="gc-input pos-bignum" value={col.ref} onChange={(e) => setCol({ ...col, ref: e.target.value })} /></div> : null}
+        </div>
+        {col.parts.length ? (
+          <ul className="pos-tenderlist">
+            {col.parts.map((x, i) => <li key={i}><span><b>{x.method}</b><small>{x.ref || 'Part payment'}</small></span><span className="pos-line__amt">{money(x.amount)}</span><button type="button" className="pos-line__x" aria-label={`Remove ${x.method} ${money(x.amount)}`} onClick={() => setCol({ ...col, parts: col.parts.filter((_, j) => j !== i) })}><Icon name="x" width="16" height="16" /></button></li>)}
+          </ul>
+        ) : null}
+        <div className="pos-paysum"><span>Taking now</span><b>{money(taken + pend)}</b><span>Still owed after this</span><b>{money(Math.max(0, who.owed - taken - pend))}</b></div>
+        <div className="gc-modal__foot" style={{ marginTop: 0 }}>
+          {pend && pend < left ? <button type="button" className="gc-btn gc-btn--neutral" style={{ marginRight: 'auto' }} onClick={addPart}>Add as part payment</button> : null}
+          <button type="button" className="gc-btn gc-btn--neutral" onClick={() => { setPanel(''); setCol(null); }}>Cancel</button>
+          <button type="button" className="gc-btn gc-btn--solid gc-btn--lg" disabled={!(taken + pend)} onClick={takeDue}>Take {money(taken + pend)}</button>
+        </div>
+      </div>
+    );
+  };
 
   if (!ready) return <div className="dc-screen ds"><style dangerouslySetInnerHTML={{ __html: POS_CSS }} /><div className="pos" /></div>;
 
@@ -1132,6 +1303,7 @@ export default function Pos() {
             <div className="pos-top__right">
               <button type="button" className="pos-topbtn" title="Held sales (F7)" onClick={() => setPanel('held')}><Icon name="pause" width="16" height="16" aria-hidden="true" /><span>Held sales</span>{held.length ? <b className="pos-count">{held.length}</b> : null}</button>
               <button type="button" className="pos-topbtn" title="Recent sales (F8)" onClick={() => setPanel('recent')}><Icon name="receipt-text" width="16" height="16" aria-hidden="true" /><span>Recent sales</span></button>
+              <button type="button" className="pos-topbtn" title="Collect a customer's old due" onClick={openCollect}><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /><span>Collect due</span></button>
               <button type="button" className="pos-topbtn" title="Exchange or return: opens Return & exchange (Alt E)" onClick={() => openReturns()}><Icon name="rotate-ccw" width="16" height="16" aria-hidden="true" /><span>Exchange / return</span></button>
               <button type="button" className="pos-topbtn" title="Cash drawer: pickup, cash in, paid out (F10)" onClick={() => openCash()}><Icon name="banknote" width="16" height="16" aria-hidden="true" /><span>Cash pickup</span>{overLimit ? <i className="pos-dot" aria-label="Drawer is over the pickup limit" role="img" /> : null}</button>
               <span className="pos-vr" />
@@ -1306,13 +1478,19 @@ export default function Pos() {
                     {m.logo ? <PaymentLogo provider={m.logo} size={24} radius={6} decorative /> : <Icon name={m.icon} width="18" height="18" aria-hidden="true" />}<span>{m.id}</span><kbd>{m.key}</kbd>
                   </button>
                 ))}
-                <button type="button" className={'pos-tender pos-tender--dashed' + (tender.method === CREDIT ? ' is-on' : '')} aria-pressed={tender.method === CREDIT} disabled={(requireFull && !tier) || (offline && !tier) || (!tier && !dueRules.allowRetailDue)} onClick={() => pickTender(CREDIT)}><Icon name={tier ? 'file-text' : 'clock'} width="18" height="18" aria-hidden="true" /><span>{tier ? 'Unpaid' : 'Due'}</span><kbd>Alt 6</kbd></button>
+                <button type="button" className={'pos-tender pos-tender--dashed' + (tender.method === CREDIT ? ' is-on' : '') + ((offline && !tier) || (!tier && !dueRules.allowRetailDue) ? ' is-off' : '')} aria-pressed={tender.method === CREDIT} onClick={() => pickTender(CREDIT)}><Icon name={tier ? 'file-text' : 'clock'} width="18" height="18" aria-hidden="true" /><span>{tier ? 'Unpaid' : 'Due'}</span><kbd>Alt 6</kbd></button>
                 {member && loy.on.wallet ? (
                   <button type="button" className={'pos-tender' + (tender.method === WALLET ? ' is-on' : '')} aria-pressed={tender.method === WALLET} disabled={!walletLeft || offline} onClick={() => pickTender(WALLET)} aria-label={`Customer wallet, ${money(walletLeft)} free`}>
                     <Icon name="wallet" width="18" height="18" aria-hidden="true" /><span>Wallet · {money(walletLeft)}</span><kbd>Alt 7</kbd>
                   </button>
                 ) : null}
               </div>
+              {dueWhy ? (
+                <div className="pos-warnbox" role="status">
+                  <Icon name="info" width="18" height="18" aria-hidden="true" />
+                  <span><b>Due can’t be used now</b>{dueWhy} {!offline ? <Link href="/customer-settings#credit" className="pos-link">Credit & dues settings</Link> : null}</span>
+                </div>
+              ) : tender.method === CREDIT && !tier && lim.due !== 'yes' ? <p className="pos-hint">Someone who may sell on due approves this sale with their PIN.</p> : null}
               {/* which account or card terminal receives the money: asked only when there is more than one */}
               {acctOptions.length > 1 ? (
                 <div className="pos-acct" role="group" aria-label={tender.method === 'Card' ? 'Card terminal' : 'Received in'}>
@@ -1398,16 +1576,24 @@ export default function Pos() {
               <SaleInvoice doc={invoiceFromSale(receipt)} innerRef={invoiceRef} />
               <div className={'pos-printslot' + (printAnim.on ? ' is-printing' : '')} key={printAnim.key}>
               {printAnim.on ? <span className="pos-printing" role="status"><Icon name="printer" width="14" height="14" aria-hidden="true" />Printing…</span> : null}
-              <div className="pos-receipt" aria-label="Receipt">
-                <b className="pos-receipt__shop">Dazzle Shop</b>
+              <div className={'pos-receipt pos-receipt--' + docs.receiptWidth} aria-label="Receipt">
+                {/* the shop as set in Settings › General; width, BIN and warranty lines from Settings › Invoices & receipts */}
+                {(() => { const idn = invoiceIdentity(); return <>
+                  <b className="pos-receipt__shop">{idn.tradingName || idn.name}</b>
+                  {idn.address ? <span>{idn.address}</span> : null}
+                  {idn.phone ? <span>{idn.phone}</span> : null}
+                  {docs.showBin && idn.bin ? <span>BIN {idn.bin}</span> : null}
+                </>; })()}
+                <hr />
                 <span>{receipt.counter} · {receipt.cashier}{receipt.salesperson && receipt.salesperson !== receipt.cashier ? ` · sold by ${receipt.salesperson}` : ''}</span>
-                <span>{receipt.id} · {clock(receipt.at)}</span>
+                <span>{receipt.invoice ? docNumber(receipt.id, docs) : receipt.id} · {clock(receipt.at)}</span>
                 <span>{receipt.customer.name || 'Walk-in customer'}{receipt.member ? ` · ${receipt.member.tier} member` : ''}</span>
                 <hr />
                 {receipt.lines.map((l) => <React.Fragment key={l.id}>
                   <div><span>{l.unit === 'kg' ? `${kgText(l.qty)} × ${money(l.price)}/kg ` : `${l.qty} × `}{l.name}</span><span>{l.gift ? 'Free' : money(l.price * l.qty - (l.disc || 0))}</span></div>
                   {l.gift ? <span className="pos-receipt__sn">Free gift · {l.offer}</span> : null}
                   {(l.serials || []).map((sn) => <span key={sn} className="pos-receipt__sn">{/^\d{15}$/.test(sn) ? 'IMEI' : 'SN'} {sn}</span>)}
+                  {docs.showWarranty && (l.serials || []).length ? (() => { const w = coverOf(productOfLine(l), receipt.at); return w ? <span className="pos-receipt__sn">Warranty: {w.label} · until {formatDate(w.until)}</span> : null; })() : null}
                   {l.from ? <span className="pos-receipt__sn">Ships from {l.from}</span> : null}
                 </React.Fragment>)}
                 <hr />
@@ -1424,7 +1610,7 @@ export default function Pos() {
                 {receipt.change ? <div><span>Change</span><span>{money(receipt.change)}</span></div> : null}
                 {receipt.member ? <div><span>Points earned</span><span>{receipt.earned}</span></div> : null}
                 <hr />
-                <span className="pos-receipt__foot">{cfg.footer} Exchange within {cfg.returnDays} days with this receipt.</span>
+                <span className="pos-receipt__foot">{docs.receiptFooter || cfg.footer} Exchange within {cfg.returnDays} days with this receipt.</span>
               </div>
               </div>
             </div>
@@ -1588,7 +1774,7 @@ export default function Pos() {
             <div className="pos-paycol">
               <span className="pos-cap">{counterId} · {shift.counter} · since {clock(shift.openedAt)}</span>
               <ul className="pos-paid">
-                <li><span>Sales</span><span>{rep.count} · {rep.units} units</span></li>
+                <li><span>Sales</span><span>{rep.count} · {rep.units} {rep.units === 1 ? 'unit' : 'units'}</span></li>
                 <li><span>Sold, VAT included</span><span>{money(rep.sold)}</span></li>
                 <li><span>Discounts given</span><span>−{money(rep.discounts)}</span></li>
                 <li><span>Refunds and exchanges</span><span>−{money(rep.refunds)}</span></li>
@@ -1636,7 +1822,10 @@ export default function Pos() {
             <div><label className="gc-label" htmlFor="pos-closenote">Note for the manager</label><input id="pos-closenote" className="gc-input pos-bignum" placeholder="Optional" value={closeNote} onChange={(e) => setCloseNote(e.target.value)} /></div>
           </div>
           {counted !== '' ? <p className={'pos-diff' + (r2(num(counted) - expected) === 0 ? ' is-ok' : '')} role="status">{r2(num(counted) - expected) === 0 ? 'The drawer matches.' : `${num(counted) > expected ? 'Over' : 'Short'} by ${money(Math.abs(num(counted) - expected))}. ${Math.abs(num(counted) - expected) > cfg.varianceLimit ? `Above the ${formatBDT(cfg.varianceLimit)} limit: a manager approves.` : 'It is recorded with the shift.'}`}</p> : null}
-          <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--flat" style={{ marginRight: 'auto' }} onClick={() => toast('Shift report sent to the printer')}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print report</button><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setPanel('')}>Keep open</button><button type="submit" className="gc-btn gc-btn--solid gc-btn--lg" disabled={counted === ''}>End shift</button></div>
+          <div className="gc-modal__foot" style={{ marginTop: 0 }}><span style={{ marginRight: 'auto', display: 'inline-flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <button type="button" className="gc-btn gc-btn--flat" onClick={() => printReport('80')}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print 80 mm</button>
+            <button type="button" className="gc-btn gc-btn--flat" onClick={() => printReport('a4')}>Print A4</button>
+          </span><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setPanel('')}>Keep open</button><button type="submit" className="gc-btn gc-btn--solid gc-btn--lg" disabled={counted === ''}>End shift</button></div>
         </form>
       </Dialog>
 
@@ -1648,8 +1837,16 @@ export default function Pos() {
       <NoSaleSheet open={panel === 'nosale' && !pin} allowed={isManager} onDone={(why) => openNoSale(why)} onClose={() => setPanel('')} />
       <SyncSheet open={panel === 'sync' && !pin} result={syncResult} review={reviewList} offline={offline} onResolve={resolve} onSync={runSync} onClose={() => setPanel('')} />
 
-      {/* manager approval: credit limit, lower price or line discount, drawer difference, no-sale open, void */}
-      <ManagerPin open={!!pin} reason={pin ? pin.reason : ''} action={pin ? pin.action : undefined} amount={pin ? pin.amount : undefined} refId={pin && pin.sale ? pin.sale.id : undefined} onApprove={approve} onClose={() => setPin(null)} />
+      {/* the shift report paper, printed from End shift */}
+      <ZReport shift={{ ...shift, id: 'Open', closedAt: null }} report={rep} size={zSize} innerRef={zRef} />
+
+      {/* collect an old due: find the customer, see what they owe, take the money, print the money receipt */}
+      <Dialog open={panel === 'collect' && !!col && !pin} title={col && col.done ? 'Due collected' : 'Collect due'} onClose={() => { setPanel(''); setCol(null); }} width={640}>
+        {col ? collectBody() : null}
+      </Dialog>
+
+      {/* approval: credit limit or due, price or discount over the role's limit, drawer difference, no-sale open, void */}
+      <ManagerPin open={!!pin} reason={pin ? pin.reason : ''} action={pin ? pin.action : undefined} amount={pin ? pin.amount : undefined} refId={pin && pin.sale ? pin.sale.id : undefined} need={pin ? pin.need : undefined} by={shift.cashier} onApprove={approve} onClose={() => setPin(null)} />
     </div>
   );
 }

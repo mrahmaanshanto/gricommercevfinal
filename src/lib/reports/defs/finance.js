@@ -37,7 +37,7 @@ const expensesByCategory = {
   filters: ['account'],
   defaultPeriod: 'lastmonth',
   compute({ from, to, filters }) {
-    const out = getEntries().filter((e) => EXPENSE_KINDS.includes(e.kind) && e.amount < 0 && e.at >= from && e.at < to && (!filters.account || e.account === filters.account));
+    const out = getEntries().filter((e) => EXPENSE_KINDS.includes(e.kind) && (e.amount < 0 || e.reverses) && e.at >= from && e.at < to && (!filters.account || e.account === filters.account));
     const labelOf = (e) => e.cat || (e.kind === 'paid out' ? 'Paid out at counters' : e.kind === 'salary' ? 'Salary' : 'Other');
     const total = sum(out, (e) => -e.amount);
     const groups = [...groupBy(out, labelOf)].map(([cat, list]) => ({ cat, amount: sum(list, (e) => -e.amount), count: list.length, home: homeOf(cat) }))
@@ -522,7 +522,7 @@ const expensesByChannel = {
   compute({ from, to, filters }) {
     const f = filters || {};
     const liabs = safe(() => getLiabilities(), []);
-    const out = getEntries().filter((e) => EXPENSE_KINDS.includes(e.kind) && e.amount < 0 && e.at >= from && e.at < to && (!f.account || e.account === f.account));
+    const out = getEntries().filter((e) => EXPENSE_KINDS.includes(e.kind) && (e.amount < 0 || e.reverses) && e.at >= from && e.at < to && (!f.account || e.account === f.account));
     const labelOf = (e) => e.cat || (e.kind === 'paid out' ? 'Paid out at counters' : e.kind === 'salary' ? 'Salary' : 'Other');
     // a payment of a liability counts under the channel its line was owed for (as Sales & profit does)
     const homeOfEntry = (e) => {

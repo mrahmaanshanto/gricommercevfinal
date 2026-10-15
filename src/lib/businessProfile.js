@@ -2,7 +2,7 @@
 // General (Nayeem's brief #16). Invoices, receipts and report letterheads read it (instead of the fixed demo values in
 // merchant.js) once they are wired; GridCommerce's own bills use the billing profile.
 //
-//   businessProfile() → { brand: { name, color, accent, logo }, legal: { name, type, licence, bin, tin, address, country },
+//   businessProfile() → { brand: { name, color, accent, logo, logoOnDark }, legal: { name, type, licence, bin, tin, address, country },
 //                         contact: { phone, email, address, hours }, billing: { name, address, taxId, email },
 //                         defaults: { currency, country, timezone } }
 //   invoiceIdentity() → the block printed on an invoice or receipt: { name, tradingName, address, phone, email, bin, tin, licence }
@@ -39,11 +39,15 @@ const DEFAULTS = {
   currency: 'Bangladeshi Taka — ৳ (BDT)', default_country: 'Bangladesh', timezone: '(UTC+06:00) Asia/Dhaka',
 };
 
+const DEMO_LOGO = '/assets/brand/dazzle-logo.svg';
+const DEMO_LOGO_WHITE = '/assets/brand/dazzle-logo-white.svg';
+
 export function businessProfile() {
   const v = { ...DEFAULTS, ...readSettings('general').values };
   const media = readSettings('media').values;
   return {
-    brand: { name: v.store_name, color: v.brand_color, accent: v.brand_accent, logo: media.asset_light || '' },
+    // the shop's logo (Settings › Brand assets), else Dazzle Shop's own wordmark; `logoOnDark` for dark rows and footers
+    brand: { name: v.store_name, color: v.brand_color, accent: v.brand_accent, logo: media.asset_light || DEMO_LOGO, logoOnDark: media.asset_dark || (media.asset_light ? media.asset_light : DEMO_LOGO_WHITE) },
     legal: { name: v.legal_name, type: v.business_type, licence: v.trade_licence, bin: v.bin, tin: v.tin, address: v.registered_address, country: v.default_country },
     contact: { phone: v.support_phone, email: v.support_email, address: v.store_address, hours: v.working_hours_text },
     billing: { name: v.billing_name, address: v.billing_address, taxId: v.billing_tax_id, email: v.billing_email },

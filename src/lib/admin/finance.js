@@ -498,7 +498,8 @@ export function paymentSplit(db, p, invMap) {
   const pos = inv ? inv.lines.filter((l) => l.amount > 0) : [];
   const sum = pos.reduce((s, l) => s + l.amount, 0);
   if (!sum) { out.subs = p.amount; return out; }
-  for (const l of pos) out[sourceOfLine(l)] += (p.amount * l.amount) / sum;
+  // the VAT line's share is owed to the NBR, not revenue (subscription bills carry VAT since SA-F14)
+  for (const l of pos) if (l.kind !== 'vat') out[sourceOfLine(l)] += (p.amount * l.amount) / sum;
   return out;
 }
 const invMapOf = (db) => new Map(db.invoices.map((i) => [i.id, i]));

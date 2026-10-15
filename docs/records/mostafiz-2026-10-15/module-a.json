@@ -1,0 +1,85 @@
+{
+  "part": "Module A · Storefront builder",
+  "entries": [
+    {
+      "id": "A1", "kind": "feature", "module": "A · Storefront builder",
+      "title": "Theme settings with live preview",
+      "need": "The shop's website looked the same for everyone; colours were written into each page and nothing could be changed.",
+      "now": "About sixty options in nine groups change colours, fonts, cards, product and category pages, cart, footer and extras, with a live preview, draft and publish.",
+      "where": "Online Store › Theme › Customize (/theme-editor)",
+      "try": ["Open Online Store › Theme and press Customize", "Type WhatsApp in the search box and change the chat button", "Open Brand & colours, change the primary colour and watch the preview on Phone", "Press Publish, then open the store: the new colour shows; Undo in the message puts it back"],
+      "files": ["src/lib/storefront/theme.js", "src/lib/storefront/store.js", "src/lib/storefront/access.js", "src/screens/online-store/ThemeEditor.jsx", "src/screens/online-store/Theme.jsx", "src/screens/online-store/sfShared.jsx", "src/screens/storefront/storeChrome.jsx", "src/screens/storefront/storeKit.jsx"],
+      "status": "done", "left": ""
+    },
+    {
+      "id": "A2", "kind": "feature", "module": "A · Storefront builder",
+      "title": "Header builder for computer and phone",
+      "need": "The store header was fixed: no way to place the search, categories, hotline or cart, or to make a phone header.",
+      "now": "Several saved headers, each with three rows and three areas for computer and phone, sixteen elements, sticky rows, a phone drawer and bottom bar.",
+      "where": "Online Store › Header builder (/header-builder)",
+      "try": ["Open Online Store › Header builder", "Press Add in the main row's right area and pick Hotline", "Switch to Phone, turn the bottom bar on and tick Search", "Press Publish header and open the store on a phone-sized window"],
+      "files": ["src/lib/storefront/headers.js", "src/screens/online-store/HeaderBuilder.jsx", "src/screens/storefront/storeHeader.jsx"],
+      "status": "done", "left": ""
+    },
+    {
+      "id": "A3", "kind": "feature", "module": "A · Storefront builder",
+      "title": "Reusable HTML blocks",
+      "need": "The same delivery note or banner had to be retyped on every page, and nothing could go into the footer or menus.",
+      "now": "Blocks made with the page editor are placed in headers, layouts, mega menus, the footer and the product tab; the list shows where each is used.",
+      "where": "Online Store › HTML blocks (/html-blocks, /html-block-edit)",
+      "try": ["Open Online Store › HTML blocks", "Open Phone deals and change its text, then Save", "Open the store and hover Phones: the mega menu shows the new text", "Back in the list, delete a used block: it warns where it is used first"],
+      "files": ["src/lib/storefront/blocks.js", "src/screens/online-store/HtmlBlocks.jsx", "src/screens/online-store/HtmlBlockEdit.jsx"],
+      "status": "done", "left": ""
+    },
+    {
+      "id": "A4", "kind": "feature", "module": "A · Storefront builder",
+      "title": "Page layouts built from sections",
+      "need": "Home, product and category pages had one fixed design; the shop could not add a flash sale, brands or reviews to its home page.",
+      "now": "Layouts for seven page kinds are built from fifteen sections, for all pages or one category, product or page, with draft, preview, publish and undo.",
+      "where": "Online Store › Layouts (/layouts, /layout-edit)",
+      "try": ["Open Online Store › Layouts and open Home", "Add a Video section (paste a YouTube link in its settings) and a FAQ (it starts with two questions), move the countdown up and hide the blog", "Watch the preview on Computer and Phone", "Press Publish and open the store's home page"],
+      "files": ["src/lib/storefront/layouts.js", "src/lib/storefront/catalog.js", "src/screens/online-store/Layouts.jsx", "src/screens/online-store/LayoutEdit.jsx", "src/screens/storefront/sections.jsx", "src/screens/storefront/StoreHome.jsx", "src/screens/storefront/StoreProduct.jsx", "src/screens/storefront/StoreCategory.jsx", "src/screens/storefront/StorePage.jsx", "src/screens/storefront/StoreCart.jsx", "src/screens/storefront/StoreSearch.jsx"],
+      "status": "done", "left": ""
+    },
+    {
+      "id": "A5", "kind": "feature", "module": "A · Storefront builder",
+      "title": "Mega menu in Menus",
+      "need": "A header item could only open a short drop-down list, so big catalogues were hard to browse.",
+      "now": "Any top header item can open a mega menu of two to five columns with categories, links, a picture or a block; phones get a plain list.",
+      "where": "Online Store › Menus (/store-menus), edit a Main menu item",
+      "try": ["Open Online Store › Menus and edit Accessories", "Turn on Open a mega menu, add a Category list for Audio and an image banner", "Watch the preview in the panel (it starts with the item's own category), press Done and Save menu", "Hover Accessories on the store; on a phone open ☰ and see a normal list"],
+      "files": ["src/lib/storeMenus.js", "src/screens/online-store/StoreMenus.jsx", "src/screens/storefront/storeHeader.jsx"],
+      "status": "done", "left": ""
+    },
+    {
+      "id": "A6", "kind": "feature", "module": "A · Storefront builder",
+      "title": "One-click demo import with undo",
+      "need": "Starting a good-looking store meant setting everything by hand; there were no ready demos to begin from.",
+      "now": "Signal, Nokshi and Counter can be previewed with the shop's own products and imported part by part; a restore point undoes it in one click.",
+      "where": "Online Store › Theme (/theme) · Presets and Restore points",
+      "try": ["Open Online Store › Theme and press Preview on Nokshi, switch to Phone", "Press Import, tick Menus too and read What will be replaced", "Import, then open the store: the fashion look shows", "Back on Theme, press Go back on Before importing Nokshi"],
+      "files": ["src/lib/storefront/presets.js", "src/lib/storefront/store.js", "src/screens/online-store/Theme.jsx"],
+      "status": "done", "left": ""
+    },
+    {
+      "id": "A-X1", "kind": "feature", "module": "A · Storefront builder",
+      "title": "Customer pages drawn by the theme",
+      "need": "The store had no home page, cart page or search, and offers and checkout pages had their own fixed header.",
+      "now": "A store home, cart, search and page-not-found page join product, category, page, offers, checkout and the order-link page, all with the theme's header, footer and colours.",
+      "where": "Customer pages: /store, /cart, /search?q=, /product, /category, /page, /offers, /checkout",
+      "try": ["Open /store and add a phone to the cart from a card", "The side cart opens with the free delivery bar; press Checkout", "The checkout shows the same items", "Search for charger from the header"],
+      "files": ["src/screens/storefront/storeChrome.jsx", "src/screens/storefront/storeHeader.jsx", "src/screens/storefront/storeKit.jsx", "src/lib/storefront/cart.js", "src/screens/storefront/Offers.jsx", "src/screens/storefront/OfferDetail.jsx", "src/screens/storefront/Checkout.jsx", "src/app/(storefront)/store/page.jsx", "src/app/(storefront)/cart/page.jsx", "src/app/(storefront)/search/page.jsx", "src/screens/storefront/OrderLink.jsx", "src/runtime/routes.js"],
+      "status": "done", "left": "Customer accounts, wishlist and compare are not built yet; those buttons say so."
+    },
+    {
+      "id": "A-X2", "kind": "feature", "module": "A · Storefront builder",
+      "title": "Super admin editing switches now work",
+      "need": "Super admin's merchant-editing switches were marked Planned and changed nothing for stores.",
+      "now": "Switches lock the matching parts of the merchant's builder with the reason, and presets follow each theme's packages.",
+      "where": "Super admin › Storefront themes › a theme (/admin/themes/view?id=signal)",
+      "try": ["In the super admin open the Signal theme", "Switch off Colours and fonts and read what it hides", "In the merchant panel open Theme › Customize › Brand & colours: the options show as locked", "Back in the super admin, see the Merchant preset card with its packages"],
+      "files": ["src/lib/admin/themes.js", "src/screens/admin/themes/themeShared.jsx", "src/screens/admin/themes/ThemeView.jsx", "src/screens/admin/themes/ThemeLibrary.jsx", "src/lib/storefront/access.js"],
+      "status": "done", "left": "Locks apply to the theme assigned to Dazzle Shop; a store with no theme follows the default switches."
+    }
+  ]
+}

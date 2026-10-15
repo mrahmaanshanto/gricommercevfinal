@@ -1,0 +1,40 @@
+{
+ "id": "ON-F8",
+ "kind": "new",
+ "section": "Online selling",
+ "area": "Online selling",
+ "title": "Online return requests with pickup",
+ "problem": "Online returns were done like counter returns, with no pickup, checking or replacement shipment.",
+ "now": "A return is asked, approved, picked up, checked, then refunded or the same items are sent again as a new order.",
+ "steps": [
+  "Open a delivered order and press Return",
+  "Open Orders › Return requests",
+  "Approve, book the pickup, mark received",
+  "Refund or Send again"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/returnRequests.js",
+  "src/screens/merchant-orders/ReturnRequests.jsx",
+  "src/screens/order-detail/OrderDetail.jsx",
+  "src/screens/storefront/TrackOrder.jsx",
+  "src/screens/sales/ReturnExchange.jsx"
+ ],
+ "notes": "Where: Orders › Return requests (/return-requests); order page › Return; customer page /track",
+ "shots": [
+  {
+   "route": "/return-requests",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Return requests",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

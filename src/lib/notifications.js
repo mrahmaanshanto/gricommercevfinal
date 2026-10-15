@@ -25,6 +25,7 @@
 import { MERCHANT } from './merchant';
 import { formatBDT } from './format';
 import { checkSend, send as sendMessage, deliveryLog, retry as retryMessage } from './messaging';
+import { trackingLink } from './orderStatus';
 
 const SETTINGS_KEY = 'gc.notify.settings';
 const LOG_KEY = 'gc.notify.log';
@@ -41,6 +42,8 @@ export const VARIABLES = [
   ['tracking_url', 'Tracking link', 'https://dazzleshop.com.bd/track/PT-4480127'], ['payment_link', 'Payment link', 'https://dazzleshop.com.bd/pay/136829'],
   ['cancel_reason', 'Why it was cancelled', 'Customer asked to cancel'], ['reject_reason', 'Why the payment was rejected', 'The transaction ID did not match'],
   ['quote_link', 'Quotation link', 'https://dazzleshop.com.bd/quote/Q-1042'], ['store_name', 'Shop name', MERCHANT.name], ['support_phone', 'Support phone', MERCHANT.phone],
+  // digital orders (ON-F14): the licence key(s) given and the download link
+  ['licence_key', 'Licence key', 'GRID-AV1Y-8PL5-ZC3V-11KM'], ['download_link', 'Download link', 'https://dazzleshop.com.bd/download/D7K2Q9'],
 ];
 
 // group · key · label · when it fires · customer on · merchant on · SMS · email text
@@ -108,12 +111,93 @@ export const EVENTS = [
   E('Changes', 'quote-sent', 'Quotation sent', 'A quotation is sent', true, false,
     '{{store_name}}: Your quotation is ready: {{quote_link}}',
     'Your quotation from {{store_name}}', 'Hi {{customer_name}},\n\nYour quotation is ready:\n{{quote_link}}\n\n{{store_name}}', 'Optional'),
+  // digital orders (ON-F14): the key or download link goes out instead of a parcel
+  E('Delivery', 'digital-sent', 'Download or key sent', 'Digital order sent', true, false,
+    '{{store_name}}: Order {{order_id}}. {{licence_key}} {{download_link}}',
+    'Your order {{order_id}} is ready', 'Hi {{customer_name}},\n\nYour order {{order_id}} is ready.\n{{licence_key}}\n{{download_link}}\n\n{{store_name}}'),
 ];
 export const eventBy = (key) => EVENTS.find((e) => e.key === key) || null;
+
+// ---- messages beyond orders (review CX-F3) -----------------------------------------------------------------------
+// Refunds and returns, store credit and loyalty, invoices and dues, support tickets, warranty and service, the account.
+// They sit in the same matrix (SMS · WhatsApp · email · to the customer · to the shop) with the same templates as the
+// order events, and go out with notifyCustomer() (end of this file) through the shared send layer. Extra fields:
+//   scope 'customer' (not an order) · mod  the module the event belongs to (Settings shows it only in editions with it)
+//   vars  its own {{placeholders}} (CUSTOMER_VARIABLES) · source  the area in the delivery log
+//   sender  what sends it today ('' = nothing yet: the setting is kept for when that part is built)
+//   owner 'loyalty'  Loyalty sends it with its own templates and on / off (Loyalty › Messages, lib/loyalty.js)
+const C = (group, key, label, when, cust, merch, sms, subject, body, more = {}) => ({ ...E(group, key, label, when, cust, merch, sms, subject, body, more.note), scope: 'customer', cls: 'Service', source: 'Notifications', mod: 'core', vars: [], sender: '', owner: '', ...more });
+export const CUSTOMER_EVENTS = [
+  C('Refunds & returns', 'refund-sent', 'Refund sent', 'A refund is sent', true, false,
+    '{{store_name}}: Refund of {{refund_amount}} sent to your {{refund_method}}. Ref {{ref_id}}.',
+    'Refund sent', 'Hi {{customer_name}},\n\nWe sent your refund of {{refund_amount}} to your {{refund_method}}.\nRef: {{ref_id}}\n\n{{store_name}}', { vars: ['refund_amount', 'refund_method', 'ref_id'], source: 'Orders', sender: 'Refunds (sent step)' }),
+  C('Refunds & returns', 'return-received', 'Return received', 'Returned items checked in', true, false,
+    '{{store_name}}: We got your return {{ref_id}}. We\'ll update you soon.',
+    'Return {{ref_id}} received', 'Hi {{customer_name}},\n\nWe got your return {{ref_id}} and are checking it.\n\n{{store_name}}', { vars: ['ref_id'], source: 'Orders', sender: 'Return & exchange · Return requests' }),
+  C('Store credit & loyalty', 'credit-added', 'Store credit added', 'Credit added to their account', true, false,
+    '{{store_name}}: {{credit_amount}} store credit added. Balance {{credit_balance}}.',
+    'Store credit added', 'Hi {{customer_name}},\n\n{{credit_amount}} store credit was added. Balance: {{credit_balance}}.\n\n{{store_name}}', { vars: ['credit_amount', 'credit_balance'], mod: 'marketing', source: 'Loyalty', owner: 'loyalty', sender: 'Loyalty' }),
+  C('Store credit & loyalty', 'level-up', 'New level', 'A member moves up a level', true, false,
+    '{{store_name}}: You are now {{level}}. Enjoy your new rewards.',
+    'You are now {{level}}', 'Hi {{customer_name}},\n\nYou are now {{level}}. Enjoy your new rewards.\n\n{{store_name}}', { vars: ['level'], mod: 'marketing', source: 'Loyalty', owner: 'loyalty', sender: 'Loyalty' }),
+  C('Store credit & loyalty', 'invite-reward', 'Invite reward ready', 'A friend they invited bought', true, false,
+    '{{store_name}}: Your invite reward is ready.',
+    'Your invite reward is ready', 'Hi {{customer_name}},\n\nA friend you invited made a purchase. Your reward is ready.\n\n{{store_name}}', { mod: 'marketing', source: 'Loyalty', owner: 'loyalty', sender: 'Loyalty' }),
+  C('Store credit & loyalty', 'points-expiring', 'Points expiring', 'Points end within a month', true, false,
+    '{{store_name}}: {{points}} points end on {{due_date}}. Use them soon.',
+    'Your points end soon', 'Hi {{customer_name}},\n\n{{points}} points end on {{due_date}}. Use them soon.\n\n{{store_name}}', { vars: ['points', 'due_date'], mod: 'marketing', source: 'Loyalty', owner: 'loyalty', sender: 'Loyalty' }),
+  C('Invoices & dues', 'invoice-sent', 'Invoice sent', 'An invoice is made out', true, false,
+    '{{store_name}}: Invoice {{invoice_id}} for {{invoice_total}}. Due {{due_date}}.',
+    'Invoice {{invoice_id}}', 'Hi {{customer_name}},\n\nInvoice {{invoice_id}} for {{invoice_total}} is due on {{due_date}}.\n\n{{store_name}}', { vars: ['invoice_id', 'invoice_total', 'due_date'], mod: 'money', source: 'Sales', cls: 'Transactional' }),
+  C('Invoices & dues', 'invoice-due', 'Payment reminder', 'Staff send a reminder', true, false,
+    '{{store_name}}: {{due_amount}} due on invoice {{invoice_id}} by {{due_date}}. Pay: {{payment_link}}',
+    'Payment due: {{invoice_id}}', 'Hi {{customer_name}},\n\n{{due_amount}} is due on invoice {{invoice_id}} by {{due_date}}.\nPay here: {{payment_link}}\n\n{{store_name}}', { vars: ['invoice_id', 'due_amount', 'due_date', 'payment_link'], mod: 'money', source: 'Sales', cls: 'Transactional', sender: 'Customer › Invoices' }),
+  C('Invoices & dues', 'invoice-overdue', 'Overdue reminder', 'Reminder after the due date', true, true,
+    '{{store_name}}: Invoice {{invoice_id}} is overdue. {{due_amount}} to pay. Call {{support_phone}}.',
+    'Invoice {{invoice_id}} is overdue', 'Hi {{customer_name}},\n\nInvoice {{invoice_id}} is overdue. {{due_amount}} is still to pay.\nPay here: {{payment_link}}\n\n{{store_name}}', { vars: ['invoice_id', 'due_amount', 'payment_link'], mod: 'money', source: 'Sales', cls: 'Transactional', sender: 'Customer › Invoices' }),
+  C('Support tickets', 'ticket-opened', 'Ticket opened', 'A ticket is made for them', true, false,
+    '{{store_name}}: We got your request {{ticket_id}}. We\'ll reply soon.',
+    'We got your request {{ticket_id}}', 'Hi {{customer_name}},\n\nWe got your request {{ticket_id}}: {{ticket_subject}}.\nWe\'ll reply soon.\n\n{{store_name}}', { vars: ['ticket_id', 'ticket_subject'], mod: 'comms', source: 'Support', sender: 'Support tickets' }),
+  C('Support tickets', 'ticket-replied', 'Ticket replied', 'Staff reply on the ticket', false, false,
+    '{{store_name}}: New reply on {{ticket_id}}. Check your messages.',
+    'New reply on {{ticket_id}}', 'Hi {{customer_name}},\n\nWe replied to your request {{ticket_id}}:\n\n{{reply_text}}\n\n{{store_name}}', { vars: ['ticket_id', 'ticket_subject', 'reply_text'], mod: 'comms', source: 'Support', sender: 'Support tickets', note: 'The reply itself goes on the ticket\'s channel' }),
+  C('Support tickets', 'ticket-solved', 'Ticket solved', 'The ticket is solved', true, false,
+    '{{store_name}}: Your request {{ticket_id}} is solved. Reply if you need more help.',
+    'Request {{ticket_id}} solved', 'Hi {{customer_name}},\n\nYour request {{ticket_id}} is solved. Reply if you need more help.\n\n{{store_name}}', { vars: ['ticket_id', 'ticket_subject'], mod: 'comms', source: 'Support', sender: 'Support tickets' }),
+  C('Warranty & service', 'service-received', 'Service request received', 'A warranty service is logged', true, true,
+    '{{store_name}}: Service request {{claim_id}} for {{item_name}} received. We\'ll update you.',
+    'Service request {{claim_id}}', 'Hi {{customer_name}},\n\nWe logged service request {{claim_id}} for {{item_name}}. We\'ll update you.\n\n{{store_name}}', { vars: ['claim_id', 'item_name'], mod: 'catalog', source: 'Service', sender: 'Customer › Warranty' }),
+  C('Warranty & service', 'service-update', 'Repair update', 'The claim moves a step', true, false,
+    '{{store_name}}: {{item_name}} ({{claim_id}}): {{claim_status}}.',
+    'Update on {{claim_id}}', 'Hi {{customer_name}},\n\n{{item_name}} ({{claim_id}}): {{claim_status}}.\n\n{{store_name}}', { vars: ['claim_id', 'item_name', 'claim_status'], mod: 'catalog', source: 'Service', sender: 'Products › Warranty claims' }),
+  C('Warranty & service', 'service-ready', 'Ready to collect', 'The repaired item is back', true, false,
+    '{{store_name}}: {{item_name}} is ready to collect. Bring {{claim_id}}.',
+    '{{item_name}} is ready', 'Hi {{customer_name}},\n\n{{item_name}} is ready to collect. Please bring {{claim_id}}.\n\n{{store_name}}', { vars: ['claim_id', 'item_name'], mod: 'catalog', source: 'Service', sender: 'Products › Warranty claims' }),
+  C('Account', 'welcome', 'Welcome', 'A customer is added', false, false,
+    '{{store_name}}: Welcome, {{customer_name}}! Thanks for shopping with us.',
+    'Welcome to {{store_name}}', 'Hi {{customer_name}},\n\nWelcome to {{store_name}}. Thanks for shopping with us.\n\n{{store_name}}', { source: 'Account', sender: 'Customers › Add customer' }),
+  C('Account', 'otp', 'Sign-in code', 'They sign in to the online store', true, false,
+    '{{otp_code}} is your {{store_name}} code. Don\'t share it.',
+    'Your sign-in code', 'Your {{store_name}} code is {{otp_code}}. Don\'t share it.', { vars: ['otp_code'], cls: 'Transactional', source: 'Account', mod: 'online', note: 'Needs the server' }),
+  C('Account', 'password-reset', 'Password reset', 'Staff send a reset link', true, false,
+    '{{store_name}}: Reset your password: {{reset_link}}',
+    'Reset your password', 'Hi {{customer_name}},\n\nReset your password here:\n{{reset_link}}\n\n{{store_name}}', { vars: ['reset_link'], cls: 'Transactional', source: 'Account', mod: 'online', sender: 'Customer profile' }),
+];
+EVENTS.push(...CUSTOMER_EVENTS);
+/** The placeholders of the events beyond orders, with an example for the preview. */
+export const CUSTOMER_VARIABLES = [
+  ['customer_name', 'Customer name', 'Nusrat Jahan'], ['store_name', 'Shop name', MERCHANT.name], ['support_phone', 'Support phone', MERCHANT.phone],
+  ['refund_amount', 'Refund amount', '৳1,450'], ['refund_method', 'Refunded to', 'bKash'], ['ref_id', 'Reference', 'RF-2041'],
+  ['credit_amount', 'Credit added', '৳200'], ['credit_balance', 'Credit balance', '৳650'], ['level', 'Loyalty level', 'Gold'], ['points', 'Points', '320'],
+  ['invoice_id', 'Invoice number', 'INV-1042'], ['invoice_total', 'Invoice total', '৳12,400'], ['due_amount', 'Amount due', '৳4,400'], ['due_date', 'Due date', '20 Oct 2026'],
+  ['payment_link', 'Payment link', 'https://dazzleshop.com.bd/pay/INV-1042'], ['ticket_id', 'Ticket number', 'TKT-2305'], ['ticket_subject', 'Ticket subject', 'Change the delivery address'],
+  ['reply_text', 'The reply', 'Done, we changed it.'], ['claim_id', 'Service request', 'WS-118'], ['item_name', 'Item', 'Redmi Note 13'], ['claim_status', 'Repair step', 'Sent to the service centre'],
+  ['otp_code', 'Sign-in code', '482913'], ['reset_link', 'Reset link', 'https://dazzleshop.com.bd/reset/8K2Q'],
+];
 // Nayeem's brief #11: every template and send carries a class. Order-life events are Transactional; delivery
 // problems, verification calls and returns are Service.
 const SERVICE_EVENTS = ['verify-requested', 'verified', 'delivery-failed', 'return-initiated', 'returning', 'returned'];
-export const eventClass = (key) => (SERVICE_EVENTS.includes(key) ? 'Service' : 'Transactional');
+export const eventClass = (key) => { const ev = eventBy(key); if (ev && ev.scope === 'customer') return ev.cls; return SERVICE_EVENTS.includes(key) ? 'Service' : 'Transactional'; };
 /** The merchant's own message for an event (customers get the event's text; the shop gets this). */
 const MERCHANT_SMS = {
   'new-order': 'New order {{order_id}} from {{customer_name}}. {{order_total}}.',
@@ -130,7 +214,7 @@ const TRACK_EVENTS = ['in-transit', 'out-for-delivery', 'delivery-failed'];
 export const WA_LANGS = ['English', 'Bangla'];
 /** The default WhatsApp template of an event: the SMS text without the shop prefix, greeted and signed. */
 const waDefault = (e) => ({
-  waName: 'order_' + e.key.replace(/-/g, '_') + '_v1', waLang: 'English',
+  waName: (e.scope === 'customer' ? '' : 'order_') + e.key.replace(/-/g, '_') + '_v1', waLang: 'English',
   waBody: 'Hi {{customer_name}},\n\n' + String(e.sms).replace(/^\{\{store_name\}\}:\s*/, '') + '\n\n{{store_name}}',
   waButton: TRACK_EVENTS.includes(e.key), waEditedAt: 0,
 });
@@ -178,9 +262,10 @@ export function varsOf(o, extra = {}) {
     advance_amount: money(extra.advance != null ? extra.advance : (o.advance && o.advance.amount) || 0),
     remaining_amount: money(extra.remaining != null ? extra.remaining : remaining), cod_amount: money(o.codAmount != null ? o.codAmount : remaining),
     courier_name: (o.courier && o.courier !== 'Not assigned' ? o.courier : extra.courier) || 'the courier', tracking_id: id || '—',
-    tracking_url: o.trackingUrl || (id ? 'https://dazzleshop.com.bd/track/' + id : ''), payment_link: 'https://dazzleshop.com.bd/pay/' + String(o.id).replace('#', ''),
+    tracking_url: o.trackingUrl || trackingLink(o.id), payment_link: 'https://dazzleshop.com.bd/pay/' + String(o.id).replace('#', ''),
     cancel_reason: extra.reason ? `${extra.reason}.` : '', reject_reason: extra.rejectReason || extra.reason ? `${extra.rejectReason || extra.reason}.` : '',
     quote_link: extra.quoteLink || 'https://dazzleshop.com.bd/quote/' + String(o.id).replace('#', ''), store_name: MERCHANT.name, support_phone: MERCHANT.phone,
+    licence_key: extra.keys != null ? (extra.keys.length ? 'Key: ' + extra.keys.join(', ') : '') : '', download_link: extra.download || '',
     ...(extra.vars || {}),
   };
 }
@@ -216,7 +301,7 @@ const getLog = () => read(LOG_KEY, []);
 export function notify(o, event, extra = {}) {
   if (typeof window === 'undefined' || !o) return { sent: 0, duplicate: false };
   const ev = eventBy(event);
-  if (!ev) return { sent: 0, duplicate: false };
+  if (!ev || ev.scope === 'customer') return { sent: 0, duplicate: false };   // events beyond orders: notifyCustomer()
   const once = `${o.id}|${event}|${extra.once || ''}`;
   const log = getLog();
   if (log.some((r) => r.once === once) || synthLog(o).some((r) => r.event === event)) return { sent: 0, duplicate: true };
@@ -314,4 +399,49 @@ export function notificationLog(o) {
   const mine = [...getLog().filter((r) => r.order === o.id && !r.quiet), ...sharedRows(o)];
   const done = new Set(mine.map((r) => r.event));
   return [...mine, ...synthLog(o).filter((r) => !done.has(r.event))].sort((a, b) => b.at - a.at);
+}
+
+// ---- sending beyond orders (review CX-F3) --------------------------------------------------------------------------
+/**
+ * Send an event beyond orders (CUSTOMER_EVENTS) to one person, as the matrix in Settings › Notifications turns it on:
+ * SMS / WhatsApp / email to the customer, SMS / email to the shop. Everything goes through the shared send layer
+ * (messaging.js › send: consent, suppression, caps and quiet hours), so the rows are in the one delivery log
+ * (ref = the record, e.g. a ticket or invoice). `once` (default ref + event) sends a round once.
+ *   to   { name, phone, email }      vars  the event's placeholders
+ * Returns { sent, rows, off } — off: true when nothing is turned on for the event. Loyalty's own events
+ * (owner 'loyalty') are sent by lib/loyalty.js and are refused here so a member never gets them twice.
+ */
+export function notifyCustomer(event, to = {}, vars = {}, { ref = '', once = '', at } = {}) {
+  if (typeof window === 'undefined') return { sent: 0, rows: [], off: true };
+  const ev = eventBy(event);
+  if (!ev || ev.scope !== 'customer' || ev.owner) return { sent: 0, rows: [], off: true };
+  const s = getNotifySettings();
+  const t = s.events[event];
+  const all = { store_name: MERCHANT.name, support_phone: MERCHANT.phone, customer_name: to.name || 'Customer', ...vars };
+  const key = once || `${ref || to.phone || to.email || ''}|${event}`;
+  const base = { source: ev.source, event: ev.label, cls: ev.cls, ref, at };
+  const rows = [];
+  const go = (args) => { const r = sendMessage({ ...base, ...args }); if (r.row && !r.duplicate) rows.push(r.row); };
+  if (t.customer) {
+    if (t.sms && to.phone) go({ channel: 'sms', to, text: fill(t.smsText, all), once: key + '|c-sms' });
+    if (t.whatsapp && to.phone && waConnected() && waTemplateState(t).state === 'Approved') go({ channel: 'whatsapp', to, text: fill(t.waBody, all), once: key + '|c-wa' });
+    if (t.email && to.email) go({ channel: 'email', to, text: fill(t.body, all), subject: fill(t.subject, all), once: key + '|c-email' });
+  }
+  if (t.merchant) {
+    const shop = { name: s.senderName || MERCHANT.name, phone: s.adminPhone, email: s.adminEmail };
+    if (t.sms) go({ channel: 'sms', to: shop, text: fill(t.merchantText || t.smsText, all), once: key + '|m-sms', internal: true });
+    if (t.email) go({ channel: 'email', to: shop, text: fill(t.merchantText || t.body, all), subject: fill(t.subject, all), once: key + '|m-email', internal: true });
+  }
+  if (rows.length) { try { window.dispatchEvent(new CustomEvent(NOTIFY_EVENT)); } catch { /* ignore */ } }
+  return { sent: rows.length, rows, off: !((t.customer && (t.sms || t.email || t.whatsapp)) || (t.merchant && (t.sms || t.email))) };
+}
+/** Words for a toast after notifyCustomer: "SMS sent to …", or why nothing went. */
+export function notifyWords(res, who = 'the customer') {
+  if (!res || res.off) return 'Message is off in Settings › Notifications';
+  const mine = res.rows.filter((r) => !r.internal);
+  if (!mine.length) return res.rows.length ? 'Shop alert sent' : 'Nothing sent: no number or email on file';
+  const ok = mine.filter((r) => ['Delivered', 'Read', 'Sent', 'Queued'].includes(r.status));
+  if (!ok.length) return 'Not sent to ' + who + ': ' + (mine[0].reason || mine[0].status);
+  const chans = [...new Set(ok.map((r) => ({ sms: 'SMS', whatsapp: 'WhatsApp', email: 'Email' }[r.channel] || r.channel)))].join(' and ');
+  return chans + (ok.some((r) => r.status === 'Queued') ? ' queued for ' : ' sent to ') + who;
 }

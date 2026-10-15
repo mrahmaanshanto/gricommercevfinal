@@ -14,13 +14,13 @@ import { routeOf } from '../runtime/routes';
 export const MODULES = {
   core: {
     label: 'Core', desc: 'Dashboard, team tasks and chat, customers and leads, settings',
-    nav: ['home', 'my-dash', 'tasks', 'team-chat', 'customers', 'leads', 'cust-settings', 'connections', 'settings', 'set-store', 'set-users', 'set-import', 'set-billing', 'set-help', 'svc-shop', 'svc-detail', 'svc-order', 'svc-mine', 'svc-view', 'set-email'],
-    routes: ['/connect', '/my-account', '/set-profile', '/set-privacy', '/settings-history', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-media', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
+    nav: ['home', 'my-dash', 'notifications', 'tasks', 'team-chat', 'customers', 'leads', 'cust-settings', 'connections', 'settings', 'set-store', 'products-media', 'set-users', 'set-import', 'set-billing', 'set-help', 'svc-shop', 'svc-detail', 'svc-order', 'svc-mine', 'svc-view', 'set-email'],
+    routes: ['/connect', '/my-account', '/set-profile', '/set-privacy', '/set-hosting', '/set-domains', '/set-invoices', '/set-verification', '/settings-history', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-media', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
   },
   catalog: {
     label: 'Products, stock & purchases', desc: 'Products, stock, adjustments and counts, direct purchases, suppliers and their dues, damaged and expired stock, warranty',
     // stock adjustments and counts belong here too: a one-place (Online) shop also corrects and counts its stock
-    nav: ['stock-activity', 'products', 'products-all', 'products-add', 'products-cats', 'products-brands', 'products-setup', 'products-media', 'products-catalogue', 'stock-list', 'po-buy', 'po-suppliers', 'stock-more', 'stock-expiry', 'stock-labels', 'stock-wpol', 'stock-wclaims', 'stock-adjust', 'stock-count'],
+    nav: ['stock-activity', 'products', 'products-all', 'products-add', 'products-cats', 'products-brands', 'products-setup', 'products-catalogue', 'stock-list', 'po-buy', 'po-suppliers', 'stock-more', 'stock-expiry', 'stock-labels', 'stock-wpol', 'stock-wclaims', 'stock-adjust', 'stock-count'],
     routes: ['/bulk-edit', '/supplier-detail', '/supplier-return', '/buy-goods', '/stock-setup'],
   },
   places: {
@@ -52,7 +52,7 @@ export const MODULES = {
     label: 'Orders & returns', desc: 'All orders, quotes for business buyers, returns and exchanges, payment settings',
     // quotes are for any business buyer (companies, leads, wholesale buyers), so every edition that takes orders has them
     nav: ['orders', 'orders-all', 'orders-quotes', 'sales-return', 'pay-setup'],
-    routes: ['/order-detail', '/return-history', '/set-payments'],
+    routes: ['/order-detail', '/return-history', '/set-payments', '/set-notifications'],
   },
   marketing: {
     label: 'Offers & loyalty', desc: 'Offers, coupons, loyalty points, wallets and referrals',
@@ -72,8 +72,8 @@ export const MODULES = {
   },
   online: {
     label: 'Online', desc: 'Online orders and couriers, the online store, blog, flash sales, cart recovery and ads tracking',
-    nav: ['orders-rto', 'orders-courier', 'orders-work', 'orders-settings', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'rec-offers', 'rec-audiences', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'storefront', 'store-pages', 'store-menus', 'store-reviews', 'store-seo', 'store-seo-bulk', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
-    routes: ['/order-settings', '/order-work', '/set-notifications', '/ad-accounts', '/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-seo', '/set-domains', '/checkout', '/offer-detail', '/offers', '/order-link', '/store-page-edit', '/page', '/landing-page-builder'],
+    nav: ['orders-rto', 'orders-courier', 'orders-handover', 'orders-returns', 'orders-work', 'orders-settings', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'rec-offers', 'rec-audiences', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'an-hub', 'an-campaigns', 'an-attribution', 'an-traffic', 'an-alerts', 'storefront', 'store-theme', 'store-theme-edit', 'store-header', 'store-layouts', 'store-layout-edit', 'store-blocks', 'store-block-edit', 'store-pages', 'store-menus', 'store-reviews', 'store-seo', 'store-seo-bulk', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
+    routes: ['/order-settings', '/order-work', '/ad-accounts', '/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-checkout', '/set-seo', '/checkout', '/track', '/offer-detail', '/offers', '/order-link', '/store-page-edit', '/page', '/landing-page-builder', '/store', '/cart', '/search', '/blog', '/wishlist', '/compare', '/account', '/author'],
   },
   channels: {
     label: 'Sales channels', desc: 'Product sync to the Meta catalog, Google Merchant Center, WooCommerce and Shopify; Google Business Profile',
@@ -82,7 +82,7 @@ export const MODULES = {
   },
   comms: {
     label: 'Communication', desc: 'Inbox for Facebook, Instagram, WhatsApp and more, calls, AI calls, support tickets, social posts',
-    nav: ['inbox', 'inbox-comments', 'inbox-mentions', 'inbox-email', 'calls', 'comm-ai', 'tickets', 'social', 'comm-cal', 'comm-new', 'set-wallet', 'msg-campaigns', 'meetings'],
+    nav: ['inbox', 'inbox-comments', 'inbox-mentions', 'inbox-email', 'calls', 'comm-ai', 'tickets', 'social', 'comm-cal', 'comm-new', 'set-wallet', 'msg-campaigns', 'meetings', 'an-team'],
     routes: ['/meetings', '/social-connections', '/auto-call-settings', '/team-report'],
   },
   // Grid AI: one shared AI for every edition (lib/gridai/*). Customer-facing parts (Inbox Copilot / Autopilot) only act

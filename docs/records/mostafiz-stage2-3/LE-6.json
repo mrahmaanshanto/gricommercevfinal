@@ -1,0 +1,38 @@
+{
+ "id": "LE-6",
+ "kind": "fix",
+ "section": "Loose ends Nayeem listed",
+ "area": "Loose ends Nayeem listed",
+ "title": "Wholesale switch read at the right time",
+ "problem": "Three lists read the wholesale switch when the app loaded, before the edition preview was known.",
+ "now": "Return channels, import columns and quotes read it when the page shows them.",
+ "steps": [
+  "Preview an edition with ?edition=.",
+  "Open Returns history: its tabs follow it."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/returns.js",
+  "src/lib/productImport.js",
+  "src/lib/quotes.js",
+  "src/screens/purchase-stock/ReturnHistory.jsx",
+  "src/screens/products/ImportProducts.jsx"
+ ],
+ "notes": "Where: Returns history · Import products · Quotes",
+ "shots": [
+  {
+   "route": "/return-exchange",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Return & exchange",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

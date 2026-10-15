@@ -98,7 +98,7 @@ export default function Referrals() {
   return (
     <LoyPage screen="Referrals" active="loy-referrals" title="Invite a friend" icon="share-2" css={CSS}
       about="Customers share their code. When a friend’s first order is delivered, the customer gets a reward. Rewards are a cost of your online sales."
-      more={[{ label: 'Loyalty rules', href: '/loyalty' }, { label: 'Members', href: '/members' }]}>
+      more={[]}>
       <MetricStrip items={[
         { label: 'Customers sharing', value: data ? pts(data.referrers.length) : '—', sub: 'have an invite code' },
         { label: 'Friends who joined', value: data ? pts(data.joined) : '—', sub: data ? `${pts(data.bought)} bought` : '' },

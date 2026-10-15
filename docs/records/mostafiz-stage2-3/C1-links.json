@@ -1,0 +1,41 @@
+{
+ "id": "C1-links",
+ "kind": "new",
+ "section": "Module C · SEO",
+ "area": "Module C · SEO",
+ "title": "Mark single links nofollow or sponsored",
+ "problem": "Every link counted the same, so paid or customer links could not be marked.",
+ "now": "Each link in the text can be nofollow, sponsored or user content, and open in a new tab.",
+ "steps": [
+  "Open a blog post with a link.",
+  "In Links press Nofollow and New tab.",
+  "Update, then view the post: the link carries them."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/seo.js",
+  "src/screens/integrations/blogShared.jsx",
+  "src/screens/products/RichText.jsx",
+  "src/lib/blog.js"
+ ],
+ "notes": "Where: Any editor › Search engine listing › Links",
+ "shots": [
+  {
+   "route": "/store-page-edit?template=about",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Page editor: the SEO panel",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    },
+    {
+     "scroll": ".seo-p"
+    }
+   ]
+  }
+ ]
+}

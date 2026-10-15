@@ -1,0 +1,165 @@
+{
+  "part": "Stage 3 · Customers & marketing",
+  "entries": [
+    {
+      "id": "CX-F3",
+      "kind": "feature",
+      "module": "Stage 3 · Customers & marketing",
+      "title": "Customer messages beyond orders in one list",
+      "need": "Only order events could send SMS or email; refunds, invoices, tickets, warranty and account messages had no settings.",
+      "now": "Notifications lists every event by group with SMS, WhatsApp, email, customer and shop switches and editable text; tickets, invoice reminders and service requests send.",
+      "where": "Settings › Notifications (/set-notifications)",
+      "try": [
+        "Open Settings › Notifications and scroll to Customers and account",
+        "Turn on Ticket opened and edit its text",
+        "Make a new support ticket with a phone number and see the message in the delivery log",
+        "On a customer's Invoices, open an unpaid invoice and send a reminder"
+      ],
+      "files": [
+        "src/lib/notifications.js",
+        "src/screens/settings-console/SetNotifications.jsx",
+        "src/lib/supportTickets.js",
+        "src/screens/customers-crm/CustomerInvoices.jsx",
+        "src/screens/customers-crm/CustomerWarranty.jsx",
+        "src/screens/customers-crm/AllCustomers.jsx",
+        "src/screens/settings-console/SetRail.jsx",
+        "src/lib/edition.js"
+      ],
+      "status": "partly",
+      "left": "Invoice sent and Sign-in code show Not sent yet: nothing sends an invoice on its own and sign-in codes need the server; loyalty messages stay in Loyalty."
+    },
+    {
+      "id": "CX-F4",
+      "kind": "feature",
+      "module": "Stage 3 · Customers & marketing",
+      "title": "Create order and New ticket on the profile",
+      "need": "Staff on a customer's page could not start an order or a support ticket for that customer.",
+      "now": "The profile's More menu and Overview have Create order and New ticket; the ticket form opens with the name and phone filled in.",
+      "where": "Customers › All customers › a customer (/customer-crm)",
+      "try": [
+        "Open a customer",
+        "Tap More › New ticket and check the name and phone",
+        "Make the ticket and see it on the customer's Overview",
+        "Tap Create order: the order form opens with the customer picked"
+      ],
+      "files": [
+        "src/screens/customers-crm/CustomerCRM.jsx",
+        "src/screens/support-tickets/SupportTickets.jsx"
+      ],
+      "status": "done",
+      "left": ""
+    },
+    {
+      "id": "CX-U5",
+      "kind": "fix",
+      "module": "Stage 3 · Customers & marketing",
+      "title": "Full picture for every customer",
+      "need": "Only the demo customer showed tickets, coupons and messages, and those were made up.",
+      "now": "Every customer shows their real tickets, store credit, loyalty progress, offers used, messages sent, next meeting and an Insights card.",
+      "where": "Customers › All customers › a customer (/customer-crm)",
+      "try": [
+        "Open a customer who has a support ticket",
+        "See Support tickets and Insights on Overview",
+        "Open Orders for store credit and offers used",
+        "Open Messages & activity for messages sent"
+      ],
+      "files": [
+        "src/screens/customers-crm/CustomerCRM.jsx",
+        "src/lib/supportTickets.js"
+      ],
+      "status": "done",
+      "left": ""
+    },
+    {
+      "id": "CX-U6",
+      "kind": "fix",
+      "module": "Stage 3 · Customers & marketing",
+      "title": "One Automations page with tabs",
+      "need": "Automatic work was spread over seven pages and menus.",
+      "now": "Automations has tabs for each rule area, AI rules, notifications, cart reminders, smart offers and auto-call; the other pages sit under it.",
+      "where": "Communications › Automations (/automations)",
+      "try": [
+        "Open Communications › Automations",
+        "Tap AI to see Grid AI's rules",
+        "Tap Reminders and open the reminder settings",
+        "Check the menu lights Automations there"
+      ],
+      "files": [
+        "src/screens/automation/Automations.jsx",
+        "src/shell/navigation.js",
+        "src/lib/team.js",
+        "src/screens/recovery/AutoReminders.jsx",
+        "src/screens/automation/WorkflowSettings.jsx"
+      ],
+      "status": "partly",
+      "left": "Grid AI › Automations keeps its own row in Grid AI so the Retail edition still reaches it; the AI tab here shows the same rules."
+    },
+    {
+      "id": "CX-U9",
+      "kind": "fix",
+      "module": "Stage 3 · Customers & marketing",
+      "title": "Marketing menu down to five rows",
+      "need": "The Marketing menu had thirteen rows, with offers and loyalty split over many pages.",
+      "now": "Marketing shows Offers, Loyalty, Abandoned carts, Ad audiences and Google Business; coupons, flash sales, smart offers and loyalty pages are tabs.",
+      "where": "Marketing (/promo, /loyalty)",
+      "try": [
+        "Open Marketing › Offers and tap Coupons",
+        "Open Marketing › Loyalty and tap Members",
+        "Sign in as a shop seller and check Members is still in the menu"
+      ],
+      "files": [
+        "src/shell/navigation.js",
+        "src/lib/team.js",
+        "src/screens/loyalty-promo/MarketingTabs.jsx",
+        "src/screens/loyalty-promo/loyShared.jsx",
+        "src/screens/loyalty-promo/Promo.jsx",
+        "src/screens/loyalty-promo/Coupons.jsx",
+        "src/screens/loyalty-promo/FlashSales.jsx",
+        "src/screens/recovery/SmartOffers.jsx"
+      ],
+      "status": "done",
+      "left": ""
+    },
+    {
+      "id": "CX-U11",
+      "kind": "fix",
+      "module": "Stage 3 · Customers & marketing",
+      "title": "GridAI button no longer covers rows",
+      "need": "On a computer the floating GridAI button hid a row's buttons and part of cards.",
+      "now": "The button is a small round icon that shows its name on hover, and every page keeps room at its end.",
+      "where": "Every page with the GridAI button (e.g. Marketing › Offers)",
+      "try": [
+        "Open Marketing › Offers on a computer",
+        "Scroll to the end and check the last row is clear",
+        "Hover the round button to see GridAI"
+      ],
+      "files": [
+        "src/styles/design-system.css"
+      ],
+      "status": "done",
+      "left": ""
+    },
+    {
+      "id": "CX-U12",
+      "kind": "fix",
+      "module": "Stage 3 · Customers & marketing",
+      "title": "Menu counts follow the real data",
+      "need": "Menu numbers for tickets, AI calls, coupons and abandoned carts were fixed and soon wrong.",
+      "now": "Those numbers count open tickets, AI calls needing a person, running coupons and open carts, and change as the data does. The AI calls page lists the orders' real automatic calls, so its Needs a person view matches the number.",
+      "where": "Inbox › Support tickets, Inbox › AI calls, Marketing › Abandoned carts",
+      "try": [
+        "Note the Support tickets number",
+        "Solve a ticket and see the number drop",
+        "Check Abandoned carts shows the open carts",
+        "Open Inbox › AI calls: the calls are the orders' automatic confirmation calls"
+      ],
+      "files": [
+        "src/lib/liveCounts.js",
+        "src/shell/navigation.js",
+        "src/screens/ai-call/AiCalls.jsx"
+      ],
+      "status": "done",
+      "left": ""
+    }
+  ]
+}

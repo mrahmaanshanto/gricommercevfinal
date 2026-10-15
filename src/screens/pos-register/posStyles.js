@@ -438,4 +438,8 @@ a.pos-ic{color:var(--text-muted)}
 @keyframes pos-print-label{0%,85%{opacity:1}100%{opacity:0;visibility:hidden}}
 @media (prefers-reduced-motion:reduce){.pos-printslot.is-printing .pos-receipt,.pos-printing{animation:none}.pos-printing{display:none}}
 @media (prefers-reduced-motion:reduce){.pos-cart,.pos-switch,.pos-switch i{transition:none}.pos-scan input{animation:none}}
+/* Stage 3: Due shown as not available (still tappable, it says why); receipt roll width (Settings › Invoices & receipts) */
+.pos-tender.is-off{opacity:.6}
+.pos-receipt--58{max-width:240px;width:100%;margin:0 auto}
+.pos-receipt--80{max-width:320px;width:100%;margin:0 auto}
 `;

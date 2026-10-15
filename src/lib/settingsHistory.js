@@ -23,12 +23,15 @@ export const PAGES = {
   seo: { page: 'SEO', href: '/set-seo' },
   media: { page: 'Media', href: '/set-media' },
   privacy: { page: 'Privacy & consent', href: '/set-privacy' },
-  domains: { page: 'Domains', href: '/set-domains' },
+  domains: { page: 'Hosting › Domains', href: '/set-hosting?tab=domains' },
   apikeys: { page: 'API keys & backups', href: '/set-security#keys' },
   billing: { page: 'Billing profile', href: '/set-general#billing' },
   attribution: { page: 'Attribution model', href: '/attribution' },
-  notifications: { page: 'Order notifications', href: '/set-notifications' },
+  notifications: { page: 'Notifications', href: '/set-notifications' },
   stocksetup: { page: 'Stock setup', href: '/stock-setup' },
+  invoices: { page: 'Invoices & receipts', href: '/set-invoices' },
+  hosting: { page: 'Hosting', href: '/set-hosting' },
+  checkout: { page: 'Checkout', href: '/set-checkout' },
 };
 
 /** Who is saving: "Mehedi Rahman (CEO)". */

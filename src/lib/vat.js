@@ -59,3 +59,35 @@ export function billVat(lines, share, vat) {
   }, 0);
   return { tax: Math.round(tax * 100) / 100, included };
 }
+
+// ---- named tax rates (Products › Catalog setup › Tax rates) ----------------------------------------------------------
+// The rates a product can be given by name (Add product › Pricing › VAT / tax). A category's own rate is still set on
+// Accounts › VAT (rates above); these are the choices. Kept in this browser (gc.vat.named).
+export const TAX_RATES_KEY = 'gc.vat.named';
+export const TAX_RATES_EVENT = 'gc:tax-rates';
+const SEED_RATES = [
+  { id: 'std', name: 'Standard VAT', rate: 15 },
+  { id: 'ten', name: 'VAT 10%', rate: 10 },
+  { id: 'red', name: 'Reduced VAT', rate: 7.5 },
+  { id: 'low', name: 'Lower VAT', rate: 5 },
+  { id: 'zero', name: 'No VAT', rate: 0 },
+];
+export function getTaxRates() {
+  if (typeof window === 'undefined') return SEED_RATES;
+  try { const v = JSON.parse(window.localStorage.getItem(TAX_RATES_KEY)); return Array.isArray(v) && v.length ? v : SEED_RATES; } catch { return SEED_RATES; }
+}
+const writeRates = (list) => { try { window.localStorage.setItem(TAX_RATES_KEY, JSON.stringify(list)); window.dispatchEvent(new CustomEvent(TAX_RATES_EVENT)); } catch { /* storage blocked */ } };
+/** Add or change a named rate: { id?, name, rate }. Returns { ok, rate } or { ok: false, error }. */
+export function saveTaxRate({ id, name, rate }) {
+  const n = String(name || '').trim();
+  const r = Number(rate);
+  if (!n) return { ok: false, error: 'Give the rate a name.' };
+  if (!(r >= 0 && r <= 100) || String(rate).trim() === '') return { ok: false, error: 'Enter a rate from 0 to 100.' };
+  const list = getTaxRates();
+  if (list.some((x) => x.id !== id && x.name.toLowerCase() === n.toLowerCase())) return { ok: false, error: 'There is already a rate with this name.' };
+  if (list.some((x) => x.id !== id && Number(x.rate) === r)) return { ok: false, error: `There is already a ${r}% rate.` };
+  const row = { id: id || 'tx-' + Date.now().toString(36), name: n, rate: Math.round(r * 100) / 100 };
+  writeRates(id && list.some((x) => x.id === id) ? list.map((x) => (x.id === id ? row : x)) : [...list, row]);
+  return { ok: true, rate: row };
+}
+export function removeTaxRate(id) { writeRates(getTaxRates().filter((x) => x.id !== id)); }

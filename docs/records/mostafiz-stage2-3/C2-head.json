@@ -1,0 +1,40 @@
+{
+ "id": "C2-head",
+ "kind": "new",
+ "section": "Module C · SEO",
+ "area": "Module C · SEO",
+ "title": "Customer pages carry the SEO tags",
+ "problem": "Only store pages had a customer page; none wrote their SEO into the page head.",
+ "now": "Pages, posts, products, categories and landing pages each have a customer page with one set of SEO tags.",
+ "steps": [
+  "Open a product's View on the website.",
+  "Inspect the page head: one title, description, canonical and schema."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/storefront/storeChrome.jsx",
+  "src/components/seo/SeoHead.jsx",
+  "src/screens/storefront/StorePage.jsx",
+  "src/screens/storefront/StoreBlogPost.jsx",
+  "src/screens/storefront/StoreProduct.jsx",
+  "src/screens/storefront/StoreCategory.jsx",
+  "src/screens/storefront/StoreLanding.jsx"
+ ],
+ "notes": "Where: /page, /blog-post, /product, /category, /lp · Needs the server: Search engines read the HTML the server sends; here the tags are added after the page loads. The server must write them.",
+ "shots": [
+  {
+   "route": "/product?handle=galaxy-a15-6-128gb",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "A product page customers see",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

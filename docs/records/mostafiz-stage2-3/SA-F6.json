@@ -1,0 +1,39 @@
+{
+ "id": "SA-F6",
+ "kind": "new",
+ "section": "Super admin",
+ "area": "Super admin",
+ "title": "Health and last sign-in on Merchants",
+ "problem": "Health was visible one store at a time, so nobody saw which stores were slipping away.",
+ "now": "The list shows each store's health and last sign-in, sorts by them, has an At risk view, and the dashboard counts at-risk stores.",
+ "steps": [
+  "Open All merchants and look at the Health and Last sign-in columns (right after Status)",
+  "Press the At risk tab: it opens sorted by health",
+  "Filter by an account manager to see their at-risk stores",
+  "On the Dashboard, open the At risk row in the Merchants card or the at-risk row under Needs someone today"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/admin/merchants/Merchants.jsx",
+  "src/lib/admin/merchants.js",
+  "src/lib/admin/dashboard.js",
+  "src/screens/admin/Dashboard.jsx"
+ ],
+ "notes": "Where: Super admin: Merchants › All merchants (/admin/merchants?view=risk) · Dashboard",
+ "shots": [
+  {
+   "route": "/admin/merchants?view=risk",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Super admin: Merchants, at risk",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,42 @@
+{
+ "id": "AP-U3",
+ "kind": "fix",
+ "section": "Phone app",
+ "area": "Phone app",
+ "title": "More of the phone app in Bangla",
+ "problem": "Many lines with numbers and some labels stayed in English when the app was switched to Bangla.",
+ "now": "Stock, POS, Home and Finance lines with numbers and the remaining labels now show in Bangla, as do the new screens.",
+ "steps": [
+  "Switch the app to বাংলা on Home",
+  "Open Stock and a product: on hand, held and on the way read in Bangla",
+  "Open POS: the cart and charge buttons read in Bangla",
+  "Open Finance and Today's cash"
+ ],
+ "status": "partly",
+ "left": "The order page and order list belong to the online work and were not changed here.",
+ "files": [
+  "src/lib/i18n/bn.js"
+ ],
+ "notes": "Where: App: Home, Stock, POS, Finance, Return or exchange",
+ "shots": [
+  {
+   "route": "/m-home",
+   "query": "as=ceo",
+   "viewport": "phone",
+   "beforeToo": true,
+   "label": "Phone app in Bangla",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    },
+    {
+     "eval": "localStorage.setItem('gc.locale','bn')"
+    },
+    {
+     "goto": "/m-home"
+    }
+   ]
+  }
+ ]
+}

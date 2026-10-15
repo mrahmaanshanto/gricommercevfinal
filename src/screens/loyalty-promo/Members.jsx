@@ -72,7 +72,7 @@ export default function Members() {
     <LoyPage screen="Members" active="loy-members" title="Members" icon="users"
       about="Every customer who buys becomes a member. Find a customer by name or phone to see or change their points and store credit."
       secondary={[{ label: 'Download list', onClick: download, disabled: !data }]}
-      more={[{ label: 'Loyalty rules', href: '/loyalty' }, { label: 'Store credit', href: '/wallet' }]}
+      more={[]}
       primary={{ label: 'Add member', onClick: () => setAdding(true) }}>
       <MetricStrip items={[
         { label: 'Points customers hold', value: data ? pts(data.liab.points) : '—', sub: data ? `worth ${money(data.liab.value)}` : '' },

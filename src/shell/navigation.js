@@ -13,15 +13,16 @@ export const NAV = [
     { id: 'area-home', icon: 'house', label: 'Home', children: [
       { id: 'home', icon: 'layout-dashboard', label: 'Dashboard', to: 'merchant-overview/MerchantOverview.dc.html' },
       { id: 'my-dash', icon: 'user-round', label: 'My dashboard', to: 'team/MyDashboard.dc.html', hidden: true, under: 'home' },   // opened from the person's card at the bottom of the menu
+      { id: 'notifications', icon: 'bell', label: 'Notifications', to: 'notifications/Notifications.dc.html', hidden: true, under: 'home' },   // the bell's "View all" (lib/notificationCentre.js)
     ] },
     { id: 'area-inbox', icon: 'message-circle', label: 'Inbox', live: 'inbox', children: [
       { id: 'inbox', icon: 'message-circle', label: 'Chats', live: 'chats', to: 'merchant-inbox/MerchantInbox.dc.html' },
       { id: 'inbox-comments', icon: 'messages-square', label: 'Comments', live: 'comments', to: 'merchant-inbox/MerchantInbox.dc.html', q: 'view=comments' },
       { id: 'inbox-mentions', icon: 'at-sign', label: 'Mentions', live: 'mentions', to: 'merchant-inbox/MerchantInbox.dc.html', q: 'view=mentions' },
       { id: 'inbox-email', icon: 'mail', label: 'Email', live: 'email', to: 'merchant-inbox/EmailInbox.dc.html' },
-      { id: 'tickets', icon: 'life-buoy', label: 'Support tickets', tab: 'Tickets', count: 5, to: 'support-tickets/SupportTickets.dc.html' },
+      { id: 'tickets', icon: 'life-buoy', label: 'Support tickets', tab: 'Tickets', live: 'tickets', to: 'support-tickets/SupportTickets.dc.html' },
       { id: 'calls', icon: 'phone', label: 'Calls', to: 'merchant-calls/MerchantCalls.dc.html' },
-      { id: 'comm-ai', icon: 'phone-call', label: 'AI calls', count: 1, to: 'ai-call/AiCalls.dc.html' },
+      { id: 'comm-ai', icon: 'phone-call', label: 'AI calls', live: 'aicalls', to: 'ai-call/AiCalls.dc.html' },
     ] },
     // Grid AI: the one AI for the whole shop (lib/gridai/*): overview, the assistant, agents, knowledge and training,
     // testing, its automations, activity and approvals for risky actions, analytics, cost, settings (Behaviour + Models)
@@ -49,38 +50,41 @@ export const NAV = [
       { id: 'sales-return', icon: 'undo-2', label: 'Returns & exchanges', to: 'sales/ReturnExchange.dc.html' },
       { id: 'orders-rto', icon: 'package-x', label: 'Courier returns', to: 'merchant-orders/CourierReturns.dc.html' },
       { id: 'orders-courier', icon: 'truck', label: 'Courier statement', to: 'merchant-orders/CourierStatement.dc.html' },
+      { id: 'orders-handover', icon: 'hand-helping', label: 'Courier handover', to: 'merchant-orders/CourierHandover.dc.html' },
+      { id: 'orders-returns', icon: 'undo-2', label: 'Return requests', to: 'merchant-orders/ReturnRequests.dc.html' },
       { id: 'orders-work', icon: 'list-checks', label: 'Order work', to: 'merchant-orders/OrderWork.dc.html' },
       { id: 'orders-settings', icon: 'sliders-horizontal', label: 'Order settings', to: 'merchant-orders/OrderSettings.dc.html' },
     ] },
     { id: 'area-products', icon: 'package', label: 'Products', children: [
-      { id: 'products-all', icon: 'package', label: 'All products', count: 412, to: 'products/AllProducts.dc.html' },
+      { id: 'products-all', icon: 'package', label: 'All products', to: 'products/AllProducts.dc.html' },
       { id: 'products-add', icon: 'package-plus', label: 'Add product', to: 'products/AddProduct.dc.html' },
       { id: 'products-cats', icon: 'folder-tree', label: 'Categories', to: 'products/Categories.dc.html' },
       { id: 'products-brands', icon: 'tag', label: 'Brands', to: 'products/Brands.dc.html' },
       { id: 'products-setup', icon: 'sliders-horizontal', label: 'Catalog setup', to: 'products/CatalogSetup.dc.html' },
       { id: 'products-catalogue', icon: 'book-image', label: 'Customer catalogue', to: 'products/CustomerCatalogue.dc.html' },
-      { id: 'products-media', icon: 'image', label: 'Media library', to: 'settings-console/SetMedia.dc.html' },
+      // after-sales: warranty belongs with the products, not the stock pages (ids unchanged)
+      { id: 'stock-wpol', icon: 'shield-check', label: 'Warranty policies', to: 'purchase-stock/WarrantyPolicies.dc.html' },
+      { id: 'stock-wclaims', icon: 'wrench', label: 'Warranty claims', live: 'warranty-claims', to: 'purchase-stock/WarrantyClaims.dc.html' },
     ] },
     // Inventory: the stock pages of the menu before the areas (build 7c766c0), in its order, with its "More stock
     // tools" listed openly. Pages that share a `sub` fold into one row under the area (`subs`).
     { id: 'area-inventory', icon: 'boxes', label: 'Inventory', subs: {
+      'stock-buying': { label: 'Purchasing' },
       'stock-places': { label: 'Warehouses & branches' },
     }, children: [
       { id: 'stock-list', icon: 'boxes', label: 'Stock', to: 'purchase-stock/Stock.dc.html' },
       { id: 'stock-activity', icon: 'history', label: 'Stock activity', to: 'purchase-stock/StockActivity.dc.html', hidden: true, under: 'stock-list' },   // opened from Stock
-      { id: 'po-buy', icon: 'shopping-bag', label: 'Purchases', to: 'purchase-stock/Purchases.dc.html' },
-      { id: 'po-receive', icon: 'package-open', label: 'Receive goods', to: 'purchase-stock/ReceiveGoods.dc.html' },
+      { id: 'po-buy', icon: 'shopping-bag', label: 'Purchases', sub: 'stock-buying', to: 'purchase-stock/Purchases.dc.html' },
+      { id: 'po-receive', icon: 'package-open', label: 'Receive goods', sub: 'stock-buying', to: 'purchase-stock/ReceiveGoods.dc.html' },
       { id: 'stock-transfers', icon: 'arrow-left-right', label: 'Transfers', to: 'purchase-stock/Transfers.dc.html' },
-      { id: 'po-orders', icon: 'clipboard-list', label: 'Purchase orders', count: 2, to: 'purchase-stock/PurchaseOrders.dc.html' },
-      { id: 'po-suppliers', icon: 'truck', label: 'Suppliers', to: 'purchase-stock/Suppliers.dc.html' },
+      { id: 'po-orders', icon: 'clipboard-list', label: 'Purchase orders', sub: 'stock-buying', to: 'purchase-stock/PurchaseOrders.dc.html' },
+      { id: 'po-suppliers', icon: 'truck', label: 'Suppliers', sub: 'stock-buying', to: 'purchase-stock/Suppliers.dc.html' },
       { id: 'stock-adjust', icon: 'sliders-horizontal', label: 'Stock adjustments', to: 'purchase-stock/StockAdjustments.dc.html' },
       { id: 'stock-count', icon: 'clipboard-check', label: 'Stock count', to: 'purchase-stock/StockCount.dc.html' },
       { id: 'stock-holds', icon: 'lock', label: 'Stock holds', to: 'purchase-stock/StockHolds.dc.html' },
-      { id: 'stock-expiry', icon: 'calendar-x', label: 'Damaged & expired', count: 6, to: 'purchase-stock/ExpiryDisposal.dc.html' },
-      { id: 'po-requests', icon: 'clipboard-list', label: 'Purchase requests', count: 4, to: 'purchase-stock/Requests.dc.html' },
+      { id: 'stock-expiry', icon: 'calendar-x', label: 'Damaged & expired', to: 'purchase-stock/ExpiryDisposal.dc.html' },
+      { id: 'po-requests', icon: 'clipboard-list', label: 'Purchase requests', sub: 'stock-buying', to: 'purchase-stock/Requests.dc.html' },
       { id: 'stock-labels', icon: 'scan-barcode', label: 'Barcode labels', to: 'purchase-stock/BarcodeLabels.dc.html' },
-      { id: 'stock-wpol', icon: 'shield-check', label: 'Warranty policies', to: 'purchase-stock/WarrantyPolicies.dc.html' },
-      { id: 'stock-wclaims', icon: 'wrench', label: 'Warranty claims', count: 5, to: 'purchase-stock/WarrantyClaims.dc.html' },
       { id: 'stock-wh', icon: 'warehouse', label: 'Warehouses', sub: 'stock-places', to: 'purchase-stock/Warehouses.dc.html' },
       { id: 'stock-branches', icon: 'store', label: 'Branches', sub: 'stock-places', to: 'purchase-stock/Branches.dc.html' },
       { id: 'stock-racks', icon: 'layout-grid', label: 'Racks & bins', sub: 'stock-places', to: 'purchase-stock/Racks.dc.html' },
@@ -100,9 +104,13 @@ export const NAV = [
       { id: 'comm-cal', icon: 'calendar-days', label: 'Social posts', to: 'communication/Calendar.dc.html' },
       { id: 'comm-new', icon: 'square-pen', label: 'Create post', to: 'communication/Composer.dc.html', hidden: true, under: 'comm-cal' },
       { id: 'msg-campaigns', icon: 'send', label: 'Campaigns', to: 'communication/CampaignsMessaging.dc.html' },
+      // Automations is the one place for automatic work (review CX-U6): its tabs list the rules (AI rules too) and link
+      // the order notifications, cart reminders, smart offers and auto-call. Those pages fold under it (`fold`: a page
+      // shown as a tab of `under`; a person who can't open `under` gets it as its own row, team.js › navFor).
       { id: 'auto-rules', icon: 'zap', label: 'Automations', to: 'automation/Automations.dc.html' },
-      { id: 'auto-builder', icon: 'workflow', label: 'Workflow builder', to: 'automation/WorkflowBuilder.dc.html' },
-      { id: 'auto-settings', icon: 'settings-2', label: 'Communications settings', tab: 'Settings', to: 'automation/WorkflowSettings.dc.html' },
+      { id: 'auto-builder', icon: 'workflow', label: 'Workflow builder', to: 'automation/WorkflowBuilder.dc.html', hidden: true, under: 'auto-rules' },
+      { id: 'auto-settings', icon: 'settings-2', label: 'Communications settings', tab: 'Settings', to: 'automation/WorkflowSettings.dc.html', hidden: true, under: 'auto-rules', fold: true },
+      { id: 'rec-auto', icon: 'refresh-cw', label: 'Auto reminders', tab: 'Reminders', to: 'recovery/AutoReminders.dc.html', hidden: true, under: 'auto-rules', fold: true },
     ] },
     { id: 'area-finances', icon: 'wallet', label: 'Finances', children: [
       { id: 'acc-home', icon: 'layout-dashboard', label: 'Overview', to: 'accounts/AccountsHome.dc.html' },
@@ -119,26 +127,40 @@ export const NAV = [
       { id: 'rep-all', icon: 'file-bar-chart', label: 'Reports', to: 'reports/ReportsCentre.dc.html' },
       { id: 'rep-daily', icon: 'sun', label: 'Daily summary', to: 'reports/DailySummary.dc.html' },
       { id: 'auto-reports', icon: 'calendar-clock', label: 'Scheduled reports', to: 'reports/ScheduledReports.dc.html' },
-      { id: 'ta-track', icon: 'radar', label: 'Pixels & events', to: 'tracking-analytics/PixelsEvents.dc.html' },
-      { id: 'ta-health', icon: 'activity', label: 'Event health', count: 3, to: 'tracking-analytics/EventHealth.dc.html' },
-      { id: 'ta-setup', icon: 'list-checks', label: 'Setup guides', to: 'tracking-analytics/SetupGuide.dc.html' },
+      // the analytics pages themselves (MS-U6); pixel and event setup moved under Settings › Connections
+      { id: 'an-hub', icon: 'chart-line', label: 'Marketing performance', tab: 'Marketing', to: 'tracking-analytics/AnalyticsHub.dc.html' },
+      { id: 'an-campaigns', icon: 'layers', label: 'Campaigns & creatives', tab: 'Campaigns', to: 'tracking-analytics/Campaigns.dc.html' },
+      { id: 'an-attribution', icon: 'git-branch', label: 'Attribution', to: 'tracking-analytics/Attribution.dc.html' },
+      { id: 'an-traffic', icon: 'mouse-pointer-click', label: 'Products & traffic', tab: 'Traffic', to: 'tracking-analytics/ProductsTraffic.dc.html' },
+      { id: 'an-team', icon: 'users-round', label: 'Team performance', tab: 'Team', to: 'team-report/TeamReport.dc.html' },
+      { id: 'an-alerts', icon: 'bell-ring', label: 'Alerts & report builder', tab: 'Alerts', to: 'tracking-analytics/ReportsAlerts.dc.html' },
     ] },
+    // Marketing (review CX-U9): five rows. Offers holds coupons, flash sales and smart offers as tabs, Loyalty holds
+    // members, product points, store credit and invites (screens/loyalty-promo/MarketingTabs.jsx); those pages fold
+    // under their row (`fold`, see Automations above).
     { id: 'area-marketing', icon: 'megaphone', label: 'Marketing', children: [
       { id: 'promo-home', icon: 'megaphone', label: 'Offers', to: 'loyalty-promo/Promo.dc.html' },
-      { id: 'promo-coupons', icon: 'ticket-percent', label: 'Coupons', count: 4, to: 'loyalty-promo/Coupons.dc.html' },
-      { id: 'promo-flash', icon: 'zap', label: 'Flash sales', to: 'loyalty-promo/FlashSales.dc.html' },
+      { id: 'promo-coupons', icon: 'ticket-percent', label: 'Coupons', live: 'coupons', to: 'loyalty-promo/Coupons.dc.html', hidden: true, under: 'promo-home', fold: true },
+      { id: 'promo-flash', icon: 'zap', label: 'Flash sales', to: 'loyalty-promo/FlashSales.dc.html', hidden: true, under: 'promo-home', fold: true },
+      { id: 'rec-offers', icon: 'sparkles', label: 'Smart offers', to: 'recovery/SmartOffers.dc.html', hidden: true, under: 'promo-home', fold: true },
       { id: 'loy-home', icon: 'gift', label: 'Loyalty & rewards', tab: 'Loyalty', to: 'loyalty-promo/Loyalty.dc.html' },
-      { id: 'loy-members', icon: 'crown', label: 'Members', to: 'loyalty-promo/Members.dc.html' },
-      { id: 'loy-products', icon: 'star', label: 'Product points', to: 'loyalty-promo/ProductPoints.dc.html' },
-      { id: 'loy-wallet', icon: 'wallet', label: 'Store credit', to: 'loyalty-promo/Wallet.dc.html' },
-      { id: 'loy-referrals', icon: 'share-2', label: 'Invite a friend', to: 'loyalty-promo/Referrals.dc.html' },
-      { id: 'rec-carts', icon: 'shopping-bag', label: 'Abandoned carts', count: 31, to: 'recovery/AbandonedCarts.dc.html' },
-      { id: 'rec-auto', icon: 'refresh-cw', label: 'Auto reminders', tab: 'Reminders', to: 'recovery/AutoReminders.dc.html' },
-      { id: 'rec-offers', icon: 'sparkles', label: 'Smart offers', to: 'recovery/SmartOffers.dc.html' },
+      { id: 'loy-members', icon: 'crown', label: 'Members', to: 'loyalty-promo/Members.dc.html', hidden: true, under: 'loy-home', fold: true },
+      { id: 'loy-products', icon: 'star', label: 'Product points', to: 'loyalty-promo/ProductPoints.dc.html', hidden: true, under: 'loy-home', fold: true },
+      { id: 'loy-wallet', icon: 'wallet', label: 'Store credit', to: 'loyalty-promo/Wallet.dc.html', hidden: true, under: 'loy-home', fold: true },
+      { id: 'loy-referrals', icon: 'share-2', label: 'Invite a friend', to: 'loyalty-promo/Referrals.dc.html', hidden: true, under: 'loy-home', fold: true },
+      { id: 'rec-carts', icon: 'shopping-bag', label: 'Abandoned carts', live: 'carts', to: 'recovery/AbandonedCarts.dc.html' },
       { id: 'rec-audiences', icon: 'users-round', label: 'Ad audiences', to: 'recovery/AdAudiences.dc.html' },
       { id: 'ch-gbp', icon: 'map-pin', label: 'Google Business', to: 'channels/GoogleBusiness.dc.html' },
     ] },
     { id: 'area-store', icon: 'store', label: 'Online Store', children: [
+      // Storefront builder (Module A): theme settings + presets, the theme editor, header builder, layouts, HTML blocks
+      { id: 'store-theme', icon: 'paintbrush', label: 'Theme', to: 'online-store/Theme.dc.html' },
+      { id: 'store-theme-edit', icon: 'sliders-horizontal', label: 'Customize theme', to: 'online-store/ThemeEditor.dc.html', hidden: true, under: 'store-theme' },
+      { id: 'store-header', icon: 'panel-top', label: 'Header builder', to: 'online-store/HeaderBuilder.dc.html' },
+      { id: 'store-layouts', icon: 'layout-dashboard', label: 'Layouts', to: 'online-store/Layouts.dc.html' },
+      { id: 'store-layout-edit', icon: 'layout-dashboard', label: 'Edit layout', to: 'online-store/LayoutEdit.dc.html', hidden: true, under: 'store-layouts' },
+      { id: 'store-blocks', icon: 'blocks', label: 'HTML blocks', to: 'online-store/HtmlBlocks.dc.html' },
+      { id: 'store-block-edit', icon: 'blocks', label: 'Edit HTML block', to: 'online-store/HtmlBlockEdit.dc.html', hidden: true, under: 'store-blocks' },
       // Landing pages: the list (/landing-pages); the builder (/landing-page-builder?id=) opens from it
       { id: 'storefront', icon: 'layout-template', label: 'Landing pages', to: 'online-store/LandingPages.dc.html' },
       { id: 'store-pages', icon: 'file-text', label: 'Pages', to: 'online-store/StorePages.dc.html' },
@@ -204,15 +226,21 @@ export const NAV = [
     // every outside app and service, connected from one place (src/lib/connections.js)
     { id: 'area-settings', icon: 'settings', label: 'Settings', children: [
       { id: 'set-store', icon: 'sliders-horizontal', label: 'Store settings', to: 'settings-console/SetGeneral.dc.html' },
+      // every picture, video and document the shop uses (the old Products › Media library; id unchanged)
+      { id: 'products-media', icon: 'folder-open', label: 'Files', to: 'files/Files.dc.html' },
       // who can sign in and their roles (every plan, with or without Staff & HR); bringing data from another system
       { id: 'set-users', icon: 'user-cog', label: 'Users & roles', to: 'settings-console/SetUsers.dc.html' },
       { id: 'set-import', icon: 'file-up', label: 'Import data', to: 'settings-console/ImportData.dc.html' },
       // name@yourshop.com mailboxes (Module D; lib/platform/mail.js, shared with the super admin)
       { id: 'set-email', icon: 'mail', label: 'Business email', to: 'settings-console/BusinessEmail.dc.html' },
       { id: 'connections', icon: 'plug', label: 'Connections', to: 'connections/Connections.dc.html' },
+      // website tracking setup (pixels, event health, setup guides): opened from Connections › Ads & tracking (MS-U6)
+      { id: 'ta-track', icon: 'radar', label: 'Pixels & events', to: 'tracking-analytics/PixelsEvents.dc.html', hidden: true, under: 'connections' },
+      { id: 'ta-health', icon: 'activity', label: 'Event health', to: 'tracking-analytics/EventHealth.dc.html', hidden: true, under: 'connections' },
+      { id: 'ta-setup', icon: 'list-checks', label: 'Setup guides', to: 'tracking-analytics/SetupGuide.dc.html', hidden: true, under: 'connections' },
       { id: 'set-wallet', icon: 'wallet', label: 'Wallet & credits', to: 'billing/CreditWallet.dc.html' },
       { id: 'set-billing', icon: 'receipt', label: 'Subscription & billing', to: 'billing/Subscription.dc.html' },
-      { id: 'set-help', icon: 'life-buoy', label: 'Help & support', count: 2, to: 'billing/HelpSupport.dc.html' },
+      { id: 'set-help', icon: 'life-buoy', label: 'Help & support', to: 'billing/HelpSupport.dc.html' },
     ] },
   ] },
 ];

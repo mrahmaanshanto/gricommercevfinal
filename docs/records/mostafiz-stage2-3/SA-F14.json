@@ -1,0 +1,42 @@
+{
+ "id": "SA-F14",
+ "kind": "new",
+ "section": "Super admin",
+ "area": "Super admin",
+ "title": "VAT and billing details on bills",
+ "problem": "Subscription bills had no VAT line and a store's BIN, invoice name and billing email could not be kept.",
+ "now": "New bills carry 15% VAT and the store's billing name, BIN and email; staff or the owner can change those details.",
+ "steps": [
+  "Open a bill issued in the last few days: it has a VAT 15% line",
+  "Its Facts show who it is billed to; Print shows both BINs",
+  "On a merchant profile press Edit on Billing details and save a BIN",
+  "The next bill keeps the new details"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/platform/billing.js",
+  "src/lib/platform/seed.js",
+  "src/lib/platform/shops.js",
+  "src/screens/admin/billing/InvoiceView.jsx",
+  "src/screens/admin/merchants/profile/ProfileActions.jsx",
+  "src/screens/admin/merchants/profile/ProfileOverview.jsx",
+  "src/lib/admin/finance.js"
+ ],
+ "notes": "Where: Super admin: Billing & credits › Invoices › a bill; merchant profile › Billing details · Merchant: Settings › Business verification · Needs the server: Bills issued before the rule started keep no VAT line.",
+ "shots": [
+  {
+   "route": "/admin/invoices",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Super admin: Invoices",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

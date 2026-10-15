@@ -25,7 +25,7 @@ import { currentUser } from '@/lib/team';
 import { posLimitsOf } from '@/lib/shopUsers';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { addReturn, returnedFromHistory, cutFromHistory, storeCreditFor, getReturns } from '@/lib/returns';
-import { POS_KEYS, load, save, getSettings, getCounters, EMPLOYEES } from '@/lib/posStore';
+import { POS_KEYS, load, save, getSettings, getCounters, EMPLOYEES, limitsFor } from '@/lib/posStore';
 import { getInvoices, saveInvoice, stockOutAtSale, sentOf } from '@/lib/invoices';
 import { updateOrder } from '@/lib/orderLinks';
 import { getOrders, orderChannel } from '@/lib/orders';
@@ -41,6 +41,8 @@ import { issueCredit } from '@/lib/storeCredit';
 import { returnSerial } from '@/lib/serials';
 import { liveCounterSales } from '@/lib/liveCounterSales';
 import { priceFor } from '@/lib/wholesalePrice';
+import { hasModule } from '@/lib/edition';
+import { notifyCustomer } from '@/lib/notifications';
 
 const DAY = 86400000;
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -382,7 +384,9 @@ export default function ReturnExchange() {
   const outside = !!sel && Date.now() - sel.at > returnDays * DAY;
   // money given back: a custom role may need a manager or may not refund at all (Settings › Users & roles › POS limits)
   const refundRule = dir === 'out' && m !== 'Cut from due' && m !== 'Store credit' ? ((posLimitsOf(currentUser()) || {}).refunds || 'yes') : 'yes';
-  const needPin = outside || refundRule === 'pin';
+  // …and the POS limits of the person doing it (POS management › Settings): over them someone allowed to refund approves
+  const posRefund = dir === 'out' && m !== 'Cut from due' && m !== 'Store credit' && staff ? (limitsFor(staff).refund || 'yes') : 'yes';
+  const needPin = outside || refundRule === 'pin' || posRefund === 'pin';
 
   const setPick = (id, n) => { const o = { ...picks }; if (n) o[id] = n; else delete o[id]; setPicks(o); };
   // unit by unit: tick the IMEI that came back (or scan it); a number not sold on this sale needs a manager
@@ -482,6 +486,8 @@ export default function ReturnExchange() {
       counter: counterAt, drawer, ...(Object.keys(snMap).length ? { serials: snMap } : {}), ...(snOdd.length ? { notSold: snOdd } : {}),
     });
 
+    // the customer is told the return was checked in (Settings › Notifications › Return received), once per return
+    if (phone) { try { notifyCustomer('return-received', { name: custName, phone }, { ref_id: row.id }, { ref: row.id, once: row.id + '|received' }); } catch { /* messages are not essential */ } }
     // store credit lands in the customer's wallet (lib/storeCredit), so the POS and checkout can spend it
     if (dir === 'out' && m === 'Store credit' && phone) issueCredit({ phone, amount: amt, source: 'return', ref: row.id, by: staff, channel: sel.channel === 'Wholesale' ? 'Wholesale' : sel.channel === 'Retail' ? 'Retail' : 'Online' });
     // serial / IMEI numbers that came back go back on the register at the place the goods went
@@ -576,7 +582,8 @@ export default function ReturnExchange() {
               <RecordHeader title="Return & exchange" meta={`${returnDays}-day return window · older sales need a manager`}
                 about="Counter sales, wholesale invoices and online orders. Find the sale, tick what is coming back; money and stock are updated for you."
                 secondary={[{ label: 'Return history', href: '/return-history' }]}
-                more={[{ label: 'Sales book', href: '/sales-book' }]} />
+                // online returns that need a pickup first are worked on Return requests (ON-F8)
+                more={[...(ready && hasModule('online') ? [{ label: 'Return requests', href: '/return-requests' }] : []), { label: 'Sales book', href: '/sales-book' }]} />
 
               <div className="ix-record">
                 <div className="ix-main">
@@ -835,6 +842,8 @@ export default function ReturnExchange() {
         reason={sel ? (outside ? `${sel.label} was sold ${ageDays} days ago, outside the ${returnDays}-day return window. A manager must approve this ${mode === 'ret' ? 'return' : 'exchange'}.` : `Giving ${money(amt)} back needs a manager’s approval for your role.`) : ''}
         onApprove={(name) => { setApprovedBy(name); doSave(name); }}
         onClose={() => setPinOpen(false)}
+        by={staff}
+        need={posRefund === 'pin' || refundRule === 'pin' ? { perm: 'refund' } : undefined}
       />
       <ManagerPin
         open={!!snAsk}

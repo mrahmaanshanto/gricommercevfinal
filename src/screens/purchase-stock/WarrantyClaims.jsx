@@ -1,82 +1,32 @@
 'use client';
-// Generated from design/templates/purchase-stock/WarrantyClaims.dc.html by scripts/convert-design.mjs.
-// Warranty claims & serials — Stock — Warranty claims, laid out like a Shopify list page (docs/shopify-style.md):
-// a few figures, then one card with the claims (or the serial & IMEI register). A claim opens in a side panel with
-// its steps and the decision; New claim starts with the warranty look-up; adding numbers for received goods is a panel.
-// Edit freely: this file is now the source for the screen.
+// Warranty claims & serials — Products › Warranty claims (/warranty-claims), laid out like a Shopify list page
+// (docs/shopify-style.md): a few figures, then one card with the claims (or the serial & IMEI register). The claims are
+// the real records of lib/customerWarranty.js (a claim logged with "Log service" on a customer or an order shows here):
+// received → with service centre → ready for pickup → returned to customer, or rejected with a reason; each step sends
+// the customer a message (notifications.js › notifyCustomer). New claim looks the item up by IMEI / serial, phone or order number and checks the warranty
+// against the policy it was sold under (lib/warranty.js › coverOf). The register is lib/serials.js.
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
-import { Dialog as __Dialog, Sheet as __Sheet, StatusBadge as __StatusBadge, InfoTip as __InfoTip } from '@/components/ui';
-import { ShopHeader, MetricStrip, IndexTabs, LearnMore, Menu } from '@/components/ui/IndexKit';
-import { toast as __toast } from '@/runtime/ui';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { Icon } from '@/runtime/dc';
+import { Sidebar, Topbar } from '@/shell/Shell';
+import { Dialog, Sheet, StatusBadge } from '@/components/ui';
+import { ShopHeader, MetricStrip, IndexTabs, LearnMore, Menu, SearchField } from '@/components/ui/IndexKit';
+import { toast } from '@/runtime/ui';
+import { formatDate } from '@/lib/format';
+import { downloadCsv } from '@/lib/reports/period';
+import { currentUser } from '@/lib/team';
+import { getSerials, SERIAL_STATES } from '@/lib/serials';
+import { getClaims, claimBy, stepOf, isOpenClaim, openClaim, moveClaim, rejectClaim, lookupWarranty, CLAIM_STEPS, CLAIM_LABEL, DECISIONS, CLAIMS_EVENT } from '@/lib/customerWarranty';
+import { allProducts } from '@/lib/products';
+import { productBy } from '@/lib/stock';
+import { coverOf } from '@/lib/warranty';
+import { notifyWords } from '@/lib/notifications';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
-
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { __toast(m, bad ? { tone: 'info' } : undefined); }
-function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-var STEPS = ['Received', 'Inspecting', 'Sent to brand', 'Repairing', 'Ready', 'Returned'];
-var CL = [['WC-0318', 'Galaxy A55 5G', 'IMEI 350912118845201', 'Rahima K.', 'Screen flickers after 10 minutes', 1, 2], ['WC-0317', 'Redmi Note 13', 'IMEI 862210045517733', 'Tanvir A.', 'Battery drains in 4 hours', 2, 5], ['WC-0315', 'Laptop 14" i5', 'SN LP14-22A0917', 'Arif H.', 'Keyboard keys not working', 3, 8], ['WC-0314', 'Bluetooth speaker', 'SN SPK-88120', 'Nabila S.', 'No sound from left driver', 4, 6], ['WC-0312', 'Galaxy A35 5G', 'IMEI 350912118830122', 'Fahim R.', 'Charging port loose', 0, 1], ['WC-0309', 'Smart watch', 'SN SW-44109', 'Mitu D.', 'Strap broken', 'rej', 3], ['WC-0305', 'Redmi Note 13', 'IMEI 862210045501890', 'Sakib M.', 'Camera does not focus', 5, 11]];
-var SN = [['350912118845201', 'Galaxy A55 5G', 'GRN-0931 · Star Tech Traders', 'Under claim', 'Rahima K.', '12 Feb 2027'], ['350912118845219', 'Galaxy A55 5G', 'GRN-0931 · Star Tech Traders', 'In stock', '—', 'Starts on sale'], ['350912118845227', 'Galaxy A55 5G', 'GRN-0931 · Star Tech Traders', 'Sold', 'Imran H.', '3 Sep 2027'], ['862210045517733', 'Redmi Note 13', 'GRN-0927 · Mobile Hub BD', 'Under claim', 'Tanvir A.', '20 Jan 2027'], ['862210045520018', 'Redmi Note 13', 'GRN-0927 · Mobile Hub BD', 'In stock', '—', 'Starts on sale'], ['LP14-22A0917', 'Laptop 14" i5', 'GRN-0919 · Byte Supply', 'Under claim', 'Arif H.', '8 May 2027'], ['SPK-88120', 'Bluetooth speaker', 'GRN-0880 · SoundMax', 'Returned', 'Nabila S.', '30 Nov 2026']];
-// one badge tone per claim step and per serial number status
-var STEP_TONE = { Received: 'info', Inspecting: 'warning', 'Sent to brand': 'primary', Repairing: 'warning', Ready: 'success', Returned: 'neutral', Rejected: 'error' };
-var SN_TONE = { 'Under claim': 'warning', 'In stock': 'success', Sold: 'info', Returned: 'neutral' };
-class Component extends DCLogic {
-  renderVals() {
-    var self = this, s = this.state || {};
-    var tab = s.tab || this.props.tab || 'claims';
-    var stg = s.stg || {};
-    var stage = function (c) { return stg[c[0]] != null ? stg[c[0]] : c[5]; };
-    var filt = s.filt || 'all';
-    var sel = s.sel || 'WC-0318';
-    var D = CL.filter(function (c) { return c[0] === sel; })[0] || CL[0];
-    var ds = stage(D);
-    var by = s.by || 'imei';
-    var scans = s.scans || ['350912118845243', '350912118845250', '350912118845268'];
-    var label = function (st) { return st === 'rej' ? 'Rejected' : STEPS[st]; };
-    var open = CL.filter(function (c) { var x = stage(c); return x !== 'rej' && x < 5; }).length;
-    var counts = { all: CL.length }; CL.forEach(function (c) { var x = stage(c); counts[x] = (counts[x] || 0) + 1; });
-    var v = {
-      tabs: [{ k: 'claims', label: 'Warranty claims', count: open }, { k: 'serials', label: 'Serial & IMEI register', count: 1284 }].map(function (t) { return assign(t, { on: t.k === tab, pick: function () { self.setState({ tab: t.k }); } }); }),
-      is_claims: tab === 'claims', is_serials: tab === 'serials',
-      kOpen: String(open), kOpenSub: '2 waiting on the brand',
-      // a new claim starts with the look-up: the claim fills itself from the sale
-      lookOpen: !!s.look, newClaim: function () { self.setState({ look: true }); }, closeLook: function () { self.setState({ look: false }); },
-      byOpts: [['inv', 'Invoice'], ['phone', 'Phone'], ['imei', 'Serial or IMEI']].map(function (x) { var on = x[0] === by; return { l: x[1], on: on, pick: function () { self.setState({ by: x[0] }); } }; }),
-      q: s.q != null ? s.q : '350912118845201', typeQ: function (e) { self.setState({ q: e.target.value }); },
-      lookup: function () { self.setState({ hit: true }); toast(self, 'Found 1 sale. Warranty checked against the policy it was sold under.'); },
-      hasHit: s.hit !== false, hitSt: 'WITHIN WARRANTY', hitLeft: '4 months 24 days left',
-      openClaim: function () { self.setState({ sel: 'WC-0318', tab: 'claims', look: false, open: true }); toast(self, 'Claim WC-0318 is open for this IMEI.'); },
-      filt: String(filt),
-      fchips: [['all', 'All'], [0, 'Received'], [1, 'Inspecting'], [2, 'Sent to brand'], [3, 'Repairing'], [4, 'Ready'], [5, 'Returned'], ['rej', 'Rejected']].map(function (x) { return { k: String(x[0]), l: x[1], c: counts[x[0]] || 0 }; }),
-      setFilt: function (e) { var k = e.target.value; self.setState({ filt: k === 'all' || k === 'rej' ? k : +k }); },
-      claims: CL.filter(function (c) { return filt === 'all' || String(stage(c)) === String(filt); }).map(function (c) { var x = stage(c), st = label(x); return { id: c[0], p: c[1], sn: c[2], c: c[3], i: c[4], st: st, tone: STEP_TONE[st], d: c[6] + 'd', late: c[6] > 7, on: c[0] === sel && !!s.open, pick: function () { self.setState({ sel: c[0], open: true }); } }; }),
-      // the claim in the side panel
-      claimOpen: !!s.open, closeClaim: function () { self.setState({ open: false }); },
-      dId: D[0], dP: D[1], dSn: D[2], dC: D[3], dI: D[4], dSt: label(ds), dTone: STEP_TONE[label(ds)],
-      dCheck: 'Within warranty · policy v2 · proof: invoice + IMEI',
-      steps: STEPS.map(function (l, i) { var done = ds !== 'rej' && i < ds, cur = ds !== 'rej' && i === ds; return { l: l, n: i + 1, done: done, cur: cur, when: done ? 'Done' : cur ? 'Now' : '' }; }),
-      dMsg: ds === 'rej' ? 'SMS sent: claim rejected — strap damage is not covered.' : 'WhatsApp to ' + D[3] + ': “Your ' + D[1] + ' is now ' + label(ds).toLowerCase() + '.”',
-      closed: ds === 'rej' || ds >= 5,
-      advLbl: ds === 'rej' || ds >= 5 ? 'Closed' : 'Move to: ' + STEPS[ds + 1],
-      advance: function () { if (ds === 'rej' || ds >= 5) return; var n = assign({}, stg); n[D[0]] = ds + 1; self.setState({ stg: n }); toast(self, D[0] + ' moved to ' + STEPS[ds + 1] + '. Customer updated by WhatsApp.'); },
-      reject: function () { var n = assign({}, stg); n[D[0]] = 'rej'; self.setState({ stg: n }); toast(self, D[0] + ' rejected. The reason was sent to the customer.', true); },
-      byBrand: [['Samsung', 7], ['Xiaomi', 4], ['Laptops', 2], ['Audio', 2]].map(function (b) { return { l: b[0], n: b[1], w: b[1] / 7 * 100 + '%' }; }),
-      sns: SN.map(function (r) { return { no: r[0], p: r[1], b: r[2], st: r[3], tone: SN_TONE[r[3]], c: r[4], e: r[5] }; }),
-      // numbers for received goods, in a side panel
-      scanOpen: !!s.scan, openScan: function () { self.setState({ scan: true }); }, closeScan: function () { self.setState({ scan: false }); },
-      scanN: 11 + scans.length, scanW: (11 + scans.length) / 20 * 100 + '%',
-      scanIn: s.scanIn || '', typeScan: function (e) { self.setState({ scanIn: e.target.value }); },
-      addScan: function () { var t = (s.scanIn || '').trim(); if (!t) { toast(self, 'Scan or type an IMEI first.', true); return; } if (scans.indexOf(t) >= 0) { toast(self, 'Already added — duplicates are blocked.', true); return; } self.setState({ scans: [t].concat(scans), scanIn: '' }); toast(self, 'Added. ' + (19 - scans.length - 11) + ' left to scan.'); },
-      recent: scans.slice(0, 3).map(function (t) { return { t: t }; }),
-      remind: mkSw(this, 'remind', true)
-    };
-    return v;
-  }
-}
+const DAY = 864e5;
+const STEP_TONE = { received: 'info', centre: 'warning', ready: 'success', returned: 'neutral', rejected: 'error' };
+const SN_TONE = { 'Under claim': 'warning', 'In stock': 'success', Sold: 'info', Returned: 'neutral' };
+const FILTERS = [['open', 'Open'], ['received', 'Received'], ['centre', 'With service centre'], ['ready', 'Ready for pickup'], ['returned', 'Returned'], ['rejected', 'Rejected'], ['all', 'All']];
 
 // ---- styles ----
 
@@ -123,6 +73,8 @@ const CSS = `
 .wc-recent>svg{color:var(--text-success)}
 .wc-count{display:flex;justify-content:space-between;margin-bottom:6px;font-size:var(--text-xs-plus)}
 .wc-progress .gc-progress__fill{background:var(--success)}
+.wc-empty{margin:0;padding:var(--space-4);font-size:var(--text-sm);color:var(--text-muted)}
+.wc-hit--out{background:var(--fill-warning-soft)}
 @media (max-width:640px){
   .wc-foot>span{display:none}
   /* phones: a figure's note goes under the figure instead of running into the next one */
@@ -130,233 +82,288 @@ const CSS = `
   .wc-page .ix-metric__sub{white-space:normal}
 }
 `;
-
 // ---- markup ----
 
-const Switch = ({ sw, label }) => (
-  <button type="button" role="switch" aria-checked={!!(sw && sw.on)} aria-label={label} className="gc-switch" onClick={sw && sw.toggle}><span className="gc-switch__knob" /></button>
-);
+export default function WarrantyClaimsScreen() {
+  const [ready, setReady] = useState(false);
+  const [tick, setTick] = useState(0);
+  const [now, setNow] = useState(0);
+  const [tab, setTab] = useState('claims');
+  const [filt, setFilt] = useState('open');
+  const [q, setQ] = useState('');
+  const [find, setFind] = useState(false);
+  const [sel, setSel] = useState('');           // the claim open in the side panel
+  const [note, setNote] = useState('');
+  const [decision, setDecision] = useState('repair');
+  const [rejecting, setRejecting] = useState(null);   // the reason being typed
+  const [look, setLook] = useState(null);       // New claim: { q, hits, pick, problem }
+  useEffect(() => {
+    setReady(true); setNow(Date.now());
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('tab') === 'serials') setTab('serials');
+    if (qs.get('q')) { setQ(qs.get('q')); setFind(true); }
+    const bump = () => { setTick((n) => n + 1); setNow(Date.now()); };
+    window.addEventListener(CLAIMS_EVENT, bump); window.addEventListener('gc:serials', bump);
+    return () => { window.removeEventListener(CLAIMS_EVENT, bump); window.removeEventListener('gc:serials', bump); };
+  }, []);
 
-export default class WarrantyClaimsScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    const tabs = __list(v.tabs).map((t) => ({ key: t.k, id: 'wc-tab-' + t.k, label: t.label, count: t.count, on: t.on, onClick: t.pick }));
-    const filtSet = v.filt !== 'all';
-    return (
-      <div className="dc-screen ds" data-screen="WarrantyClaims">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell">
-          <__Sidebar sticky="" active="stock-wclaims" />
-          <main className="gc-shell__main">
-            <__Topbar crumb="Stock" page={"Warranty claims & serial numbers"} placeholder="Search invoice, phone, serial or IMEI" />
-            <div className="gc-shell__content">
-              <div className="ix-page wc-page">
-                <ShopHeader icon="shield-check" title={"Warranty claims & serial numbers"}
-                  about="Every piece with its own number — from the day it arrives to the day its warranty ends."
-                  secondary={[{ label: 'Warranty policies', href: '/warranty-policies' }]}
-                  primary={{ label: 'New claim', onClick: v.newClaim }} />
+  const claims = useMemo(() => { void tick; return ready ? getClaims() : []; }, [ready, tick]);
+  const units = useMemo(() => { void tick; return ready ? getSerials() : []; }, [ready, tick]);
+  const qq = q.trim().toUpperCase().replace(/\s+/g, '');
+  const hitClaim = (c) => !qq || [c.id, c.item, c.name, c.phone, c.order, ...(c.serials || [])].some((x) => String(x || '').toUpperCase().replace(/\s+/g, '').includes(qq));
+  const open = claims.filter(isOpenClaim);
+  const counts = Object.fromEntries(FILTERS.map(([k]) => [k, claims.filter((c) => (k === 'all' ? true : k === 'open' ? isOpenClaim(c) : stepOf(c) === k)).length]));
+  const shownClaims = claims.filter((c) => (filt === 'all' ? true : filt === 'open' ? isOpenClaim(c) : stepOf(c) === filt) && hitClaim(c));
+  const closed = claims.filter((c) => stepOf(c) === 'returned' && c.closedAt);
+  const avgDays = closed.length ? closed.reduce((a, c) => a + (c.closedAt - c.at) / DAY, 0) / closed.length : null;
+  const monthStart = now ? new Date(new Date(now).getFullYear(), new Date(now).getMonth(), 1).getTime() : 0;
+  const rejectedMonth = claims.filter((c) => stepOf(c) === 'rejected' && (c.closedAt || c.at) >= monthStart).length;
+  const daysOpen = (c) => (now ? Math.max(0, Math.floor(((c.closedAt || now) - c.at) / DAY)) : 0);
 
-                <MetricStrip label="Warranty claims" items={[
-                  { label: 'Open claims', value: v.kOpen, sub: v.kOpenSub },
-                  { label: 'Average turnaround', value: '6.4 days', sub: 'Promise: 7–15 days' },
-                  { label: 'Rejected this month', value: '3', sub: 'All with a reason sent' },
-                ]} />
+  // the register: every unit, with who has it and when its warranty ends
+  const products = useMemo(() => (ready ? allProducts() : []), [ready]);
+  const underClaim = new Set(open.flatMap((c) => c.serials || []));
+  const endOf = (u) => {
+    if (u.state !== 'sold' || !u.soldAt) return u.state === 'stock' ? 'Starts on sale' : '—';
+    const row = productBy(u.sku || u.product);
+    const p = (row && row.productId && products.find((x) => x.id === row.productId)) || products.find((x) => x.sku === u.sku) || products.find((x) => x.name === u.product);
+    const w = coverOf(p, u.soldAt);
+    return w ? formatDate(w.until) : 'No warranty';
+  };
+  const snRows = units.filter((u) => !qq || [u.serial, u.product, u.customer, u.saleId].some((x) => String(x || '').toUpperCase().includes(qq))).map((u) => {
+    const st = underClaim.has(u.serial) ? 'Under claim' : SERIAL_STATES[u.state] || u.state;
+    return { no: u.serial, p: u.product, b: [u.added, u.supplier].filter(Boolean).join(' · ') || u.place, st, c: u.state === 'sold' ? u.customer || 'Walk-in customer' : u.place, e: endOf(u) };
+  });
 
-                <section className="ix-card" aria-label={"Warranty claims & serial numbers"}>
-                  <div className="ix-bar">
-                    <IndexTabs tabs={tabs} label={"Warranty claims & serial numbers"} />
+  const D = sel ? claimBy(sel) : null;
+  const ds = D ? stepOf(D) : '';
+  const di = CLAIM_STEPS.findIndex((x) => x.key === ds);
+  const nextStep = di >= 0 && di < CLAIM_STEPS.length - 1 ? CLAIM_STEPS[di + 1] : null;
+  const who = () => (currentUser() || {}).name || 'Staff';
+  const pick = (c) => { setSel(c.id); setNote(''); setDecision(c.decision || 'repair'); setRejecting(null); };
+  const advance = () => {
+    if (!D || !nextStep) return;
+    const r = moveClaim(D.id, nextStep.key, { by: who(), note, decision });
+    setNote('');
+    toast(`${D.id} moved to ${nextStep.label}. ${r.sms ? notifyWords(r.sms) : 'No phone number, so no message.'}`);
+  };
+  const reject = () => {
+    if (!rejecting || !rejecting.trim()) { toast('Write why the claim is rejected', { tone: 'error' }); return; }
+    const r = rejectClaim(D.id, rejecting, who());
+    setRejecting(null);
+    toast(`${D.id} rejected. ${r.sms ? notifyWords(r.sms) : 'No phone number, so no message.'}`, { tone: 'info' });
+  };
+
+  const startLook = () => setLook({ q: '', hits: null, pick: null, problem: '' });
+  const runLook = (e) => { if (e) e.preventDefault(); const hits = lookupWarranty(look.q, Date.now()); setLook({ ...look, hits, pick: hits.length === 1 ? hits[0] : null }); };
+  const saveLook = () => {
+    const it = look.pick;
+    if (!it) { toast('Look up the item first', { tone: 'error' }); return; }
+    if (!look.problem.trim()) { toast('Write what is wrong with it', { tone: 'error' }); return; }
+    const c = openClaim({ item: it, problem: look.problem, phone: it.phone && it.phone !== '—' ? it.phone : '', name: it.name2 || '', by: who() });
+    setLook(null); setTab('claims'); setFilt('open'); pick(c);
+    toast(`Claim ${c.id} opened for ${it.name}`);
+  };
+  const csv = () => downloadCsv('serial-imei-register', [['Serial / IMEI', 'Product', 'Received', 'Status', 'Customer or place', 'Warranty ends'], ...snRows.map((r) => [r.no, r.p, r.b, r.st, r.c, r.e])]);
+
+  const tabs = [
+    { key: 'claims', id: 'wc-tab-claims', label: 'Warranty claims', count: ready ? open.length : null, on: tab === 'claims', onClick: () => setTab('claims') },
+    { key: 'serials', id: 'wc-tab-serials', label: 'Serial & IMEI register', count: ready ? units.length : null, on: tab === 'serials', onClick: () => setTab('serials') },
+  ];
+  const centreN = open.filter((c) => stepOf(c) === 'centre').length;
+  return (
+    <div className="dc-screen ds" data-screen="WarrantyClaims">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <div className="gc-shell">
+        <Sidebar sticky="" active="stock-wclaims" />
+        <main className="gc-shell__main">
+          <Topbar crumb="Products" page="Warranty claims & serial numbers" placeholder="Search invoice, phone, serial or IMEI" />
+          <div className="gc-shell__content">
+            <div className="ix-page wc-page">
+              <ShopHeader icon="shield-check" title="Warranty claims & serial numbers"
+                about="Every piece with its own number, from the day it arrives to the day its warranty ends, and every warranty claim from received to handed back."
+                secondary={[{ label: 'Warranty policies', href: '/warranty-policies' }]}
+                primary={{ label: 'New claim', onClick: startLook }} />
+
+              <MetricStrip label="Warranty claims" items={[
+                { label: 'Open claims', value: ready ? String(open.length) : '—', sub: centreN ? centreN + ' with the service centre' : 'None with the service centre' },
+                { label: 'Average turnaround', value: avgDays == null ? '—' : avgDays.toFixed(1) + ' days', sub: closed.length ? closed.length + ' handed back' : 'None handed back yet' },
+                { label: 'Rejected this month', value: ready ? String(rejectedMonth) : '—' },
+              ]} />
+
+              <section className="ix-card" aria-label="Warranty claims & serial numbers">
+                <div className="ix-bar">
+                  {find ? (<>
+                    <SearchField value={q} onChange={(e) => setQ(e.target.value)} placeholder="IMEI, serial, phone, claim or order" onDone={() => { setFind(false); setQ(''); }} autoFocus />
+                    <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => { setFind(false); setQ(''); }}>Cancel</button>
+                  </>) : (<>
+                    <IndexTabs tabs={tabs} label="Warranty claims & serial numbers" />
                     <span className="ix-tools">
-                      {v.is_claims ? (
-                        <select aria-label="Status" className={'ix-filter' + (filtSet ? ' is-set' : '')} value={v.filt} onChange={v.setFilt}>
-                          {__list(v.fchips).map((f) => <option key={f.k} value={f.k}>{f.k === 'all' ? 'Status' : f.l + ' · ' + f.c}</option>)}
+                      <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search by IMEI, serial or phone" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+                      {tab === 'claims' ? (
+                        <select aria-label="Status" className={'ix-filter' + (filt !== 'open' ? ' is-set' : '')} value={filt} onChange={(e) => setFilt(e.target.value)}>
+                          {FILTERS.map(([k, l]) => <option key={k} value={k}>{l + ' · ' + (counts[k] || 0)}</option>)}
                         </select>
-                      ) : (<>
-                        <button type="button" className="ix-btn ix-btn--sm" onClick={v.openScan} aria-haspopup="dialog"><__Icon name="scan-barcode" width="16" height="16" aria-hidden="true" />Add numbers</button>
-                        <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" items={[{ label: 'Print warranty cards', icon: 'printer' }, { label: 'CSV', icon: 'download' }]} />
-                      </>)}
+                      ) : (
+                        <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" items={[{ label: 'Download CSV', icon: 'download', onClick: csv }, { label: 'Receive goods', icon: 'package-open', href: '/receive-goods' }]} />
+                      )}
                     </span>
-                  </div>
+                  </>)}
+                </div>
 
-                  {v.is_claims ? (<>
-                    <ul className="ix-plist" aria-label="Warranty claims">
-                      {__list(v.claims).map((cl) => (
-                        <li key={cl.id}>
-                          <button type="button" className="ix-pitem" onClick={cl.pick}>
-                            <span className="ix-pitem__top"><b className="wc-id">{cl.id}</b><__StatusBadge tone={cl.tone}>{cl.st}</__StatusBadge></span>
-                            <span className="ix-pitem__mid">{cl.p} · {cl.c} · <span className={cl.late ? 'wc-late' : ''}>{cl.d}</span></span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                {tab === 'claims' ? (<>
+                  {shownClaims.length === 0 ? <p className="wc-empty">{qq ? 'No claim matches “' + q.trim() + '”.' : filt === 'open' ? 'No open claims. Use New claim when a customer brings an item back.' : 'No claims here.'}</p> : null}
+                  <ul className="ix-plist" aria-label="Warranty claims">
+                    {shownClaims.map((c) => (
+                      <li key={c.id}>
+                        <button type="button" className="ix-pitem" onClick={() => pick(c)}>
+                          <span className="ix-pitem__top"><b className="wc-id">{c.id}</b><StatusBadge tone={STEP_TONE[stepOf(c)]}>{CLAIM_LABEL[stepOf(c)]}</StatusBadge></span>
+                          <span className="ix-pitem__mid">{c.item} · {c.name || 'Walk-in customer'} · <span className={isOpenClaim(c) && daysOpen(c) > 7 ? 'wc-late' : ''}>{daysOpen(c)}d</span></span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {shownClaims.length ? (
                     <div className="ix-table-wrap">
-                      <table className="ix-table gc-table--keep">
+                      <table className="ix-table">
                         <caption className="sr-only">Warranty claims</caption>
-                        <thead><tr><th scope="col">Claim</th><th scope="col">Product</th><th scope="col">Customer</th><th scope="col">Status</th><th scope="col" className="ix-num">Open</th></tr></thead>
+                        <thead><tr><th scope="col">Claim</th><th scope="col">Product</th><th scope="col">IMEI / serial</th><th scope="col">Customer</th><th scope="col">Status</th><th scope="col" className="ix-num">Days</th></tr></thead>
                         <tbody>
-                          {__list(v.claims).map((cl) => (
-                            <tr key={cl.id} className={cl.on ? 'is-sel' : ''} onClick={cl.pick}>
-                              <td><button type="button" className="ix-strong wc-id" onClick={(e) => { e.stopPropagation(); cl.pick(); }}>{cl.id}</button></td>
-                              <td>{cl.p}</td>
-                              <td className="ix-muted">{cl.c}</td>
-                              <td><__StatusBadge tone={cl.tone}>{cl.st}</__StatusBadge></td>
-                              <td className={'ix-num' + (cl.late ? ' wc-late' : '')}>{cl.d}</td>
+                          {shownClaims.map((c) => (
+                            <tr key={c.id} className={c.id === sel ? 'is-sel' : ''} onClick={() => pick(c)}>
+                              <td><button type="button" className="ix-strong wc-id" onClick={(e) => { e.stopPropagation(); pick(c); }}>{c.id}</button></td>
+                              <td>{c.item}</td>
+                              <td className="wc-id ix-muted">{(c.serials || []).join(', ') || '—'}</td>
+                              <td className="ix-muted">{c.name || 'Walk-in customer'}</td>
+                              <td><StatusBadge tone={STEP_TONE[stepOf(c)]}>{CLAIM_LABEL[stepOf(c)]}</StatusBadge></td>
+                              <td className={'ix-num' + (isOpenClaim(c) && daysOpen(c) > 7 ? ' wc-late' : '')}>{daysOpen(c)}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
-                    <div className="ix-foot"><span>{v.claims.length === 1 ? '1 claim' : v.claims.length + ' claims'}</span></div>
-                  </>) : null}
-
-                  {v.is_serials ? (<>
-                    <ul className="ix-plist" aria-label="Serial & IMEI register">
-                      {__list(v.sns).map((sr) => (
-                        <li key={sr.no}>
-                          <div className="ix-pitem">
-                            <span className="ix-pitem__top"><b className="wc-id">{sr.no}</b><__StatusBadge tone={sr.tone}>{sr.st}</__StatusBadge></span>
-                            <span className="ix-pitem__mid">{sr.p} · {sr.c} · {sr.e}</span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="ix-table-wrap">
-                      <table className="ix-table ix-table--static gc-table--keep">
-                        <caption className="sr-only">Serial & IMEI register</caption>
-                        <thead><tr><th scope="col">Serial / IMEI</th><th scope="col">Product</th><th scope="col">Batch · supplier</th><th scope="col">Status</th><th scope="col">Customer</th><th scope="col">Warranty ends</th></tr></thead>
-                        <tbody>
-                          {__list(v.sns).map((sr) => (
-                            <tr key={sr.no}>
-                              <td className="ix-strong wc-id">{sr.no}</td>
-                              <td>{sr.p}</td>
-                              <td className="ix-muted">{sr.b}</td>
-                              <td><__StatusBadge tone={sr.tone}>{sr.st}</__StatusBadge></td>
-                              <td className="ix-muted">{sr.c}</td>
-                              <td>{sr.e}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <div className="ix-foot">
-                      <span>{v.sns.length + ' numbers'}</span>
-                      <span className="wc-foot">
-                        <span>Warranty ending reminder<__InfoTip text="SMS the customer 30 days before it ends" /></span>
-                        <Switch sw={v.remind} label="Warranty ending reminder" />
-                      </span>
-                    </div>
-                  </>) : null}
-                </section>
-
-                {v.is_claims ? (
-                  <details className="ix-card gc-disclose">
-                    <summary>Claims by brand · 90 days</summary>
-                    <div className="wc-bars">
-                      {__list(v.byBrand).map((bb) => (
-                        <div key={bb.l} className="wc-bar">
-                          <span>{bb.l}</span>
-                          <span className="gc-progress"><span className="gc-progress__fill" style={{ width: bb.w }} /></span>
-                          <b>{bb.n}</b>
+                  ) : null}
+                  <div className="ix-foot"><span>{shownClaims.length === 1 ? '1 claim' : shownClaims.length + ' claims'}</span></div>
+                </>) : (<>
+                  <ul className="ix-plist" aria-label="Serial & IMEI register">
+                    {snRows.map((sr) => (
+                      <li key={sr.no}>
+                        <div className="ix-pitem">
+                          <span className="ix-pitem__top"><b className="wc-id">{sr.no}</b><StatusBadge tone={SN_TONE[sr.st] || 'neutral'}>{sr.st}</StatusBadge></span>
+                          <span className="ix-pitem__mid">{sr.p} · {sr.c} · {sr.e}</span>
                         </div>
-                      ))}
-                    </div>
-                  </details>
-                ) : null}
-                <LearnMore topic="warranty claims" />
-              </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="ix-table-wrap">
+                    <table className="ix-table ix-table--static">
+                      <caption className="sr-only">Serial & IMEI register</caption>
+                      <thead><tr><th scope="col">Serial / IMEI</th><th scope="col">Product</th><th scope="col">Received</th><th scope="col">Status</th><th scope="col">Customer or place</th><th scope="col">Warranty ends</th></tr></thead>
+                      <tbody>
+                        {snRows.map((sr) => (
+                          <tr key={sr.no}>
+                            <td className="ix-strong wc-id">{sr.no}</td>
+                            <td>{sr.p}</td>
+                            <td className="ix-muted">{sr.b}</td>
+                            <td><StatusBadge tone={SN_TONE[sr.st] || 'neutral'}>{sr.st}</StatusBadge></td>
+                            <td className="ix-muted">{sr.c}</td>
+                            <td>{sr.e}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="ix-foot"><span>{snRows.length === 1 ? '1 number' : snRows.length + ' numbers'}</span><span className="ix-muted">Numbers are added when goods are received</span></div>
+                </>)}
+              </section>
+              <LearnMore topic="warranty claims" />
             </div>
-          </main>
-        </div>
+          </div>
+        </main>
+      </div>
 
-        {/* New claim: check the warranty first, then open the claim from the sale */}
-        <__Dialog open={v.lookOpen} title="New claim" onClose={v.closeLook} width={560} footer={<>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeLook}>Cancel</button>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.openClaim} disabled={!v.hasHit}>Open a claim</button>
-        </>}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-            <div className="gc-seg" role="group" aria-label="Look up by">
-              {__list(v.byOpts).map((b) => <button key={b.l} type="button" className={'gc-seg__btn' + (b.on ? ' gc-seg__btn--active' : '')} aria-pressed={!!b.on} onClick={b.pick}>{b.l}</button>)}
-            </div>
-            <div className="wc-row">
-              <input className="gc-input" value={v.q} onInput={v.typeQ} onChange={v.typeQ} aria-label="Look up" data-autofocus="" style={{ fontFamily: "var(--font-data)" }} />
-              <button type="button" className="ix-btn" onClick={v.lookup}><__Icon name="scan-barcode" width="16" height="16" aria-hidden="true" />Check warranty</button>
-            </div>
-            {v.hasHit ? (
-              <div className="wc-hit">
+      {/* New claim: find the item and check its warranty, then open the claim */}
+      <Dialog open={!!look} title="New claim" onClose={() => setLook(null)} width={560} footer={look ? <>
+        <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setLook(null)}>Cancel</button>
+        <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={saveLook} disabled={!look.pick}>Open a claim</button>
+      </> : null}>
+        {look ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <form className="wc-row" onSubmit={runLook}>
+              <input className="gc-input" value={look.q} onChange={(e) => setLook({ ...look, q: e.target.value })} aria-label="IMEI, serial, phone or order number" placeholder="IMEI, serial, phone or order number" data-autofocus="" style={{ fontFamily: 'var(--font-data)' }} />
+              <button type="submit" className="ix-btn"><Icon name="scan-barcode" width="16" height="16" aria-hidden="true" />Check warranty</button>
+            </form>
+            {look.hits && !look.hits.length ? <p className="gc-help" style={{ margin: 0 }} role="status">Nothing found for “{look.q.trim()}”. Check the number, or search by the customer’s phone.</p> : null}
+            {look.hits && look.hits.length > 1 ? (
+              <div className="wc-field" role="group" aria-label="Items">
+                <span className="gc-label">Which item?</span>
+                {look.hits.map((h) => <button key={h.key} type="button" className={'ix-btn' + (look.pick && look.pick.key === h.key ? ' ix-btn--primary' : '')} aria-pressed={!!look.pick && look.pick.key === h.key} onClick={() => setLook({ ...look, pick: h })} style={{ justifyContent: 'flex-start' }}>{h.name}{h.serials && h.serials.length ? ' · ' + h.serials.join(', ') : ''}</button>)}
+              </div>
+            ) : null}
+            {look.pick ? (
+              <div className={'wc-hit' + (look.pick.state === 'expired' || look.pick.state === 'none' ? ' wc-hit--out' : '')}>
                 <div className="wc-hit__top">
-                  <span><b>Galaxy A55 5G · 8/256 GB</b><small>IMEI 350912118845201</small></span>
-                  <span className="wc-left"><span>{v.hitSt}</span><b>{v.hitLeft}</b><small>Ends 12 Feb 2027</small></span>
+                  <span><b>{look.pick.name}</b><small>{(look.pick.serials || []).join(', ')}</small></span>
+                  <span className="wc-left"><span>{look.pick.state === 'active' || look.pick.state === 'ending' ? 'WITHIN WARRANTY' : look.pick.state === 'expired' ? 'WARRANTY ENDED' : 'NO WARRANTY'}</span>{look.pick.until ? <><b>{look.pick.days} days left</b><small>Ends {formatDate(look.pick.until)}</small></> : null}</span>
                 </div>
                 <dl className="ix-kv">
-                  <dt>Customer</dt><dd>Rahima K. · 017••••4521</dd>
-                  <dt>Sold</dt><dd>INV-24817 · 12 Feb 2026</dd>
-                  <dt>Policy (as sold)</dt><dd>Smartphone brand warranty v2</dd>
+                  <dt>Customer</dt><dd>{look.pick.name2 || 'Walk-in customer'}{look.pick.phone && look.pick.phone !== '—' ? ' · ' + look.pick.phone : ''}</dd>
+                  <dt>Sold</dt><dd>{look.pick.order || '—'}{look.pick.start ? ' · ' + formatDate(look.pick.start) : ''}</dd>
+                  <dt>Policy (as sold)</dt><dd>{look.pick.label}{look.pick.claim ? ' · claim at ' + look.pick.claim : ''}</dd>
                 </dl>
               </div>
             ) : null}
+            {look.pick ? <label className="wc-field"><span className="gc-label">What is wrong with it</span><input className="gc-input" value={look.problem} onChange={(e) => setLook({ ...look, problem: e.target.value })} placeholder="For example: screen flickers" /></label> : null}
           </div>
-        </__Dialog>
+        ) : null}
+      </Dialog>
 
-        {/* the claim: its steps, the check, the decision */}
-        <__Sheet open={v.claimOpen} title={v.dId} onClose={v.closeClaim} footer={<>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.reject}>Reject</button>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.advance} disabled={v.closed}>{v.advLbl}</button>
-        </>}>
+      {/* the claim: its steps, the decision, the next step */}
+      <Sheet open={!!D} title={D ? D.id : ''} onClose={() => setSel('')} footer={D ? (
+        rejecting != null ? <>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setRejecting(null)}>Back</button>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid gc-btn--error" onClick={reject}>Reject claim</button>
+        </> : <>
+          {isOpenClaim(D) ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setRejecting('')}>Reject</button> : null}
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={advance} disabled={!nextStep}>{nextStep ? 'Move to: ' + nextStep.label : 'Closed'}</button>
+        </>) : null}>
+        {D ? (<>
           <div className="wc-head">
-            <__StatusBadge tone={v.dTone}>{v.dSt}</__StatusBadge>
-            <span>{v.dP} · {v.dC}</span>
-            <small>{v.dSn}</small>
+            <StatusBadge tone={STEP_TONE[ds]}>{CLAIM_LABEL[ds]}</StatusBadge>
+            <span>{D.item} · {D.name || 'Walk-in customer'}</span>
+            <small>{(D.serials || []).join(', ')}</small>
           </div>
-          <ol className="wc-steps">
-            {__list(v.steps).map((sp, i, all) => (
-              <li key={sp.l} className={sp.done || sp.cur ? 'is-on' : ''}>
-                <span><span className={'wc-dot' + (sp.done ? ' is-done' : sp.cur ? ' is-cur' : '')}>{sp.done ? <__Icon name="check" width="12" height="12" strokeWidth="3" aria-hidden="true" /> : sp.n}</span>{i < all.length - 1 ? <span className={'wc-line' + (sp.done ? ' is-done' : '')} /> : null}</span>
-                <span>{sp.l}{sp.when ? <small>{sp.when}</small> : null}</span>
-              </li>
-            ))}
-          </ol>
+          {ds === 'rejected' ? <p className="wc-msg"><Icon name="circle-x" width="16" height="16" aria-hidden="true" /><span>Rejected: {D.reason}</span></p> : (
+            <ol className="wc-steps">
+              {CLAIM_STEPS.map((sp, i, all) => {
+                const done = i < di, cur = i === di;
+                const h = [...(D.history || [])].reverse().find((x) => (x.status === 'requested' ? 'received' : x.status) === sp.key);
+                return (
+                  <li key={sp.key} className={done || cur ? 'is-on' : ''}>
+                    <span><span className={'wc-dot' + (done ? ' is-done' : cur ? ' is-cur' : '')}>{done ? <Icon name="check" width="12" height="12" strokeWidth="3" aria-hidden="true" /> : i + 1}</span>{i < all.length - 1 ? <span className={'wc-line' + (done ? ' is-done' : '')} /> : null}</span>
+                    <span>{sp.label}{h ? <small>{formatDate(h.at)}{h.by ? ' · ' + h.by : ''}{h.note ? ' · ' + h.note : ''}</small> : null}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
           <div className="wc-box">
-            <span className="wc-ok"><__Icon name="circle-check" width="16" height="16" aria-hidden="true" />{v.dCheck}</span>
-            <span><b>Issue:</b> {v.dI}</span>
-            <span className="wc-photos" aria-hidden="true"><span /><span /></span>
+            <span><b>Issue:</b> {D.problem || '—'}</span>
+            <span><b>Sold on:</b> {D.order || '—'}{D.phone ? ' · ' + D.phone : ''}</span>
           </div>
-          <label className="wc-field">
-            <span className="gc-label">Decision</span>
-            <select className="gc-input gc-select" aria-label="Decision">
-              <option>Repair (policy step 1)</option>
-              <option>Replace — sends to Returns</option>
-              <option>Refund — sends to Returns</option>
-              <option>Store credit</option>
-              <option>Reject with reason</option>
-            </select>
-          </label>
-          <div className="wc-msg"><__Icon name="message-circle" width="16" height="16" aria-hidden="true" /><span>{v.dMsg}</span></div>
-        </__Sheet>
-
-        {/* numbers for goods that arrived: scan them in */}
-        <__Sheet open={v.scanOpen} title="Add numbers for received goods" onClose={v.closeScan}>
-          <div className="wc-field">
-            <label className="gc-label" htmlFor="wc-batch">Goods received</label>
-            <select id="wc-batch" className="gc-input gc-select" aria-label="Received batch">
-              <option>GRN-0931 · Galaxy A55 5G · 20 pcs</option>
-              <option>GRN-0927 · Redmi Note 13 · 12 pcs</option>
-              <option>{"GRN-0919 · Laptop 14\" · 6 pcs"}</option>
-            </select>
-            <p className="gc-help" style={{ margin: 0 }}>Only products set to keep serial or IMEI numbers show here</p>
-          </div>
-          <div>
-            <div className="wc-count"><span>Scanned</span><b>{v.scanN} of 20</b></div>
-            <div className="gc-progress wc-progress"><div className="gc-progress__fill" style={{ width: v.scanW }} /></div>
-          </div>
-          <div className="wc-row">
-            <input className="gc-input" value={v.scanIn} onInput={v.typeScan} onChange={v.typeScan} aria-label="Scan IMEI" placeholder="Scan or type IMEI 1" data-autofocus="" style={{ fontFamily: "var(--font-data)" }} />
-            <button type="button" className="ix-btn ix-btn--primary" onClick={v.addScan}>Add</button>
-          </div>
-          <p className="gc-help" style={{ margin: 0 }}>Dual-SIM phones ask for IMEI 2 right after. Duplicates are blocked.</p>
-          {__list(v.recent).map((rc) => (
-            <div key={rc.t} className="wc-recent"><__Icon name="check" width="14" height="14" aria-hidden="true" />{rc.t}</div>
-          ))}
-        </__Sheet>
-      </div>
-    );
-  }
+          {rejecting != null ? (
+            <label className="wc-field"><span className="gc-label">Why is it rejected?</span><input className="gc-input" value={rejecting} onChange={(e) => setRejecting(e.target.value)} placeholder="For example: liquid damage is not covered" data-autofocus="" /></label>
+          ) : isOpenClaim(D) ? (<>
+            <label className="wc-field">
+              <span className="gc-label">Decision</span>
+              <select className="gc-input gc-select" value={decision} onChange={(e) => setDecision(e.target.value)}>{Object.entries(DECISIONS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+            </label>
+            {decision === 'replace' || decision === 'refund' ? <p className="gc-help" style={{ margin: 0 }}>A replacement or refund is done on <Link href={'/return-exchange' + (D.order ? '?ref=' + encodeURIComponent(D.order) : '')}>Return & exchange</Link>.</p> : null}
+            <label className="wc-field"><span className="gc-label">Note for this step (optional)</span><input className="gc-input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="For example: sent to the Xiaomi service centre" /></label>
+            {D.phone ? <div className="wc-msg"><Icon name="message-circle" width="16" height="16" aria-hidden="true" /><span>The customer is told at each step (Settings › Notifications).</span></div> : null}
+          </>) : null}
+        </>) : null}
+      </Sheet>
+    </div>
+  );
 }

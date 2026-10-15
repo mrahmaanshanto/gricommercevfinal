@@ -28,9 +28,12 @@ import { orderStatus, initialStatusKey } from '@/lib/orderStatus';
 import { findOrder, patchOrder, takeOrderStock, logOrder } from '@/lib/orders';
 import { orderableItems, canAdd } from '@/lib/sellable';
 import { holdsStock } from '@/lib/edition';
-import { announceNewOrder } from '@/lib/orderFlow';
+import { announceNewOrder, isDigitalOrder } from '@/lib/orderFlow';
 import { notify } from '@/lib/notifications';
-import { createOrderLink, addOrder, DELIVERY_RATES as DELIVERY, PAYMENT_LABEL, BD_MOBILE as PHONE, cleanPhone, prettyPhone } from '@/lib/orderLinks';
+import { createOrderLink, addOrder, DELIVERY_RATES, PAYMENT_LABEL, BD_MOBILE as PHONE, cleanPhone, prettyPhone, ORDER_SOURCES } from '@/lib/orderLinks';
+import { deliveryRates, feeFor } from '@/lib/deliveryRates';
+import { guessArea, addressText, zoneOf, lineOf } from '@/lib/bdAreas';
+import { AreaPicker } from '@/components/AreaPicker';
 import { CourierHistory } from '@/components/CourierHistory';
 import { addHolds } from '@/lib/stockHolds';
 import { postEntry, accountForMethod } from '@/lib/ledger';
@@ -39,7 +42,7 @@ import { usePlaceList } from '@/lib/usePlaces';
 import { onlinePlace } from '@/lib/locations';
 import { productBy, stockAt } from '@/lib/stock';
 import { loadVat, billVat } from '@/lib/vat';
-import { getCustomers, findCustomer, saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
+import { getCustomers, findCustomer, saveCustomerOnce, resolveCustomer, ADDED_FROM } from '@/lib/customers';
 import { checkOrder } from '@/lib/restrictions';
 import { saveDraft as storeDraft, getDraft, deleteDraft } from '@/lib/orderDrafts';
 
@@ -154,7 +157,11 @@ export default function NewOrder() {
   const [discount, setDiscount] = useState(null);       // { type: 'amount' | 'percent', value, reason }
   const [discOpen, setDiscOpen] = useState(false);
   const [discDraft, setDiscDraft] = useState({ type: 'amount', value: '', reason: '' });
-  const [delivery, setDelivery] = useState(null);       // { id, label, fee }
+  const [delivery, setDelivery] = useState(null);       // { id, label, fee } (fee kept for a custom rate; a zone's follows the items)
+  const [DELIVERY, setRates] = useState(DELIVERY_RATES); // Settings › Delivery (deliveryRates.js), read after mount
+  useEffect(() => { setRates(deliveryRates()); }, []);
+  const [addr, setAddr] = useState({ line: '', district: '', area: '' });   // the delivery address: house/road + district → area
+  const [source, setSource] = useState('Phone');        // where the order came from (ON-F9)
   const [delOpen, setDelOpen] = useState(false);
   const [delDraft, setDelDraft] = useState({ id: 'dhaka', custom: '' });
   const [vat, setVat] = useState(true);
@@ -191,7 +198,24 @@ export default function NewOrder() {
     setCustomer(d.customer || null); setLines(d.lines || []); setDiscount(d.discount || null); setDelivery(d.delivery || null);
     setVat(d.vat !== false); setTerms(d.terms || 'cod'); setAdvance(d.advance || ''); if (d.method) setMethod(d.method);
     setStatus(d.status || 'approved'); setNote(d.note || ''); setTags(d.tags || []);
+    if (d.addr) setAddr(d.addr); if (d.source) setSource(d.source);
     draftSnap.current = JSON.stringify([d.customer || null, d.lines || [], d.note || '', d.tags || [], d.discount || null, d.delivery || null, d.vat !== false, d.terms || 'cod', d.advance || '', d.status || 'approved']);
+  }, []);
+  // ?phone=&name= (from a customer's page, a chat or a call): start with that customer. A number not in the customer
+  // book becomes a new customer with the name given (saved with the order).
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const raw = p.get('phone');
+    if (!raw || p.get('draft')) return;
+    const phone = cleanPhone(raw);
+    const listed = CUSTOMERS.find((x) => cleanPhone(x.phone) === phone);
+    if (listed) { pickCustomer(listed); return; }
+    let c = null;
+    try { c = resolveCustomer(phone); } catch { c = null; }
+    const pretty = PHONE.test(phone) ? prettyPhone(phone) : raw;
+    if (c && c.name) pickCustomer({ id: 'b-' + (c.id || phone), name: c.name, phone: pretty, orders: 0, address: c.address || '', zone: '', types: c.types });
+    else if (PHONE.test(phone)) pickCustomer({ id: 'new-' + phone, name: (p.get('name') || '').trim() || 'New customer', phone: pretty, orders: 0, address: '', zone: '', types: ['Online'] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // online payment routes: the gateways set up in Settings › Payment Gateway (built-in ones first render)
   const onlineOf = (list) => list.filter((p) => p.kind === 'Gateway' && p.id !== 'card').map((p) => ['gw:' + p.id, p.short + ' online', p.mode === 'direct']);
@@ -213,7 +237,10 @@ export default function NewOrder() {
   const subtotal = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
   const items = lines.reduce((sum, l) => sum + l.qty, 0);
   const discountValue = !discount ? 0 : Math.min(subtotal, discount.type === 'percent' ? Math.round(subtotal * discount.value / 100) : discount.value);
-  const deliveryFee = delivery ? delivery.fee : 0;
+  // a zone's charge follows Settings › Delivery: the charge plus the extra per unit after the first
+  // a download or licence only order has nothing to ship: no delivery charge (orderFlow.js › isDigitalOrder)
+  const digitalOnly = useMemo(() => { try { return isDigitalOrder({ lines }); } catch { return false; } }, [lines]);
+  const deliveryFee = !delivery || digitalOnly ? 0 : delivery.id === 'custom' ? delivery.fee : feeFor(delivery.id, items || 1, DELIVERY);
   // VAT by each product's category (Accounts › VAT): inside the price when prices include VAT (the default), else on top
   const vatBill = billVat(lines.map((l) => { const pb = productBy(l.name) || {}; return { ...l, cat: l.cat || pb.cat, vatRate: l.vatRate != null ? l.vatRate : pb.vatRate }; }), subtotal ? (subtotal - discountValue) / subtotal : 0, vatSetup);
   const tax = vat ? vatBill.tax : 0;
@@ -258,8 +285,12 @@ export default function NewOrder() {
     setCustQuery('');
     setCustFocus(false);
     setErrors((e) => ({ ...e, customer: undefined }));
-    // the customer's area suggests the delivery rate, as Shopify fills rates from the address
-    const rate = DELIVERY.find((d) => d.id === c.zone);
+    // the customer's area fills the district and area, and the area's zone the delivery rate (as Shopify fills rates
+    // from the address)
+    const g = guessArea(c.address);
+    setAddr({ line: g ? lineOf(c.address, g) : c.address || '', district: g ? g.district : '', area: g ? g.area : '' });
+    const zone = g && g.area ? zoneOf(g.district, g.area) : c.zone;
+    const rate = DELIVERY.find((d) => d.id === zone);
     if (rate && !delivery) setDelivery({ id: rate.id, label: rate.label, fee: rate.fee });
   };
   // what was typed in the search carries over: digits become the phone, anything else the name
@@ -292,6 +323,12 @@ export default function NewOrder() {
     setDiscount({ type: discDraft.type, value, reason: discDraft.reason.trim() });
     setDiscOpen(false);
   };
+  /** District → area picked: the area's zone sets the delivery (unless a custom rate or pickup was chosen). */
+  const pickArea = ({ district, area, zone }) => {
+    setAddr((a) => ({ ...a, district, area }));
+    const rate = zone ? DELIVERY.find((d) => d.id === zone) : null;
+    if (rate && !(delivery && (delivery.id === 'custom' || delivery.id === 'pickup'))) setDelivery({ id: rate.id, label: rate.label, fee: rate.fee });
+  };
   const applyDelivery = (e) => {
     e.preventDefault();
     if (delDraft.id === 'custom') {
@@ -322,7 +359,7 @@ export default function NewOrder() {
   };
   const saveDraft = () => {
     if (!validate(false)) return;
-    const d = storeDraft({ customer, lines, discount, delivery, vat, terms, advance, method, status, note: note.trim(), tags, total }, draftId);
+    const d = storeDraft({ customer, lines, discount, delivery, vat, terms, advance, method, status, note: note.trim(), tags, total, addr, source }, draftId);
     toast(`Draft ${d.id} saved`);
     navigate('/merchant-orders?status=drafts');
   };
@@ -337,8 +374,10 @@ export default function NewOrder() {
     if (rc.warnings.length) toast(rc.warnings[0], { tone: 'info' });
     creating.current = true;
     const label = status === 'approved' ? 'Approved' : 'New';
-    const row = addOrder({ lines, customer: customer.name, phone: customer.phone, zone: delivery ? delivery.label : 'Not set', total, status: label, payment: PAYMENT_LABEL[terms], address: customer.address || '', shipping: deliveryFee, paid: terms === 'full' ? total : terms === 'partial' ? adv : 0,
-      discount: discountValue, discountReason: discount ? discount.reason : '', vat: tax, vatRate: tax ? Math.round((tax / Math.max(1, subtotal - discountValue - (vatIn ? tax : 0))) * 1000) / 10 : 0, vatIncluded: vatIn, note: note.trim(), tags });
+    const address = addressText(addr) || customer.address || '';
+    const row = addOrder({ lines, customer: customer.name, phone: customer.phone, zone: delivery ? delivery.label : 'Not set', total, status: label, payment: PAYMENT_LABEL[terms], address, shipping: deliveryFee, paid: terms === 'full' ? total : terms === 'partial' ? adv : 0,
+      discount: discountValue, discountReason: discount ? discount.reason : '', vat: tax, vatRate: tax ? Math.round((tax / Math.max(1, subtotal - discountValue - (vatIn ? tax : 0))) * 1000) / 10 : 0, vatIncluded: vatIn, note: note.trim(), tags,
+      source, district: addr.area ? addr.district : '', thana: addr.area || '' });
     // the same order pressed twice (or sent twice) is one order: nothing is posted or held again
     if (draftId) deleteDraft(draftId);   // the draft became this order
     if (row.duplicate) { toast(`Order ${row.id} created`); navigate('/merchant-orders'); return; }
@@ -349,7 +388,7 @@ export default function NewOrder() {
     const takenNow = terms === 'full' ? total : terms === 'partial' ? Number(advance) : 0;
     if (takenNow > 0) postEntry({ account: method.startsWith('gw:') ? accountForPartner(method.slice(3)) : accountForMethod(method, false), amount: takenNow, kind: 'order payment', ref: row.id, party: customer.name, note: terms === 'full' ? 'Paid in full with the order' : 'Advance with the order' });
     // a customer whose number is not in the customer book yet is kept there
-    saveCustomerOnce({ name: customer.name, phone: customer.phone, address: customer.address, types: ['Online'], addedFrom: ADDED_FROM.order });
+    saveCustomerOnce({ name: customer.name, phone: customer.phone, address: address || customer.address, types: ['Online'], addedFrom: ADDED_FROM.order });
     // an approved online order holds its stock at the chosen place until it is delivered or comes back
     // (the Online edition takes the stock out at once instead: edition.js › holdsStock)
     if (status === 'approved' && holdsStock()) addHolds({ type: 'online', ref: row.id, who: customer.name, place: holdPlace, note: 'Order approved', by: 'System' }, lines.map((l) => ({ name: l.name, qty: l.qty })));
@@ -412,7 +451,11 @@ export default function NewOrder() {
                         <div className="no-cust">
                           <div><span className="no-name">{customer.name}</span><span className="no-meta">{customer.orders ? `${customer.orders} order${customer.orders > 1 ? 's' : ''}` : 'New customer'}</span></div>
                           <div><h3>Contact</h3>{customer.phone}<CourierHistory phone={customer.phone} /></div>
-                          <div><h3>Delivery address</h3>{customer.address || 'No address yet'}</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                            <h3>Delivery address</h3>
+                            <AreaPicker idPrefix="no-addr" district={addr.district} area={addr.area} onChange={pickArea} />
+                            <div><label className="gc-label" htmlFor="no-addr-line">House, road</label><input id="no-addr-line" className="gc-input" autoComplete="off" placeholder="House 14, Road 7, Sector 4" value={addr.line} onChange={(e) => setAddr({ ...addr, line: e.target.value })} /></div>
+                          </div>
                           {ws && (customer.types || []).includes('Wholesale') ? (
                             <div className="no-ws" role="note">
                               <span><b>Wholesale buyer</b>Take it as a sales order: their prices, MOQ and credit are checked.</span>
@@ -424,7 +467,7 @@ export default function NewOrder() {
                         <>
                           <div className="no-search">
                             <Icon name="search" width="16" height="16" aria-hidden="true" />
-                            <input ref={customerRef} autoFocus className="gc-input" type="search" placeholder="Search by name or phone" aria-label="Search or create a customer" aria-invalid={errors.customer ? 'true' : undefined} aria-describedby={errors.customer ? 'no-cust-err' : undefined} value={custQuery} onChange={(e) => setCustQuery(e.target.value)} onFocus={() => setCustFocus(true)} onBlur={() => setTimeout(() => setCustFocus(false), 150)} />
+                            <input ref={customerRef} autoFocus className="gc-input" type="search" placeholder="Search by name or phone" aria-label="Search or create a customer" aria-invalid={errors.customer ? 'true' : undefined} aria-describedby={errors.customer ? 'no-cust-err' : undefined} value={custQuery} onChange={(e) => { setCustQuery(e.target.value); setCustFocus(true); }} onClick={() => setCustFocus(true)} onFocus={() => setCustFocus(true)} onBlur={() => setTimeout(() => setCustFocus(false), 150)} />
                             {custFocus && (
                               <div className="no-pop" role="listbox" aria-label="Customers">
                                 <button type="button" role="option" aria-selected="false" className="no-opt" onMouseDown={(e) => e.preventDefault()} onClick={openNewCustomer}>
@@ -516,7 +559,7 @@ export default function NewOrder() {
                         <span className="v">{discountValue ? '−' + formatBDT(discountValue) : formatBDT(0)}</span>
 
                         <button type="button" className="no-link" disabled={!lines.length} onClick={() => { setDelDraft({ id: delivery ? delivery.id : (customer && customer.zone) || 'dhaka', custom: delivery && delivery.id === 'custom' ? String(delivery.fee) : '' }); setDelOpen(true); }}>{delivery ? 'Edit delivery' : 'Add delivery'}</button>
-                        <span className="hint">{delivery ? delivery.label : '—'}</span>
+                        <span className="hint">{digitalOnly ? 'Digital · nothing to ship' : delivery ? delivery.label : '—'}</span>
                         <span className="v">{formatBDT(deliveryFee)}</span>
 
                         <label className="no-check"><input type="checkbox" className="gc-check" checked={vat} onChange={(e) => setVat(e.target.checked)} />VAT</label>
@@ -562,6 +605,12 @@ export default function NewOrder() {
                         <option value="approved">Approved · confirmed on the call</option>
                         <option value="new">{orderStatus(initialStatusKey(PAYMENT_LABEL[terms])).label} · verify later</option>
                       </select>
+                      <div style={{ marginTop: 'var(--space-3)' }}>
+                        <label className="gc-label" htmlFor="no-source">Source</label>
+                        <select id="no-source" className="gc-input gc-select" value={source} onChange={(e) => setSource(e.target.value)}>
+                          {ORDER_SOURCES.map((x) => <option key={x}>{x}</option>)}
+                        </select>
+                      </div>
                       {status === 'approved' ? (
                         <div style={{ marginTop: 'var(--space-3)' }}>
                           {holdPlaces.length > 1 ? (<>
@@ -703,7 +752,7 @@ export default function NewOrder() {
             <label key={d.id} className="no-radio">
               <input type="radio" name="no-delivery" checked={delDraft.id === d.id} onChange={() => setDelDraft({ ...delDraft, id: d.id, error: undefined })} />
               <span className="no-opt__main"><span className="no-name">{d.label}</span><span className="no-meta">{d.note}</span></span>
-              <span className="no-amt">{d.fee ? formatBDT(d.fee) : 'Free'}</span>
+              <span className="no-amt">{d.fee ? formatBDT(feeFor(d.id, items || 1, DELIVERY)) : 'Free'}</span>
             </label>
           ))}
           <label className="no-radio">

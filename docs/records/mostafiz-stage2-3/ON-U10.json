@@ -1,0 +1,39 @@
+{
+ "id": "ON-U10",
+ "kind": "fix",
+ "section": "Online selling",
+ "area": "Online selling",
+ "title": "Status badges match the tabs",
+ "problem": "The On hold tab showed Pending badges and Processing showed Approved or Ready for courier.",
+ "now": "Badges use the tab's word, with the step (Approved, Ready for courier) in small grey text beside it.",
+ "steps": [
+  "Open the Processing tab",
+  "See Processing badges with the step beside them"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/orderStatus.js",
+  "src/screens/merchant-orders/MerchantOrders.jsx",
+  "src/screens/order-detail/OrderDetail.jsx",
+  "src/screens/app/MOrders.jsx",
+  "src/screens/app/MOrderDetail.jsx",
+  "src/screens/app/orders/orderData.js"
+ ],
+ "notes": "Where: Orders › All orders; order page header; app Orders and order page",
+ "shots": [
+  {
+   "route": "/merchant-orders?status=processing",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Processing tab badges",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

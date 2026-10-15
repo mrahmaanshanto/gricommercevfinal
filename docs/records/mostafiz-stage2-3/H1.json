@@ -1,0 +1,39 @@
+{
+ "id": "H1",
+ "kind": "new",
+ "section": "Hosting",
+ "area": "Hosting",
+ "title": "A Hosting section in Settings",
+ "problem": "Domains, DNS, email records, security and backups were missing or spread over several pages.",
+ "now": "Settings › Hosting holds what a web host offers, with an Overview of what needs doing first.",
+ "steps": [
+  "Open Settings › Hosting & domains.",
+  "Read the To do list and press Open on one."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/settings-console/SetHosting.jsx",
+  "src/screens/settings-console/hosting/hsShared.jsx",
+  "src/lib/hosting.js",
+  "src/screens/settings-console/SetDomains.jsx",
+  "src/screens/settings-console/SetRail.jsx",
+  "src/lib/domains.js"
+ ],
+ "notes": "Where: Settings › Hosting & domains (/set-hosting) · Needs the server: Front end only: the live platform’s DNS servers, CDN and certificate service do the real work.",
+ "shots": [
+  {
+   "route": "/set-hosting",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Settings › Hosting",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

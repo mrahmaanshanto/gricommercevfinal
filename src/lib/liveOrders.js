@@ -9,6 +9,8 @@
 
 import { CATALOG } from './stock';
 import { ONLINE_PEOPLE, FIRST, LAST, AREAS } from './demoPeople';
+import { zoneFee } from './deliveryRates';
+import { trackingLink } from './orderStatus';
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -19,7 +21,8 @@ const FIRST_NO = 136813;   // the demo orders end at #136812
 const ZONES = { 'Inside Dhaka': 55, 'Sub-Dhaka': 20, 'Outside Dhaka': 25 };
 const SOURCES = { Website: 45, Facebook: 35, Phone: 14, 'Order link': 6 };
 const CHANNEL_OF = { Website: 'Online store', Facebook: 'Facebook shop', Phone: 'Phone order', 'Order link': 'Order link' };
-const SHIPPING = { 'Inside Dhaka': 70, 'Sub-Dhaka': 110, 'Outside Dhaka': 150 };
+// the delivery charge of each zone comes from Settings › Delivery (deliveryRates.js), read when a day is made
+const shippingOf = (zone) => zoneFee(zone);
 const COURIERS = { 'Inside Dhaka': { Pathao: 55, Carrybee: 25, RedX: 20 }, 'Sub-Dhaka': { Steadfast: 50, Pathao: 30, RedX: 20 }, 'Outside Dhaka': { Steadfast: 60, RedX: 30, Pathao: 10 } };
 const PREFIX = { Pathao: 'PT', Steadfast: 'SF', RedX: 'RX', Carrybee: 'CB' };
 const DELIVERY_DAYS = { 'Inside Dhaka': [1, 2], 'Sub-Dhaka': [2, 3], 'Outside Dhaka': [2, 4] };
@@ -82,7 +85,7 @@ function makeDay(day, firstNo) {
     }
     const paidOnline = rand() < 0.38;
     // outside Dhaka the shop often takes the delivery charge in advance before it approves a COD order
-    const advance = !paidOnline && zone === 'Outside Dhaka' && rand() < 0.5 ? SHIPPING[zone] : 0;
+    const advance = !paidOnline && zone === 'Outside Dhaka' && rand() < 0.5 ? shippingOf(zone) : 0;
     const courier = pickMix(rand, COURIERS[zone]);
     const cancelled = rand() < 0.07;
     // what happens next: confirmed within a few hours (orders after 10 PM wait for the morning)
@@ -101,7 +104,7 @@ function makeDay(day, firstNo) {
     out.push({
       id: '#' + (firstNo + i), at: placed, channel: CHANNEL_OF[source], source, customer: name, phone: phoneText(phone), zone,
       address: `House ${1 + Math.floor(rand() * 60)}, Road ${1 + Math.floor(rand() * 15)}, ${area}`,
-      lines, shipping: SHIPPING[zone], total: lines.reduce((a, l) => a + l.qty * l.price, 0) + SHIPPING[zone], courier, consignment: PREFIX[courier] + '-' + String(4400000 + Math.floor(rand() * 5599999)),
+      lines, shipping: shippingOf(zone), total: lines.reduce((a, l) => a + l.qty * l.price, 0) + shippingOf(zone), courier, consignment: PREFIX[courier] + '-' + String(4400000 + Math.floor(rand() * 5599999)),
       payment: paidOnline ? 'Paid' : 'COD', method: paidOnline ? (rand() < 0.6 ? 'Gateway' : 'bKash') : 'COD',
       rtoReason: RTO_REASONS[Math.floor(rand() * RTO_REASONS.length)], plan, advance, live: true,
     });
@@ -137,7 +140,7 @@ function asAt(o, now) {
   else if (o.payment === 'COD') out.codAmount = o.total;
   // packing: the slip is printed an hour after approval; packed and attached when it is ready for the courier
   if (t.approved && !t.cancelled) out.prep = { courier, addressOk: true, amountsOk: true, slipPrinted: !!t.ready || now - t.approved > HOUR, packed: !!t.ready, slipAttached: !!t.ready };
-  if (t.shipped) Object.assign(out, { trackingUrl: 'https://dazzleshop.com.bd/track/' + consignment, sentAt: t.shipped });
+  if (t.shipped) Object.assign(out, { trackingUrl: trackingLink(o.id), sentAt: t.shipped });
   return out;
 }
 

@@ -1,0 +1,36 @@
+{
+ "id": "D1-use",
+ "kind": "new",
+ "section": "Module D · Business email",
+ "area": "Module D · Business email",
+ "title": "Use mail on web and phone",
+ "problem": "There was no way to read the mail or set up a phone.",
+ "now": "Webmail opens from Apps; a QR code and the IMAP / SMTP settings set up phones; old mail can be imported.",
+ "steps": [
+  "Open Business email › Apps.",
+  "Scan the QR code, or open webmail.",
+  "Start an import from an old host."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/settings-console/BusinessEmail.jsx",
+  "src/screens/settings-console/Webmail.jsx"
+ ],
+ "notes": "Where: Business email › Apps · Needs the server: Webmail is a stand-in for the provider's.",
+ "shots": [
+  {
+   "route": "/webmail",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Webmail",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

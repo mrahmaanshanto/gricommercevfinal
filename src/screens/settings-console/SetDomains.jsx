@@ -1,5 +1,5 @@
 'use client';
-// SetDomains — Settings › Domains (/set-domains): the store's free GridCommerce address (<name>.gridcommerce.com.bd) and
+// SetDomains — the Domains part of Settings › Hosting (/set-hosting?tab=domains; /set-domains opens the same): the store's free GridCommerce address (<name>.gridcommerce.com.bd) and
 // custom domains (lib/domains.js). Adding a domain shows the DNS records to add at the registrar; "Check now" verifies
 // them, then the SSL certificate is issued. A verified domain with SSL can be made primary (customers are sent there).
 // Demo: checks move on with the clock; ?dns=failed makes the next check fail.
@@ -75,8 +75,7 @@ export default class SetDomains extends DCLogic {
     const primary = list.find((d) => d.primary);
     const subHost = sub + '.' + SUBDOMAIN_BASE;
     return (
-      <SetFrame screen="SetDomains" active="domains" title="Domains" meta={'Customers go to ' + (primary ? primary.host : subHost)}
-        about="The store's web addresses: the free GridCommerce address and your own domains. Add the DNS records your domain needs, check them, and the SSL certificate is issued. The primary domain is the one customers are sent to.">
+      <Frame embedded={this.props.embedded} meta={'Customers go to ' + (primary ? primary.host : subHost)}>
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <section className="ix-card set-card" aria-label="GridCommerce address">
           <div className="set-head set-head--top"><span style={{ display: 'block' }}><h2 className="set-title">GridCommerce address</h2></span></div>
@@ -148,7 +147,18 @@ export default class SetDomains extends DCLogic {
             </div>
           ) : null}
         </Dialog>
-      </SetFrame>
+      </Frame>
     );
   }
+}
+
+/** On its own (/set-domains used to be a page) or inside Settings › Hosting › Domains (`embedded`). */
+function Frame({ embedded, meta, children }) {
+  if (embedded) return <>{children}</>;
+  return (
+    <SetFrame screen="SetDomains" active="hosting" title="Domains" meta={meta}
+      about="The store's web addresses: the free GridCommerce address and your own domains. Add the DNS records your domain needs, check them, and the SSL certificate is issued. The primary domain is the one customers are sent to.">
+      {children}
+    </SetFrame>
+  );
 }

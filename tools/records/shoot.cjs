@@ -2,7 +2,8 @@
 // BEFORE (frozen handover build) and AFTER (work-branch build) JPEGs. Usage:
 //   node tools/records/shoot.cjs <recordsDir> <outImgDir> <beforeBase> <afterBase>
 // Env SHOTS=wholesale|normal filters by the shot's `wholesale` flag.
-// Each shot: { route, query, viewport: desktop|phone, steps:[{click|fill+value|goto|wait|press}], crop, highlight, beforeToo }
+// Each shot: { route, query, viewport: desktop|phone, steps:[{click|fill+value|goto|wait|press|scroll|eval}], crop, highlight, beforeToo }
+//   scroll: a selector brought to the top of the screen · eval: page code run before the next step (e.g. switch the language)
 const fs = require('fs'), path = require('path');
 const { chromium } = require(process.env.PW || '/opt/npm-tools/node_modules/playwright');
 const [dir, out, BEFORE, AFTER] = process.argv.slice(2);
@@ -19,6 +20,8 @@ async function shoot(browser, base, s, file) {
       if (st.click) await p.locator(st.click).first().click({ timeout: 8000 });
       else if (st.fill) await p.locator(st.fill).first().fill(String(st.value ?? ''), { timeout: 8000 });
       else if (st.press) await p.keyboard.press(st.press);
+      else if (st.scroll) await p.evaluate((sel) => { const el = document.querySelector(sel); if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 90); }, st.scroll);
+      else if (st.eval) await p.evaluate(st.eval);
       else if (st.goto) {
         // a goto keeps who/which edition from the shot (as, edition, staff); its own query wins for everything else
         const [gp, gq] = st.goto.split('?'); const keep = new URLSearchParams();

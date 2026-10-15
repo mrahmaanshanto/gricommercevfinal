@@ -26,8 +26,10 @@ import { postEntry, accountForMethod } from './ledger';
 import { courierPartner, courierChargeOf, clockNow } from './settlements';
 import { formatBDT, formatDate, formatTime } from './format';
 import { allProducts } from './products';
-import { productBy } from './stock';
+import { productBy, addMove } from './stock';
 import { trackingOf as serialKind, checkSerial, sellSerials } from './serials';
+import { keysOf } from './licenceKeys';
+import { trackingLink } from './orderStatus';
 
 const HOUR = 60 * 60 * 1000;
 const AUTO_CALL_MS = 6000;   // an automatic call answers in a few seconds in the demo
@@ -54,11 +56,57 @@ export function isDigitalOrder(o, list = allProducts()) {
     return !!p && DIGITAL.includes(p.format);
   });
 }
-/** The download link or licence key was sent: an approved digital order is delivered. Returns false otherwise. */
+// ON-F14: what a digital order gives the customer. A licence product gets one key per piece from its pool
+// (licenceKeys.js: the stock move of the sale takes them, so a key is never given twice); a download gets its own
+// link. Kept on the order as o.digital = { at, by, sends, keys: [{ name, sku, key }], links: [{ name, url, file, limit,
+// days }], short } and sent with the "Download or key sent" message ({{licence_key}}, {{download_link}}).
+// Front end only: the link is made here; a real shop's server makes it and counts the downloads.
+const productOfLine = (l, list = allProducts()) => { const row = productBy(l.sku || l.name); return (row && row.productId && list.find((x) => x.id === row.productId)) || list.find((x) => x.name === l.name) || null; };
+/** The keys and links the order has (take: true takes the keys still missing from the pool). */
+export function digitalItems(o, { take = false, by = 'Staff' } = {}) {
+  const list = allProducts();
+  const keys = [], links = [];
+  let short = 0;
+  (o.lines || []).forEach((l) => {
+    const p = productOfLine(l, list);
+    if (!p) return;
+    const sku = (productBy(l.sku || l.name) || {}).sku || p.sku;
+    if (p.format === 'licence') {
+      const mine = () => keysOf(sku).filter((k) => k.ref === o.id && k.status === 'assigned');
+      let got = mine();
+      const missing = (Number(l.qty) || 1) - got.length;
+      if (take && missing > 0) { addMove({ sku, place: onlinePlace(), qty: -missing, kind: 'sale', reason: 'Digital order sent', by, ref: o.id, who: o.customer }); got = mine(); }
+      got.forEach((k) => keys.push({ name: l.name, sku, key: k.key }));
+      short += Math.max(0, (Number(l.qty) || 1) - got.length);
+    } else if (p.format === 'digital') {
+      const token = (hash(o.id + sku) % 2176782336).toString(36).toUpperCase().padStart(6, '0');
+      const d = p.digital || {};
+      links.push({ name: l.name, sku, url: 'https://dazzleshop.com.bd/download/' + token, file: d.file || '', limit: d.limit || 0, days: d.days || 0 });
+    }
+  });
+  return { keys, links, short };
+}
+const digitalExtra = (d, once) => ({ keys: d.keys.map((k) => k.key), download: d.links.map((x) => x.url).join(' '), once });
+/** The download link or licence key is sent: an approved digital order is delivered. Returns false otherwise, or
+ *  { ok, keys, links, short } (short: keys the pool ran out of). */
 export function sendDigital(o, by = 'Staff') {
   if (!o || o.statusKey !== 'approved' || !isDigitalOrder(o)) return false;
-  logOrder(o.id, 'send', 'Download link or key sent', by);
+  // delivered first: its sale moves take the licence keys from the pool (stock.js)
   deliverOrder(o, by);
+  const fresh = findOrder(o.id) || o;
+  const d = digitalItems(fresh, { take: true, by });
+  patchOrder(fresh, { digital: { at: clockNow(), by, sends: 1, keys: d.keys, links: d.links, short: d.short } });
+  logOrder(o.id, 'send', d.keys.length ? 'Licence key sent' : 'Download link sent', [d.keys.length ? d.keys.length + (d.keys.length === 1 ? ' key' : ' keys') : '', d.links.length ? d.links.length + (d.links.length === 1 ? ' link' : ' links') : '', d.short ? d.short + ' key short' : '', by].filter(Boolean).join(' · '));
+  notify(fresh, 'digital-sent', digitalExtra(d, 1));
+  return { ok: true, ...d };
+}
+/** Send the same keys and links again (a lost message). */
+export function resendDigital(o, by = 'Staff') {
+  if (!o || !o.digital) return false;
+  const sends = (o.digital.sends || 1) + 1;
+  patchOrder(o, { digital: { ...o.digital, sends, lastSent: clockNow() } });
+  logOrder(o.id, 'send', 'Download or key sent again', by);
+  notify(o, 'digital-sent', digitalExtra({ keys: o.digital.keys || [], links: o.digital.links || [] }, sends));
   return true;
 }
 
@@ -204,7 +252,8 @@ export function sendToCourier(o) {
   const at = clockNow();
   const id = PREFIX[courier] + '-' + (4400000 + (hash(o.id + courier + at) % 5599999));
   const cod = Math.max(0, (o.amount || 0) - (o.paid || 0));
-  const trackingUrl = 'https://dazzleshop.com.bd/track/' + id;
+  // the customer's tracking page (screens/storefront/TrackOrder.jsx), found by the order number and their phone
+  const trackingUrl = trackingLink(o.id);
   const sent = { courier, consignment: id, codAmount: cod, codLocked: at, courierCharge: courierCharge(courier, o.zone), trackingUrl, sentAt: at, hooks: [] };
   patchOrder(o, sent);
   // the numbers packed in the parcel leave the shelf (serial register; the order page and the warranty read them)
@@ -421,4 +470,47 @@ export function demoFailedDelivery(all = getOrders()) {
   if (!o) return '';
   courierWebhook(o, 'failed', 'demo-failed-' + o.id + '-' + Date.now().toString(36));
   return o.id;
+}
+
+// ---- courier handover (ON-F12) -----------------------------------------------------------------------------------
+// The daily hand-over to the courier's rider: pick the courier, scan or tick its parcels (packed for it, or booked in
+// the last day and not handed over yet), check the count and the cash to collect, print the manifest for the rider to
+// sign, then mark them handed over. A packed parcel not booked yet is booked with the courier first (sendToCourier).
+// Each handed-over order keeps o.handover = { at, by, rider, manifest }; the manifests are kept in this browser
+// (gc.courierHandovers): { id 'HM-0001', at, by, courier, rider, parcels: [{ id, tracking, customer, area, cod }], cod }.
+const HANDOVER_KEY = 'gc.courierHandovers';
+export const HANDOVER_EVENT = 'gc:courier-handover';
+const readHandovers = () => { if (typeof window === 'undefined') return []; try { return JSON.parse(window.localStorage.getItem(HANDOVER_KEY)) || []; } catch { return []; } };
+/** Every manifest, newest first. */
+export const handovers = () => readHandovers().slice().sort((a, b) => b.at - a.at);
+/** The courier's parcels waiting for its rider: packed for it, or booked with it in the last day and not handed over. */
+export function handoverParcels(courier, all = getOrders(), now = clockNow()) {
+  return all.filter((o) => !isCounterSale(o) && !o.isInvoice && !o.handover && (
+    (o.statusKey === 'ready' && prepOf(o).courier === courier)
+    || (o.statusKey === 'shipped' && o.courier === courier && (o.sentAt || (o.times && o.times.shipped) || 0) >= now - 24 * HOUR && !(o.hooks || []).some((h) => ['out', 'delivered', 'failed', 'return'].includes(h.code)))
+  )).map((o) => ({ ...o, booked: o.statusKey === 'shipped', cod: o.codAmount != null ? o.codAmount : Math.max(0, (o.amount || 0) - (o.paid || 0)) }))
+    .sort((a, b) => a.at - b.at);
+}
+/** Hand the parcels to the rider. → { ok, manifest, failed: [{ id, error }] } */
+export function handOver(list, { courier, rider = '', by = 'Staff' } = {}) {
+  const at = clockNow();
+  const all = readHandovers();
+  const id = 'HM-' + String(all.reduce((m, x) => Math.max(m, Number(String(x.id).slice(3)) || 0), 0) + 1).padStart(4, '0');
+  const parcels = [], failed = [];
+  list.forEach((x) => {
+    let o = findOrder(x.id);
+    if (!o || o.handover) return;
+    if (o.statusKey === 'ready') {
+      const r = sendToCourier(o);
+      if (!r.ok) { failed.push({ id: o.id, error: r.error }); return; }
+      o = findOrder(o.id) || o;
+    }
+    patchOrder(o, { handover: { at, by, rider, manifest: id } });
+    logOrder(o.id, 'hand-helping', 'Handed to ' + courier, [rider ? 'Rider ' + rider : '', id, by].filter(Boolean).join(' · '));
+    parcels.push({ id: o.id, tracking: o.consignment, customer: o.customer, phone: o.phone, area: [o.thana, o.district].filter(Boolean).join(', ') || o.zone || '', cod: o.codAmount != null ? o.codAmount : Math.max(0, (o.amount || 0) - (o.paid || 0)) });
+  });
+  if (!parcels.length) return { ok: false, manifest: null, failed };
+  const manifest = { id, at, by, courier, rider, parcels, cod: parcels.reduce((a, p) => a + (Number(p.cod) || 0), 0) };
+  try { window.localStorage.setItem(HANDOVER_KEY, JSON.stringify([manifest, ...all].slice(0, 500))); window.dispatchEvent(new CustomEvent(HANDOVER_EVENT)); } catch { /* storage full */ }
+  return { ok: true, manifest, failed };
 }

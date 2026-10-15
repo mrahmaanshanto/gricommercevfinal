@@ -11,6 +11,11 @@
 // only to roles allowed in Customer settings (crmAccess.js). Coupons and rewards post to the real libs for every
 // customer: one-time codes (personalCoupons.js → promotions.js), points (loyalty.js › adjustPoints) and store credit
 // (storeCredit.js › issueCredit). Changes are kept in this browser.
+// Every customer gets the full picture from the shared books (review CX-U5), matched by any of their numbers: support
+// tickets (supportTickets.js › ticketsFor), store credit rows (storeCredit.js › creditHistory), loyalty level and the
+// way to the next one, offers they used (promotions.js usage), messages sent to them (messaging.js › deliveryLog),
+// meetings and warranty; an Insights card on Overview reads customerSignals.js › signalsOf. Create order and New ticket
+// (review CX-F4) open /new-order?phone= (the POS in the Retail edition) and /support-tickets?new=1&phone=.
 // Edit freely: this file is now the source for the screen.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -30,8 +35,12 @@ import {
 import { TERMS, termsOf, setTerms, pricingLabel } from '@/lib/wholesalePrice';
 import { getCrmRows, crmRow } from '@/lib/crm';
 import { getOrders } from '@/lib/orders';
-import { findMember, getMembers, addMember, adjustPoints, tierFor } from '@/lib/loyalty';
-import { issueCredit, creditBalance } from '@/lib/storeCredit';
+import { findMember, getMembers, addMember, adjustPoints, tierFor, getLoyaltySettings } from '@/lib/loyalty';
+import { issueCredit, creditBalance, creditHistory } from '@/lib/storeCredit';
+import { ticketsFor, isOpen as ticketOpen, TICKETS_EVENT } from '@/lib/supportTickets';
+import { listOffers, usageRows, PROMO_EVENT } from '@/lib/promotions';
+import { deliveryLog, MSG_EVENT, CHANNEL_WORD } from '@/lib/messaging';
+import { notifyCustomer, notifyWords } from '@/lib/notifications';
 import { personalCouponsOf } from '@/lib/personalCoupons';
 import { getConsent, setConsent, consentHistory, setAdsOptOut, whyNotAllowed, CONSENT_CHANNELS, CONSENT_STATES, CONSENT_TONE, CONSENT_SOURCES, CONSENT_EVENT, channelLabel } from '@/lib/consent';
 import { restrictionsOf, restrictionState, restrictionText, addRestriction, liftRestriction, restrictionProblem, RESTRICTION_TYPES, STATE_LABEL, PAY_METHODS, RESTRICTIONS_EVENT } from '@/lib/restrictions';
@@ -51,7 +60,7 @@ import CustomerInvoices from './CustomerInvoices';
 import AssignCouponDialog from './AssignCoupon';
 import CustomerWarranty from './CustomerWarranty';
 import { getInvoices } from '@/lib/invoices';
-import { meetingsWith, providerOf as meetingHow } from '@/lib/meetings';
+import { meetingsWith, providerOf as meetingHow, MEETINGS_EVENT } from '@/lib/meetings';
 
 // ---- demo data of the demo customer (Nusrat Jahan, C-10482) ----
 
@@ -80,24 +89,7 @@ const demoTimeline = () => [
   { icon: 'log-in', what: 'Logged in', sub: 'Android', at: todayAt(10, 42), device: true },
   { icon: 'message-circle', what: 'Cart reminder sent on WhatsApp', sub: 'Opened', at: todayAt(11, 45) },
   { icon: 'package-check', what: 'Order #GC-10471 delivered', sub: '৳4,860 · bKash · 180 points earned', at: dayAt(2026, 9, 12) },
-  { icon: 'life-buoy', what: 'Ticket #T-2210 solved', sub: 'Asked about delivery time · 14 min', at: dayAt(2026, 9, 10) },
-  { icon: 'ticket-percent', what: 'Got coupon CASE15', sub: 'From “Bought a phone, add a case”', at: dayAt(2026, 9, 8) },
   { icon: 'undo-2', what: 'Returned Foldable Phone Stand', sub: 'Wrong model · refund ৳650 to wallet', at: dayAt(2026, 8, 28) },
-];
-const COUP = [
-  ['NUS7Q2', '10% off Redmi Note 13', 'Smart offer · Looked but didn’t buy', '19 Sep 2026', 'Unused', 'Ends 22 Sep'],
-  ['CASE15', '15% off accessories', 'Offers page', '8 Sep 2026', 'Used', 'On #GC-10471 · saved ৳726'],
-  ['EID300', '৳300 off on ৳2,000+', 'Checkout', '20 Aug 2026', 'Used', 'On #GC-10311'],
-  ['NUSWB5', '5% off', 'Smart offer · Win them back', '1 Aug 2026', 'Expired', 'Not used'],
-  ['FIRST20', '20% off first order', 'Sign-up', '2 Mar 2026', 'Used', 'On #GC-10150'],
-  ['SORRY100', '৳100 off', 'Given by Tania', '10 Sep 2026', 'Unused', 'No end date'],
-];
-const CTONE = { Used: 'success', Unused: 'info', Expired: 'neutral' };
-const HIST = [
-  ['WhatsApp', 'Today 11:45 AM', 'Automatic · cart reminder', 'Read', 'Hi Nusrat, you left something in your cart at Dazzle Shop. Finish your order here: dazzleshop.com.bd/c/8K2Q'],
-  ['SMS', '19 Sep 9:10 AM', 'Smart offer', 'Delivered', 'Hi Nusrat, still thinking about Redmi Note 13? 10% off with code NUS7Q2, till 22 Sep.'],
-  ['Email', '12 Sep 6:02 PM', 'Automatic · order', 'Opened', 'Your order #GC-10471 is delivered. You earned 180 points.'],
-  ['SMS', '10 Sep 3:20 PM', 'Tania (support)', 'Delivered', 'দুঃখিত দেরির জন্য। আপনার জন্য ৳১০০ ছাড়: SORRY100'],
 ];
 const IPS = [
   ['103.112.54.21', 'Mirpur, Dhaka', 'Grameenphone', 'Chrome · Android', '4 Jun 2026', 'Today 10:42 AM', 38],
@@ -111,7 +103,11 @@ const ADDR0 = [
   { id: 'a3', label: 'Sister’s house', line: 'Flat 3B, Chandrima Tower, Agrabad C/A, Chattogram 4100', who: 'Nasrin Jahan', phone: '01819-4X2-770', used: 'used in 1 order' },
 ];
 const NOTES0 = [{ t: 'Prefers delivery after 6:00 PM. Call before sending.', by: 'Tania · 10 Sep 2026' }, { t: 'Buys for her sister too — good for bundle offers.', by: 'Shanto · 22 Aug 2026' }];
-const TICKETS = [{ no: '#T-2210', title: 'When will my order arrive?', sub: 'WhatsApp · 10 Sep · solved by Tania in 14 min', st: 'Solved', tone: 'success' }, { no: '#T-2104', title: 'Wrong model phone stand', sub: 'Phone · 26 Aug · return approved', st: 'Solved', tone: 'success' }, { no: '#T-2318', title: 'Can I change the delivery address?', sub: 'Messenger · today · waiting for reply', st: 'Open', tone: 'warning' }];
+// support ticket status → badge tone (lib/supportTickets.js STATUSES)
+const TK_TONE = { New: 'info', Assigned: 'primary', 'In progress': 'warning', 'Waiting on customer': 'neutral', Solved: 'success' };
+// a message's status in the delivery log → badge tone
+const MSG_TONE = { Delivered: 'success', Read: 'success', Sent: 'info', Queued: 'info', Failed: 'error', Suppressed: 'warning', Cancelled: 'neutral' };
+const digitsOf = (p) => String(p || '').replace(/[^0-9]/g, '').replace(/^88/, '');
 const FAVS = [['iPhone 15 128GB', '৳1,19,999', 'Price dropped ৳3,000', 'ly-in'], ['Redmi Note 13 8/256GB', '৳26,999', '', ''], ['Redmi Buds 5', '৳3,650', 'Back in stock', 'ly-in'], ['Xiaomi Smart Band 8', '৳3,450', 'Low stock', 'ix-warn']];
 const SEARCHES = [['redmi note 13', 'Today', '12 found'], ['phone under 20000', '16 Sep', '8 found'], ['pixel 8', '14 Sep', 'Nothing found'], ['আইফোন', '10 Sep', '6 found'], ['oneplus nord', '2 Sep', 'Nothing found'], ['eid offer phone', '20 Aug', '24 found']];
 const VIEWED = [['Redmi Note 13 8/256GB', '4 times in 7 days', 'last today'], ['Liquid Silicone Case · Navy / iPhone 15', '3 times in 7 days', 'last 1 Oct'], ['Type-C Wired Earphones', '2 times in 30 days', 'last 16 Sep'], ['iPhone 15 128GB', '1 time in 30 days', 'last 14 Sep']];
@@ -263,7 +259,7 @@ export default function CustomerCRMScreen() {
       if (AREAS.some((a) => a[0] === t)) setTabState(t);
     } catch { /* no URL access */ }
     setReady(true);
-    const evs = [IDENTITY_EVENT, CONSENT_EVENT, RESTRICTIONS_EVENT, FIELDS_EVENT, SEGMENTS_EVENT, RECOVERY_EVENT];
+    const evs = [IDENTITY_EVENT, CONSENT_EVENT, RESTRICTIONS_EVENT, FIELDS_EVENT, SEGMENTS_EVENT, RECOVERY_EVENT, TICKETS_EVENT, PROMO_EVENT, MSG_EVENT, MEETINGS_EVENT, 'gc:loyalty'];
     evs.forEach((e) => window.addEventListener(e, bump));
     return () => evs.forEach((e) => window.removeEventListener(e, bump));
   }, [bump]);
@@ -286,7 +282,7 @@ export default function CustomerCRMScreen() {
     if (!c) return null;
     const phones = new Set(c.phones.map((p) => normalizePhone(p.value)).filter(Boolean));
     const orders = demo ? ORDERS.map((o) => ({ no: o[0], date: o[1], items: o[2], pay: o[3], amt: o[4], st: o[5], tone: OTONE[o[5]], href: '/order-detail' }))
-      : allOrders.filter((o) => phones.has(normalizePhone(o.phone))).map((o) => ({ no: o.id, date: fmtD(o.at), items: o.itemTitle, pay: o.payment, amt: o.amount, st: o.status, tone: OTONE[o.status] || 'info', href: '/order-detail?id=' + encodeURIComponent(o.id), at: o.at }));
+      : allOrders.filter((o) => phones.has(normalizePhone(o.phone))).map((o) => ({ no: o.id, date: fmtD(o.at), items: o.itemTitle, pay: o.payment, amt: o.amount, st: o.status, tone: OTONE[o.status] || 'info', href: '/order-detail?id=' + encodeURIComponent(o.id), at: o.at })).sort((a, b) => (b.at || 0) - (a.at || 0));
     const sig = signalsOf(c);
     const consent = getConsent(c);
     const restr = restrictionsOf(c);
@@ -307,14 +303,28 @@ export default function CustomerCRMScreen() {
     // meetings with this customer (Customers › Meetings)
     const myPh = [...c.phones.map((p) => p.value), c.bookPhone, c.digits].filter(Boolean);
     const seenM = new Set();
-    if (hasModule('comms')) myPh.forEach((p) => meetingsWith({ phone: p }).forEach((mt) => { if (seenM.has(mt.id)) return; seenM.add(mt.id); tl.push({ icon: 'video', what: 'Meeting · ' + mt.title, sub: meetingHow(mt.provider).label + ' · ' + mt.host + (mt.note ? ' · ' + mt.note : ''), at: mt.at }); }));
+    const meets = [];
+    if (hasModule('comms')) myPh.forEach((p) => meetingsWith({ phone: p }).forEach((mt) => { if (seenM.has(mt.id)) return; seenM.add(mt.id); meets.push(mt); tl.push({ icon: 'video', what: 'Meeting · ' + mt.title, sub: meetingHow(mt.provider).label + ' · ' + mt.host + (mt.note ? ' · ' + mt.note : ''), at: mt.at }); }));
+    const nowT = Date.now();
+    const nextMeet = meets.filter((mt) => mt.status === 'scheduled' && mt.at >= nowT).sort((a, b) => a.at - b.at)[0] || null;
+    // the shared books, by any of this customer's numbers (review CX-U5)
+    const fullPhones = [...new Set([...myPh, c.phone, member && member.phone].map(digitsOf).filter((d) => /^01[3-9]\d{8}$/.test(d)))];
+    const keys = new Set([c.id, ...fullPhones.map((d) => 'P:' + d)]);
+    // tickets: by number; a demo-book customer (masked numbers) or one without a number is matched by name too
+    const tickets = hasModule('comms') ? ticketsFor(fullPhones, c.origin === 'demo' || !fullPhones.length ? c.name : '') : [];
+    tickets.forEach((t) => { tl.push({ icon: 'life-buoy', what: 'Ticket TKT-' + t.id + ' opened', sub: t.subject, at: t.createdAt }); if (t.solvedAt) tl.push({ icon: 'circle-check', what: 'Ticket TKT-' + t.id + ' solved', sub: t.subject + (t.assignee ? ' · ' + t.assignee : ''), at: t.solvedAt }); });
+    const credit = member ? creditHistory(member.phone) : [];
+    credit.forEach((e) => tl.push({ icon: 'wallet', what: 'Store credit · ' + e.label + ' ' + bdt(Math.abs(e.amount)), sub: (e.note || e.source || '') + ' · balance ' + bdt(e.after), at: e.at }));
+    const used = company ? [] : listOffers('all').flatMap((o) => usageRows(o.id).filter((u) => u.state === 'committed' && keys.has(u.customer)).map((u) => ({ ...u, offer: o.name })));
+    used.sort((a, b) => b.at - a.at);
+    used.forEach((u) => tl.push({ icon: 'ticket-percent', what: 'Used ' + (u.code || u.offer), sub: (u.ref ? u.ref + ' · ' : '') + 'saved ' + bdt(u.discount || 0), at: u.at }));
+    const msgs = deliveryLog({}).filter((r) => !r.internal && (keys.has(r.customerKey) || fullPhones.includes(digitsOf(r.address)))).slice(0, 30);
     tl.sort((a, b) => b.at - a.at);
     // invoices made out to any of this customer's numbers that still have money due (the Invoices area's count)
-    const digitsOf = (p) => String(p || '').replace(/[^0-9]/g, '').replace(/^88/, '');
     const myPhones = [...c.phones.map((p) => p.value), c.bookPhone, c.digits, c.phone].filter(Boolean);
     const mine = new Set(myPhones.map(digitsOf));
     const unpaid = getInvoices().filter((r) => r.due > 0 && mine.has(digitsOf(r.customer && r.customer.phone))).length;
-    return { orders, sig, consent, restr, opps, segs, member, contacts, coRow, dupes, tl, unpaid, myPhones };
+    return { orders, sig, consent, restr, opps, segs, member, contacts, coRow, dupes, tl, unpaid, myPhones, tickets, credit, used, msgs, nextMeet, fullPhones };
   }, [c, demo, company, allOrders, rows]);
 
   // ---- not found / loading ----
@@ -352,11 +362,22 @@ export default function CustomerCRMScreen() {
   const level = D.member && D.member.tierObj ? D.member.tierObj.name : (tierFor(c.spent || 0) || {}).name || c.level;
   const verified = c.phones.find((p) => p.primary) || c.phones[0];
   const company0 = D.coRow;
-  // a book customer's figures come from their invoices; when they only have online orders, count those
+  // a book customer's figures come from their invoices; when the order list holds more (online orders, and invoices
+  // show there too), count those, so the header agrees with the Orders area
   const live = D.orders.filter((o) => o.st !== 'Cancelled');
-  const figs = c.orders || !live.length ? { orders: c.orders, spent: c.spent, aov: c.aov } : { orders: live.length, spent: live.reduce((a, o) => a + o.amt, 0), aov: Math.round(live.reduce((a, o) => a + o.amt, 0) / live.length) };
+  const figs = demo || live.length <= (c.orders || 0) ? { orders: c.orders, spent: c.spent, aov: c.aov } : { orders: live.length, spent: live.reduce((a, o) => a + o.amt, 0), aov: Math.round(live.reduce((a, o) => a + o.amt, 0) / live.length) };
   const myCoupons = company ? [] : personalCouponsOf({ id: c.id, phone: c.phone, phones: c.phones.map((p) => p.value).concat(D.member ? [D.member.phone] : []) });
   const openCart = D.opps.find((o) => ['waiting', 'contactable', 'call_queued'].indexOf(o.state) >= 0);
+  // Create order and New ticket, with this customer filled in (review CX-F4). Retail has no online orders: the POS.
+  const ph0 = D.fullPhones[0] || '';
+  const who = (ph0 ? 'phone=' + encodeURIComponent(ph0) + '&' : '') + 'name=' + encodeURIComponent(c.name);
+  const orderHref = company ? null : hasModule('online') && inEditionNav('orders-all') ? '/new-order?' + who : inEditionNav('pos-register') ? '/pos?' + who : null;
+  const ticketHref = inEditionNav('tickets') ? '/support-tickets?new=1&' + who : null;
+  const openTickets = D.tickets.filter(ticketOpen);
+  // the way to the next loyalty level (lib/loyalty.js tiers)
+  const tiers = D.member ? [...getLoyaltySettings().tiers].sort((a, b) => a.min - b.min) : [];
+  const bought = D.member ? D.member.bought || 0 : 0;
+  const nextTier = tiers.find((t) => t.min > bought) || null;
 
   // ---- actions ----
   const open = (mode, fields = {}) => { setM(mode); setF(fields); setErr(''); };
@@ -511,7 +532,7 @@ export default function CustomerCRMScreen() {
     const list = ui.ordAll || !limit ? D.orders : D.orders.slice(0, limit);
     return (
       <section className="ix-card" aria-labelledby="crm-orders">
-        <header className="ix-card__head"><h2 id="crm-orders">Orders</h2>{D.orders.length > 5 ? <Plain onClick={() => set({ ordAll: !ui.ordAll })}>{ui.ordAll ? 'Show less' : 'View all'}</Plain> : null}</header>
+        <header className="ix-card__head"><h2 id="crm-orders">Orders</h2><span className="ix-chips">{D.orders.length > 5 ? <Plain onClick={() => set({ ordAll: !ui.ordAll })}>{ui.ordAll ? 'Show less' : 'View all'}</Plain> : null}{orderHref ? <__Link href={orderHref} className="ix-btn ix-btn--sm ix-btn--plain">Create order</__Link> : null}</span></header>
         {!list.length ? <div className="ix-card__body"><p className="ly-help">{company ? 'Orders placed by its contacts show here.' : 'No orders yet.'}</p></div> : (<>
           <ul className="ix-plist" aria-label="Orders">
             {list.map((o) => <li key={o.no}><__Link href={o.href} className="ix-pitem"><span className="ix-pitem__top"><b className="ly-fig">{o.no}</b><span>{bdt(o.amt)}</span></span><span className="ix-pitem__mid">{o.date} · {o.items}</span><span className="ix-pitem__tags"><__StatusBadge tone={o.tone}>{o.st}</__StatusBadge></span></__Link></li>)}
@@ -550,8 +571,18 @@ export default function CustomerCRMScreen() {
     set({ mch: nba.ch }); goMessage();
   };
 
+  const ticketList = (list) => (
+    <ul className="crm-list" aria-label="Support tickets">{list.map((t) => <li key={t.id}><div><__Link href={'/support-tickets?id=' + t.id} className="ix-strong">{t.subject}</__Link><span className="crm-sub"><span className="ly-fig">TKT-{t.id}</span> · {t.topic} · {fmtD(t.createdAt)}{t.assignee ? ' · ' + t.assignee : ''}</span></div><__StatusBadge tone={TK_TONE[t.status] || 'neutral'}>{t.status}</__StatusBadge></li>)}</ul>
+  );
+  const ticketsCard = (all) => (
+    <Card id={all ? 'crm-tickets' : 'crm-tickets-o'} title={'Support tickets' + (openTickets.length ? ' · ' + openTickets.length + ' open' : '')} action={ticketHref ? <__Link href={ticketHref} className="ix-btn ix-btn--sm ix-btn--plain">New ticket</__Link> : null}>
+      {D.tickets.length ? ticketList(all ? D.tickets : [...openTickets, ...D.tickets.filter((t) => !ticketOpen(t))].slice(0, 3)) : <p className="ly-help">No tickets.</p>}
+      {!all && D.tickets.length > 3 ? <Plain onClick={() => setTab('activity')}>View all</Plain> : null}
+    </Card>
+  );
   const overview = (<>
-    {D.orders.length ? ordersCard(3) : null}
+    {ordersCard(3)}
+    {ticketHref && (D.tickets.length || !company) ? ticketsCard(false) : null}
     <CustomerWarranty phones={D.myPhones} name={c.name} limit={3} />
     <Card id="crm-recent" title="Recent activity" action={<Plain onClick={() => setTab('activity')}>View all</Plain>}>{timeline(5)}</Card>
     {company ? (
@@ -582,15 +613,30 @@ export default function CustomerCRMScreen() {
       </details>
     ) : null}
   </>);
-  const overviewSide = (
+  const sg = D.sig.signals;
+  const sigBadge = (x) => <__StatusBadge tone={x.value === NOT_ENOUGH ? 'neutral' : SIGNAL_TONE[x.value] || 'info'}>{x.value}</__StatusBadge>;
+  const overviewSide = (<>
     <Card id="crm-facts" title="Good to know">
       <KV rows={[
         ['Likes messages by', c.preferred || '—'],
         ['Marketing consent', consentOk.length ? consentOk.join(', ') : 'None on file'],
         ['Restrictions', active.length ? active.map(restrictionText).join(', ') : 'None'],
-      ]} />
+        D.nextMeet ? ['Next meeting', <__Link key="m" href="/meetings">{fmtDT(D.nextMeet.at)}</__Link>] : null,
+        D.member ? ['Store credit', bdt(D.member.wallet || 0)] : null,
+      ].filter(Boolean)} />
     </Card>
-  );
+    {company ? null : (
+      <Card id="crm-insights" title="Insights" action={<InfoTip text="Worked out from this customer's orders. Advice only: nothing is changed or sent." />}>
+        <KV rows={[
+          [sg.churn.label, sigBadge(sg.churn)],
+          [sg.vip.label, sigBadge(sg.vip)],
+          [sg.nextOrder.label, sg.nextOrder.sufficient ? sg.nextOrder.value : sigBadge(sg.nextOrder)],
+          [sg.history.label, sigBadge(sg.history)],
+        ]} />
+        {sg.churn.value !== NOT_ENOUGH ? <span className="crm-sub">{sg.churn.explanation}</span> : null}
+      </Card>
+    )}
+  </>);
 
   const commerce = (<>
     {ordersCard(5)}
@@ -611,21 +657,27 @@ export default function CustomerCRMScreen() {
           <button type="button" className="ix-btn ix-btn--sm" disabled={!canReward} onClick={() => open('points', { op: 'give', n: 100, why: '' })} aria-haspopup="dialog"><__Icon name="star" width="16" height="16" aria-hidden="true" />Give or take points</button>
           <button type="button" className="ix-btn ix-btn--sm" disabled={!canReward} onClick={() => open('credit', { n: 200, why: CREDIT_WHY[0][0] })} aria-haspopup="dialog"><__Icon name="wallet" width="16" height="16" aria-hidden="true" />Add credit</button>
         </div>
-        {myCoupons.length || demo ? (
+        {myCoupons.length || D.used.length ? (
           <ul className="crm-list" aria-label="Coupons">
             {myCoupons.map((x) => <li key={x.id}><div><b className="ly-fig">{x.code}</b><span className="crm-sub">{x.label} · {x.made ? fmtD(x.made) : ''}</span></div><span style={{ textAlign: 'right' }}><__StatusBadge tone={PTONE[x.state]}>{x.state}</__StatusBadge><span className="crm-sub">{x.ends ? 'Ends ' + fmtD(x.ends) : 'No end date'}</span></span></li>)}
-            {demo ? COUP.map((x) => <li key={x[0]}><div><b className="ly-fig">{x[0]}</b><span className="crm-sub">{x[1]} · {x[2]} · {x[3]}</span></div><span style={{ textAlign: 'right' }}><__StatusBadge tone={CTONE[x[4]]}>{x[4]}</__StatusBadge><span className="crm-sub">{x[5]}</span></span></li>) : null}
+            {D.used.slice(0, 5).map((u) => <li key={u.id}><div><b className="ly-fig">{u.code || u.offer}</b><span className="crm-sub">{u.offer} · {fmtD(u.at)}{u.ref ? ' · ' + u.ref : ''}</span></div><span style={{ textAlign: 'right' }}><__StatusBadge tone="success">Used</__StatusBadge><span className="crm-sub">saved {bdt(u.discount || 0)}</span></span></li>)}
           </ul>
         ) : <p className="ly-help">No coupons yet.</p>}
+        {D.credit.length ? (<>
+          <p className="crm-set-h">Store credit</p>
+          <ul className="crm-list" aria-label="Store credit">{D.credit.slice(0, 4).map((e) => <li key={e.id || e.at}><div><b>{e.label} · {bdt(Math.abs(e.amount))}</b><span className="crm-sub">{fmtD(e.at)}{e.note ? ' · ' + e.note : ''}</span></div><span className="crm-when">balance {bdt(e.after)}</span></li>)}</ul>
+        </>) : null}
         {D.member ? <KV rows={[['Level', D.member.tierObj ? D.member.tierObj.name : level], ['Loyalty points', D.member.points.toLocaleString('en-IN')], ['Store credit', bdt(D.member.wallet || 0)]]} />
           : <p className="ly-help">{canReward ? 'Not a loyalty member yet. Giving points or credit makes them one.' : 'Not a loyalty member yet.'} <__Link href="/members">Members</__Link></p>}
         {D.member ? <__Link href={'/member-detail?phone=' + D.member.phone}>Member</__Link> : null}
       </Card>
     ) : null}
   </>);
-  const commerceSide = demo ? (
-    <Card id="crm-loy" title="Road to Platinum" action={<__Link href="/member-detail">Member</__Link>}>
-      <div className="crm-meter"><div><span>GOLD · 1.5× points</span><b>39%</b></div><span className="gc-progress"><span className="gc-progress__fill" style={{ display: 'block', width: '39%' }} /></span><span className="crm-sub">৳58,200 of ৳1,50,000 · Buy ৳91,800 more to unlock 2× points</span></div>
+  const commerceSide = D.member && !company ? (
+    <Card id="crm-loy" title={nextTier ? 'Road to ' + nextTier.name : 'Loyalty'} action={<__Link href={'/member-detail?phone=' + D.member.phone}>Member</__Link>}>
+      {nextTier ? (
+        <div className="crm-meter"><div><span>{level} · {((D.member.tierObj || {}).mult || 1)}× points</span><b>{Math.min(100, Math.round(bought / nextTier.min * 100))}%</b></div><span className="gc-progress"><span className="gc-progress__fill" style={{ display: 'block', width: Math.min(100, Math.round(bought / nextTier.min * 100)) + '%' }} /></span><span className="crm-sub">{bdt(bought)} of {bdt(nextTier.min)} · Buy {bdt(nextTier.min - bought)} more for {nextTier.name}</span></div>
+      ) : <p className="ly-help">{level}: the top level.</p>}
     </Card>
   ) : company || whole ? (
     <Card id="crm-terms" title="Account terms">
@@ -690,17 +742,13 @@ export default function CustomerCRMScreen() {
           <h3>Message history</h3>
           <div className="crm-hist">
             {ui.sent.slice().reverse().map((h, i) => <div key={'n' + i} className="is-new"><small><b>{h.ch}</b><span>Just now · You</span><span>Sent</span></small><span className="crm-bn">{h.text}</span></div>)}
-            {demo ? HIST.map((h, i) => <div key={i}><small><b>{h[0]}</b><span>{h[1]} · {h[2]}</span><span>{h[3]}</span></small><span className="crm-bn">{h[4]}</span></div>) : null}
-            {!demo && !ui.sent.length ? <p className="ly-help">No messages yet.</p> : null}
+            {D.msgs.slice(0, 12).map((r) => <div key={r.id}><small><b>{CHANNEL_WORD[r.channel] || r.channel}</b><span>{fmtDT(r.at)} · {r.source}{r.event ? ' · ' + r.event : ''}</span><__StatusBadge tone={MSG_TONE[r.status] || 'neutral'}>{r.status}</__StatusBadge></small><span className="crm-bn">{r.text}</span></div>)}
+            {!D.msgs.length && !ui.sent.length ? <p className="ly-help">No messages yet.</p> : null}
           </div>
         </div>
       </div>
     </section>
-    {demo ? (
-      <Card id="crm-tickets" title="Support tickets" action={<__Link href="/support-tickets">All tickets</__Link>}>
-        <ul className="crm-list">{TICKETS.map((t) => <li key={t.no}><div><__Link href="/support-tickets" className="ix-strong">{t.title}</__Link><span className="crm-sub"><span className="ly-fig">{t.no}</span> · {t.sub}</span></div><__StatusBadge tone={t.tone}>{t.st}</__StatusBadge></li>)}</ul>
-      </Card>
-    ) : null}
+    {ticketHref ? ticketsCard(true) : null}
   </>);
 
   const pointList = (kind) => (
@@ -809,7 +857,7 @@ export default function CustomerCRMScreen() {
       </>) : <p className="ly-help">No sign-ins recorded.</p>) : <div className="crm-hidden"><__Icon name="lock" width="16" height="16" aria-hidden="true" />Hidden. IP addresses and devices are for the roles set in Customer settings.</div>}
       <div className="ix-chips">
         <button type="button" className="ix-btn ix-btn--sm" onClick={() => uiToast(first + ' was logged out of every device.')}><__Icon name="lock" width="16" height="16" aria-hidden="true" />Log out of all devices</button>
-        <button type="button" className="ix-btn ix-btn--sm" onClick={() => uiToast('Password reset link sent by SMS.')}><__Icon name="refresh-cw" width="16" height="16" aria-hidden="true" />Send password reset</button>
+        <button type="button" className="ix-btn ix-btn--sm" onClick={() => { const r = notifyCustomer('password-reset', { name: c.name, phone: ph0, email: c.email }, { reset_link: 'https://dazzleshop.com.bd/reset/' + c.id.toLowerCase() }, { ref: c.id, once: c.id + '|reset|' + Date.now() }); uiToast(notifyWords(r, first), r.sent ? undefined : { tone: 'info' }); }}><__Icon name="refresh-cw" width="16" height="16" aria-hidden="true" />Send password reset</button>
       </div>
     </Card>
   </>);
@@ -854,6 +902,8 @@ export default function CustomerCRMScreen() {
         badges={badges} meta={meta}
         secondary={[{ label: 'Edit', onClick: openEdit }, { label: 'Call', onClick: call }]}
         more={[
+          orderHref ? { label: 'Create order', href: orderHref } : null,
+          ticketHref ? { label: 'New ticket', href: ticketHref } : null,
           whole && !company ? { label: 'Wholesale profile', href: '/wholesale-customer?phone=' + (c.bookPhone || c.digits) + (c.demoId ? '&demo=' + c.demoId : '') } : null,
           (company || whole) && inEditionNav('orders-quotes') && { label: 'New quote', href: '/quotes?new=1&buyer=' + encodeURIComponent(company ? c.id : (c.bookPhone || c.digits)) },
           hasModule('comms') && { label: 'Schedule meeting', href: '/meetings?new=1&customer=' + encodeURIComponent(c.bookPhone || c.phone || (c.phones[0] || {}).value || '') },

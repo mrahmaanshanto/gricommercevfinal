@@ -1,0 +1,36 @@
+{
+ "id": "B2",
+ "kind": "new",
+ "section": "Module B · Services",
+ "area": "Module B · Services",
+ "title": "Run service orders from super admin",
+ "problem": "GridCommerce had no way to assign, track or check paid service work.",
+ "now": "An orders board with deadlines that pause while waiting, expert assignment, quality check, extra-work quotes and refunds.",
+ "steps": [
+  "Open a New order and assign the suggested expert.",
+  "Hand the work in.",
+  "Pass the quality check."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/admin/services/SvcOrders.jsx",
+  "src/screens/admin/services/SvcOrder.jsx"
+ ],
+ "notes": "Where: Super admin › Services › Orders (/admin/services)",
+ "shots": [
+  {
+   "route": "/admin/services",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Super admin: service orders",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

@@ -13,52 +13,70 @@ import { toast } from '@/runtime/ui';
 import { SetFragment as __SetFragment } from '@/screens/settings-console/SetChrome';
 import { hasModule, currentEditionId, LOCKED, routeInEdition } from '@/lib/edition';
 import { searchSettings } from '@/lib/settingsRegistry';
+import { APPS, statusOf } from '@/lib/connections';
+
+// 'live' dots follow Connections (lib/connections.js): green when connected, a count when some need attention,
+// "needs setup" when nothing is connected yet (MS-U10). Read after mount, so the first render matches the server.
+const LIVE_GROUP = { courier: (a) => a.group === 'delivery', mail: (a) => a.id === 'email', sms: (a) => a.id === 'sms' };
+function liveDots() {
+  const out = {};
+  Object.entries(LIVE_GROUP).forEach(([id, test]) => {
+    const st = APPS.filter(test).map((a) => { try { return statusOf(a.id).state; } catch { return 'off'; } });
+    const att = st.filter((x) => x === 'attention').length;
+    const on = st.filter((x) => x === 'connected' || x === 'attention').length;
+    out[id] = att ? ['warn', String(att)] : on ? ['ok', ''] : ['warn', ''];
+  });
+  return out;
+}
+// the demo's profile switch (Profile type) is a review tool: listed only on a storyboard build (MS-U13)
+const SHOW_DEMO_TOOLS = process.env.NEXT_PUBLIC_SHOW_STORYBOARD === 'true';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 // Sections that have a screen in this build. The rest say so when chosen.
 const ROUTES = {
   // Business setup: each area's own setup page, listed here too (the pages keep their addresses)
-  'set-orders': '/order-settings', 'set-catalog': '/catalog-setup', 'set-customers': '/customer-settings', 'set-channels': '/channel-settings', 'set-autocall': '/auto-call-settings',
+  'set-orders': '/order-settings', 'set-checkout': '/set-checkout', 'set-catalog': '/catalog-setup', 'set-customers': '/customer-settings', 'set-channels': '/channel-settings', 'set-autocall': '/auto-call-settings',
   'set-comms': '/workflow-settings', 'set-staff': '/hr-setup', 'set-accounts': '/account-setup', 'set-pos': '/pos-manage',
   general: '/set-general', preference: '/set-preference', payment: '/set-payments', delivery: '/set-delivery',
-  notifications: '/set-notifications', stocksetup: '/stock-setup', profile: '/set-profile', seo: '/set-seo',
+  notifications: '/set-notifications', invoices: '/set-invoices', stocksetup: '/stock-setup', profile: '/set-profile', seo: '/set-seo',
   apisec: '/set-security',
   users: '/set-users', import: '/import-data',
-  privacy: '/set-privacy', domains: '/set-domains', bizmail: '/email', history: '/settings-history',
+  privacy: '/set-privacy', hosting: '/set-hosting', domains: '/set-domains', bizmail: '/email', history: '/settings-history',
+  verification: '/set-verification',
   billing: '/subscription', usagelimits: '/subscription#usage', wallet: '/credit-wallet',
   // every outside connection is made in Connections
   connections: '/connections', social: '/connections?group=social', courier: '/connections?group=delivery', mail: '/connections?group=messages', sms: '/connections?group=messages',
 };
 
 const GROUPS = [
-  ['Store', [['connections', 'Connections', 'ok'], ['general', 'General', 'ok'], ['profile', 'Profile type', 'ok'], ['stocksetup', 'Stock setup', 'ok'], ['preference', 'Preference', 'ok'], ['privacy', 'Privacy & consent', 'ok'], ['domains', 'Domains', 'ok'], ['bizmail', 'Business email', 'ok'], ['pos', 'POS', 'ok'], ['report', 'Report Settings', 'none']]],
+  ['Store', [...(SHOW_DEMO_TOOLS ? [['profile', 'Demo: profile type', 'none']] : []), ['connections', 'Connections', 'ok'], ['general', 'General', 'ok'], ['verification', 'Business verification', 'ok'], ['stocksetup', 'Stock setup', 'ok'], ['preference', 'Preference', 'ok'], ['privacy', 'Privacy & consent', 'ok'], ['hosting', 'Hosting & domains', 'ok'], ['bizmail', 'Business email', 'ok'], ['pos', 'POS', 'ok'], ['invoices', 'Invoices & receipts', 'ok'], ['report', 'Report Settings', 'none']]],
   // who can sign in (every plan) and bringing data from another system
   ['Users & data', [['users', 'Users & roles', 'ok'], ['import', 'Import data', 'ok']]],
-  ['Business setup', [['set-orders', 'Orders', 'ok'], ['set-catalog', 'Products & catalog', 'ok'], ['set-customers', 'Customers', 'ok'], ['set-channels', 'Sales channels', 'ok'], ['set-autocall', 'Auto-call', 'ok'], ['set-comms', 'Communications', 'ok'], ['set-staff', 'Staff & HR', 'ok'], ['set-accounts', 'Accounts', 'ok'], ['set-pos', 'POS counters', 'ok']]],
-  ['Commerce', [['payment', 'Payment Gateway', 'ok'], ['delivery', 'Delivery Settings', 'ok'], ['courier', 'Courier Settings', 'warn', '1']]],
-  ['Notifications', [['notifications', 'Order notifications', 'ok']]],
+  ['Business setup', [['set-orders', 'Orders', 'ok'], ['set-checkout', 'Checkout', 'ok'], ['set-catalog', 'Products & catalog', 'ok'], ['set-customers', 'Customers', 'ok'], ['set-channels', 'Sales channels', 'ok'], ['set-autocall', 'Auto-call', 'ok'], ['set-comms', 'Communications', 'ok'], ['set-staff', 'Staff & HR', 'ok'], ['set-accounts', 'Accounts', 'ok'], ['set-pos', 'POS counters', 'ok']]],
+  ['Commerce', [['payment', 'Payment Gateway', 'ok'], ['delivery', 'Delivery Settings', 'ok'], ['courier', 'Courier Settings', 'live']]],
+  ['Notifications', [['notifications', 'Notifications', 'ok']]],
   // AI is set up in the Grid AI area only (Settings, Models & limits, Usage & billing); the old AI provider, AI Usage
   // and Auto-Reply Rules pages forward there (next.config.mjs › MOVED)
-  ['Communication', [['mail', 'Mail', 'ok'], ['sms', 'SMS', 'warn', '1'], ['push', 'Push Notifications', 'off'], ['social', 'Social Integrations', 'ok']]],
+  ['Communication', [['mail', 'Mail', 'live'], ['sms', 'SMS', 'live'], ['push', 'Push Notifications', 'off'], ['social', 'Social Integrations', 'ok']]],
   ['Discovery', [['seo', 'SEO', 'ok'], ['smart', 'Smart Search', 'ok'], ['imgsearch', 'Image Search', 'off']]],
   // storage, database / file backups, realtime and recaptcha are run by GridCommerce (super admin), not the shop
-  ['Security & data', [['apisec', 'API keys & backups', 'ok'], ['history', 'Settings history', 'none']]],
+  ['Security & data', [['apisec', 'API keys', 'ok'], ['history', 'Settings history', 'none']]],
   ['Account & billing', [['billing', 'Plan & billing', 'ok'], ['usagelimits', 'Usage & limits', 'none'], ['wallet', 'Wallet & credits', 'none']]],
 ];
 
 const STATE = { ok: 'configured', warn: 'needs setup', off: 'turned off' };
 // the small icon in front of each section
 const ICON = {
-  connections: 'plug', general: 'store', profile: 'user-cog', stocksetup: 'boxes', preference: 'sliders-horizontal', pos: 'scan-line', report: 'file-bar-chart',
+  connections: 'plug', invoices: 'receipt-text', general: 'store', verification: 'shield-check', profile: 'user-cog', stocksetup: 'boxes', preference: 'sliders-horizontal', pos: 'scan-line', report: 'file-bar-chart',
   payment: 'credit-card', delivery: 'truck', courier: 'package', notifications: 'bell', mail: 'mail', sms: 'message-square', push: 'bell-ring',
   social: 'share-2', seo: 'search', smart: 'sparkles', imgsearch: 'image', apisec: 'shield',
-  privacy: 'lock', domains: 'globe', users: 'user-cog', import: 'file-up', history: 'history', billing: 'receipt', usagelimits: 'activity', wallet: 'wallet',
-  'set-orders': 'package', 'set-catalog': 'tag', 'set-customers': 'users', 'set-channels': 'share-2', 'set-autocall': 'phone-call',
+  privacy: 'lock', hosting: 'server', domains: 'globe', users: 'user-cog', import: 'file-up', history: 'history', billing: 'receipt', usagelimits: 'activity', wallet: 'wallet',
+  'set-orders': 'package', 'set-checkout': 'shopping-cart', 'set-catalog': 'tag', 'set-customers': 'users', 'set-channels': 'share-2', 'set-autocall': 'phone-call',
   'set-comms': 'messages-square', 'set-staff': 'contact', 'set-accounts': 'landmark', 'set-pos': 'monitor-smartphone',
 };
 // sections that belong to a module (src/lib/edition.js); the rest are in every edition
-const SECTION_MODULE = { domains: 'online', notifications: 'online', stocksetup: 'catalog', pos: 'pos', report: 'reports', payment: 'commerce', delivery: 'online', courier: 'online', social: 'comms', seo: 'online', smart: 'online', imgsearch: 'online' };
+const SECTION_MODULE = { 'set-checkout': 'online', stocksetup: 'catalog', pos: 'pos', report: 'reports', payment: 'commerce', delivery: 'online', courier: 'online', social: 'comms', seo: 'online', smart: 'online', imgsearch: 'online' };
 
 class Component extends DCLogic {
   constructor(p) {
@@ -66,7 +84,7 @@ class Component extends DCLogic {
     this.scroller = React.createRef();
     this.state = { q: '', closed: {}, collapsed: false, ed: LOCKED ? currentEditionId() : 'full' };
   }
-  componentDidMount() { this.setState({ ed: currentEditionId() }); this.reveal(); }
+  componentDidMount() { let live = {}; try { live = liveDots(); } catch { /* storage blocked */ } this.setState({ ed: currentEditionId(), live }); this.reveal(); }
   /** Bring the current section into view, in the column (vertical) and in the strip (horizontal). */
   reveal() {
     const run = () => {
@@ -88,7 +106,7 @@ class Component extends DCLogic {
         // an item with no page yet is hidden, and so is a page outside the site's edition (it would say "Not in …")
         .filter(([id]) => ROUTES[id] && routeInEdition(ROUTES[id].split(/[?#]/)[0], this.state.ed))
         .filter(([id, name]) => (!q || name.toLowerCase().includes(q)) && (!SECTION_MODULE[id] || hasModule(SECTION_MODULE[id], this.state.ed)))
-        .map(([id, name, dot, badge]) => ({ id, name, dot, badge: badge || '', href: ROUTES[id] || '', active: id === active })),
+        .map(([id, name, dot, badge]) => { const lv = dot === 'live' ? (this.state.live || {})[id] || ['none', ''] : null; return { id, name, dot: lv ? lv[0] : dot, badge: lv ? lv[1] : badge || '', href: ROUTES[id] || '', active: id === active }; }),
     })).map((g) => ({ ...g, count: g.items.length })).filter((g) => g.items.length);
     // single settings (and where settings owned by other areas live)
     let hits = [];

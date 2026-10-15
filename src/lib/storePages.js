@@ -18,6 +18,7 @@ import { uid, slugify, newBlock } from './blog';
 import { businessProfile } from './businessProfile';
 import { currentVersion } from './consents';
 import { autoRedirect } from './redirects';
+import { deliveryTable } from './deliveryRates';
 
 const KEY = 'gc.storePages';
 export const STORE_PAGES_EVENT = 'gc:store-pages';
@@ -80,7 +81,7 @@ export const TEMPLATES = [
   { id: 'shipping', name: 'Shipping & delivery', icon: 'truck', handle: 'shipping-delivery', blurb: 'Delivery areas, charges and times.',
     make: () => ({ title: 'Shipping & delivery', blocks: [
       P('We deliver all over Bangladesh through trusted couriers. You can pay cash on delivery.'),
-      T([['Area', 'Charge', 'Time'], ['Inside Dhaka', '৳70', '1–2 days'], ['Dhaka suburbs', '৳100', '2–3 days'], ['Outside Dhaka', '৳130', '3–5 days']]),
+      T([['Area', 'Charge', 'Time'], ...deliveryTable()]),   // Settings › Delivery's charges and times
       H('Good to know'),
       L(['We call to confirm every cash-on-delivery order before it ships.', 'You get an SMS with the tracking number when your parcel leaves.', 'Check the parcel in front of the rider before you pay.']),
     ], seo: { title: 'Shipping & delivery', description: 'Delivery charges and times inside Dhaka and across Bangladesh, with cash on delivery.' } }) },

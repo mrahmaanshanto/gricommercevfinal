@@ -8,6 +8,10 @@
 //                { no, supplier, ret, po, amount, applied { billNo: amount }, unused, lines, note, at }.
 //   Return       goods sent back to a supplier (Supplier return): { no, supplier, lines, reason, how, note, by, at, credit, value }.
 // What the shop owes on a bill = amount − paid − credited. A supplier's payable = open bill balances − unused credit.
+// A supplier can be changed (updateSupplier: name, contacts, terms, bank / bKash, opening balance, advance) and archived
+// (archiveSupplier, only with nothing owed; archived ones leave the lists and pickers, their history stays). An opening
+// balance is a bill 'OB-<id>' (what was owed before the shop used GridCommerce); an advance is a credit note
+// 'ADV-<id>' (money the supplier already holds), used on bills like any credit. Neither moves money in the ledger.
 // Front end only: starts from demo rows and is kept in this browser.
 
 import { postEntry } from './ledger';
@@ -144,7 +148,7 @@ function fromOld(db) {
 const read = () => {
   try {
     const s = JSON.parse(window.localStorage.getItem(KEY));
-    if (s && Array.isArray(s.bills)) return { suppliers: [], payments: [], credits: [], returns: [], ...s, bills: s.bills.map((b) => withStatus(withSeedLines(b))) };
+    if (s && Array.isArray(s.bills)) return { suppliers: [], payments: [], credits: [], returns: [], edits: {}, ...s, bills: s.bills.map((b) => withStatus(withSeedLines(b))) };
   } catch { /* ignore */ }
   return fromOld(seedDb());
 };
@@ -153,12 +157,15 @@ const write = (db) => { try { window.localStorage.setItem(KEY, JSON.stringify(db
 /** Everything at once: { suppliers (demo + added), bills, payments, credits, returns }. The demo rows on the server. */
 export function getDb() {
   const db = typeof window === 'undefined' ? seedDb() : read();
-  return { ...db, suppliers: [...db.suppliers, ...SUPPLIERS] };
+  const edits = db.edits || {};
+  return { ...db, suppliers: [...db.suppliers, ...SUPPLIERS.map((x) => (edits[x.id] ? { ...x, ...edits[x.id] } : x))] };
 }
 /** The demo data only, for a first render that must match the server. */
 export function demoDb() { const db = seedDb(); return { ...db, suppliers: [...SUPPLIERS] }; }
 
 export const getSuppliers = () => getDb().suppliers;
+/** Suppliers in use (not archived), for lists and pickers. */
+export const activeSuppliers = (list = getSuppliers()) => list.filter((x) => !x.archived);
 export const getBills = () => getDb().bills;
 export const getPayments = () => getDb().payments;
 export const getCredits = () => getDb().credits;
@@ -176,6 +183,74 @@ export function addSupplier(s) {
   write({ ...db, suppliers: [made, ...db.suppliers] });
   return made;
 }
+/** The money facts of a supplier: { opening, advance } as set on its Edit panel. */
+export const openingOf = (id, db = getDb()) => ({
+  opening: ((db.bills || []).find((b) => b.no === 'OB-' + id) || {}).amount || 0,
+  advance: ((db.credits || []).find((c) => c.no === 'ADV-' + id) || {}).amount || 0,
+});
+/**
+ * Change a supplier: { name, phone, email, kind, goods, terms, person, address, contacts: [{ name, role, phone }],
+ * bank: { name, branch, account, routing }, mfs: { kind, number }, opening, advance }. Returns { ok, supplier } or
+ * { ok: false, error }. Built-in (demo) suppliers keep their changes in db.edits.
+ */
+export function updateSupplier(id, patch, by = 'Staff') {
+  const db = read();
+  const all = [...db.suppliers, ...SUPPLIERS.map((x) => ({ ...x, ...((db.edits || {})[x.id] || {}) }))];
+  const cur = all.find((x) => x.id === id);
+  if (!cur) return { ok: false, error: 'Supplier not found.' };
+  const name = String(patch.name ?? cur.name).trim();
+  if (!name) return { ok: false, error: 'Enter the supplier’s name.' };
+  if (all.some((x) => x.id !== id && x.name.toLowerCase() === name.toLowerCase())) return { ok: false, error: 'Another supplier has this name.' };
+  const phone = String(patch.phone ?? cur.phone ?? '').trim();
+  if (phone && phone !== '—' && String(phone).replace(/\D/g, '').length < 10) return { ok: false, error: 'Check the phone number.' };
+  if (patch.mfs && patch.mfs.number && String(patch.mfs.number).replace(/\D/g, '').length !== 11) return { ok: false, error: 'A bKash or Nagad number has 11 digits.' };
+  const money = (x) => Math.max(0, Math.round(Number(String(x ?? 0).replace(/[^0-9.]/g, '')) || 0));
+  // opening balance: a bill that can't go below what was already paid on it
+  if (patch.opening !== undefined) {
+    const amt = money(patch.opening), no = 'OB-' + id, b = db.bills.find((x) => x.no === no);
+    if (b && amt < (b.paid || 0) + (b.credited || 0)) return { ok: false, error: `The opening balance can’t be less than the ৳${((b.paid || 0) + (b.credited || 0)).toLocaleString('en-IN')} already paid on it.` };
+    if (b) { b.amount = amt; b.status = statusFor(b); if (!amt) db.bills = db.bills.filter((x) => x.no !== no); }
+    else if (amt) {
+      const first = db.bills.filter((x) => x.supplier === id).reduce((m, x) => Math.min(m, x.at), Date.now());
+      const at = dayStart(first) - DAY;
+      db.bills = [withStatus({ no, supplier: id, po: '', grn: '', ref: 'Opening balance', at, amount: amt, due: at + (cur.terms ?? DEFAULT_TERMS) * DAY, paid: 0, credited: 0, lines: [], extra: 0, notes: 'Opening balance', opening: true }), ...db.bills];
+    }
+  }
+  // advance: a credit note; what was already used on bills stays used
+  if (patch.advance !== undefined) {
+    const amt = money(patch.advance), no = 'ADV-' + id, c = db.credits.find((x) => x.no === no);
+    const used = c ? c.amount - c.unused : 0;
+    if (c && amt < used) return { ok: false, error: `The advance can’t be less than the ৳${used.toLocaleString('en-IN')} already used on bills.` };
+    if (c) { c.amount = amt; c.unused = amt - used; if (!amt) db.credits = db.credits.filter((x) => x.no !== no); }
+    else if (amt) db.credits = [{ no, supplier: id, ret: '', po: '', amount: amt, applied: {}, unused: amt, lines: [], note: 'Advance held by the supplier', at: Date.now(), advance: true }, ...db.credits];
+  }
+  const keep = ['name', 'phone', 'email', 'kind', 'goods', 'terms', 'person', 'address', 'contacts', 'bank', 'mfs'];
+  const clean = { name };
+  keep.forEach((k) => { if (k !== 'name' && patch[k] !== undefined) clean[k] = k === 'terms' ? Math.max(0, Number(patch.terms) || 0) : patch[k]; });
+  clean.editedAt = Date.now(); clean.editedBy = by;
+  if (db.suppliers.some((x) => x.id === id)) db.suppliers = db.suppliers.map((x) => (x.id === id ? { ...x, ...clean } : x));
+  else db.edits = { ...(db.edits || {}), [id]: { ...((db.edits || {})[id] || {}), ...clean } };
+  applyCredits(db, id);
+  write(db);
+  return { ok: true, supplier: findSupplier(id) };
+}
+/** Archive a supplier: only when nothing is owed either way. Returns { ok } or { ok: false, error }. */
+export function archiveSupplier(id, by = 'Staff') {
+  if (payableOf(id) > 0) return { ok: false, error: 'Pay what is owed first. A supplier with money owed can’t be archived.' };
+  const unused = creditsOf(id).reduce((a, c) => a + (c.unused || 0), 0);
+  if (unused > 0) return { ok: false, error: `The supplier still holds ৳${unused.toLocaleString('en-IN')} of your credit. Use it or settle it first.` };
+  return setArchived(id, true, by);
+}
+export const restoreSupplier = (id, by = 'Staff') => setArchived(id, false, by);
+function setArchived(id, on, by) {
+  const db = read();
+  const patch = { archived: on, archivedAt: on ? Date.now() : null, archivedBy: on ? by : '' };
+  if (db.suppliers.some((x) => x.id === id)) db.suppliers = db.suppliers.map((x) => (x.id === id ? { ...x, ...patch } : x));
+  else db.edits = { ...(db.edits || {}), [id]: { ...((db.edits || {})[id] || {}), ...patch } };
+  write(db);
+  return { ok: true };
+}
+
 /** The supplier with this name, added (with the usual terms) when it is not on the list yet. */
 export function ensureSupplier(name) {
   return supplierByName(name) || addSupplier({ name: String(name || 'Unknown supplier') });
@@ -341,7 +416,7 @@ export function totalsOf(id, db = getDb(), today = dayStart()) {
   const open = bills.filter((b) => billLeftRaw(b) > 0).sort((a, b) => a.due - b.due);
   const leftWhen = (test) => open.filter((b) => test(daysFrom(b.due, today))).reduce((a, b) => a + billLeftRaw(b), 0);
   return {
-    bought: bills.reduce((a, b) => a + b.amount, 0),
+    bought: bills.filter((b) => !b.opening).reduce((a, b) => a + b.amount, 0),   // an opening balance was not bought here
     paid: paymentsOf(id, db).reduce((a, p) => a + p.amount, 0),
     credit: creditsOf(id, db).reduce((a, c) => a + c.amount, 0),
     payable: payableOf(id, db),
@@ -371,5 +446,5 @@ export const lastPaymentOf = (id, db = getDb()) => paymentsOf(id, db).reduce((m,
 /** Bought this year: the demo figure plus bills added in this browser this year. */
 export function boughtThisYear(s, db = getDb()) {
   const y = new Date().getFullYear();
-  return (s.year || 0) + billsOf(s.id, db).filter((b) => !b.seed && new Date(b.at).getFullYear() === y).reduce((a, b) => a + b.amount, 0);
+  return (s.year || 0) + billsOf(s.id, db).filter((b) => !b.seed && !b.opening && new Date(b.at).getFullYear() === y).reduce((a, b) => a + b.amount, 0);
 }

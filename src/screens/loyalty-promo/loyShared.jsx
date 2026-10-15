@@ -12,6 +12,7 @@ import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog } from '@/components/ui';
 import { ShopHeader, RecordHeader } from '@/components/ui/IndexKit';
+import MarketingTabs from './MarketingTabs';
 import { balanceOf } from '@/lib/ledger';
 import { ACC_CSS, AccountSelect, money, accName } from '@/screens/accounts/accShared';
 import { ManagerPin } from '@/components/ManagerPin';
@@ -78,6 +79,8 @@ export const LOY_CSS = `
 
 /** The shell around a loyalty page: menu, top bar and the kit title row. A list or overview page gets ShopHeader
  *  (icon, title, quiet actions, More, one primary); a record (back given) gets RecordHeader with badges and a meta line. */
+// the Loyalty row's pages carry its tabs (review CX-U9, MarketingTabs.jsx)
+const LOYALTY_TABS = ['loy-home', 'loy-members', 'loy-products', 'loy-wallet', 'loy-referrals'];
 export function LoyPage({ screen, active, crumb = 'Loyalty & rewards', page, title, icon, about, back, backLabel, badges, meta, secondary, more, primary, narrow, children, css = '' }) {
   return (
     <div className="dc-screen ds" data-screen={screen}>
@@ -91,6 +94,7 @@ export function LoyPage({ screen, active, crumb = 'Loyalty & rewards', page, tit
               {back
                 ? <RecordHeader back={back} backLabel={backLabel} title={title} badges={badges} meta={meta} about={about} secondary={secondary} more={more} primary={primary} />
                 : <ShopHeader icon={icon} title={title} about={about} secondary={secondary} more={more} primary={primary} />}
+              {!back && LOYALTY_TABS.includes(active) ? <MarketingTabs group="loyalty" active={active} /> : null}
               {children}
             </div>
           </div>

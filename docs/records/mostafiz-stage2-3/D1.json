@@ -1,0 +1,37 @@
+{
+ "id": "D1",
+ "kind": "new",
+ "section": "Module D · Business email",
+ "area": "Module D · Business email",
+ "title": "Email at the shop's own domain",
+ "problem": "Shops had no way to get name@theirshop.com email from GridCommerce.",
+ "now": "A setup verifies the domain, shows four DNS records that turn green, then makes mailboxes, aliases, groups and forwarders.",
+ "steps": [
+  "Connect a domain in Settings › Domains.",
+  "Open Business email, pick a plan and continue.",
+  "Check the records, finish, and make a mailbox."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/platform/mail.js",
+  "src/screens/settings-console/BusinessEmail.jsx",
+  "src/screens/settings-console/SetRail.jsx"
+ ],
+ "notes": "Where: Settings › Business email (/email) · Needs the server: Mail itself (servers or a reseller) is the backend's; DNS checks are simulated.",
+ "shots": [
+  {
+   "route": "/email",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Business email",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

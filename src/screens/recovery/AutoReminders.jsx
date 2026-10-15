@@ -138,10 +138,10 @@ export default class AutoRemindersScreen extends Component {
         <div className="gc-shell">
           <__Sidebar sticky="" active="rec-auto" />
           <main className="gc-shell__main">
-            <__Topbar crumb="Recovery" page="Automatic cart reminders" placeholder="Search customer by name or phone" />
+            <__Topbar crumb="Automations" page="Automatic cart reminders" placeholder="Search customer by name or phone" />
             <div className="gc-shell__content">
               <div className="ix-page ix-page--narrow">
-                <RecordHeader back="/abandoned-carts" backLabel="Abandoned carts" title="Automatic cart reminders"
+                <RecordHeader back="/automations?tab=reminders" backLabel="Automations" title="Automatic cart reminders"
                   about="Up to three messages go to a customer who left a cart, each with a link back to it. They stop the moment the customer orders."
                   primary={{ label: 'Save', onClick: v.save }} />
                 <div className="ix-record">

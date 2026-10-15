@@ -1,0 +1,38 @@
+{
+ "id": "A2",
+ "kind": "new",
+ "section": "Module A · Storefront builder",
+ "area": "Module A · Storefront builder",
+ "title": "Header builder for computer and phone",
+ "problem": "The store header was fixed: no way to place the search, categories, hotline or cart, or to make a phone header.",
+ "now": "Several saved headers, each with three rows and three areas for computer and phone, sixteen elements, sticky rows, a phone drawer and bottom bar.",
+ "steps": [
+  "Open Online Store › Header builder",
+  "Press Add in the main row's right area and pick Hotline",
+  "Switch to Phone, turn the bottom bar on and tick Search",
+  "Press Publish header and open the store on a phone-sized window"
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/lib/storefront/headers.js",
+  "src/screens/online-store/HeaderBuilder.jsx",
+  "src/screens/storefront/storeHeader.jsx"
+ ],
+ "notes": "Where: Online Store › Header builder (/header-builder)",
+ "shots": [
+  {
+   "route": "/header-builder",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": false,
+   "label": "Header builder: rows and areas, computer and phone",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}

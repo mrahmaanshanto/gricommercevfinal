@@ -1,0 +1,37 @@
+{
+ "id": "D1-team",
+ "kind": "new",
+ "section": "Module D · Business email",
+ "area": "Module D · Business email",
+ "title": "Mailboxes follow staff joining and leaving",
+ "problem": "Mailboxes had to be made and closed by hand when staff changed.",
+ "now": "Inviting a user can make their mailbox; marking someone as left suspends it and forwards their mail.",
+ "steps": [
+  "Invite a user with the mailbox box ticked.",
+  "Mark a staff member as left.",
+  "See their mailbox suspended and forwarded."
+ ],
+ "status": "done",
+ "left": "",
+ "files": [
+  "src/screens/settings-console/SetUsers.jsx",
+  "src/lib/hr.js",
+  "src/screens/staff-hr/LeavingDialog.jsx"
+ ],
+ "notes": "Where: Settings › Users & roles · Staff & HR › a person › Leaving",
+ "shots": [
+  {
+   "route": "/set-users",
+   "query": "as=ceo",
+   "viewport": "desktop",
+   "beforeToo": true,
+   "label": "Users & roles",
+   "steps": [
+    {
+     "eval": "(async () => { for (let i = 0; i < 4; i++) { const b = document.querySelector('.mn-x'); if (!b) break; b.click(); await new Promise((r) => setTimeout(r, 300)); } })()",
+     "wait": 400
+    }
+   ]
+  }
+ ]
+}
