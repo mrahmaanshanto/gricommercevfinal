@@ -763,7 +763,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - POS: `/pos` (`src/screens/pos-register/Pos.jsx`) is the one register; `/pos-manage` (`PosManage.jsx`) is its
   back office (counters, employees and shifts, cash pickups, settings). Both read and write
   `src/lib/posStore.js` (browser storage). Register shortcuts are listed in `SHORTCUTS` in `Pos.jsx` (F1 on screen).
-- **Wholesale is switched off (Oct 2026)**: `WHOLESALE` in `src/lib/edition.js` (true only when built with `NEXT_PUBLIC_WHOLESALE=true`) removes the `wholesale` module and
+- **Wholesale switch (Oct 2026)**: on for gridc-backend since 16 Oct 2026 (netlify.toml `NEXT_PUBLIC_WHOLESALE = "true"`, the
+  owner's decision, as in Nayeem's copy); off in a build without it. `WHOLESALE` in `src/lib/edition.js` (true only when built with `NEXT_PUBLIC_WHOLESALE=true`) removes the `wholesale` module and
   the Wholesale channel from every edition; screens check `wholesaleOn()` (Quotes, price lists, MOQ, Wholesale views,
   types, filters, columns, demo wholesale invoices and returns). `docs/wholesale-audit.md` lists every item; setting the
   switch to true brings it back. Invoices stay (module `money`): `/sales-invoices` (`src/screens/sales/SalesInvoices.jsx`,
