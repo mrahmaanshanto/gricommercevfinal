@@ -25,7 +25,7 @@ function saveUsage(u) { try { window.localStorage.setItem(KEY, JSON.stringify(u)
 
 // the assistant belongs to the merchant's workspace, not to the shopper's pages or sign-in;
 // on the POS register it would sit on top of the pay button; the Grid AI › Assistant page has it full size
-const HIDDEN = /^\/($|admin|pos$|offers|offer-detail|checkout|order-link|merchant-sign-in|merchant-onboarding|merchant-inbox|mobile-|dev\/|grid-ai$)/;
+const HIDDEN = /^\/($|admin|pos$|offers|offer-detail|checkout|order-link|merchant-sign-in|merchant-onboarding|merchant-inbox|mobile-|dev\/|grid-ai$|landing-page-builder|lp$)/;
 
 export function GridAi() {
   const path = usePathname() || '/';

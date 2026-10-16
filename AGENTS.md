@@ -453,6 +453,27 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
     Dazzle wordmark (`public/assets/brand/dazzle-logo.svg` + `-white.svg`) is `businessProfile().brand.logo / logoOnDark`
     unless Settings › Brand assets has one; the store header, footer and letterheads use it. Flash sale's default look
     (`panel`) is a dark panel with the sale colour's glow, product photos (matched by name) and a pill button.
+- **Landing pages (16 Oct)**: one-product pages that take cash-on-delivery orders.
+  - **Data.** A page (`lib/landingPages.js`, `gc.landingPages`) holds:
+    - `parts`: `lib/landingParts.js › PARTS`, 15 kinds (hero, countdown, benefits, order form, reviews, FAQ, …), each with
+      SectionFields-style fields;
+    - `style`: accent, theme, font, corners, sticky order bar.
+    - `partsFor(template, factsOf(product))` fills the parts from the product. A page saved before parts existed gets them
+      through `ensureParts`.
+  - **Drawing.** `screens/storefront/landingView.jsx` draws a page in the builder and at `/lp?handle=`. It uses container
+    queries, so the builder's phone frame matches a real phone.
+  - **Order form.** Quantity offers, variant, AreaPicker, delivery fee from `deliveryRates`, a free-delivery threshold. It
+    calls `orderLinks.addOrder` (source Website, tag "Landing page"). A draft's form (`?preview=1`) and the builder's
+    preview make no order.
+  - **Builder** (`/landing-page-builder`, `LandingPageBuilder.jsx`, full window):
+    - start: pick a product, then a template or "Build it with AI";
+    - left panel: Parts (drag, arrows, hide, Add part library), Page (product, link, style, checks before publishing),
+      AI builder;
+    - middle: the live preview on a phone or computer; click a part to edit it;
+    - right panel: the part's fields and "Rewrite with AI";
+    - Undo / Redo, SEO (SeoPanel `landing`), Save, Publish / Unpublish.
+  - **The AI** (`aiBuild`: tone, goal, language, length, audience, offer, notes; `aiRewrite`, `headlineIdeas`) is GridAI's
+    marketing agent, simulated over the product data and metered (`usage.meter`, surface `landing`).
 - **Settings › Files (Oct 2026)** (`/files`, menu id `products-media` moved from Products to Settings, module core;
   `screens/files/Files.jsx`, `lib/files.js`, `components/files/FileParts.jsx` + `FilePicker.jsx`): every picture, video and
   document. Uploads are resized (2000 / 800 px WebP + a 200 px preview) and kept in IndexedDB `gc-files`; the list is

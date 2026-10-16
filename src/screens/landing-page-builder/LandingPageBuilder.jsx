@@ -1,958 +1,578 @@
 'use client';
-// Generated from design/templates/landing-page-builder/LandingPageBuilder.dc.html by scripts/convert-design.mjs.
-// LandingPageBuilder — Single-product landing page builder — product picker, section library, drag-and-drop canvas with live mobile preview, per-field AI copy generation, COD order form settings and the publish checklist.
-// Edit freely: this file is now the source for the screen.
+// Landing page builder (/landing-page-builder, ?id= opens a saved page, ?product= starts one for a product).
+//   Start   pick an active product, then start from a template or let the AI builder write the whole page.
+//   Build   left: Parts (the page's parts in order: drag or arrows to move, hide, copy, remove; Add part opens the
+//           library) · Page (product, title, link, accent colour, theme, font, corners, sticky order bar, checks) ·
+//           AI (the AI builder: tone, goal, language, length, audience, offer → a full page; headline ideas).
+//           Middle: the page as customers see it, on a phone or a computer (landingView.jsx; click a part to edit it).
+//           Right: the chosen part's settings (the same field editor as Online Store › Layouts) and the AI writer
+//           (shorter · stronger · urgent · friendly) on its words.
+//   Header  Back · title · status · phone / computer · Undo / Redo (Ctrl+Z / Ctrl+Shift+Z) · SEO · Preview · Save ·
+//           Publish (or Unpublish). Leaving with unsaved changes asks first.
+// Pages and their parts live in lib/landingPages.js + lib/landingParts.js; /lp draws the same parts with a working
+// cash-on-delivery order form. The AI is GridAI's marketing agent, simulated over the product data and metered.
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
-import { navigate } from '@/runtime/routes';
-import { allProducts } from '@/lib/products';
-import { summaryOf } from '@/lib/productReviews';
-import { formatBDT, formatTime, toBnDigits } from '@/lib/format';
-import { getLandingPage, getLandingPages, newLandingPage, saveLandingPage, publishLandingPage, handleProblem, uniqueHandle, slugify, LP_BASE } from '@/lib/landingPages';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { Sheet as __Sheet } from '@/components/ui';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import { Icon } from '@/runtime/dc';
+import { toast, confirmDialog } from '@/runtime/ui';
+import { Sheet, PhoneMore } from '@/components/ui';
+import { allProducts, getSavedProducts } from '@/lib/products';
+import { formatBDT, formatTime } from '@/lib/format';
+import { getLandingPage, getLandingPages, newLandingPage, saveLandingPage, publishLandingPage, unpublishLandingPage, handleProblem, slugify, LP_BASE, TEMPLATES, LANDING_EVENT } from '@/lib/landingPages';
+import { PARTS, PART_GROUPS, partType, newPart, partsFor, factsOf, ensureParts, PAGE_STYLE, THEMES, FONTS, CORNERS, ACCENTS, aiBuild, aiRewrite, headlineIdeas, AI_TONES, AI_GOALS, AI_LANGS, AI_LENGTHS } from '@/lib/landingParts';
 import SeoPanel, { SEO_PANEL_CSS } from '@/components/seo/SeoPanel';
-import { readSeo, dhakaText } from '@/lib/seo';
+import { readSeo } from '@/lib/seo';
 import { contextOf } from '@/lib/seoItems';
+import { Field, FIELDS_CSS } from '@/screens/online-store/SectionFields';
+import { SFB_CSS } from '@/screens/online-store/sfShared';
+import LandingView from '@/screens/storefront/landingView';
 
-// ---- logic ----
-// The builder works on one landing page of the list (lib/landingPages.js): /landing-page-builder starts a new one
-// (step 1 picks any active product of the catalogue, step 2 a template); /landing-page-builder?id= opens a saved page.
-// The page fills itself from the product (name, price and old price, variants, stock, reviews). Save keeps it as a
-// draft (or saves a published page's changes); Publish checks the link and puts it on the website.
-// Still a design mock-up (Oct 2026): the part library, drag and drop, the part settings and the AI writer are not
-// working yet; their buttons say so.
+const tk = (n) => formatBDT(Math.round(Number(n) || 0));
+const clone = (x) => JSON.parse(JSON.stringify(x));
+const TEXT_KEYS = ['title', 'sub', 'text', 'offer', 'button'];
+const summaryOf = (p) => (p.type === 'announce' ? p.text : p.title) || '';
 
-const tk = (n) => formatBDT(Math.round(n || 0));
-const initials = (s) => String(s || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-const DELIVERY = { in: 70, out: 150 };
-function productFacts(p, reviews) {
-  if (!p) return null;
-  const was = p.mrp && p.mrp > p.price ? p.mrp : null;
-  const pct = was ? Math.round(((was - p.price) / was) * 100) : 0;
-  const variants = (p.variants || []).map((x) => x.name).filter(Boolean);
-  const stock = (p.variants || []).length ? p.variants.reduce((a, x) => a + (Number(x.stock) || 0), 0) : Number(p.inv) || 0;
-  const r = reviews || { count: 0, avg: 0 };
-  return {
-    id: p.id, sku: p.sku, name: p.name, price: p.price, was, pct, save: was ? was - p.price : 0, variants, stock,
-    photos: (p.media || p.images || []).length, reviews: r,
-    reviewText: r.count ? `${r.count} review${r.count === 1 ? '' : 's'} · ${r.avg.toFixed(1)} ★` : 'no reviews yet',
-  };
-}
-class Component extends DCLogic {
-  constructor(props) {
-    super(props);
-    this.state = { screen: 'pick', device: props.device === 'desktop' ? 'desktop' : 'mobile', ai: props.aiPanel === true, products: [], ready: false, q: '', filter: 'all', selId: '', template: 'cod', page: null, handle: '', savedAt: null, dirty: false };
-  }
-  componentDidMount() {
-    this.paint();
-    const products = allProducts().filter((p) => p.st === 'active' && p.price > 0 && (!p.format || p.format === 'physical') && !p.giftOnly);
-    const qs = new URLSearchParams(window.location.search);
-    const page = qs.get('id') ? getLandingPage(qs.get('id')) : null;
-    const want = page ? page.productId || '' : qs.get('product') || '';
-    const pick = products.find((p) => p.id === want || (page && p.sku === page.sku)) || products[0] || null;
-    const reviews = {};
-    products.forEach((p) => { reviews[p.id] = summaryOf(p); });
-    const pages = {};
-    getLandingPages().forEach((x) => { pages[x.sku] = (pages[x.sku] || 0) + 1; });
-    this.setState({ products, reviews, pages, ready: true, selId: pick ? pick.id : '', page, template: page ? page.template : 'cod', handle: page ? page.handle : '', savedAt: page ? page.updatedAt : null, screen: page ? 'build' : 'pick', missing: !!qs.get('id') && !page });
-  }
-  componentDidUpdate() { this.paint(); }
-  paint() {
-    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { width: 20, height: 20, 'stroke-width': 1.75 } }); };
-    go(); setTimeout(go, 400); setTimeout(go, 1200);
-  }
-  current() {
-    const s = this.state;
-    return s.products.find((p) => p.id === s.selId) || null;
-  }
-  /** The page as it would be saved now (a new one is made from the product and the template). */
-  draft() {
-    const s = this.state;
-    const p = this.current();
-    const base = s.page || newLandingPage({ product: p || { name: 'Landing page' }, template: s.template });
-    return { ...base, productId: p ? p.id : base.productId, sku: p ? p.sku : base.sku, productName: p ? p.name : base.productName, title: s.page ? base.title : (p ? p.name : base.title), template: s.template, handle: s.handle || base.handle,
-      // SEO (the shared panel, opened from the header's SEO button): kept with the page
-      seo: s.seo || base.seo || undefined, goLiveAt: s.goLiveAt !== undefined ? s.goLiveAt || null : base.goLiveAt || null };
-  }
-  save(quiet) {
-    const rec = saveLandingPage(this.draft());
-    this.setState({ page: rec, handle: rec.handle, savedAt: rec.updatedAt, dirty: false });
-    try { window.history.replaceState(null, '', '/landing-page-builder?id=' + rec.id); } catch (e) { /* ignore */ }
-    if (!quiet) __toast(rec.status === 'published' ? 'Changes saved. The live page shows them now.' : 'Saved as a draft. It is in Landing pages.');
-    return rec;
-  }
-  renderVals() {
-    const s = this.state;
-    const self = this;
-    const p = this.current();
-    const f = productFacts(p, p ? (s.reviews || {})[p.id] : null) || { name: '—', price: 0, was: null, pct: 0, save: 0, variants: [], stock: 0, photos: 0, reviews: { count: 0 }, reviewText: '' };
-    const q = s.q.trim().toLowerCase();
-    const rows = s.products.filter((x) => (!q || [x.name, x.sku, x.brand, x.cat].some((t) => String(t || '').toLowerCase().includes(q)))
-      && (s.filter !== 'stock' || (x.inv || 0) > 0) && (s.filter !== 'nopage' || !(s.pages || {})[x.sku]));
-    const draft = s.ready ? this.draft() : null;
-    const status = s.page ? s.page.status : 'draft';
-    const handle = s.handle || (draft ? draft.handle : '');
-    const problem = s.ready ? handleProblem(handle, draft ? draft.id : '') : '';
-    const checks = [];
-    if (p && f.stock <= 0) checks.push({ text: `${f.name} is out of stock. Buyers can still order; you'll need stock to send them.`, act: { label: 'Edit product', href: '/add-product?id=' + encodeURIComponent(p.id) } });
-    else if (p && f.stock < 10) checks.push({ text: `Only ${f.stock} in stock. The page shows it as running out.`, act: null });
-    if (p && !f.reviews.count) checks.push({ text: 'No published reviews yet: the reviews part stays hidden.', act: { label: 'Reviews', href: '/product-reviews' } });
-    if (p && !f.was) checks.push({ text: 'No old price: the page shows no saving.', act: { label: 'Edit product', href: '/add-product?id=' + encodeURIComponent(p.id) } });
-    const savedLine = s.savedAt ? 'Saved ' + formatTime(s.savedAt) : 'Not saved yet';
-    const offerEn = f.was ? `${f.pct}% off — save ${tk(f.save)} today` : 'Cash on delivery all over Bangladesh';
-    const offerBn = f.was ? toBnDigits(`${f.pct}% ছাড় — আজকের অর্ডারে ৳${f.save.toLocaleString('en-IN')} সেভ`) : 'সারা বাংলাদেশে ক্যাশ অন ডেলিভারি';
-    const comingSoon = (what) => () => __toast(what + ' is not working yet in this demo.', { tone: 'info' });
-    return {
-      ready: s.ready, missing: !!s.missing,
-      isPick: s.screen === 'pick',
-      isBuild: s.screen === 'build' || s.screen === 'publish',
-      isPublish: s.screen === 'publish',
-      isMobile: s.device !== 'desktop',
-      isDesktop: s.device === 'desktop',
-      aiOpen: s.ai === true,
-      aiClosed: s.ai !== true,
-      // step 1: the catalogue
-      q: s.q, setQ: (e) => this.setState({ q: e.target.value }),
-      filter: s.filter, setFilter: (k) => () => this.setState({ filter: k }),
-      catalogCount: s.products.length + (s.products.length === 1 ? ' active product' : ' active products'),
-      productRows: rows.slice(0, 40).map((x) => {
-        const xf = productFacts(x, (s.reviews || {})[x.id]);
-        const n = (s.pages || {})[x.sku] || 0;
-        return {
-          id: x.id, on: x.id === s.selId, name: x.name, initials: initials(x.name), bg: x.tbg || '#eef2f6',
-          meta: [tk(x.price) + (xf.was ? ' · was ' + tk(xf.was) : ''), x.vars, xf.stock + ' in stock', xf.reviewText].filter(Boolean).join(' · '),
-          badge: xf.stock <= 0 ? 'Out of stock' : xf.stock < 10 ? 'Low stock' : n ? n + (n === 1 ? ' page' : ' pages') : '',
-          tone: xf.stock <= 0 ? 'bad' : xf.stock < 10 ? 'warn' : 'plain',
-          pick: () => this.setState({ selId: x.id, dirty: !!s.page }),
-        };
-      }),
-      moreRows: rows.length > 40 ? `${rows.length - 40} more — search to narrow the list` : '',
-      noRows: s.ready && !rows.length,
-      // the chosen product, as the page uses it
-      f, pName: f.name, pPrice: tk(f.price), pWas: f.was ? tk(f.was) : '', hasWas: !!f.was, pPct: f.pct + '% off',
-      pPriceLine: tk(f.price) + (f.was ? ', was ' + tk(f.was) : ''), pOfferLine: f.was ? f.pct + '% off' : 'No discount',
-      pVariantsLine: f.variants.length ? f.variants.length + (f.variants.length === 1 ? ' option' : ' options') : 'One option',
-      pStockLine: f.stock + ' in stock', pPhotosLine: f.photos ? f.photos + (f.photos === 1 ? ' photo' : ' photos') : 'Photos',
-      pChips: (f.variants.length ? f.variants : ['Standard']).slice(0, 3),
-      pStockBn: toBnDigits(`স্টক শেষ হয়ে যাচ্ছে — ${f.stock}টি বাকি`), showStockBn: f.stock > 0 && f.stock < 50,
-      pTotal: tk(f.price + DELIVERY.in), pDeliveryIn: tk(DELIVERY.in), pDeliveryOut: tk(DELIVERY.out),
-      pOfferBn: offerBn, pOfferEn: offerEn, pTaglineBn: 'অরিজিনাল পণ্য, অফিসিয়াল ওয়ারেন্টি সহ',
-      pUsing: `Using your product: ${f.name} · ${tk(f.price)}${f.was ? ' · ' + f.pct + '% off' : ''} · ${f.variants.length || 1} option${f.variants.length > 1 ? 's' : ''} · ${f.stock} in stock · ${f.reviewText}`,
-      pSuggest: [offerBn, toBnDigits(`${f.name} — মাত্র ${tk(f.price)}`), offerEn],
-      editProductHref: p ? '/add-product?id=' + encodeURIComponent(p.id) : '/all-products',
-      // header
-      pageTitle: (s.page ? s.page.title : f.name) + ' — landing page', pageLink: LP_BASE + handle, host: LP_BASE.replace(/\/lp\/$/, ''),
-      statusLabel: status === 'published' ? 'Published' : draft && draft.goLiveAt ? 'Goes live ' + dhakaText(draft.goLiveAt) : 'Draft', isLive: status === 'published', savedLine, dirty: s.dirty,
-      seoOpen: !!s.seoOpen, openSeo: () => this.setState({ seoOpen: true }), closeSeo: () => this.setState({ seoOpen: false }),
-      seo: draft ? readSeo('landing', draft) : null, seoCtx: draft ? contextOf('landing', draft) : {},
-      setSeo: (patch) => this.setState({ seo: { ...readSeo('landing', this.draft()), ...patch }, dirty: true }),
-      seoSchedule: status === 'published' ? null : { at: draft ? draft.goLiveAt || '' : '', label: 'Publish on', onChange: (at) => this.setState({ goLiveAt: at || null, dirty: true }) },
-      saveSeo: () => { this.save(true); this.setState({ seoOpen: false }); __toast('Search engine listing saved.'); },
-      startBuild: () => { if (!p) { __toast('Pick a product first.', { tone: 'error' }); return; } this.setState({ screen: 'build', handle: s.handle || uniqueHandle(p.name, s.page ? s.page.id : '') }); },
-      pickTemplate: (id) => () => { if (!p) { __toast('Pick a product first.', { tone: 'error' }); return; } this.setState({ template: id, screen: 'build', dirty: true, handle: s.handle || uniqueHandle(p.name, s.page ? s.page.id : '') }); },
-      template: s.template,
-      backToPick: () => this.setState({ screen: 'pick' }),
-      backToList: async () => {
-        if (s.dirty || (!s.page && s.screen !== 'pick')) {
-          const ok = await __confirm({ title: 'Leave without saving?', body: 'Your changes to this page are not saved.', confirmLabel: 'Leave', tone: 'danger' });
-          if (!ok) return;
-        }
-        navigate('/landing-pages');
-      },
-      save: () => this.save(false),
-      openPublish: () => this.setState({ screen: 'publish' }),
-      closePublish: () => this.setState({ screen: 'build' }),
-      handle, setHandle: (e) => this.setState({ handle: slugify(e.target.value) || e.target.value.toLowerCase(), dirty: true }),
-      linkProblem: problem, canPublish: !!p && !problem, checks, hasChecks: checks.length > 0,
-      publishTitle: status === 'published' ? 'Update the live page' : 'Publish this page',
-      publishSub: problem ? 'One thing must be fixed first' : status === 'published' ? 'It is live at ' + LP_BASE + handle : 'Ready to go live',
-      publish: () => {
-        if (problem) { __toast(problem, { tone: 'error' }); return; }
-        const rec = self.save(true);
-        const res = publishLandingPage(rec.id);
-        if (res && res.error) { __toast(res.error, { tone: 'error' }); return; }
-        this.setState({ page: res, screen: 'build', dirty: false, savedAt: res.updatedAt });
-        __toast(rec.status === 'published' ? 'Live page updated' : 'Page published at ' + LP_BASE + res.handle);
-      },
-      checkPhone: () => { this.setState({ screen: 'build', device: 'mobile' }); __toast('This is the phone view of the page. Opening it on your own phone needs the live website.', { tone: 'info' }); },
-      openOnPhone: () => { this.setState({ device: 'mobile' }); __toast('Opening on your phone needs the live website. The phone view is shown here.', { tone: 'info' }); },
-      soon: comingSoon,
-      openAiField: () => this.setState({ ai: true }),
-      openAiPage: () => this.setState({ screen: 'build', ai: true }),
-      closeAi: () => this.setState({ ai: false }),
-      setMobile: () => this.setState({ device: 'mobile' }),
-      setDesktop: () => this.setState({ device: 'desktop' }),
-      selHeroFn: () => this.setState({ ai: false }),
-      selPriceFn: () => this.setState({ ai: false }),
-      selDeliveryFn: () => this.setState({ ai: false }),
-      selFormFn: () => this.setState({ ai: false })
-    };
-  }
+/** The product list for the start step (active, priced, physical, not gift-only). */
+function useProducts() {
+  const [list, setList] = useState([]);
+  useEffect(() => { let l = []; try { l = allProducts(getSavedProducts()).filter((p) => p.st === 'active' && Number(p.price) > 0 && (!p.format || p.format === 'physical') && !p.giftOnly); } catch { l = []; } setList(l); }, []);
+  return list;
 }
 
-// ---- styles (from the design's <helmet>) ----
-
-const CSS = `body{margin:0;background:#eef2f7;font-family:var(--font-sans);color:#475569}a{color:#003087;text-decoration:none}a:hover{color:#002a77}input,select,textarea,button{font-family:inherit}::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:var(--radius-full)}.bn{font-family:var(--font-bn)}
-.dc-h15:hover{background:rgba(203,213,225,.2) !important;color:#475569 !important}
-.dc-h16:hover{background:#dde5ef !important}
-.dc-h17:hover{background:#dde5ef !important}
-.dc-h18:hover{background:#dde5ef !important}
-.dc-h19:hover{border-color:#cbd5e1 !important;background:#f8fafc !important}
-.dc-h20:hover{border-color:#cbd5e1 !important;background:#f8fafc !important}
-.dc-h21:hover{border-color:#cbd5e1 !important;background:#f8fafc !important}
-.dc-h22:hover{border-color:#cbd5e1 !important;background:#f8fafc !important}
-.dc-h23:hover{border-color:#cbd5e1 !important;background:#f8fafc !important}
-.dc-h24:hover{border-color:#94a3b8 !important;background:#f8fafc !important}
-.dc-h25:hover{background:#002a77 !important}
-.dc-h26:hover{background:rgba(203,213,225,.2) !important;color:#475569 !important}
-.dc-h27:hover{background:rgba(203,213,225,.2) !important}
-.dc-h28:hover{background:rgba(0,156,222,.22) !important}
-.dc-h29:hover{background:rgba(0,48,135,.2) !important}
-.dc-h30:hover{background:#002a77 !important}
-.dc-h31:hover{background:#dde5ef !important}
-.dc-h32:hover{background:#dde5ef !important}
-.dc-h33:hover{background:#dde5ef !important}
-.dc-h34:hover{background:#dde5ef !important}
-.dc-h35:hover{background:#dde5ef !important}
-.dc-h36:hover{background:#dde5ef !important}
-.dc-h37:hover{border-color:#e2e8f0 !important;background:#f8fafc !important}
-.dc-h38:hover{border-color:#e2e8f0 !important;background:#f8fafc !important}
-.dc-h39:hover{border-color:#e2e8f0 !important;background:#f8fafc !important}
-.dc-h40:hover{border-color:#e2e8f0 !important;background:#f8fafc !important}
-.dc-h41:hover{border-color:#e2e8f0 !important;background:#f8fafc !important}
-.dc-h42:hover{border-color:#e2e8f0 !important;background:#f8fafc !important}
-.dc-h43:hover{border-color:#e2e8f0 !important;background:#f8fafc !important}
-.dc-h44:hover{border-color:#e2e8f0 !important;background:#f8fafc !important}
-.dc-h45:hover{border-color:#e2e8f0 !important;background:#f8fafc !important}
-.dc-h46:hover{border-color:#e2e8f0 !important;background:#f8fafc !important}
-.dc-h47:hover{border-color:#e2e8f0 !important;background:#f8fafc !important}
-.dc-h48:hover{border-color:#cbd5e1 !important}
-.dc-h49:hover{border-color:#cbd5e1 !important}
-.dc-h50:hover{border-color:#cbd5e1 !important}
-.dc-h51:hover{border-color:#cbd5e1 !important}
-.dc-h52:hover{border-color:#cbd5e1 !important}
-.dc-h53:hover{border-color:#cbd5e1 !important}
-.dc-h54:hover{border-color:#cbd5e1 !important}
-.dc-h55:hover{border-color:#94a3b8 !important}
-.dc-h56:hover{border-color:#cbd5e1 !important}
-.dc-h57:hover{border-color:#cbd5e1 !important}
-.dc-h58:hover{border-color:#003087 !important;color:#003087 !important}
-.dc-h59:hover{border-color:#009cde !important}
-.dc-h60:hover{border-color:#009cde !important}
-.dc-h61:hover{border-color:#009cde !important}
-.dc-h62:hover{border-color:#009cde !important}
-.dc-h63:hover{background:rgba(0,156,222,.22) !important}
-.dc-h64:hover{background:#dde5ef !important}
-.dc-h65:hover{background:var(--accent-fill) !important;color:#fff !important}
-.dc-h66:hover{background:var(--accent-fill) !important;color:#fff !important}
-.dc-h67:hover{background:#dde5ef !important}
-.dc-h68:hover{background:#dde5ef !important}
-.dc-h69:hover{background:#dde5ef !important}
-.dc-h70:hover{background:rgba(255,87,36,.2) !important}
-.dc-h71:hover{background:rgba(203,213,225,.2) !important;color:#475569 !important}
-.dc-h72:hover{background:#dde5ef !important}
-.dc-h73:hover{background:#dde5ef !important}
-.dc-h74:hover{background:#dde5ef !important}
-.dc-h75:hover{background:#dde5ef !important}
-.dc-h76:hover{background:#dde5ef !important}
-.dc-h77:hover{border-color:#cbd5e1 !important;background:#f8fafc !important}
-.dc-h78:hover{border-color:#cbd5e1 !important;background:#f8fafc !important}
-.dc-h79:hover{background:#002a77 !important}
-.dc-h80:hover{background:#dde5ef !important}
-.dc-h81:hover{background:#f1f5f9 !important}
-.dc-h82:hover{background:rgba(203,213,225,.2) !important;color:#475569 !important}
-.dc-h83:hover{background:rgba(255,255,255,.6) !important}
-.dc-h84:hover{background:rgba(255,255,255,.6) !important}
-.dc-h85:hover{background:rgba(0,156,222,.22) !important}
-.dc-h86:hover{background:#dde5ef !important}
-.dc-h87:hover{background:#002a77 !important}
-.dc-h88:hover{background:rgba(0,48,135,.2) !important}
-.mg-row{appearance:none;width:100%;margin:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
-.mg-list{list-style:none;margin:0;padding:0}
-.mg-head>*{max-width:100%}
-@media (max-width:1279px){.mg-head{height:auto!important;flex-wrap:wrap;row-gap:10px!important;padding-top:12px!important;padding-bottom:12px!important}}
-@media (max-width:1023px){.mg-head{padding-left:16px!important;padding-right:16px!important}}
-.mg-row[aria-pressed="true"]{cursor:default}
-.lpb-phone{max-width:100%}
-/* the editor toolbar wraps whenever its buttons don't fit (at 1440 with the side menu, Publish was cut off) */
-.lpb-head{height:auto!important;min-height:72px;flex-wrap:wrap;row-gap:8px;padding-top:12px!important;padding-bottom:12px!important}
-@media (max-width:1379px){.lpb-work{min-width:0!important;flex-wrap:wrap}.lpb-settings{flex:1 1 100%!important;width:auto!important;border-left:0!important;border-top:1px solid #e2e8f0}.lpb-head{height:auto!important;min-height:72px;flex-wrap:wrap;row-gap:8px;padding:12px 16px!important}.lpb-head>*{max-width:100%}.lpb-head h1{white-space:normal!important}}
-@media (max-width:1023px){.lpb-work{flex-direction:column;flex-wrap:nowrap}.lpb-work>*{flex:none!important;width:100%!important;min-width:0!important;border-right:0!important;border-bottom:1px solid #e2e8f0}.lpb-pick{padding:20px 16px 32px!important}}
-/* phones: the editor toolbar wraps inside the screen (view switch full width, then Open on my phone + Publish);
-   icon buttons and the page-part rows get touch-sized targets */
-@media (max-width:640px){
-  .lpb-ib{width:44px!important;height:44px!important}
-  .lpb-ib svg{width:20px;height:20px}
-  .lpb-tools{flex:1 1 100%!important;flex-wrap:wrap;margin-left:0!important}
-  .lpb-tools>span:first-child{flex:1 1 100%!important}
-  .lpb-tools>span:first-child>button{flex:1 1 0!important;justify-content:center;height:36px!important}
-  .lpb-tools>button{flex:1 1 0!important;justify-content:center;height:44px!important}
-  .lpb-cbar{flex-wrap:wrap;row-gap:6px!important}
-  .lpb-cbar>span:last-child{flex:1 1 100%!important;margin-left:0!important;white-space:normal!important}
-  .lpb-parts button{min-height:44px}
-  .lpb-parts button>span:last-child:not([style*="flex: 1"]){display:grid;place-items:center;width:40px;height:40px;margin:-8px -6px -8px 0;flex:none}
-  .lpb-parts button>span svg{width:16px;height:16px}
-}`;
-
-// ---- markup ----
-
-export default class LandingPageBuilderScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    return (
-      <div className="dc-screen ds" data-screen="LandingPageBuilder">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ display: "flex", gap: "12px", padding: "12px", background: "#eef2f7" }}>
-          <__Sidebar collapsed="" sticky="" active="storefront" />
-          <div className="gc-shell__main" style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", position: "relative", overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#f8fafc" }}>
-            {v.isPick ? (<>
-              <__Topbar crumb="Online Store" page="Landing pages" />
-              <header className="mg-head" style={{ display: "flex", height: "72px", flex: "none", alignItems: "center", gap: "12px", padding: "0 32px", background: "#fff", borderBottom: "1px solid #e2e8f0" }}>
-                <button className="dc-h15" onClick={v.backToList} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Back to landing pages">
-                  <__Icon name="arrow-left" width="20" height="20" strokeWidth="1.75" />
+// ---- start: product, then template or AI --------------------------------------------------------------------------------------
+function Start({ products, pick, setPick, onTemplate, onAi }) {
+  const [q, setQ] = useState('');
+  const pages = useMemo(() => { const m = {}; getLandingPages().forEach((x) => { m[x.sku] = (m[x.sku] || 0) + 1; }); return m; }, []);
+  const rows = products.filter((p) => !q.trim() || [p.name, p.sku, p.brand, p.cat].join(' ').toLowerCase().includes(q.trim().toLowerCase())).slice(0, 60);
+  const cur = products.find((p) => p.id === pick);
+  return (
+    <div className="lpb-start">
+      <section className="lpb-card">
+        <header className="lpb-card__h"><h2>1 · Pick the product</h2><span className="lpb-muted">{products.length} active products</span></header>
+        <input className="gc-input" type="search" placeholder="Search by name, SKU, brand" aria-label="Search products" value={q} onChange={(e) => setQ(e.target.value)} />
+        <ul className="lpb-plist" role="listbox" aria-label="Products">
+          {rows.map((p) => {
+            const img = ((p.media || []).find((m) => m.src) || {}).src;
+            const stock = (p.variants || []).length ? p.variants.reduce((a, v) => a + (Number(v.stock) || 0), 0) : Number(p.inv) || 0;
+            return (
+              <li key={p.id}>
+                <button type="button" role="option" aria-selected={pick === p.id} onClick={() => setPick(p.id)}>
+                  <span className="lpb-pimg" style={{ background: p.tbg || 'var(--surface-subtle)' }}>{img ? <img src={img} alt="" /> : p.name.slice(0, 1)}</span>
+                  <span className="lpb-pt"><b>{p.name}</b><small>{tk(p.price)}{Number(p.mrp) > Number(p.price) ? ' · was ' + tk(p.mrp) : ''} · {stock} in stock{pages[p.sku] ? ' · ' + pages[p.sku] + (pages[p.sku] === 1 ? ' page' : ' pages') : ''}</small></span>
+                  {pick === p.id ? <Icon name="check-circle-2" width="18" height="18" aria-hidden="true" /> : null}
                 </button>
-                <div>
-                  <h1 style={{ margin: "0", fontSize: "var(--text-xl)", lineHeight: "var(--text-xl-lh)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>New landing page</h1>
-                  <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Step 1 of 2 — pick the product this page sells</p>
-                </div>
-              </header>
-              <div className="lpb-pick" style={{ flex: "1", minHeight: "0", padding: "32px 32px 40px" }}>
-                <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 372px", gap: "26px", maxWidth: "1240px" }}>
-                  <section style={{ background: "#fff", borderRadius: "var(--radius-lg)", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "26px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Your products</h2>
-                      <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.catalogCount}</span>
-                      <span style={{ position: "relative", display: "inline-block", width: "250px", marginLeft: "auto" }}>
-                        <input aria-label="Search products or SKU" type="search" placeholder="Search products or SKU…" value={v.q} onChange={v.setQ} style={{ width: "100%", boxSizing: "border-box", height: "32px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 16px 0 36px", fontSize: "var(--text-xs-plus)", color: "#1e293b" }} />
-                        <span style={{ position: "absolute", left: "0", top: "0", display: "flex", width: "36px", height: "100%", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", pointerEvents: "none" }}>
-                          <__Icon name="search" strokeWidth="1.75" width="16" height="16" />
-                        </span>
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", gap: "6px", marginTop: "14px", flexWrap: "wrap" }}>
-                      {[['all', 'All'], ['stock', 'In stock'], ['nopage', 'No page yet']].map(([k, label]) => (
-                        <button key={k} type="button" aria-pressed={v.filter === k} onClick={v.setFilter(k)} className={v.filter === k ? undefined : 'dc-h16'} style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: v.filter === k ? "rgba(0,48,135,.1)" : "#e9eef5", color: v.filter === k ? "#003087" : "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}>{label}</button>
-                      ))}
-                    </div>
-                    <div style={{ marginTop: "16px", display: "grid", gap: "8px" }}>
-                      {!v.ready ? <div style={{ minHeight: "200px" }} aria-busy="true" /> : null}
-                      {v.noRows ? <p style={{ margin: "8px 0", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>No active product matches. Try another search.</p> : null}
-                      {__list(v.productRows).map((r) => (
-                        <button key={r.id} type="button" className={r.on ? 'mg-row' : 'mg-row dc-h19'} aria-pressed={r.on} onClick={r.pick} style={{ display: "flex", gap: "12px", alignItems: "center", border: r.on ? "2px solid #003087" : "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: r.on ? "10px 12px" : "11px 13px", background: r.on ? "rgba(0,48,135,.04)" : "#fff", cursor: "pointer" }}>
-                          <span style={{ flex: "none", width: "44px", height: "44px", borderRadius: "var(--radius-xl)", background: r.bg, color: "#003087", display: "grid", placeItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>{r.initials}</span>
-                          <span style={{ flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "block", margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{r.name}</span>
-                            <span style={{ display: "block", margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>{r.meta}</span>
-                          </span>
-                          {r.on ? (
-                            <span style={{ flex: "none", display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff" }}>
-                              <__Icon name="check" strokeWidth="1.75" width="14" height="14" />
-                            </span>
-                          ) : r.badge ? (
-                            <span style={{ flex: "none", display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: r.tone === 'bad' ? "rgba(255,87,36,.12)" : r.tone === 'warn' ? "rgba(255,152,0,.12)" : "#e9eef5", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: r.tone === 'bad' ? "#c23a12" : r.tone === 'warn' ? "#a15f00" : "#475569" }}>{r.badge}</span>
-                          ) : null}
-                        </button>
-                      ))}
-                      {v.moreRows ? <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.moreRows}</p> : null}
-                    </div>
-                    <p style={{ margin: "16px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}><a href="/add-product">Add a new product</a></p>
-                  </section>
-                  <aside style={{ display: "grid", gap: "16px", alignContent: "start" }}>
-                    <div style={{ background: "#fff", borderRadius: "var(--radius-lg)", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "26px" }}>
-                      <h2 style={{ margin: "0 0 2px", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Fills the page automatically</h2>
-                      <p style={{ margin: "0 0 14px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.pName}</p>
-                      <div style={{ display: "grid", gap: "9px" }}>
-                        <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                          <span style={{ flex: "none", color: "var(--accent-text)", marginTop: "1px" }}>
-                            <__Icon name="type" strokeWidth="1.75" width="16" height="16" />
-                          </span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>Name</b> — heading, page title, order confirmation</span>
-                        </div>
-                        <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                          <span style={{ flex: "none", color: "var(--accent-text)", marginTop: "1px" }}>
-                            <__Icon name="image" strokeWidth="1.75" width="16" height="16" />
-                          </span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>{v.pPhotosLine}</b> — hero, gallery and variant images</span>
-                        </div>
-                        <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                          <span style={{ flex: "none", color: "var(--accent-text)", marginTop: "1px" }}>
-                            <__Icon name="tag" strokeWidth="1.75" width="16" height="16" />
-                          </span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>{v.pPriceLine}</b> — price part and order total</span>
-                        </div>
-                        <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                          <span style={{ flex: "none", color: "var(--accent-text)", marginTop: "1px" }}>
-                            <__Icon name="percent" strokeWidth="1.75" width="16" height="16" />
-                          </span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>{v.pOfferLine}</b> — offer part and savings line</span>
-                        </div>
-                        <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                          <span style={{ flex: "none", color: "var(--accent-text)", marginTop: "1px" }}>
-                            <__Icon name="layers" strokeWidth="1.75" width="16" height="16" />
-                          </span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>{v.pVariantsLine}</b> — variant chips and order form</span>
-                        </div>
-                        <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                          <span style={{ flex: "none", color: "var(--accent-text)", marginTop: "1px" }}>
-                            <__Icon name="boxes" strokeWidth="1.75" width="16" height="16" />
-                          </span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>{v.pStockLine}</b> — urgency part and maximum quantity</span>
-                        </div>
-                      </div>
-                      <p style={{ margin: "14px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Change these in the product, not on the page. <__Link href={v.editProductHref}>Edit product</__Link></p>
-                    </div>
-                    <div style={{ background: "#fff", borderRadius: "var(--radius-lg)", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "26px" }}>
-                      <h2 style={{ margin: "0 0 2px", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Starting point</h2>
-                      <p style={{ margin: "0 0 14px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Step 2 of 2 — every template arrives already filled in</p>
-                      <div style={{ display: "grid", gap: "8px" }}>
-                        <button onClick={v.pickTemplate('cod')} style={{ display: "flex", gap: "10px", alignItems: "center", textAlign: "left", border: "2px solid #003087", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.04)", padding: "10px 12px", cursor: "pointer" }}>
-                          <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", display: "grid", placeItems: "center" }}>
-                            <__Icon name="banknote" strokeWidth="1.75" width="18" height="18" />
-                          </span>
-                          <span>
-                            <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>COD single product</span>
-                            <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "#475569" }}>11 parts · order form near the top</span>
-                          </span>
-                        </button>
-                        <button className="dc-h22" onClick={v.pickTemplate('long')} style={{ display: "flex", gap: "10px", alignItems: "center", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px", cursor: "pointer" }}>
-                          <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", display: "grid", placeItems: "center" }}>
-                            <__Icon name="scroll-text" strokeWidth="1.75" width="18" height="18" />
-                          </span>
-                          <span>
-                            <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Long-form offer</span>
-                            <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "#475569" }}>17 parts · benefits, reviews, FAQ, countdown</span>
-                          </span>
-                        </button>
-                        <button className="dc-h23" onClick={v.pickTemplate('video')} style={{ display: "flex", gap: "10px", alignItems: "center", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px", cursor: "pointer" }}>
-                          <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", display: "grid", placeItems: "center" }}>
-                            <__Icon name="play-circle" strokeWidth="1.75" width="18" height="18" />
-                          </span>
-                          <span>
-                            <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Video first</span>
-                            <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "#475569" }}>9 parts · video, then order form</span>
-                          </span>
-                        </button>
-                        <button className="dc-h24" onClick={v.pickTemplate('blank')} style={{ display: "flex", gap: "10px", alignItems: "center", textAlign: "left", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px", cursor: "pointer" }}>
-                          <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", display: "grid", placeItems: "center" }}>
-                            <__Icon name="plus" strokeWidth="1.75" width="18" height="18" />
-                          </span>
-                          <span>
-                            <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Blank page</span>
-                            <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "#475569" }}>Start with 3 suggested parts</span>
-                          </span>
-                        </button>
-                      </div>
-                      <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "16px" }}>
-                        <button className="dc-h25" onClick={v.startBuild} style={{ height: "36px", flex: "1", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}>Start building</button>
-                        <select aria-label="Page language" style={{ height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 8px", fontSize: "var(--text-xs-plus)", color: "#475569" }}>
-                          <option>বাংলা + English</option>
-                          <option>বাংলা</option>
-                          <option>English</option>
-                        </select>
-                      </div>
-                    </div>
-                  </aside>
-                </div>
-              </div>
-            </>) : null}
-            {v.isBuild ? (<>
-              <header className="lpb-head" style={{ display: "flex", height: "72px", flex: "none", alignItems: "center", gap: "10px", padding: "0 16px", background: "#fff", borderBottom: "1px solid #e2e8f0", minWidth: "0" }}>
-                <button className="dc-h26 lpb-ib" onClick={v.backToList} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Back to landing pages">
-                  <__Icon name="arrow-left" width="20" height="20" strokeWidth="1.75" />
-                </button>
-                <div style={{ flex: "none" }}>
-                  <h1 style={{ margin: "0", fontSize: "var(--text-xl)", lineHeight: "var(--text-xl-lh)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b", whiteSpace: "nowrap" }}>{v.pageTitle}</h1>
-                  <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{v.pageLink}</p>
-                </div>
-                <span style={{ flex: "none", whiteSpace: "nowrap", display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "#e9eef5", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#475569", letterSpacing: "var(--tracking-wide)" }}>{v.statusLabel}</span>
-                <span style={{ flex: "none", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "6px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.1)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#0f7a5a" }}><__Icon name={v.dirty || !v.savedLine.startsWith('Saved') ? "circle-dot" : "check"} strokeWidth="1.75" width="13" height="13" />{v.dirty ? 'Unsaved changes' : v.savedLine}</span>
-                <div style={{ display: "flex", gap: "2px", marginLeft: "6px" }}>
-                  <button className="dc-h27 lpb-ib" onClick={v.soon('Undo')} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "#475569", cursor: "pointer" }} aria-label="Undo">
-                    <__Icon name="undo-2" strokeWidth="1.75" width="18" height="18" />
-                  </button>
-                  <button className="lpb-ib" style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "#cbd5e1", cursor: "not-allowed" }} aria-label="Redo" disabled>
-                    <__Icon name="redo-2" strokeWidth="1.75" width="18" height="18" />
-                  </button>
-                </div>
-                <button className="dc-h28" onClick={v.openAiPage} style={{ flex: "none", whiteSpace: "nowrap", height: "32px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,156,222,.12)", color: "var(--accent-text)", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="sparkles" strokeWidth="1.75" width="15" height="15" />Write page with AI</button>
-                <div className="lpb-tools" style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ flex: "none", display: "inline-flex", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "3px" }}>
-                    {v.isMobile ? (<>
-                      <button onClick={v.setMobile} style={{ flex: "none", whiteSpace: "nowrap", height: "28px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-full)", padding: "0 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "#fff", color: "#003087", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}><__Icon name="smartphone" strokeWidth="1.75" width="14" height="14" />Mobile</button>
-                      {" "}
-                      <button onClick={v.setDesktop} style={{ flex: "none", whiteSpace: "nowrap", height: "28px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-full)", padding: "0 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "transparent", color: "#475569" }}><__Icon name="monitor" strokeWidth="1.75" width="14" height="14" />Desktop</button>
-                    </>) : null}
-                    {v.isDesktop ? (<>
-                      <button onClick={v.setMobile} style={{ flex: "none", whiteSpace: "nowrap", height: "28px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-full)", padding: "0 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "transparent", color: "#475569" }}><__Icon name="smartphone" strokeWidth="1.75" width="14" height="14" />Mobile</button>
-                      {" "}
-                      <button onClick={v.setDesktop} style={{ flex: "none", whiteSpace: "nowrap", height: "28px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-full)", padding: "0 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "#fff", color: "#003087", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}><__Icon name="monitor" strokeWidth="1.75" width="14" height="14" />Desktop</button>
-                    </>) : null}
-                  </span>
-                  <button className="dc-h29" onClick={v.openSeo} style={{ flex: "none", whiteSpace: "nowrap", height: "32px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="search" strokeWidth="1.75" width="15" height="15" />SEO</button>
-                  <button className="dc-h29" onClick={v.save} style={{ flex: "none", whiteSpace: "nowrap", height: "32px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="save" strokeWidth="1.75" width="15" height="15" />Save</button>
-                  <button className="dc-h29" onClick={v.openOnPhone} style={{ flex: "none", whiteSpace: "nowrap", height: "32px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="qr-code" strokeWidth="1.75" width="15" height="15" />Open on my phone</button>
-                  <button className="dc-h30" onClick={v.openPublish} style={{ flex: "none", whiteSpace: "nowrap", height: "36px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", padding: "0 16px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="rocket" strokeWidth="1.75" width="16" height="16" />{v.isLive ? 'Update' : 'Publish'}</button>
-                </div>
-              </header>
-              <div className="lpb-work" style={{ flex: "1", minHeight: "0", display: "flex", minWidth: "1240px" }}>
-                <section className="lpb-lib" aria-label="Add a part" style={{ width: "236px", flex: "none", flexShrink: "0", display: "flex", flexDirection: "column", background: "#fff", borderRight: "1px solid #e2e8f0" }}>
-                  <div style={{ flex: "none", padding: "14px 14px 10px" }}>
-                    <h2 style={{ margin: "0 0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Add a part</h2>
-                    <span style={{ position: "relative", display: "block" }}>
-                      <input aria-label="Search parts" type="search" placeholder="Search parts…" style={{ width: "100%", boxSizing: "border-box", height: "32px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 12px 0 34px", fontSize: "var(--text-xs-plus)", color: "#1e293b" }} />
-                      <span style={{ position: "absolute", left: "0", top: "0", display: "flex", width: "34px", height: "100%", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", pointerEvents: "none" }}>
-                        <__Icon name="search" strokeWidth="1.75" width="15" height="15" />
-                      </span>
-                    </span>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginTop: "10px" }}>
-                      <button style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Product</button>
-                      <button className="dc-h31" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Conversion</button>
-                      <button className="dc-h32" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Social proof</button>
-                      <button className="dc-h33" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Offers</button>
-                      <button className="dc-h34" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Checkout</button>
-                      <button className="dc-h35" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Information</button>
-                      <button className="dc-h36" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>My parts</button>
-                    </div>
-                  </div>
-                  <div style={{ flex: "1", minHeight: "0", overflowY: "auto", borderTop: "1px solid #e2e8f0", padding: "10px 10px 16px" }}>
-                    <p style={{ margin: "2px 0 8px 4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Product · 6</p>
-                    <div style={{ display: "grid", gap: "4px" }}>
-                      <button className="dc-h37" style={{ display: "flex", gap: "9px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: "var(--radius-lg)", background: "none", padding: "7px 8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "grab" }}><span style={{ color: "var(--text-muted)" }}>
-  <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-</span>Hero / product intro</button>
-                      <button className="dc-h38" style={{ display: "flex", gap: "9px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: "var(--radius-lg)", background: "none", padding: "7px 8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "grab" }}><span style={{ color: "var(--text-muted)" }}>
-  <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-</span>Image gallery</button>
-                      <button className="dc-h39" style={{ display: "flex", gap: "9px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: "var(--radius-lg)", background: "none", padding: "7px 8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "grab" }}><span style={{ color: "var(--text-muted)" }}>
-  <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-</span>Product benefits</button>
-                      <button className="dc-h40" style={{ display: "flex", gap: "9px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: "var(--radius-lg)", background: "none", padding: "7px 8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "grab" }}><span style={{ color: "var(--text-muted)" }}>
-  <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-</span>Features / specifications</button>
-                      <button className="dc-h41" style={{ display: "flex", gap: "9px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: "var(--radius-lg)", background: "none", padding: "7px 8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "grab" }}><span style={{ color: "var(--text-muted)" }}>
-  <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-</span>Video</button>
-                      <div style={{ display: "flex", gap: "9px", alignItems: "center", borderRadius: "var(--radius-lg)", padding: "7px 8px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}><span>
-  <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-</span>Variant selection<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)" }}>on page</span></div>
-                    </div>
-                    <p style={{ margin: "14px 0 8px 4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Conversion · 5</p>
-                    <div style={{ display: "grid", gap: "4px" }}>
-                      <button className="dc-h42" style={{ display: "flex", gap: "9px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: "var(--radius-lg)", background: "none", padding: "7px 8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "grab" }}><span style={{ color: "var(--text-muted)" }}>
-  <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-</span>Why buy this product</button>
-                      <button className="dc-h43" style={{ display: "flex", gap: "9px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: "var(--radius-lg)", background: "none", padding: "7px 8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "grab" }}><span style={{ color: "var(--text-muted)" }}>
-  <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-</span>Before / after</button>
-                      <button className="dc-h44" style={{ display: "flex", gap: "9px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: "var(--radius-lg)", background: "none", padding: "7px 8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "grab" }}><span style={{ color: "var(--text-muted)" }}>
-  <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-</span>Stock urgency</button>
-                    </div>
-                    <p style={{ margin: "14px 0 8px 4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Social proof · 1</p>
-                    <button className="dc-h45" style={{ display: "flex", gap: "9px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: "var(--radius-lg)", background: "none", padding: "7px 8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "grab" }}><span style={{ color: "var(--text-muted)" }}>
-  <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-</span>Customer reviews</button>
-                    <p style={{ margin: "14px 0 8px 4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Offers · 4</p>
-                    <div style={{ display: "grid", gap: "4px" }}>
-                      <button className="dc-h46" style={{ display: "flex", gap: "9px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: "var(--radius-lg)", background: "none", padding: "7px 8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "grab" }}><span style={{ color: "var(--text-muted)" }}>
-  <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-</span>Bundle / quantity discount</button>
-                      <button className="dc-h47" style={{ display: "flex", gap: "9px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: "var(--radius-lg)", background: "none", padding: "7px 8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "grab" }}><span style={{ color: "var(--text-muted)" }}>
-  <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-</span>Related / upsell product</button>
-                    </div>
-                    <div style={{ marginTop: "16px", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "10px" }}>
-                      <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>Drag a part onto the page, or tap it to add below the selected part.</p>
-                    </div>
-                  </div>
-                </section>
-                <section className="lpb-parts" aria-label="Page parts" style={{ width: "222px", flex: "none", display: "flex", flexDirection: "column", background: "#fff", borderRight: "1px solid #e2e8f0" }}>
-                  <div style={{ flex: "none", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 14px 10px" }}>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Page parts</h2>
-                    <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>11</span>
-                  </div>
-                  <div style={{ flex: "1", minHeight: "0", overflowY: "auto", padding: "0 10px 16px" }}>
-                    <div style={{ display: "grid", gap: "4px" }}>
-                      <button className="dc-h48" onClick={v.selHeroFn} style={{ display: "flex", gap: "7px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "pointer" }}>
-                        <span style={{ color: "#cbd5e1", cursor: "grab" }}>
-                          <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                        <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Hero / product intro</span>
-                        <span style={{ color: "var(--text-muted)" }}>
-                          <__Icon name="eye" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                      </button>
-                      <button className="dc-h49" style={{ display: "flex", gap: "7px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "pointer" }}>
-                        <span style={{ color: "#cbd5e1", cursor: "grab" }}>
-                          <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                        <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Image gallery</span>
-                        <span style={{ color: "var(--text-muted)" }}>
-                          <__Icon name="eye" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                      </button>
-                      <button onClick={v.selPriceFn} style={{ display: "flex", gap: "7px", alignItems: "center", width: "100%", textAlign: "left", border: "2px solid #003087", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.06)", padding: "7px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087", cursor: "pointer" }}>
-                        <span style={{ color: "#003087", cursor: "grab" }}>
-                          <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                        <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"Price & offer"}</span>
-                        <span>
-                          <__Icon name="eye" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                      </button>
-                      <button className="dc-h50" style={{ display: "flex", gap: "7px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "pointer" }}>
-                        <span style={{ color: "#cbd5e1", cursor: "grab" }}>
-                          <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                        <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Variant selection</span>
-                        <span style={{ color: "var(--text-muted)" }}>
-                          <__Icon name="eye" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                      </button>
-                      <button className="dc-h51" style={{ display: "flex", gap: "7px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "pointer" }}>
-                        <span style={{ color: "#cbd5e1", cursor: "grab" }}>
-                          <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                        <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Product benefits</span>
-                        <span style={{ color: "#a15f00" }}>
-                          <__Icon name="alert-circle" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                      </button>
-                      <div style={{ display: "flex", alignItems: "center", gap: "7px", borderTop: "2px dashed #009cde", padding: "5px 2px 2px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--accent-text)" }}>Drop here — Customer reviews</div>
-                      <button className="dc-h52" onClick={v.selDeliveryFn} style={{ display: "flex", gap: "7px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "pointer" }}>
-                        <span style={{ color: "#cbd5e1", cursor: "grab" }}>
-                          <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                        <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Delivery charge</span>
-                        <span style={{ color: "var(--text-muted)" }}>
-                          <__Icon name="eye" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                      </button>
-                      <button className="dc-h53" style={{ display: "flex", gap: "7px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "pointer" }}>
-                        <span style={{ color: "#cbd5e1", cursor: "grab" }}>
-                          <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                        <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Cash on delivery</span>
-                        <span style={{ color: "var(--text-muted)" }}>
-                          <__Icon name="eye" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                      </button>
-                      <button className="dc-h54" onClick={v.selFormFn} style={{ display: "flex", gap: "7px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "pointer" }}>
-                        <span style={{ color: "#cbd5e1", cursor: "grab" }}>
-                          <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                        <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Order form</span>
-                        <span style={{ color: "var(--text-muted)" }} title="Required — can be hidden, not deleted">
-                          <__Icon name="lock" strokeWidth="1.75" width="13" height="13" />
-                        </span>
-                      </button>
-                      <button className="dc-h55" style={{ display: "flex", gap: "7px", alignItems: "center", width: "100%", textAlign: "left", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "8px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", cursor: "pointer" }}>
-                        <span style={{ cursor: "grab" }}>
-                          <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                        <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Countdown · hidden</span>
-                        <span>
-                          <__Icon name="eye-off" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                      </button>
-                      <button className="dc-h56" style={{ display: "flex", gap: "7px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "pointer" }}>
-                        <span style={{ color: "#cbd5e1", cursor: "grab" }}>
-                          <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                        <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>FAQ</span>
-                        <span style={{ color: "var(--text-muted)" }}>
-                          <__Icon name="eye" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                      </button>
-                      <button className="dc-h57" style={{ display: "flex", gap: "7px", alignItems: "center", width: "100%", textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "8px", fontSize: "var(--text-xs-plus)", color: "#334155", cursor: "pointer" }}>
-                        <span style={{ color: "#cbd5e1", cursor: "grab" }}>
-                          <__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                        <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Footer / contact</span>
-                        <span style={{ color: "var(--text-muted)" }}>
-                          <__Icon name="eye" strokeWidth="1.75" width="14" height="14" />
-                        </span>
-                      </button>
-                    </div>
-                    <div style={{ marginTop: "10px", display: "flex", gap: "6px" }}>
-                      <button className="dc-h58" style={{ flex: "1", height: "32px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#475569", cursor: "pointer" }}><__Icon name="plus" strokeWidth="1.75" width="14" height="14" />Add part</button>
-                    </div>
-                    <p style={{ margin: "12px 4px 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Drag to reorder, or use <__Icon name="chevron-up" strokeWidth="1.75" width="12" height="12" />{" "}<__Icon name="chevron-down" strokeWidth="1.75" width="12" height="12" /> on a part. Hidden parts keep their settings.</p>
-                  </div>
-                </section>
-                <section className="lpb-canvas" aria-label="Page preview" style={{ flex: "1", minWidth: "430px", display: "flex", flexDirection: "column", background: "#f1f5f9" }}>
-                  <div className="lpb-cbar" style={{ flex: "none", display: "flex", alignItems: "center", gap: "8px", padding: "10px 16px", borderBottom: "1px solid #e2e8f0", background: "#fff" }}>
-                    <span style={{ flex: "none", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "6px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#003087" }}><__Icon name="pencil" strokeWidth="1.75" width="13" height="13" />Edit mode</span>
-                    <span style={{ flex: "1 1 auto", minWidth: "0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Tap any part on the page to change it</span>
-                    <span style={{ marginLeft: "auto", flex: "none", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "#475569" }}><__Icon name="smartphone" strokeWidth="1.75" width="14" height="14" />390 px · what 94% of your buyers see</span>
-                  </div>
-                  <div style={{ flex: "1", minHeight: "0", overflowY: "auto", display: "flex", justifyContent: "center", padding: "20px 16px 40px" }}>
-                    <div className="lpb-phone" style={{ width: "390px", flex: "none", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: "26px", padding: "0 12px", background: "#f8fafc", fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>
-                        <span>9:41</span>
-                        <span>{v.host}</span>
-                      </div>
-                      <button type="button" className="mg-row dc-h59" aria-label="Edit part: Photos and headline" onClick={v.selHeroFn} style={{ display: "block", width: "calc(100% - 16px)", border: "1px dashed #e2e8f0", margin: "8px", borderRadius: "var(--radius-xl)", padding: "10px 12px", cursor: "pointer" }}>
-                        <span style={{ display: "block", height: "150px", borderRadius: "var(--radius-lg)", background: "repeating-linear-gradient(115deg,#f8fafc,#f8fafc 10px,#eef2f7 10px,#eef2f7 20px)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>product photo 1 of 4</span>
-                        <span className="bn" style={{ display: "block", margin: "12px 0 0", fontSize: "var(--text-xl)", lineHeight: "1.3", fontWeight: "var(--weight-semibold)", color: "#1e293b", letterSpacing: "0" }}>{v.pTaglineBn}</span>
-                        <span style={{ display: "block", margin: "5px 0 0", fontSize: "var(--text-sm)", color: "#475569" }}>{v.pName}</span>
-                      </button>
-                      <div style={{ position: "relative", border: "2px solid #003087", margin: "8px", borderRadius: "var(--radius-xl)", padding: "12px", background: "rgba(0,48,135,.03)" }}>
-                        <span style={{ position: "absolute", top: "-11px", left: "10px", display: "inline-flex", alignItems: "center", gap: "6px", height: "22px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", padding: "0 4px 0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>{"Price & offer\n"}<span style={{ display: "inline-flex", gap: "1px", marginLeft: "3px" }}>
-  <span style={{ width: "18px", height: "18px", display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.16)" }}>
-    <__Icon name="grip-vertical" strokeWidth="1.75" width="11" height="11" />
-  </span>
-  <span style={{ width: "18px", height: "18px", display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.16)" }}>
-    <__Icon name="eye" strokeWidth="1.75" width="11" height="11" />
-  </span>
-  <span style={{ width: "18px", height: "18px", display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.16)" }}>
-    <__Icon name="copy" strokeWidth="1.75" width="11" height="11" />
-  </span>
-  <span style={{ width: "18px", height: "18px", display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.16)" }}>
-    <__Icon name="more-vertical" strokeWidth="1.75" width="11" height="11" />
-  </span>
-</span></span>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                          <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#1e293b", letterSpacing: "var(--tracking-tight)" }}>{v.pPrice}</span>
-                          {v.hasWas ? <span style={{ fontSize: "var(--text-sm-plus)", color: "var(--text-muted)", textDecoration: "line-through" }}>{v.pWas}</span> : null}
-                          {v.hasWas ? <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "rgba(240,0,185,.1)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#c1008f" }}>{v.pPct}</span> : null}
-                        </div>
-                        <p className="bn" style={{ margin: "6px 0 0", fontSize: "var(--text-sm-plus)", color: "#475569" }}>{v.pOfferBn}</p>
-                      </div>
-                      <button type="button" className="mg-row dc-h60" aria-label="Edit part: Size and quantity" onClick={v.selPriceFn} style={{ display: "block", width: "calc(100% - 16px)", border: "1px dashed #e2e8f0", margin: "8px", borderRadius: "var(--radius-xl)", padding: "10px 12px", cursor: "pointer" }}>
-                        <span className="bn" style={{ display: "block", margin: "0 0 8px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>বাছুন</span>
-                        <span style={{ display: "block", display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                          {__list(v.pChips).map((c, i) => (
-                            <span key={c} style={{ display: "inline-flex", height: "32px", alignItems: "center", border: i === 0 ? "1px solid #003087" : "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: i === 0 ? "rgba(0,48,135,.06)" : "transparent", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: i === 0 ? "var(--weight-medium)" : "var(--weight-regular)", color: i === 0 ? "#003087" : "#475569" }}>{c}</span>
-                          ))}
-                        </span>
-                        <span style={{ display: "block", display: "flex", alignItems: "center", gap: "10px", marginTop: "12px" }}>
-                          <span className="bn" style={{ display: "block", margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>পরিমাণ</span>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "12px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", padding: "4px 10px", fontSize: "var(--text-sm)", color: "#1e293b" }}><span style={{ display: "inline-flex", color: "var(--text-muted)" }}><__Icon name="minus" strokeWidth="2" width="14" height="14" aria-hidden="true" /></span>1<span style={{ display: "inline-flex", color: "#003087" }}><__Icon name="plus" strokeWidth="2" width="14" height="14" aria-hidden="true" /></span></span>
-                          {v.showStockBn ? <span className="bn" style={{ fontSize: "var(--text-xs-plus)", color: "#a15f00" }}>{v.pStockBn}</span> : null}
-                        </span>
-                      </button>
-                      <button type="button" className="mg-row dc-h61" aria-label="Edit part: Delivery and payment" onClick={v.selDeliveryFn} style={{ display: "block", width: "calc(100% - 16px)", border: "1px dashed #e2e8f0", margin: "8px", borderRadius: "var(--radius-xl)", padding: "10px 12px", cursor: "pointer" }}>
-                        <span style={{ display: "block", display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", color: "#475569" }}>
-                          <span className="bn">ডেলিভারি চার্জ — ঢাকার ভিতরে</span>
-                          <span style={{ fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.pDeliveryIn}</span>
-                        </span>
-                        <span style={{ display: "block", display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", color: "var(--text-muted)", marginTop: "4px" }}>
-                          <span className="bn">ঢাকার বাইরে</span>
-                          <span>{v.pDeliveryOut}</span>
-                        </span>
-                        <span style={{ display: "block", display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", borderRadius: "var(--radius-lg)", background: "rgba(16,185,129,.1)", padding: "8px 10px" }}>
-                          <span style={{ color: "#0f7a5a" }}>
-                            <__Icon name="hand-coins" strokeWidth="1.75" width="16" height="16" />
-                          </span>
-                          <span className="bn" style={{ display: "block", margin: "0", fontSize: "var(--text-sm)", color: "#0f7a5a" }}>ক্যাশ অন ডেলিভারি — পণ্য হাতে পেয়ে টাকা দিন</span>
-                        </span>
-                      </button>
-                      <button type="button" className="mg-row dc-h62" aria-label="Edit part: Order form" onClick={v.selFormFn} style={{ display: "block", width: "calc(100% - 16px)", border: "1px dashed #e2e8f0", margin: "8px", borderRadius: "var(--radius-xl)", padding: "10px 12px", cursor: "pointer" }}>
-                        <span className="bn" style={{ display: "block", margin: "0 0 10px", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#1e293b" }}>অর্ডার করতে নিচের তথ্য দিন</span>
-                        <span style={{ display: "block", display: "grid", gap: "7px" }}>
-                          <span style={{ display: "block", height: "38px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", display: "flex", alignItems: "center", padding: "0 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }} className="bn">আপনার নাম *</span>
-                          <span style={{ display: "block", height: "38px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", display: "flex", alignItems: "center", padding: "0 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }} className="bn">মোবাইল নম্বর * — 01XXXXXXXXX</span>
-                          <span style={{ display: "block", height: "52px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", display: "flex", alignItems: "flex-start", padding: "8px 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }} className="bn">সম্পূর্ণ ঠিকানা *</span>
-                          <span style={{ display: "block", display: "flex", gap: "7px" }}>
-                            <span style={{ display: "block", flex: "1", height: "38px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 10px", fontSize: "var(--text-xs-plus)", color: "#475569" }} className="bn">ঢাকা<span style={{ color: "var(--text-muted)" }}>
-  <__Icon name="chevron-down" strokeWidth="1.75" width="14" height="14" />
-</span></span>
-                            <span style={{ display: "block", flex: "1", height: "38px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", display: "flex", alignItems: "center", padding: "0 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }} className="bn">এলাকা</span>
-                          </span>
-                        </span>
-                        <span style={{ display: "block", display: "flex", justifyContent: "space-between", marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #e2e8f0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#1e293b" }}>
-                          <span className="bn">সর্বমোট</span>
-                          <span>{v.pTotal}</span>
-                        </span>
-                        <span style={{ display: "block", marginTop: "10px", height: "46px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", display: "grid", placeItems: "center", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }} className="bn">অর্ডার কনফার্ম করুন</span>
-                        <span style={{ display: "block", margin: "8px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)", textAlign: "center" }}>4 fields · no account · no OTP</span>
-                      </button>
-                      <div style={{ border: "1px dashed #cbd5e1", margin: "8px", borderRadius: "var(--radius-xl)", padding: "14px", textAlign: "center", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>FAQ · Footer / contact · WhatsApp button</div>
-                      <div style={{ position: "sticky", bottom: "0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "10px 12px", background: "#fff", borderTop: "1px solid #e2e8f0" }}>
-                        <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.pTotal}</span>
-                        <span className="bn" style={{ flex: "1", height: "40px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", display: "grid", placeItems: "center", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>অর্ডার করুন</span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-                <section className="lpb-settings" aria-label="Part settings" style={{ width: "340px", flex: "none", display: "flex", flexDirection: "column", background: "#fff", borderLeft: "1px solid #e2e8f0" }}>
-                  {v.aiClosed ? (<>
-                    <div style={{ flex: "none", padding: "14px 16px 12px", borderBottom: "1px solid #e2e8f0" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{"Price & offer"}</h2>
-                        <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", borderRadius: "var(--radius-sm)", background: "rgba(0,156,222,.12)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--accent-text)" }}><__Icon name="link" strokeWidth="1.75" width="12" height="12" />auto from product</span>
-                      </div>
-                      <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.pPriceLine + ' · ' + v.pOfferLine} — change these in the product</p>
-                      <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-                        <button className="dc-h63" onClick={v.openAiField} style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,156,222,.12)", color: "var(--accent-text)", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="sparkles" strokeWidth="1.75" width="14" height="14" />Fill this part with AI</button>
-                        <button className="dc-h64" style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="rotate-ccw" strokeWidth="1.75" width="14" height="14" />Reset</button>
-                      </div>
-                    </div>
-                    <div style={{ flex: "1", minHeight: "0", overflowY: "auto", padding: "14px 16px 24px" }}>
-                      <label style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155" }} htmlFor="lpb-offer-line">Offer line</label>
-                      <div style={{ position: "relative", marginTop: "6px" }}>
-                        <textarea id="lpb-offer-line" aria-describedby="lpb-offer-help" rows="2" style={{ width: "100%", boxSizing: "border-box", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", padding: "8px 42px 8px 10px", fontSize: "var(--text-sm)", lineHeight: "1.45", color: "#1e293b", resize: "vertical" }} className="bn" key={v.pOfferBn} defaultValue={v.pOfferBn} />
-                        <button className="dc-h65" onClick={v.openAiField} style={{ position: "absolute", top: "6px", right: "6px", height: "28px", display: "inline-flex", alignItems: "center", gap: "4px", border: "1px solid #009cde", borderRadius: "var(--radius-sm)", background: "#fff", color: "var(--accent-text)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="sparkles" strokeWidth="1.75" width="11" height="11" />AI</button>
-                      </div>
-                      <p style={{ margin: "5px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }} id="lpb-offer-help">Shown under the price. Keep it under 8 words on mobile.</p>
-                      <div style={{ height: "1px", background: "#e2e8f0", margin: "16px 0" }} />
-                      <label style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155" }} htmlFor="lpb-price-note">Note under price</label>
-                      <div style={{ position: "relative", marginTop: "6px" }}>
-                        <input id="lpb-price-note" defaultValue="ডেলিভারি চার্জ আলাদা" style={{ width: "100%", boxSizing: "border-box", height: "38px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", padding: "0 42px 0 10px", fontSize: "var(--text-sm)", color: "#1e293b" }} className="bn" />
-                        <button className="dc-h66" onClick={v.openAiField} style={{ position: "absolute", top: "7px", right: "6px", height: "28px", display: "inline-flex", alignItems: "center", gap: "4px", border: "1px solid #009cde", borderRadius: "var(--radius-sm)", background: "#fff", color: "var(--accent-text)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="sparkles" strokeWidth="1.75" width="11" height="11" />AI</button>
-                      </div>
-                      <div style={{ height: "1px", background: "#e2e8f0", margin: "16px 0" }} />
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-                        <span>
-                          <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155" }}>Show the old price</span>
-                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.hasWas ? v.pWas + ' struck through' : 'No old price on this product'}</span>
-                        </span>
-                        <span style={{ flex: "none", width: "40px", height: "22px", borderRadius: "var(--radius-full)", background: "#003087", display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "0 3px" }}>
-                          <span style={{ width: "16px", height: "16px", borderRadius: "var(--radius-full)", background: "#fff" }} />
-                        </span>
-                      </div>
-                      <div style={{ height: "1px", background: "#e2e8f0", margin: "16px 0" }} />
-                      <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155", marginBottom: "7px" }}>Savings shown as</span>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <button style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>{v.hasWas ? v.f.save.toLocaleString("en-IN") + " taka saved" : "Taka saved"}</button>
-                        <button className="dc-h67" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>{v.hasWas ? v.pPct : "% off"}</button>
-                        <button className="dc-h68" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Both</button>
-                      </div>
-                      <div style={{ height: "1px", background: "#e2e8f0", margin: "16px 0" }} />
-                      <div style={{ borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "12px" }}>
-                        <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Price, stock and variants have no AI</p>
-                        <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>They come straight from your product so a buyer can never see a wrong price.</p>
-                      </div>
-                      <div style={{ display: "flex", gap: "6px", marginTop: "16px" }}>
-                        <button className="dc-h69" style={{ height: "32px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="bookmark" strokeWidth="1.75" width="14" height="14" />Save to my parts</button>
-                        <button className="dc-h70" style={{ height: "32px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(255,87,36,.1)", color: "#c23a12", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="eye-off" strokeWidth="1.75" width="14" height="14" />Hide part</button>
-                      </div>
-                    </div>
-                  </>) : null}
-                  {v.aiOpen ? (<>
-                    <div style={{ flex: "none", display: "flex", alignItems: "center", gap: "8px", padding: "14px 16px 12px", borderBottom: "1px solid #e2e8f0" }}>
-                      <span style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", borderRadius: "var(--radius-lg)", background: "rgba(0,156,222,.12)", color: "var(--accent-text)" }}>
-                        <__Icon name="sparkles" strokeWidth="1.75" width="16" height="16" />
-                      </span>
-                      <div style={{ minWidth: "0" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>AI · Offer line</h2>
-                        <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{"Price & offer part"}</p>
-                      </div>
-                      <button className="dc-h71" onClick={v.closeAi} style={{ marginLeft: "auto", width: "28px", height: "28px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Close AI">
-                        <__Icon name="x" strokeWidth="1.75" width="16" height="16" />
-                      </button>
-                    </div>
-                    <div style={{ flex: "1", minHeight: "0", overflowY: "auto", padding: "14px 16px 24px" }}>
-                      <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: "10px" }}>
-                        <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Your text now</p>
-                        <p className="bn" style={{ margin: "0", fontSize: "var(--text-sm)", color: "#475569" }}>{v.pOfferBn}</p>
-                      </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginTop: "12px" }}>
-                        <button style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", padding: "0 11px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Rewrite</button>
-                        <button className="dc-h72" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 11px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Generate</button>
-                        <button className="dc-h73" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 11px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Shorten</button>
-                        <button className={`bn dc-h74`} style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 11px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>বাংলা</button>
-                        <button className="dc-h75" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 11px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>English</button>
-                        <button className={`bn dc-h76`} style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", padding: "0 11px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>বাংলা + English</button>
-                      </div>
-                      <p style={{ margin: "12px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.pUsing}</p>
-                      <div style={{ display: "grid", gap: "8px", marginTop: "12px" }}>
-                        <button style={{ textAlign: "left", border: "2px solid #003087", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.04)", padding: "10px", cursor: "pointer" }}>
-                          <span className="bn" style={{ display: "block", fontSize: "var(--text-sm)", color: "#1e293b" }}>{v.pSuggest[0]}</span>
-                          <span style={{ display: "block", marginTop: "5px", fontSize: "var(--text-xs)", color: "#003087", fontWeight: "var(--weight-medium)" }}>Shown on the page now · 6 words</span>
-                        </button>
-                        <button className="dc-h77" style={{ textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px", cursor: "pointer" }}>
-                          <span className="bn" style={{ display: "block", fontSize: "var(--text-sm)", color: "#1e293b" }}>{v.pSuggest[1]}</span>
-                          <span style={{ display: "block", marginTop: "5px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>8 words</span>
-                        </button>
-                        <button className="dc-h78" style={{ textAlign: "left", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px", cursor: "pointer" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm)", color: "#1e293b" }}>{v.pSuggest[2]}</span>
-                          <span style={{ display: "block", marginTop: "5px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>English · 8 words</span>
-                        </button>
-                      </div>
-                      <div style={{ display: "flex", gap: "6px", marginTop: "14px" }}>
-                        <button className="dc-h79" onClick={v.closeAi} style={{ height: "36px", flex: "1", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}>Use this text</button>
-                        <button className="dc-h80" style={{ height: "36px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="refresh-cw" strokeWidth="1.75" width="14" height="14" />Again</button>
-                        <button className="dc-h81" onClick={v.closeAi} style={{ height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "none", color: "#475569", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Keep mine</button>
-                      </div>
-                      <div style={{ marginTop: "16px", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "12px" }}>
-                        <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>Nothing changes on your page until you tap <b style={{ color: "#1e293b", fontWeight: "var(--weight-medium)" }}>Use this text</b> — and undo brings your words back.</p>
-                      </div>
-                      <p style={{ margin: "14px 0 6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Earlier in this session</p>
-                      <div style={{ display: "grid", gap: "6px" }}>
-                        <span className="bn" style={{ fontSize: "var(--text-xs-plus)", color: "#475569", borderLeft: "2px solid #e2e8f0", paddingLeft: "8px" }}>{v.pOfferBn}</span>
-                        <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569", borderLeft: "2px solid #e2e8f0", paddingLeft: "8px" }}>{v.pOfferEn}</span>
-                      </div>
-                    </div>
-                  </>) : null}
-                </section>
-              </div>
-            </>) : null}
-            {v.isPublish ? (<>
-              <div onKeyDown={(e) => { if (e.key === "Escape") v.closePublish(); }} onMouseDown={(e) => { if (e.target === e.currentTarget) v.closePublish(); }} style={{ position: "fixed", inset: "0", zIndex: "200", background: "rgba(15,23,42,.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
-                <div role="dialog" aria-modal="true" aria-labelledby="lpb-publish-title" style={{ width: "560px", maxWidth: "100%", maxHeight: "calc(100dvh - 32px)", overflowY: "auto", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 20px 40px -12px rgba(15,23,42,.35)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "18px 20px", borderBottom: "1px solid #e2e8f0" }}>
-                    <span style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087" }}>
-                      <__Icon name="rocket" strokeWidth="1.75" width="18" height="18" />
-                    </span>
-                    <div>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }} id="lpb-publish-title">{v.publishTitle}</h2>
-                      <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.publishSub}</p>
-                    </div>
-                    <button className="dc-h82" autoFocus onClick={v.closePublish} style={{ marginLeft: "auto", width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Close">
-                      <__Icon name="x" strokeWidth="1.75" width="18" height="18" />
-                    </button>
-                  </div>
-                  <div style={{ padding: "18px 20px 20px" }}>
-                    {v.linkProblem ? (<>
-                    <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "#c23a12" }}>Must fix</p>
-                    <div style={{ display: "flex", gap: "10px", alignItems: "center", borderRadius: "var(--radius-lg)", background: "rgba(255,87,36,.08)", padding: "10px 12px", marginBottom: "18px" }}>
-                      <span style={{ flex: "none", color: "#c23a12" }}><__Icon name="link-2" strokeWidth="1.75" width="18" height="18" /></span>
-                      <span style={{ flex: "1", fontSize: "var(--text-sm)", color: "#334155" }}>{v.linkProblem} Change the page link below.</span>
-                    </div>
-                  </>) : null}
-                    {v.hasChecks ? (<>
-                    <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "#a15f00" }}>Worth checking — will not stop you</p>
-                    <div style={{ display: "grid", gap: "8px" }}>
-                      {__list(v.checks).map((c, i) => (
-                        <div key={i} style={{ display: "flex", gap: "10px", alignItems: "center", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "10px 12px" }}>
-                          <span style={{ flex: "none", color: "#a15f00" }}><__Icon name="info" strokeWidth="1.75" width="18" height="18" /></span>
-                          <span style={{ flex: "1", fontSize: "var(--text-sm)", color: "#334155" }}>{c.text}</span>
-                          {c.act ? <__Link href={c.act.href} style={{ flex: "none", height: "28px", display: "inline-flex", alignItems: "center", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>{c.act.label}</__Link> : null}
-                        </div>
-                      ))}
-                    </div>
-                    </>) : null}
-                    <div style={{ height: "1px", background: "#e2e8f0", margin: "18px 0" }} />
-                    <label style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155" }} htmlFor="lpb-page-link">Page link</label>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0", marginTop: "6px" }}>
-                      <span style={{ height: "38px", display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRight: "none", borderRadius: "var(--radius-lg) 0 0 var(--radius-lg)", background: "#f8fafc", padding: "0 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }} id="lpb-page-link-prefix">{v.host + "/lp/"}</span>
-                      <input id="lpb-page-link" aria-describedby="lpb-page-link-prefix" value={v.handle} onChange={v.setHandle} aria-invalid={!!v.linkProblem} style={{ flex: "1", minWidth: "0", boxSizing: "border-box", height: "38px", border: "1px solid #cbd5e1", borderRadius: "0 var(--radius-lg) var(--radius-lg) 0", padding: "0 10px", fontSize: "var(--text-sm)", color: "#1e293b" }} />
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "18px" }}>
-                      <button className="dc-h87" onClick={v.publish} disabled={!v.canPublish} style={{ height: "36px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", padding: "0 16px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: v.canPublish ? "pointer" : "not-allowed", opacity: v.canPublish ? 1 : .5 }}><__Icon name="rocket" strokeWidth="1.75" width="16" height="16" />{v.isLive ? 'Update live page' : 'Publish page'}</button>
-                      <button className="dc-h88" onClick={v.checkPhone} style={{ height: "36px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 14px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="smartphone" strokeWidth="1.75" width="16" height="16" />Check on my phone first</button>
-                      <span style={{ marginLeft: "auto", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Orders go to your orders list</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>) : null}
-          </div>
+              </li>
+            );
+          })}
+          {!rows.length ? <li className="lpb-muted" style={{ padding: 12 }}>No product matches.</li> : null}
+        </ul>
+      </section>
+      <section className="lpb-card">
+        <header className="lpb-card__h"><h2>2 · Start the page</h2>{cur ? <span className="lpb-muted">for {cur.name}</span> : null}</header>
+        <button type="button" className="lpb-ai-start" disabled={!cur} onClick={onAi}>
+          <span className="lpb-ai-start__ic" aria-hidden="true"><Icon name="sparkles" width="22" height="22" /></span>
+          <span><b>Build it with AI</b><small>Tell GridAI who it’s for and the offer. It writes every part from the product: headline, benefits, order form, questions.</small></span>
+          <Icon name="arrow-right" width="18" height="18" aria-hidden="true" />
+        </button>
+        <p className="lpb-or">or start from a template</p>
+        <div className="lpb-tpls">
+          {TEMPLATES.map((t) => <button key={t.id} type="button" disabled={!cur} onClick={() => onTemplate(t.id)}><Icon name={t.icon} width="22" height="22" aria-hidden="true" /><b>{t.name}</b><small>{t.blurb}</small></button>)}
         </div>
-        <style dangerouslySetInnerHTML={{ __html: SEO_PANEL_CSS }} />
-        <__Sheet open={v.seoOpen && !!v.seo} title="Search engine listing" onClose={v.closeSeo} footer={<>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeSeo}>Close</button>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.saveSeo}>Save</button>
-        </>}>
-          {v.seo ? <SeoPanel kind="landing" idPrefix="lpb-seo" defaultOpen seo={v.seo} onChange={v.setSeo} ctx={v.seoCtx} schedule={v.seoSchedule} /> : null}
-        </__Sheet>
-      </div>
-    );
-  }
+      </section>
+    </div>
+  );
 }
+
+// ---- the AI builder --------------------------------------------------------------------------------------------------------
+function AiPanel({ facts, onBuilt, onHeadline, hasParts }) {
+  const [b, setB] = useState({ tone: 'friendly', goal: 'cod', lang: 'en', length: 'short', audience: '', offer: '', notes: '' });
+  const [busy, setBusy] = useState(false);
+  const [steps, setSteps] = useState([]);
+  const [last, setLast] = useState(null);
+  const ideas = useMemo(() => headlineIdeas(facts, b.lang === 'bn' ? 'bn' : 'en', b.tone), [facts, b.lang, b.tone]);
+  const set = (k) => (e) => setB((x) => ({ ...x, [k]: e.target.value }));
+  const run = async () => {
+    if (!facts) return;
+    if (hasParts) {
+      const ok = await confirmDialog({ title: 'Replace this page with a new one?', body: 'GridAI writes every part again from the product. Undo brings the old page back.', confirmLabel: 'Write the page' });
+      if (!ok) return;
+    }
+    setBusy(true); setSteps([]);
+    const out = aiBuild(b, facts);
+    // show the steps as they happen
+    for (let i = 0; i < out.steps.length; i += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, 420));
+      setSteps(out.steps.slice(0, i + 1));
+    }
+    setBusy(false); setLast(out);
+    onBuilt({ ...out, lang: b.lang });
+  };
+  const sel = (k, label, opts) => <label className="sfb-field"><span className="gc-label">{label}</span><select className="gc-input gc-select" value={b[k]} onChange={set(k)}>{opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>;
+  return (
+    <div className="lpb-ai">
+      <p className="lpb-ai__lead"><Icon name="sparkles" width="16" height="16" aria-hidden="true" /><span>GridAI writes the page from {facts ? <b>{facts.name}</b> : 'the product'}: its price, discount, key features, photos and reviews, and your delivery charges.</span></p>
+      {sel('tone', 'Tone', AI_TONES)}
+      {sel('goal', 'Goal', AI_GOALS)}
+      {sel('lang', 'Language', AI_LANGS)}
+      {sel('length', 'Length', AI_LENGTHS)}
+      <label className="sfb-field"><span className="gc-label">Who it’s for (optional)</span><input className="gc-input" value={b.audience} onChange={set('audience')} placeholder="e.g. students, gamers, new mothers" /></label>
+      <label className="sfb-field"><span className="gc-label">The offer (optional)</span><input className="gc-input" value={b.offer} onChange={set('offer')} placeholder="e.g. Free delivery this week" /></label>
+      <label className="sfb-field"><span className="gc-label">Anything else to say (optional)</span><textarea className="gc-input" rows={2} value={b.notes} onChange={set('notes')} placeholder="e.g. Comes with a free case" /></label>
+      <button type="button" className="gc-btn gc-btn--solid lpb-ai__go" disabled={busy || !facts} onClick={run}><Icon name={busy ? 'loader' : 'sparkles'} width="16" height="16" aria-hidden="true" className={busy ? 'lpb-spin' : ''} />{busy ? 'Writing your page…' : hasParts ? 'Write the page again' : 'Write my page'}</button>
+      {steps.length ? (
+        <ol className="lpb-steps" aria-live="polite">
+          {steps.map((s, i) => <li key={i}><Icon name="check" width="14" height="14" aria-hidden="true" /><span><b>{s.label}</b><small>{s.detail}</small></span></li>)}
+        </ol>
+      ) : null}
+      {last && last.run && !busy ? <p className="lpb-muted lpb-ai__cost">{last.run.model} · {(last.run.tokensIn + last.run.tokensOut).toLocaleString('en-US')} tokens · ৳{last.run.cost.toFixed(2)} · in GridAI › Usage</p> : null}
+      {facts ? (
+        <div className="lpb-ideas">
+          <p className="gc-label">Headline ideas</p>
+          {ideas.map((h) => <button key={h} type="button" onClick={() => onHeadline(h)}><span>{h}</span><Icon name="corner-down-left" width="14" height="14" aria-hidden="true" /></button>)}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ---- the builder ---------------------------------------------------------------------------------------------------------------
+export default function LandingPageBuilder() {
+  const products = useProducts();
+  const [ready, setReady] = useState(false);
+  const [missing, setMissing] = useState(false);
+  const [pick, setPick] = useState('');
+  const [page, setPageRaw] = useState(null);
+  const [savedAt, setSavedAt] = useState(null);
+  const [dirty, setDirty] = useState(false);
+  const [sel, setSel] = useState('');
+  const [tab, setTab] = useState('parts');
+  const [device, setDevice] = useState('phone');
+  const [lib, setLib] = useState(false);
+  const [seoOpen, setSeoOpen] = useState(false);
+  const [mob, setMob] = useState('preview');
+  const [aiFirst, setAiFirst] = useState(false);
+  const hist = useRef({ past: [], future: [], last: 0 });
+  const dragFrom = useRef(-1);
+
+  const product = useMemo(() => products.find((p) => p.id === (page ? page.productId : pick) || (page && p.sku === page.sku)) || null, [products, page, pick]);
+  const facts = useMemo(() => factsOf(product), [product]);
+
+  // open ?id= or start new (?product=)
+  useEffect(() => {
+    if (!products.length) return;
+    const qs = new URLSearchParams(window.location.search);
+    const id = qs.get('id');
+    if (id) {
+      const saved = getLandingPage(id);
+      if (!saved) { setMissing(true); setReady(true); return; }
+      const prod = products.find((p) => p.id === saved.productId || p.sku === saved.sku) || null;
+      const full = ensureParts(saved, prod);
+      setPageRaw(full); setSavedAt(saved.updatedAt); setSel((full.parts[1] || full.parts[0] || {}).id || '');
+    } else setPick(qs.get('product') && products.some((p) => p.id === qs.get('product')) ? qs.get('product') : products[0].id);
+    setReady(true);
+  }, [products]);
+
+  // every change: kept for Undo (typing within a moment is one step)
+  const setPage = useCallback((next, { coalesce = false } = {}) => {
+    setPageRaw((prev) => {
+      const val = typeof next === 'function' ? next(prev) : next;
+      const h = hist.current;
+      const now = Date.now();
+      if (prev && !(coalesce && now - h.last < 700)) { h.past.push(clone(prev)); if (h.past.length > 60) h.past.shift(); h.future = []; }
+      h.last = now;
+      return val;
+    });
+    setDirty(true);
+  }, []);
+  const undo = useCallback(() => { const h = hist.current; if (!h.past.length) return; setPageRaw((cur) => { h.future.push(clone(cur)); return h.past.pop(); }); setDirty(true); }, []);
+  const redo = useCallback(() => { const h = hist.current; if (!h.future.length) return; setPageRaw((cur) => { h.past.push(clone(cur)); return h.future.pop(); }); setDirty(true); }, []);
+  useEffect(() => {
+    const key = (e) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
+      if (e.target.closest && e.target.closest('input,textarea,select')) return;
+      e.preventDefault(); if (e.shiftKey) redo(); else undo();
+    };
+    const leave = (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('keydown', key); window.addEventListener('beforeunload', leave);
+    return () => { window.removeEventListener('keydown', key); window.removeEventListener('beforeunload', leave); };
+  }, [undo, redo, dirty]);
+  useEffect(() => {
+    const on = () => { if (page && !dirty) { const fresh = getLandingPage(page.id); if (fresh) setSavedAt(fresh.updatedAt); } };
+    window.addEventListener(LANDING_EVENT, on);
+    return () => window.removeEventListener(LANDING_EVENT, on);
+  }, [page, dirty]);
+
+  // start a page
+  const begin = (template) => {
+    const p = products.find((x) => x.id === pick);
+    if (!p) return;
+    const base = newLandingPage({ product: p, template });
+    const parts = partsFor(template, factsOf(p), 'en');
+    const full = { ...base, parts, style: { ...PAGE_STYLE } };
+    hist.current = { past: [], future: [], last: 0 };
+    setPageRaw(full); setSel((parts[1] || parts[0] || {}).id || ''); setDirty(true); setTab('parts');
+  };
+  const beginAi = () => { begin('blank'); setTab('ai'); setAiFirst(true); };
+
+  // parts
+  const parts = page ? page.parts || [] : [];
+  const cur = parts.find((x) => x.id === sel) || null;
+  const curType = cur ? partType(cur.type) : null;
+  const setPart = (id, patch, coalesce = true) => setPage((pg) => ({ ...pg, parts: pg.parts.map((x) => (x.id === id ? { ...x, ...patch } : x)) }), { coalesce });
+  const move = (i, d) => setPage((pg) => { const n = pg.parts.slice(); const j = i + d; if (j < 0 || j >= n.length) return pg; [n[i], n[j]] = [n[j], n[i]]; return { ...pg, parts: n }; });
+  const moveTo = (from, to) => setPage((pg) => { if (from === to || from < 0) return pg; const n = pg.parts.slice(); const [x] = n.splice(from, 1); n.splice(to, 0, x); return { ...pg, parts: n }; });
+  const copy = (i) => setPage((pg) => { const n = pg.parts.slice(); const c = { ...clone(n[i]), id: newPart(n[i].type).id }; n.splice(i + 1, 0, c); setSel(c.id); return { ...pg, parts: n }; });
+  const remove = async (i) => {
+    const x = parts[i];
+    if (x.type === 'order' && !(await confirmDialog({ title: 'Remove the order form?', body: 'Without it the page can’t take orders. Every Order button points to it.', confirmLabel: 'Remove', tone: 'danger' }))) return;
+    setPage((pg) => ({ ...pg, parts: pg.parts.filter((p) => p.id !== x.id) }));
+    if (sel === x.id) setSel('');
+    toast((partType(x.type) || {}).label + ' removed. Undo brings it back.');
+  };
+  const add = (type) => {
+    const fresh = partsFor('long', facts, page && page.lang === 'bn' ? 'bn' : 'en').find((x) => x.type === type);
+    const part = fresh || newPart(type);
+    setPage((pg) => {
+      const n = pg.parts.slice();
+      const at = sel ? n.findIndex((x) => x.id === sel) + 1 : n.length;
+      n.splice(at > 0 ? at : n.length, 0, part);
+      return { ...pg, parts: n };
+    });
+    setSel(part.id); setLib(false); setMob('edit');
+  };
+
+  // save / publish
+  const problem = page ? handleProblem(page.handle, page.id) : '';
+  const save = (quiet) => {
+    if (!page) return null;
+    const rec = saveLandingPage(page);
+    setPageRaw(rec); setSavedAt(rec.updatedAt); setDirty(false);
+    try { window.history.replaceState(null, '', '/landing-page-builder?id=' + rec.id); } catch { /* ignore */ }
+    if (!quiet) toast(rec.status === 'published' ? 'Changes saved. The live page shows them now.' : 'Saved as a draft. It is in Landing pages.');
+    return rec;
+  };
+  const publish = () => {
+    if (problem) { toast(problem, { tone: 'error' }); setTab('page'); return; }
+    if (!parts.some((x) => x.type === 'order' && !x.hidden)) { toast('Add the order form first: a landing page takes orders with it.', { tone: 'error' }); return; }
+    const rec = save(true);
+    const out = publishLandingPage(rec.id);
+    if (!out || out.error) { toast((out && out.error) || 'Could not publish.', { tone: 'error' }); return; }
+    setPageRaw(out); setSavedAt(out.updatedAt); setDirty(false);
+    toast('Published. The page is live at ' + LP_BASE + out.handle);
+  };
+  const unpublish = async () => {
+    if (!(await confirmDialog({ title: 'Take the page off the website?', body: 'Customers can’t open it or order from it until you publish it again.', confirmLabel: 'Unpublish', tone: 'danger' }))) return;
+    const rec = save(true);
+    const out = unpublishLandingPage(rec.id);
+    if (out) { setPageRaw(out); setDirty(false); }
+    toast('The page is a draft again.');
+  };
+  const back = async () => {
+    if (dirty && !(await confirmDialog({ title: 'Leave without saving?', body: 'Your changes to this page are not saved.', confirmLabel: 'Leave', tone: 'danger' }))) return;
+    setDirty(false);
+    window.location.href = '/landing-pages';
+  };
+
+  const onBuilt = (out) => {
+    setPage((pg) => ({ ...pg, parts: out.parts, style: { ...(pg.style || {}), ...out.style }, title: out.title, offerLine: out.offerLine, lang: out.lang || pg.lang }));
+    setSel((out.parts.find((x) => x.type === 'hero') || {}).id || '');
+    setAiFirst(false);
+    toast('Your page is written. Click any part to change it.');
+  };
+  const onHeadline = (h) => {
+    const hero = parts.find((x) => x.type === 'hero');
+    if (!hero) { toast('Add a Hero part first.', { tone: 'info' }); return; }
+    setPart(hero.id, { title: h }, false); setSel(hero.id);
+  };
+
+  const checks = [];
+  if (facts && facts.stock <= 0) checks.push(['package-x', `${facts.name} is out of stock. Customers can still order; you need stock to send them.`]);
+  else if (facts && facts.stock < 10) checks.push(['package', `Only ${facts.stock} in stock.`]);
+  if (facts && !facts.rating.count && parts.some((x) => x.type === 'reviews' && x.source !== 'own' && !x.hidden)) checks.push(['star', 'No published reviews yet: the Reviews part stays hidden on the live page.']);
+  if (facts && !facts.photos.length) checks.push(['image-off', 'The product has no photo. Add one to the product, or set a picture on the Hero.']);
+  if (!parts.some((x) => x.type === 'order' && !x.hidden)) checks.push(['shopping-bag', 'There is no order form, so the page can’t take orders.']);
+
+  if (!ready) return <div className="dc-screen ds" style={{ minHeight: '100vh' }} aria-busy="true" />;
+  const status = page ? page.status : 'draft';
+  const style = page ? { ...PAGE_STYLE, ...(page.style || {}) } : PAGE_STYLE;
+  const setStyle = (patch) => setPage((pg) => ({ ...pg, style: { ...PAGE_STYLE, ...(pg.style || {}), ...patch } }));
+
+  return (
+    <div className="dc-screen ds lpb" data-screen="LandingPageBuilder">
+      <style dangerouslySetInnerHTML={{ __html: SFB_CSS + FIELDS_CSS + SEO_PANEL_CSS + LPB_CSS }} />
+      <header className="lpb-head">
+        <button type="button" className="ix-btn ix-btn--plain ix-btn--icon" aria-label="Back to Landing pages" onClick={back}><Icon name="arrow-left" width="18" height="18" aria-hidden="true" /></button>
+        <div className="lpb-head__t">
+          {page ? <input className="lpb-title" aria-label="Page name" value={page.title || ''} onChange={(e) => setPage((pg) => ({ ...pg, title: e.target.value }), { coalesce: true })} /> : <b>New landing page</b>}
+          <small>{page ? <><span className={'lpb-st is-' + status}>{status === 'published' ? 'Published' : 'Draft'}</span>{dirty ? 'Unsaved changes' : savedAt ? 'Saved ' + formatTime(savedAt) : 'Not saved yet'}</> : 'Pick a product to start'}</small>
+        </div>
+        {page ? (
+          <div className="lpb-head__a">
+            <span className="lpb-seg lpb-hide-s" role="group" aria-label="Preview size">
+              <button type="button" aria-pressed={device === 'phone'} onClick={() => setDevice('phone')} aria-label="Phone"><Icon name="smartphone" width="16" height="16" aria-hidden="true" /></button>
+              <button type="button" aria-pressed={device === 'desktop'} onClick={() => setDevice('desktop')} aria-label="Computer"><Icon name="monitor" width="16" height="16" aria-hidden="true" /></button>
+            </span>
+            <button type="button" className="ix-btn ix-btn--plain ix-btn--icon" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!hist.current.past.length} onClick={undo}><Icon name="undo-2" width="18" height="18" aria-hidden="true" /></button>
+            <button type="button" className="ix-btn ix-btn--plain ix-btn--icon" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!hist.current.future.length} onClick={redo}><Icon name="redo-2" width="18" height="18" aria-hidden="true" /></button>
+            <PhoneMore>
+              <button type="button" className="ix-btn" onClick={() => setSeoOpen(true)}><Icon name="search" width="16" height="16" aria-hidden="true" />SEO</button>
+            <a className="ix-btn" href={'/lp?handle=' + encodeURIComponent(page.handle) + '&preview=1'} target="_blank" rel="noopener noreferrer" onClick={() => { if (dirty) save(true); }}><Icon name="external-link" width="16" height="16" aria-hidden="true" />Preview</a>
+            {status === 'published' ? <button type="button" className="ix-btn" onClick={unpublish}>Unpublish</button> : null}
+            </PhoneMore>
+            <button type="button" className="ix-btn" onClick={() => save(false)}>Save</button>
+            <button type="button" className="gc-btn gc-btn--solid" onClick={publish}>{status === 'published' ? 'Update live page' : 'Publish'}</button>
+          </div>
+        ) : null}
+      </header>
+
+      {missing ? <div className="lpb-missing"><p>This landing page isn’t here any more.</p><Link className="gc-btn gc-btn--solid" href="/landing-page-builder">Start a new page</Link></div>
+        : !page ? <Start products={products} pick={pick} setPick={setPick} onTemplate={begin} onAi={beginAi} />
+          : (
+            <div className={'lpb-body is-m-' + mob}>
+              <nav className="lpb-mtabs" aria-label="Builder">
+                {[['parts', 'Parts'], ['preview', 'Preview'], ['edit', 'Edit']].map(([k, l]) => <button key={k} type="button" aria-pressed={mob === k} onClick={() => setMob(k)}>{l}</button>)}
+              </nav>
+              {/* left */}
+              <aside className="lpb-left" aria-label="Parts and page">
+                <div className="lpb-tabs" role="tablist">
+                  {[['parts', 'Parts', 'layers'], ['page', 'Page', 'settings-2'], ['ai', 'AI builder', 'sparkles']].map(([k, l, ic]) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}><Icon name={ic} width="15" height="15" aria-hidden="true" />{l}</button>)}
+                </div>
+                {tab === 'parts' ? (
+                  <div className="lpb-pane">
+                    <ol className="lpb-parts">
+                      {parts.map((x, i) => {
+                        const t = partType(x.type) || { label: x.type, icon: 'square' };
+                        return (
+                          <li key={x.id} draggable onDragStart={() => { dragFrom.current = i; }} onDragOver={(e) => e.preventDefault()} onDrop={() => { moveTo(dragFrom.current, i); dragFrom.current = -1; }}
+                            className={(sel === x.id ? 'is-sel' : '') + (x.hidden ? ' is-off' : '')}>
+                            <span className="lpb-grip" aria-hidden="true"><Icon name="grip-vertical" width="14" height="14" /></span>
+                            <button type="button" className="lpb-part" onClick={() => { setSel(x.id); setMob('edit'); }}><Icon name={t.icon} width="16" height="16" aria-hidden="true" /><span><b>{t.label}</b>{summaryOf(x) ? <small>{summaryOf(x)}</small> : null}</span></button>
+                            <span className="lpb-acts">
+                              <button type="button" aria-label={`Move ${t.label} up`} disabled={i === 0} onClick={() => move(i, -1)}><Icon name="arrow-up" width="14" height="14" /></button>
+                              <button type="button" aria-label={`Move ${t.label} down`} disabled={i === parts.length - 1} onClick={() => move(i, 1)}><Icon name="arrow-down" width="14" height="14" /></button>
+                              <button type="button" aria-label={x.hidden ? `Show ${t.label}` : `Hide ${t.label}`} aria-pressed={!x.hidden} onClick={() => setPart(x.id, { hidden: !x.hidden }, false)}><Icon name={x.hidden ? 'eye-off' : 'eye'} width="14" height="14" /></button>
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                    <button type="button" className="ix-btn lpb-add" onClick={() => setLib(true)}><Icon name="plus" width="16" height="16" aria-hidden="true" />Add part</button>
+                  </div>
+                ) : null}
+                {tab === 'page' ? (
+                  <div className="lpb-pane lpb-form">
+                    <label className="sfb-field"><span className="gc-label">Product</span>
+                      <select className="gc-input gc-select" value={page.productId} onChange={(e) => { const p = products.find((x) => x.id === e.target.value); if (p) setPage((pg) => ({ ...pg, productId: p.id, sku: p.sku, productName: p.name })); }}>
+                        {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                    </label>
+                    <label className="sfb-field"><span className="gc-label">Page link</span>
+                      <span className="lpb-link"><span>{LP_BASE}</span><input className="gc-input" value={page.handle} onChange={(e) => setPage((pg) => ({ ...pg, handle: slugify(e.target.value) || e.target.value.toLowerCase() }), { coalesce: true })} aria-invalid={problem ? true : undefined} /></span>
+                      {problem ? <small className="lpb-err">{problem}</small> : null}
+                    </label>
+                    <p className="gc-label">Accent colour</p>
+                    <div className="lpb-sw" role="radiogroup" aria-label="Accent colour">
+                      {ACCENTS.map((c) => <button key={c} type="button" role="radio" aria-checked={style.accent === c} aria-label={c} style={{ background: c }} onClick={() => setStyle({ accent: c })} />)}
+                      <label className="lpb-sw__own" aria-label="Your colour"><input type="color" value={style.accent} onChange={(e) => setStyle({ accent: e.target.value })} /></label>
+                    </div>
+                    {[['theme', 'Background', THEMES], ['font', 'Fonts', FONTS], ['corners', 'Corners', CORNERS]].map(([k, l, opts]) => (
+                      <label key={k} className="sfb-field"><span className="gc-label">{l}</span><select className="gc-input gc-select" value={style[k]} onChange={(e) => setStyle({ [k]: e.target.value })}>{opts.map(([v, x]) => <option key={v} value={v}>{x}</option>)}</select></label>
+                    ))}
+                    <label className="lpb-check"><input type="checkbox" checked={!!style.sticky} onChange={(e) => setStyle({ sticky: e.target.checked })} />Order bar stays at the bottom on phones</label>
+                    {checks.length ? <div className="lpb-checks"><p className="gc-label">Before you publish</p>{checks.map(([ic, t]) => <p key={t}><Icon name={ic} width="15" height="15" aria-hidden="true" />{t}</p>)}{product ? <Link href={'/add-product?id=' + encodeURIComponent(product.id)}>Edit the product</Link> : null}</div> : <p className="lpb-ok"><Icon name="check-circle-2" width="15" height="15" aria-hidden="true" />Ready to publish.</p>}
+                  </div>
+                ) : null}
+                {tab === 'ai' ? <div className="lpb-pane"><AiPanel facts={facts} onBuilt={onBuilt} onHeadline={onHeadline} hasParts={!aiFirst && parts.length > 0} /></div> : null}
+              </aside>
+
+              {/* middle */}
+              <main className="lpb-canvas" aria-label="Preview">
+                <div className={'lpb-frame is-' + device}>
+                  <LandingView page={page} product={product} editing selected={sel} onSelect={(id) => { setSel(id); setMob('edit'); }} />
+                </div>
+              </main>
+
+              {/* right */}
+              <aside className="lpb-right" aria-label="Part settings">
+                {cur && curType ? (
+                  <div className="lpb-pane">
+                    <header className="lpb-right__h"><Icon name={curType.icon} width="18" height="18" aria-hidden="true" /><b>{curType.label}</b>
+                      <span className="lpb-acts">
+                        <button type="button" aria-label="Copy this part" title="Copy" onClick={() => copy(parts.indexOf(cur))}><Icon name="copy" width="15" height="15" /></button>
+                        <button type="button" aria-label="Remove this part" title="Remove" onClick={() => remove(parts.indexOf(cur))}><Icon name="trash-2" width="15" height="15" /></button>
+                      </span>
+                    </header>
+                    {TEXT_KEYS.some((k) => typeof cur[k] === 'string' && cur[k].trim()) ? (
+                      <div className="lpb-rw">
+                        <span><Icon name="sparkles" width="14" height="14" aria-hidden="true" />Rewrite with AI</span>
+                        {[['shorter', 'Shorter'], ['stronger', 'Stronger'], ['urgent', 'Urgent'], ['friendly', 'Friendly']].map(([how, l]) => (
+                          <button key={how} type="button" onClick={() => { const patch = {}; ['title', 'sub', 'text'].forEach((k) => { if (typeof cur[k] === 'string' && cur[k].trim()) patch[k] = aiRewrite(cur[k], how); }); setPart(cur.id, patch, false); }}>{l}</button>
+                        ))}
+                      </div>
+                    ) : null}
+                    <div className="lpb-fields">
+                      {curType.fields.filter((fd) => !fd[5] || fd[5](cur)).map((fd) => <Field key={cur.id + fd[0]} fd={fd} f={cur} set={(patch) => setPart(cur.id, patch)} locked={false} />)}
+                    </div>
+                    {cur.type === 'reviews' || cur.type === 'gallery' || cur.type === 'specs' || cur.type === 'hero' ? <p className="lpb-muted lpb-note">{cur.type === 'reviews' ? 'Reviews come from Products › Reviews (published, 4–5 stars).' : 'Photos, price and specs come from the product.'} {product ? <Link href={'/add-product?id=' + encodeURIComponent(product.id)}>Edit the product</Link> : null}</p> : null}
+                  </div>
+                ) : <div className="lpb-pane lpb-empty"><Icon name="mouse-pointer-click" width="22" height="22" aria-hidden="true" /><p>Click a part on the page, or pick one from Parts, to change it.</p></div>}
+              </aside>
+            </div>
+          )}
+
+      {lib ? (
+        <Sheet open title="Add a part" onClose={() => setLib(false)}>
+          <div className="lpb-lib">
+            {PART_GROUPS.map(([g, gl]) => (
+              <div key={g}>
+                <p className="gc-label">{gl}</p>
+                <div className="lpb-lib__grid">{PARTS.filter((p) => p.group === g).map((p) => <button key={p.type} type="button" onClick={() => add(p.type)}><Icon name={p.icon} width="20" height="20" aria-hidden="true" /><b>{p.label}</b>{parts.some((x) => x.type === p.type) ? <small>On the page</small> : null}</button>)}</div>
+              </div>
+            ))}
+          </div>
+        </Sheet>
+      ) : null}
+      {seoOpen && page ? (
+        <Sheet open title="Search engine listing" onClose={() => setSeoOpen(false)} footer={<><button type="button" className="ix-btn" onClick={() => setSeoOpen(false)}>Close</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => { save(true); setSeoOpen(false); toast('Search engine listing saved.'); }}>Save</button></>}>
+          <SeoPanel kind="landing" idPrefix="lpb-seo" defaultOpen seo={readSeo('landing', page)} onChange={(patch) => setPage((pg) => ({ ...pg, seo: { ...readSeo('landing', pg), ...patch } }), { coalesce: true })} ctx={contextOf('landing', page)}
+            schedule={status === 'published' ? null : { at: page.goLiveAt || '', label: 'Publish on', onChange: (at) => setPage((pg) => ({ ...pg, goLiveAt: at || null })) }} />
+        </Sheet>
+      ) : null}
+    </div>
+  );
+}
+
+const LPB_CSS = `
+.lpb{display:flex;flex-direction:column;height:100vh;background:var(--surface-page,#f1f3f7);color:var(--text-body)}
+.lpb-head{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 16px;border-bottom:1px solid var(--border-subtle);background:var(--surface-card)}
+.lpb-head__t{display:flex;flex-direction:column;flex:1;min-width:0}
+.lpb-title{width:min(420px,100%);padding:2px 6px;margin-left:-6px;border:1px solid transparent;border-radius:var(--radius-lg);background:none;color:var(--text-heading);font:inherit;font-size:var(--text-base);font-weight:var(--weight-semibold)}
+.lpb-title:hover,.lpb-title:focus{border-color:var(--border-default);outline:none}
+.lpb-head__t small{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:var(--text-xs)}
+.lpb-st{padding:0 8px;border-radius:var(--radius-full);background:var(--surface-subtle);color:var(--text-body);font-weight:var(--weight-medium)}
+.lpb-st.is-published{background:var(--fill-success-soft);color:var(--text-success)}
+.lpb-head__a{display:flex;align-items:center;gap:6px}
+.lpb-head .gc-pagehead__menu{left:0;right:auto}
+.lpb-seg{display:inline-flex;padding:2px;border:1px solid var(--border-default);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.lpb-seg button{display:grid;place-items:center;width:34px;height:28px;border:0;border-radius:var(--radius-md);background:none;color:var(--text-muted);cursor:pointer}
+.lpb-seg button[aria-pressed="true"]{background:var(--surface-card);color:var(--text-heading);box-shadow:0 1px 2px rgba(15,23,42,.12)}
+.lpb-body{display:grid;grid-template-columns:300px minmax(0,1fr) 340px;flex:1;min-height:0}
+.lpb-left,.lpb-right{display:flex;flex-direction:column;min-height:0;background:var(--surface-card);border-right:1px solid var(--border-subtle)}
+.lpb-right{border-right:0;border-left:1px solid var(--border-subtle)}
+.lpb-pane{display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;overflow:auto;padding:14px}
+.lpb-tabs{display:flex;gap:2px;padding:8px 8px 0;border-bottom:1px solid var(--border-subtle)}
+.lpb-tabs button{display:inline-flex;align-items:center;gap:5px;padding:0 4px;white-space:nowrap;flex:1;justify-content:center;min-height:36px;border:0;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer}
+.lpb-tabs button[aria-selected="true"]{color:var(--text-heading);border-bottom-color:var(--primary)}
+.lpb-parts{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none}
+.lpb-parts li{display:flex;align-items:center;gap:2px;border:1px solid transparent;border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.lpb-parts li.is-sel{border-color:var(--primary);background:var(--fill-primary-soft)}
+.lpb-parts li.is-off{opacity:.55}
+.lpb-grip{display:grid;place-items:center;width:20px;color:var(--text-muted);cursor:grab}
+.lpb-part{display:flex;align-items:center;gap:10px;flex:1;min-width:0;min-height:44px;padding:4px 2px;border:0;background:none;color:var(--text-heading);font:inherit;text-align:left;cursor:pointer}
+.lpb-part>span{display:flex;flex-direction:column;min-width:0}
+.lpb-part b{font-size:var(--text-sm);font-weight:var(--weight-medium)}
+.lpb-part small{overflow:hidden;color:var(--text-muted);font-size:var(--text-xs);text-overflow:ellipsis;white-space:nowrap}
+.lpb-acts{display:flex;gap:2px;padding-right:4px}
+.lpb-acts button{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:var(--radius-md);background:none;color:var(--text-muted);cursor:pointer}
+.lpb-acts button:hover:not(:disabled){background:var(--surface-card);color:var(--text-heading)}
+.lpb-acts button:disabled{opacity:.35}
+.lpb-add{align-self:flex-start}
+.lpb-canvas{min-width:0;min-height:0;overflow:auto;padding:20px}
+.lpb-frame{margin:0 auto;border-radius:var(--radius-xl);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.08),0 20px 50px -24px rgba(15,23,42,.35);overflow:hidden}
+.lpb-frame.is-phone{width:390px;max-width:100%}
+.lpb-frame.is-desktop{width:100%;max-width:1200px}
+.lpb-right__h{display:flex;align-items:center;gap:8px;color:var(--text-heading)}
+.lpb-right__h .lpb-acts{margin-left:auto}
+.lpb-fields{display:flex;flex-direction:column;gap:12px}
+.lpb-fields .sfb-field,.lpb-form .sfb-field,.lpb-ai .sfb-field{display:flex;flex-direction:column;gap:6px}
+.lpb-rw{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px;border-radius:var(--radius-lg);background:var(--fill-primary-soft)}
+.lpb-rw>span{display:inline-flex;align-items:center;gap:6px;width:100%;color:var(--text-heading);font-size:var(--text-xs);font-weight:var(--weight-semibold)}
+.lpb-rw button{min-height:32px;padding:0 12px;border:1px solid var(--border-default);border-radius:var(--radius-full);background:var(--surface-card);color:var(--text-heading);font:inherit;font-size:var(--text-xs);cursor:pointer}
+.lpb-rw button:hover{border-color:var(--primary);color:var(--primary)}
+.lpb-note{font-size:var(--text-xs)}
+.lpb-empty{align-items:center;justify-content:center;color:var(--text-muted);text-align:center}
+.lpb-muted{color:var(--text-muted);font-size:var(--text-sm)}
+.lpb-link{display:flex;flex-direction:column;align-items:stretch;gap:4px;font-size:var(--text-xs);color:var(--text-muted)}
+.lpb-link span{white-space:nowrap}
+.lpb-err{color:var(--text-danger);font-size:var(--text-xs)}
+.lpb-sw{display:flex;flex-wrap:wrap;gap:8px}
+.lpb-sw button{width:30px;height:30px;border:2px solid var(--surface-card);border-radius:50%;box-shadow:0 0 0 1px var(--border-default);cursor:pointer}
+.lpb-sw button[aria-checked="true"]{box-shadow:0 0 0 2px var(--text-heading)}
+.lpb-sw__own{position:relative;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);cursor:pointer}
+.lpb-sw__own input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.lpb-check{display:flex;align-items:center;gap:8px;min-height:36px;font-size:var(--text-sm);color:var(--text-heading)}
+.lpb-checks{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:var(--radius-lg);background:var(--fill-warning-soft);font-size:var(--text-sm)}
+.lpb-checks p{display:flex;gap:8px;margin:0}
+.lpb-checks svg{flex:none;margin-top:3px;color:var(--text-warning)}
+.lpb-ok{display:flex;align-items:center;gap:8px;margin:0;color:var(--text-success);font-size:var(--text-sm)}
+.lpb-ai{display:flex;flex-direction:column;gap:12px}
+.lpb-ai__lead{display:flex;gap:8px;margin:0;padding:12px;border-radius:var(--radius-lg);background:linear-gradient(135deg,var(--fill-primary-soft),var(--fill-secondary-soft,var(--fill-info-soft)));font-size:var(--text-sm);color:var(--text-heading)}
+.lpb-ai__lead svg{flex:none;margin-top:3px;color:var(--primary)}
+.lpb-ai__go{justify-content:center}
+.lpb-spin{animation:lpb-spin 1s linear infinite}
+@keyframes lpb-spin{to{transform:rotate(360deg)}}
+.lpb-steps{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.lpb-steps li{display:flex;gap:8px;animation:lpb-in .25s ease}
+.lpb-steps li>svg{flex:none;margin-top:3px;color:var(--text-success)}
+.lpb-steps li span{display:flex;flex-direction:column}
+.lpb-steps b{font-size:var(--text-sm);color:var(--text-heading)}
+.lpb-steps small{color:var(--text-muted);font-size:var(--text-xs)}
+@keyframes lpb-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.lpb-ai__cost{font-size:var(--text-xs)}
+.lpb-ideas{display:flex;flex-direction:column;gap:6px}
+.lpb-ideas button{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;padding:8px 12px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);color:var(--text-heading);font:inherit;font-size:var(--text-sm);text-align:left;cursor:pointer}
+.lpb-ideas button:hover{border-color:var(--primary)}
+.lpb-ideas svg{flex:none;color:var(--text-muted)}
+.lpb-lib{display:flex;flex-direction:column;gap:16px}
+.lpb-lib__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.lpb-lib__grid button{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:84px;padding:12px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);color:var(--text-heading);font:inherit;font-size:var(--text-sm);text-align:left;cursor:pointer}
+.lpb-lib__grid button:hover{border-color:var(--primary);background:var(--fill-primary-soft)}
+.lpb-lib__grid svg{color:var(--primary)}
+.lpb-lib__grid small{color:var(--text-muted);font-size:var(--text-xs)}
+.lpb-start{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;flex:1;min-height:0;overflow:auto;padding:20px;max-width:1200px;width:100%;margin:0 auto}
+.lpb-card{display:flex;flex-direction:column;gap:12px;min-height:0;padding:16px;border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
+.lpb-card__h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px}
+.lpb-card__h h2{margin:0;font-size:var(--text-base);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.lpb-plist{display:flex;flex-direction:column;gap:4px;max-height:60vh;margin:0;padding:0;overflow:auto;list-style:none}
+.lpb-plist button{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:6px 10px;border:1px solid transparent;border-radius:var(--radius-lg);background:none;color:var(--text-heading);font:inherit;text-align:left;cursor:pointer}
+.lpb-plist button:hover{background:var(--surface-subtle)}
+.lpb-plist button[aria-selected="true"]{border-color:var(--primary);background:var(--fill-primary-soft)}
+.lpb-plist button>svg{color:var(--primary)}
+.lpb-pimg{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:var(--radius-lg);overflow:hidden;font-weight:var(--weight-semibold)}
+.lpb-pimg img{width:100%;height:100%;object-fit:contain}
+.lpb-pt{display:flex;flex-direction:column;flex:1;min-width:0}
+.lpb-pt b{overflow:hidden;font-size:var(--text-sm);font-weight:var(--weight-medium);text-overflow:ellipsis;white-space:nowrap}
+.lpb-pt small{color:var(--text-muted);font-size:var(--text-xs)}
+.lpb-ai-start{display:flex;align-items:center;gap:14px;padding:16px;border:0;border-radius:var(--radius-xl);background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:#fff;font:inherit;text-align:left;cursor:pointer;box-shadow:0 16px 32px -18px rgba(124,58,237,.7)}
+.lpb-ai-start:disabled{opacity:.5;cursor:not-allowed}
+.lpb-ai-start>span:nth-child(2){display:flex;flex-direction:column;gap:4px;flex:1}
+.lpb-ai-start b{font-size:var(--text-base);font-weight:var(--weight-semibold)}
+.lpb-ai-start small{opacity:.85;font-size:var(--text-sm);line-height:1.5}
+.lpb-ai-start__ic{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.18)}
+.lpb-or{margin:0;color:var(--text-muted);font-size:var(--text-xs);text-align:center}
+.lpb-tpls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.lpb-tpls button{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:100px;padding:14px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);color:var(--text-heading);font:inherit;text-align:left;cursor:pointer}
+.lpb-tpls button:hover:not(:disabled){border-color:var(--primary);background:var(--fill-primary-soft)}
+.lpb-tpls button:disabled{opacity:.5}
+.lpb-tpls svg{color:var(--primary)}
+.lpb-tpls b{font-size:var(--text-sm);font-weight:var(--weight-semibold)}
+.lpb-tpls small{color:var(--text-muted);font-size:var(--text-xs)}
+.lpb-missing{display:flex;flex-direction:column;align-items:center;gap:12px;margin:auto;color:var(--text-body)}
+.lpb-mtabs{display:none}
+@media (max-width:1180px){.lpb-body{grid-template-columns:270px minmax(0,1fr) 300px}}
+@media (max-width:960px){
+  .lpb-body{display:flex;flex-direction:column}
+  .lpb-mtabs{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--border-subtle);background:var(--surface-card)}
+  .lpb-mtabs button{flex:1;min-height:40px;border:1px solid var(--border-default);border-radius:var(--radius-full);background:var(--surface-card);color:var(--text-body);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium)}
+  .lpb-mtabs button[aria-pressed="true"]{border-color:var(--primary);background:var(--primary);color:#fff}
+  .lpb-left,.lpb-right,.lpb-canvas{display:none;flex:1;border:0}
+  .lpb-body.is-m-parts .lpb-left,.lpb-body.is-m-edit .lpb-right{display:flex}
+  .lpb-body.is-m-preview .lpb-canvas{display:block;padding:12px}
+  .lpb-start{grid-template-columns:minmax(0,1fr);padding:12px}
+  .lpb-hide-s{display:none}
+  .lpb-head{flex-wrap:wrap}
+  .lpb-head__a{width:100%;justify-content:flex-end;flex-wrap:wrap}
+}
+`;
