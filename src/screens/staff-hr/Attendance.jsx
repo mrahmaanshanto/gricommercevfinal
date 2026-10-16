@@ -14,7 +14,7 @@ import {
   todayKey, addDays, dayLabel, dowOf, WEEKDAYS, keysOf, monthOf, addMonths, monthLabel, cellOf, monthSummary, dayPlan,
   shiftBy, lateFor, toMin, t12, hm, saveAttendance, bulkAttendance, staffBy, ATT_CODES, HR_PLACES, leaveType,
 } from '@/lib/hr';
-import { HrPage, useHr, Person, ShiftChip, rowGo } from './hrShared';
+import { HrPage, useHr, Person, Avatar, ShiftChip, rowGo } from './hrShared';
 
 const CSS = `
 .at-reg{border-collapse:collapse;font-size:var(--text-xs)}
@@ -173,7 +173,8 @@ export default function Attendance() {
                 const r = c.rec, [label, tone] = DAY_STATUS[c.code] || DAY_STATUS['·'];
                 return (
                   <li key={st.code}>
-                    <button type="button" className="ix-pitem" disabled={!canMark(c)} onClick={() => openEdit(st.code, key)}>
+                    <button type="button" className="ix-pitem ix-pitem--thumb" disabled={!canMark(c)} onClick={() => openEdit(st.code, key)}>
+                      <span className="hr-pslot"><Avatar st={st} /></span>
                       <span className="ix-pitem__top"><b>{st.name}</b><StatusBadge tone={tone === 'slate' ? 'neutral' : tone}>{label}</StatusBadge></span>
                       <span className="ix-pitem__mid">{r && r.in ? `In ${t12(r.in)}${r.out ? ` · out ${t12(r.out)}` : ''}${r.late ? ` · ${r.late} min late` : ''}` : st.branch}</span>
                     </button>
@@ -212,7 +213,8 @@ export default function Attendance() {
             <ul className="ix-plist at-list" aria-label="Fix requests">
                 {fixes.map((f) => { const x = reviewRow(S, 'fix', f); return (
                   <li key={f.id}>
-                    <button type="button" className="ix-pitem" onClick={() => setFixReview(f.id)} aria-label={`Review ${x.title}, ${x.sub}`}>
+                    <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setFixReview(f.id)} aria-label={`Review ${x.title}, ${x.sub}`}>
+                      <span className="hr-pslot"><Avatar st={S.staff.find((s) => s.code === f.code) || { name: f.code }} /></span>
                       <span className="ix-pitem__top"><b>{x.title}</b><span className="hr-link">Review</span></span>
                       <span className="ix-pitem__mid">{x.sub}{f.text ? ` · ${f.text}` : ''}</span>
                     </button>

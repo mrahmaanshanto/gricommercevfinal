@@ -16,31 +16,9 @@
 
 import { read, update, newDoc, publishDoc, discardDoc, pickDoc, sfId, makeRestorePoint, isPreview } from './store';
 
-export const ROWS = [['top', 'Top bar'], ['main', 'Main row'], ['bottom', 'Bottom row']];
-export const AREAS = [['left', 'Left'], ['center', 'Centre'], ['right', 'Right']];
-export const ROW_TONES = [['theme', 'Header colours'], ['light', 'Light'], ['dark', 'Dark'], ['brand', 'Primary colour'], ['accent', 'Accent colour']];
-
-// settings: [key, label, type, default, choices?]
-export const ELEMENTS = [
-  { type: 'logo', label: 'Logo', icon: 'store', lock: 'logo', settings: [['size', 'Size', 'choice', 'M', [['S', 'Small'], ['M', 'Medium'], ['L', 'Large']]], ['name', 'Show the shop name', 'bool', true]] },   // a logo picture (Customize › Brand) replaces the mark and name
-  { type: 'menu', label: 'Main menu', icon: 'menu', settings: [['menu', 'Menu', 'menu', 'main'], ['weight', 'Links', 'choice', 'normal', [['normal', 'Normal'], ['bold', 'Bold']]], ['look', 'Look', 'choice', 'plain', [['plain', 'Plain'], ['caps', 'Capitals'], ['chips', 'Chips'], ['divided', 'With dividers']]], ['pills', 'Last items as colour pills', 'number', 0]] },
-  { type: 'catmenu', label: 'All categories', icon: 'list-tree', settings: [['label', 'Button text', 'text', 'All categories']] },
-  { type: 'search', label: 'Search', icon: 'search', settings: [['cats', 'Category picker', 'bool', true], ['size', 'Width', 'choice', 'L', [['S', 'Narrow'], ['M', 'Medium'], ['L', 'Wide']]], ['placeholder', 'Hint text', 'text', 'Search phones, chargers…'], ['look', 'Look', 'choice', 'box', [['box', 'Box'], ['soft', 'Soft grey'], ['pill', 'Rounded, coloured edge'], ['button', 'With a coloured button']]]] },
-  { type: 'cart', label: 'Cart', icon: 'shopping-cart', settings: [['total', 'Show the total', 'bool', false], ['label', 'Label', 'choice', 'none', [['none', 'Icon only'], ['beside', 'Beside the icon'], ['below', 'Below the icon'], ['two', 'Two lines']]]] },
-  { type: 'account', label: 'Account', icon: 'user', settings: [['label', 'Label', 'choice', 'none', [['none', 'Icon only'], ['beside', 'Beside the icon'], ['below', 'Below the icon'], ['two', 'Two lines']]], ['sub', 'Second line', 'text', '']] },
-  { type: 'wishlist', label: 'Wishlist', icon: 'heart', settings: [['label', 'Label', 'choice', 'none', [['none', 'Icon only'], ['beside', 'Beside the icon'], ['below', 'Below the icon'], ['two', 'Two lines']]], ['sub', 'Second line', 'text', '']] },
-  { type: 'compare', label: 'Compare', icon: 'git-compare', settings: [['label', 'Label', 'choice', 'none', [['none', 'Icon only'], ['beside', 'Beside the icon'], ['below', 'Below the icon'], ['two', 'Two lines']]], ['sub', 'Second line', 'text', '']] },
-  { type: 'lang', label: 'Language EN / বাং', icon: 'languages', settings: [] },
-  { type: 'phone', label: 'Hotline', icon: 'phone', settings: [['label', 'Label', 'text', 'Hotline'], ['number', 'Number', 'text', '']] },
-  { type: 'whatsapp', label: 'WhatsApp button', icon: 'message-circle', settings: [['label', 'Label', 'text', 'WhatsApp'], ['number', 'Number', 'text', '']] },
-  { type: 'button', label: 'Button', icon: 'mouse-pointer-click', settings: [['label', 'Text', 'text', 'Track order'], ['href', 'Link', 'text', '/offers'], ['style', 'Style', 'choice', 'solid', [['solid', 'Solid'], ['outline', 'Outline'], ['gradient', 'Glowing pill'], ['pill', 'Pill']]], ['icon', 'Icon', 'icon', '']] },
-  { type: 'iconlink', label: 'Icon link', icon: 'link', settings: [['icon', 'Icon', 'icon', 'truck'], ['label', 'Text', 'text', 'Track order'], ['sub', 'Second line', 'text', ''], ['href', 'Link', 'text', '/track'], ['look', 'Label', 'choice', 'below', [['beside', 'Beside the icon'], ['below', 'Below the icon'], ['two', 'Two lines']]]] },
-  { type: 'html', label: 'HTML block', icon: 'blocks', settings: [['block', 'Block', 'block', '']] },
-  { type: 'social', label: 'Social icons', icon: 'share-2', settings: [['facebook', 'Facebook page', 'text', 'https://facebook.com/dazzleshopbd'], ['instagram', 'Instagram', 'text', 'https://instagram.com/dazzleshopbd'], ['youtube', 'YouTube', 'text', '']] },
-  { type: 'text', label: 'Short text', icon: 'text', settings: [['text', 'Text', 'text', 'Official warranty on every phone']] },
-  { type: 'divider', label: 'Divider or space', icon: 'separator-vertical', settings: [['kind', 'Kind', 'choice', 'line', [['line', 'Line'], ['space', 'Space']]]] },
-];
-export const elementBy = (type) => ELEMENTS.find((e) => e.type === type) || null;
+// The element list lives in schema.js (shared with the store kit and its checker).
+import { ROWS, AREAS, ROW_TONES, ELEMENTS, elementBy, DRAWER_ITEMS, NAV_ITEMS, HEADER_SWITCHES } from './schema.js';
+export { ROWS, AREAS, ROW_TONES, ELEMENTS, elementBy, DRAWER_ITEMS, NAV_ITEMS, HEADER_SWITCHES };
 export function newElement(type) {
   const e = elementBy(type);
   const out = { id: sfId('el'), type };
@@ -48,13 +26,12 @@ export function newElement(type) {
   return out;
 }
 
-export const DRAWER_ITEMS = [['search', 'Search'], ['menu', 'Main menu'], ['catmenu', 'All categories'], ['account', 'Account'], ['lang', 'Language'], ['phone', 'Hotline'], ['social', 'Social icons']];
-export const NAV_ITEMS = [['home', 'Home', 'house'], ['cats', 'Categories', 'layout-grid'], ['search', 'Search', 'search'], ['cart', 'Cart', 'shopping-cart'], ['account', 'Account', 'user'], ['wishlist', 'Wishlist', 'heart']];
 
 const row = (on, height, tone, sticky, left = [], center = [], right = []) => ({ on, height, tone, sticky, left, center, right });
 const els = (list) => (list || []).map((x) => (typeof x === 'string' ? newElement(x) : { ...newElement(x[0]), ...x[1] }));
 export function blankHeader() {
   return {
+    overHero: false, shrink: false,
     desktop: { rows: { top: row(false, 36, 'dark', false), main: row(true, 72, 'theme', true, els(['logo']), els(['menu']), els(['search', 'cart'])), bottom: row(false, 48, 'theme', false) } },
     mobile: { rows: { top: row(false, 32, 'dark', false), main: row(true, 56, 'theme', true, els(['logo']), [], els(['search', 'cart'])), bottom: row(false, 44, 'theme', false) },
       drawer: ['search', 'menu', 'account', 'lang', 'phone'], bottomNav: true, navItems: ['home', 'cats', 'cart', 'account'] },
@@ -71,7 +48,7 @@ export function headerFromSpec(spec) {
     return { rows };
   };
   const m = spec.mobile || {};
-  return { desktop: dev(spec.desktop), mobile: { ...dev(m), drawer: m.drawer || ['search', 'menu', 'account', 'lang', 'phone'], bottomNav: m.bottomNav !== false, navItems: m.navItems || ['home', 'cats', 'cart', 'account'] } };
+  return { overHero: !!spec.overHero, shrink: !!spec.shrink, desktop: dev(spec.desktop), mobile: { ...dev(m), drawer: m.drawer || ['search', 'menu', 'account', 'lang', 'phone'], bottomNav: m.bottomNav !== false, navItems: m.navItems || ['home', 'cats', 'cart', 'account'] } };
 }
 
 // ---- reading ------------------------------------------------------------------------------------------------------

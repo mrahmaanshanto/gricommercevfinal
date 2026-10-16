@@ -5,6 +5,8 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # wholesale switched on for our site (Nayeem approved, 15 Oct 2026); src/lib/edition.js reads it
+  NEXT_PUBLIC_WHOLESALE = "true"
 
 # Next.js runtime: serves the app's pages, redirects and server rendering
 [[plugins]]

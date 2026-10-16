@@ -36,6 +36,7 @@ export const PURPOSES = [
   ['onboarding', 'Merchant onboarding'], ['trial', 'Trial expiration'], ['renewal', 'Subscription renewal'],
   ['reminder', 'Payment reminder'], ['paid', 'Payment confirmation'], ['promo', 'Promotional offer'],
   ['support', 'Customer support'], ['meeting', 'Meeting reminder'], ['system', 'System notification'],
+  ['account', 'Account & verification'], ['service', 'Services'],
 ];
 export const purposeLabel = (k) => (PURPOSES.find((p) => p[0] === k) || [k, k])[1];
 
@@ -47,6 +48,8 @@ export const VARIABLES = [
   ['link', 'Link', 'gcm.bd/p/7Q2K'], ['offer', 'Offer', '20% off the first 3 months'], ['code', 'Promo code', 'GROW20'],
   ['ticket_no', 'Ticket number', 'T-4821'], ['agent_name', 'Staff name', 'Farhana Akter'], ['meeting_time', 'Meeting time', '15 Oct, 11:00 AM'],
   ['date', 'Date', '16 Oct 2026'],
+  ['reason', 'Reason', 'The trade licence photo is not readable'], ['service_name', 'Service', 'Custom store design'], ['status', 'Step', 'In review'],
+  ['mailbox', 'Mailbox', 'sales@dhakagadgethub.com'], ['old_plan', 'Old plan', 'Growth'],
 ];
 const SAMPLE = Object.fromEntries(VARIABLES.map(([k, , v]) => [k, v]));
 
@@ -205,6 +208,31 @@ const SEED_TEMPLATES = [
   T('system', 'email', 'Monthly summary email',
     { subject: '{{store_name}}: your month on GridCommerce', body: 'Hi {{owner_name}},\n\nHere is the month for {{store_name}}: orders, messages sent and what is left in your credits. See the full summary:\n{{link}}\n\nYour {{plan}} plan renews on {{due_date}}.' + SIGN },
     { subject: '{{store_name}}: GridCommerce-এ আপনার মাস', body: 'প্রিয় {{owner_name}},\n\n{{store_name}}-এর এই মাসের হিসাব: অর্ডার, পাঠানো মেসেজ আর ক্রেডিটে কত বাকি। পুরো সারাংশ দেখুন:\n{{link}}\n\nআপনার {{plan}} প্ল্যান {{due_date}} তারিখে নবায়ন হবে।' + SIGN_BN }),
+  // Batch B step 1: the rest of GridCommerce's emails to shops (each has a designed version, emailKit.js)
+  T('reminder', 'email', 'Auto-charge failed email',
+    { subject: 'We couldn’t charge your card for {{store_name}}', body: 'Hi {{owner_name}},\n\nThe {{amount}} charge for invoice {{invoice_no}} didn’t go through. We’ll try again in 2 days. Update your card or pay with bKash to keep {{store_name}} open:\n{{link}}' + SIGN },
+    { subject: '{{store_name}}-এর কার্ডে চার্জ করা যায়নি', body: 'প্রিয় {{owner_name}},\n\nইনভয়েস {{invoice_no}}-এর {{amount}} চার্জ হয়নি। ২ দিন পর আবার চেষ্টা করব। {{store_name}} চালু রাখতে কার্ড বদলান বা বিকাশে পরিশোধ করুন:\n{{link}}' + SIGN_BN }),
+  T('renewal', 'email', 'Plan changed email',
+    { subject: '{{store_name}} is now on {{plan}}', body: 'Hi {{owner_name}},\n\n{{store_name}} moved from {{old_plan}} to {{plan}}. The new price is {{amount}} from {{due_date}}. See what changed:\n{{link}}' + SIGN },
+    { subject: '{{store_name}} এখন {{plan}} প্ল্যানে', body: 'প্রিয় {{owner_name}},\n\n{{store_name}} {{old_plan}} থেকে {{plan}} প্ল্যানে গেছে। {{due_date}} থেকে নতুন দাম {{amount}}। কী বদলেছে দেখুন:\n{{link}}' + SIGN_BN }),
+  T('account', 'email', 'Verification approved email',
+    { subject: '{{store_name}} is verified', body: 'Hi {{owner_name}},\n\nYour business details are checked and {{store_name}} is verified. Online payments and payouts are now open to you.\n{{link}}' + SIGN },
+    { subject: '{{store_name}} যাচাই হয়েছে', body: 'প্রিয় {{owner_name}},\n\nআপনার ব্যবসার তথ্য যাচাই হয়েছে, {{store_name}} এখন ভেরিফায়েড। অনলাইন পেমেন্ট আর পেআউট চালু।\n{{link}}' + SIGN_BN }),
+  T('account', 'email', 'Verification needs a fix email',
+    { subject: 'One more step to verify {{store_name}}', body: 'Hi {{owner_name}},\n\nWe couldn’t verify {{store_name}} yet: {{reason}}. Send it again here:\n{{link}}' + SIGN },
+    { subject: '{{store_name}} যাচাইয়ে আরেকটি ধাপ বাকি', body: 'প্রিয় {{owner_name}},\n\n{{store_name}} এখনও যাচাই করা যায়নি: {{reason}}। এখানে আবার পাঠান:\n{{link}}' + SIGN_BN }),
+  T('account', 'email', 'Mailbox ready email',
+    { subject: 'Your mailbox {{mailbox}} is ready', body: 'Hi {{owner_name}},\n\n{{mailbox}} is ready. Open it on the web or add it to your phone with the QR code:\n{{link}}' + SIGN },
+    { subject: 'আপনার মেইলবক্স {{mailbox}} তৈরি', body: 'প্রিয় {{owner_name}},\n\n{{mailbox}} তৈরি। ওয়েবে খুলুন বা QR কোড দিয়ে ফোনে যোগ করুন:\n{{link}}' + SIGN_BN }),
+  T('service', 'email', 'Service order update email',
+    { subject: '{{service_name}}: {{status}}', body: 'Hi {{owner_name}},\n\nYour {{service_name}} order moved on: {{status}}. See it and talk to the expert:\n{{link}}' + SIGN },
+    { subject: '{{service_name}}: {{status}}', body: 'প্রিয় {{owner_name}},\n\nআপনার {{service_name}} অর্ডার এগিয়েছে: {{status}}। দেখুন আর বিশেষজ্ঞের সাথে কথা বলুন:\n{{link}}' + SIGN_BN }),
+  T('system', 'email', 'Maintenance email',
+    { subject: 'Planned maintenance on {{date}}', body: 'Hi {{owner_name}},\n\nWe’ll upgrade our servers on {{date}}, 2–3 AM. {{store_name}} stays open; the panel and POS sync may stop for about an hour.\n{{link}}' + SIGN },
+    { subject: '{{date}} রক্ষণাবেক্ষণ', body: 'প্রিয় {{owner_name}},\n\n{{date}} রাত ২–৩টায় সার্ভার আপগ্রেড হবে। {{store_name}} খোলা থাকবে; প্যানেল আর POS সিঙ্ক প্রায় এক ঘণ্টা বন্ধ থাকতে পারে।\n{{link}}' + SIGN_BN }),
+  T('system', 'email', 'Weekly summary email',
+    { subject: '{{store_name}}: your week', body: 'Hi {{owner_name}},\n\nYour week on GridCommerce: orders, sales and what needs you. See the full summary:\n{{link}}' + SIGN },
+    { subject: '{{store_name}}: আপনার সপ্তাহ', body: 'প্রিয় {{owner_name}},\n\nGridCommerce-এ আপনার সপ্তাহ: অর্ডার, বিক্রি আর যা আপনার দেখা দরকার। পুরো হিসাব দেখুন:\n{{link}}' + SIGN_BN }),
 ];
 
 // ---- automations ------------------------------------------------------------------------------------------------------------
@@ -284,6 +312,8 @@ const AUTO_EMAIL = ['A-01', 'A-02', 'A-03', 'A-04', 'A-05', 'A-06', 'A-07', 'A-0
 const SMS_FAIL = ['Number switched off', 'Invalid number', 'Number blocks promotional SMS (DND)', 'Operator timeout'];
 const MAIL_FAIL = ['Mailbox does not exist', 'Mailbox full', 'Rejected as spam by the receiving server'];
 
+/** Two seeds with one purpose and channel get -2, -3 … (the first keeps the id automations use). */
+function uniqueIds(list) { const seen = {}; return list.map((x) => { seen[x.id] = (seen[x.id] || 0) + 1; return seen[x.id] > 1 ? { ...x, id: `${x.id}-${seen[x.id]}` } : x; }); }
 function seed(now) {
   const r = rng('comms-seed');
   const today = startOfDay(now);
@@ -418,7 +448,8 @@ function seed(now) {
     msgs: msgs.sort((a, b) => b.at - a.at),
     sends,
     campaigns,
-    templates: SEED_TEMPLATES.map((x) => ({ ...x, updatedAt: now - (12 + x.id.length % 7) * DAY, by: 'Mahin Khan', history: [{ v: 1, at: now - 40 * DAY, by: 'Mahin Khan', note: 'Created' }] })),
+    emailDesign: null,   // the look of GridCommerce's emails (null = the default, emailDesign.js)
+    templates: uniqueIds(SEED_TEMPLATES).map((x) => ({ ...x, updatedAt: now - (12 + x.id.length % 7) * DAY, by: 'Mahin Khan', history: [{ v: 1, at: now - 40 * DAY, by: 'Mahin Khan', note: 'Created' }] })),
     automations,
     providers: SEED_PROVIDERS.map((p) => ({ ...p, checkedAt: now - 12 * MIN })),
     email: { provider: 'ses', fromName: 'GridCommerce', fromAddress: 'hello@gridcommerce.com.bd', replyTo: 'support@gridcommerce.com.bd', domain: 'gridcommerce.com.bd', spf: 'Verified', dkim: 'Verified', dmarc: 'Missing', dmarcCopied: false, checkedAt: now - 2 * 3600e3 },
@@ -426,7 +457,7 @@ function seed(now) {
   };
 }
 
-export const comms = createStore({ key: 'comms', version: 1, seed });
+export const comms = createStore({ key: 'comms', version: 2, seed });   // v2 (Batch B): more emails, the email design
 
 // ---- reading ----------------------------------------------------------------------------------------------------------------
 export const templateBy = (data, id) => data.templates.find((x) => x.id === id) || null;
@@ -548,14 +579,14 @@ export function attention(data, t) {
     rows.push({ key: 'sms-fail', tone: 'err', title: `${smsFail.length} SMS failed in the last 24 hours`, sub: reasons ? 'Mostly: ' + reasons : 'Check the numbers and send again', href: '/admin/sms?tab=history&status=Failed' });
   }
   const bounced = data.msgs.filter((m) => m.ch === 'email' && (m.st === 'Bounced' || m.st === 'Failed') && m.at >= t - 3 * DAY);
-  if (bounced.length) rows.push({ key: 'mail-bounce', tone: 'warn', title: `${bounced.length} emails bounced in 3 days`, sub: 'Fix the address on the merchant or lead', href: '/admin/email?tab=sent&status=Bounced' });
+  if (bounced.length) rows.push({ key: 'mail-bounce', tone: 'warn', title: `${bounced.length} emails bounced in 3 days`, sub: 'Fix the address on the merchant or lead', href: '/admin/comms/email?tab=sent&status=Bounced' });
   for (const p of data.providers) {
-    if (p.on && p.balance < p.low) rows.push({ key: 'low-' + p.id, tone: 'warn', title: `${p.name} balance is low: ${taka(p.balance)}`, sub: p.primary ? 'Main provider: top up before it runs out' : 'Backup provider: sends fail over to it if the main one stops', href: p.ch === 'sms' ? '/admin/sms?tab=provider' : '/admin/email?tab=settings' });
-    if (!p.on && p.primary) rows.push({ key: 'off-' + p.id, tone: 'err', title: `${p.name} is off`, sub: 'Turn it on or make another provider the main one', href: p.ch === 'sms' ? '/admin/sms?tab=provider' : '/admin/email?tab=settings' });
+    if (p.on && p.balance < p.low) rows.push({ key: 'low-' + p.id, tone: 'warn', title: `${p.name} balance is low: ${taka(p.balance)}`, sub: p.primary ? 'Main provider: top up before it runs out' : 'Backup provider: sends fail over to it if the main one stops', href: p.ch === 'sms' ? '/admin/sms?tab=provider' : '/admin/comms/email?tab=settings' });
+    if (!p.on && p.primary) rows.push({ key: 'off-' + p.id, tone: 'err', title: `${p.name} is off`, sub: 'Turn it on or make another provider the main one', href: p.ch === 'sms' ? '/admin/sms?tab=provider' : '/admin/comms/email?tab=settings' });
   }
   const e = data.email;
   const missing = ['spf', 'dkim', 'dmarc'].filter((k) => e[k] !== 'Verified');
-  if (missing.length) rows.push({ key: 'dns', tone: 'warn', title: `${missing.map((k) => k.toUpperCase()).join(', ')} not set up for ${e.domain}`, sub: 'Emails may land in spam until the record is added', href: '/admin/email?tab=settings' });
+  if (missing.length) rows.push({ key: 'dns', tone: 'warn', title: `${missing.map((k) => k.toUpperCase()).join(', ')} not set up for ${e.domain}`, sub: 'Emails may land in spam until the record is added', href: '/admin/comms/email?tab=settings' });
   const autoFail = {};
   for (const m of data.msgs) if (m.auto && (m.st === 'Failed' || m.st === 'Bounced') && m.at >= t - 7 * DAY) autoFail[m.auto] = (autoFail[m.auto] || 0) + 1;
   const worst = Object.entries(autoFail).sort((a, b) => b[1] - a[1])[0];
@@ -785,6 +816,7 @@ export function saveTemplate(id, patch) {
     if (!x) return fail('That template is gone.');
     if (x.ch === 'email' && !String((p.en || {}).subject || '').trim()) return fail('Add an English subject.');
     x.name = p.name.trim(); x.en = { ...p.en }; x.bn = { ...(p.bn || { body: '' }) }; if (p.status) x.status = p.status;
+    if (p.design !== undefined) x.design = p.design;   // the designed email (null = made from the text)
     if (p.purpose) x.purpose = p.purpose;
     x.version = (x.version || 1) + 1; x.updatedAt = now; x.by = me();
     x.history = [{ v: x.version, at: now, by: x.by, note: p.note || 'Edited' }, ...(x.history || [])].slice(0, 12);
@@ -967,3 +999,20 @@ export const whenText = (ms, t) => {
   if (days > 1 && days < 7) return days + ' days ago';
   return dm(ms) + ' ' + hm(ms);
 };
+
+/** GridCommerce's email look (Communications › Email design); null puts the default back. */
+export function saveCommsEmailDesign(design) {
+  return comms.commit((data) => { data.emailDesign = design; return { ok: true }; });
+}
+/** Save only a template's designed email (the designer page); a new version like any save. */
+export function saveTemplateDesign(id, design, subjects) {
+  return comms.commit((data, now) => {
+    const x = templateBy(data, id);
+    if (!x) return fail('That template is gone.');
+    x.design = design;
+    if (subjects) { x.en = { ...x.en, subject: subjects.en }; x.bn = { ...(x.bn || {}), subject: subjects.bn }; }
+    x.version = (x.version || 1) + 1; x.updatedAt = now; x.by = me();
+    x.history = [{ v: x.version, at: now, by: x.by, note: design ? 'Designed email changed' : 'Designed email reset' }, ...(x.history || [])].slice(0, 12);
+    return { ok: true, version: x.version };
+  });
+}

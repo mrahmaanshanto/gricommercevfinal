@@ -28,6 +28,8 @@ import { DAMAGED_PLACE, getStockPlaces, STOCK_PLACES } from '@/lib/locations';
 import { productBy, addMove } from '@/lib/stock';
 import { getHolds, addHolds, closeHold } from '@/lib/stockHolds';
 import { getPO, lineCost, unitCost } from '@/lib/purchaseOrders';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 import { getDb, demoDb, supplierByName, findSupplier, payableOf, addSupplierReturn, boughtFrom, receiveReplacement, settleText } from '@/lib/supplierBills';
 
 const REASONS = ['Damaged', 'Wrong item or size', 'Poor quality', 'Expired', 'Sent too many'];
@@ -235,7 +237,7 @@ export default function SupplierReturn() {
                       <tbody>
                         {g.items.map((h) => (
                           <tr key={h.id}>
-                            <td><span className="sr-strong">{h.product}</span></td>
+                            <td><span className="gc-picrow"><Pic src={productPic(productBy(h.product) || h.product)} name={h.product} kind="item" /><span className="sr-strong">{h.product}</span></span></td>
                             <td>{h.po ? <span className="sr-id">{h.po}</span> : <span className="ix-muted">—</span>}</td>
                             <td className="ix-num">{h.qty}</td>
                             <td className="ix-num">{formatBDT(h.qty * h.cost)}</td>
@@ -315,6 +317,7 @@ export default function SupplierReturn() {
               <ul className="sr-lines" aria-label="Items bought">
                 {buyRows.map((r) => (
                   <li key={r.key}>
+                    <Pic src={productPic(productBy(r.sku || r.name) || r)} name={r.name} kind="item" />
                     <span style={{ flex: 1, minWidth: 0 }}><span className="sr-strong">{r.name}</span><span className="sr-sub">{r.bought} bought{r.returned ? ` · ${r.returned} returned` : ''} · {formatBDT(r.cost)} each · {r.bills.slice(-2).join(', ')}</span></span>
                     <input className="gc-input" type="number" min="0" max={r.left} inputMode="numeric" placeholder="0" aria-label={`Pieces of ${r.name} going back, up to ${r.left}`} value={buy.qty[r.key] || ''} onChange={(e) => setBuy({ ...buy, qty: { ...buy.qty, [r.key]: Math.min(r.left, num(e.target.value)) } })} />
                   </li>
@@ -364,6 +367,7 @@ export default function SupplierReturn() {
                   <li key={h.id}>
                     <label>
                       <input type="checkbox" className="gc-check" checked={on} onChange={(e) => setForm({ ...form, qty: { ...form.qty, [h.id]: e.target.checked ? h.qty : 0 } })} />
+                      <Pic src={productPic(productBy(h.product) || h.product)} name={h.product} kind="item" />
                       <span style={{ minWidth: 0 }}><span className="sr-strong">{h.product}</span><span className="sr-sub">{h.po || h.note || 'Set aside'} · {h.qty} set aside · {formatBDT(h.cost)} each</span></span>
                     </label>
                     <input className="gc-input" type="number" min="0" max={h.qty} inputMode="numeric" aria-label={`Pieces of ${h.product} going back`} value={form.qty[h.id]} onChange={(e) => setForm({ ...form, qty: { ...form.qty, [h.id]: Math.min(h.qty, num(e.target.value)) } })} />

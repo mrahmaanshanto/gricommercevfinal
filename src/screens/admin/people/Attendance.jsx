@@ -20,7 +20,7 @@ import {
 } from '@/lib/admin/people';
 import { AdminShell } from '../AdminShell';
 import { ReviewDrawer } from './ReviewDrawer';
-import { PEOPLE_CSS, usePeople, meName, plural, Person, Skeleton, rowGo, setParam, Field, ctl } from './peopleShared';
+import { PEOPLE_CSS, usePeople, meName, plural, Person, Avatar, Skeleton, rowGo, setParam, Field, ctl } from './peopleShared';
 
 const CSS = `
 .at-reg{border-collapse:separate;border-spacing:0;font-size:var(--text-xs)}
@@ -146,7 +146,8 @@ export default function Attendance() {
       ) : null}
       <ul className="ix-plist" aria-label="Today">
         {rows.map(({ e, c, s }) => (
-          <li key={e.id}><button type="button" className="ix-pitem" onClick={() => (s === 'leave' ? null : openEdit(e.id, board.key))}>
+          <li key={e.id}><button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => (s === 'leave' ? null : openEdit(e.id, board.key))}>
+            <span className="pp-pslot"><Avatar e={e} /></span>
             <span className="ix-pitem__top"><b>{e.name}</b><StatusBadge tone={badgeTone[s]}>{ATT[s].label}</StatusBadge></span>
             <span className="ix-pitem__mid">{e.dept}{c.in != null ? ` · in ${tm(c.in)}` : ''}{c.out != null ? ` · out ${tm(c.out)}` : ''}</span>
           </button></li>
@@ -235,7 +236,8 @@ export default function Attendance() {
       {rows.length ? (<>
         <ul className="ix-plist" aria-label={tab === 'late' ? 'Late entries' : 'Absences'}>
           {rows.map((r) => (
-            <li key={r.e.id + r.key}><button type="button" className="ix-pitem" onClick={() => openEdit(r.e.id, r.key)}>
+            <li key={r.e.id + r.key}><button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => openEdit(r.e.id, r.key)}>
+              <span className="pp-pslot"><Avatar e={r.e} /></span>
               <span className="ix-pitem__top"><b>{r.e.name}</b><span className="pp-fig">{tab === 'late' ? `${tm(r.c.in)} · ${r.c.late} min` : dayLabel(r.key)}</span></span>
               <span className="ix-pitem__mid">{dayLong(r.key)} · {r.e.dept}</span>
             </button></li>
@@ -269,7 +271,8 @@ export default function Attendance() {
       {stepper}
       <ul className="ix-plist" aria-label="Summary per person">
         {list.map(({ e, m }) => (
-          <li key={e.id}><Link className="ix-pitem" href={`/admin/staff/view?id=${e.id}&tab=attendance`}>
+          <li key={e.id}><Link className="ix-pitem ix-pitem--thumb" href={`/admin/staff/view?id=${e.id}&tab=attendance`}>
+            <span className="pp-pslot"><Avatar e={e} /></span>
             <span className="ix-pitem__top"><b>{e.name}</b><span className="pp-fig">{m.onTime == null ? '—' : m.onTime + '% on time'}</span></span>
             <span className="ix-pitem__mid">{m.present + m.remote} in · {m.late} late · {m.absent} absent · {m.leave} leave</span>
           </Link></li>
@@ -305,7 +308,8 @@ export default function Attendance() {
     body = list.length ? (<>
       <ul className="ix-plist" aria-label="Fix requests">
         {list.map((f) => (
-          <li key={f.id}><button type="button" className="ix-pitem" onClick={() => setReview({ kind: 'fix', id: f.id })}>
+          <li key={f.id}><button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setReview({ kind: 'fix', id: f.id })}>
+            <span className="pp-pslot"><Avatar e={{ name: name(f.emp) }} /></span>
             <span className="ix-pitem__top"><b>{name(f.emp)}</b><StatusBadge tone={REQ_STATUS[f.status].tone}>{REQ_STATUS[f.status].label}</StatusBadge></span>
             <span className="ix-pitem__mid">{dayLong(f.key)} · {f.text}</span>
           </button></li>

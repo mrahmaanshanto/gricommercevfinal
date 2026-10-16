@@ -41,6 +41,8 @@ import { toast as uiToast } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { ModuleSetup } from '@/components/ModuleSetup';
 import { tickJobs } from '@/lib/dataImport';
+import { Pic } from '@/components/ui/Pic';
+import { getAccounts, phoneKey } from '@/lib/storefront/account';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -149,7 +151,9 @@ class Component extends DCLogic {
     var here = {}; rows.forEach(function (r) { here[r.key] = true; });
     // demo rows merged away still count against the demo totals of their views
     var gone = DEMO_LIST.filter(function (d) { return !here['d:' + d.id]; });
-    this.setState({ rows: rows, gone: gone, pairs: findPairs(rows, notDupes), segs: getSegments() });
+    // profile pictures shoppers added in My account (one account per mobile number)
+    var pics = {}; try { getAccounts().forEach(function (a) { if (a.avatar) pics[phoneKey(a.phone)] = a.avatar; }); } catch (e) { /* no storage */ }
+    this.setState({ rows: rows, gone: gone, pairs: findPairs(rows, notDupes), segs: getSegments(), pics: pics });
   };
   reload = () => { this.load(); };
 
@@ -421,7 +425,7 @@ class Component extends DCLogic {
       },
       csv: function () { var ids = (selN ? selRows : list).map(function (c) { return c.id; }); if (!ids.length) { uiToast('No customers to export.', { tone: 'info' }); return; } self.bulk('export', ids, {}); },
       heads: cols.map(function (c) { return { k: c.k, l: c.l, al: c.al || 'left' }; }),
-      rows: list.map(function (c) { var on = !!sel[c.key], href = hrefOf(c), st = statusCell(c); return { key: c.key, href: href, wholesale: WS && !!c.wholesale && c.kind !== 'company', company: c.kind === 'company', name: c.name, city: c.city, orders: c.orders, spent: c.spent ? bdt(c.spent) : '—', due: c.due ? bdt(c.due) : '', status: st.v, statusTone: st.tone, sel: on, isNew: !!c.isNew, merged: c.mergedFrom ? 'Merged with ' + c.mergedFrom.join(', ') : '',
+      rows: list.map(function (c) { var on = !!sel[c.key], href = hrefOf(c), st = statusCell(c); return { key: c.key, href: href, pic: c.kind === 'company' ? '' : ((s.pics || {})[phoneKey(c.phone)] || ''), wholesale: WS && !!c.wholesale && c.kind !== 'company', company: c.kind === 'company', name: c.name, city: c.city, orders: c.orders, spent: c.spent ? bdt(c.spent) : '—', due: c.due ? bdt(c.due) : '', status: st.v, statusTone: st.tone, sel: on, isNew: !!c.isNew, merged: c.mergedFrom ? 'Merged with ' + c.mergedFrom.join(', ') : '',
         sub: c.kind === 'company' ? (c.locationsCount || 0) + (c.locationsCount === 1 ? ' location · ' : ' locations · ') + (c.contactsCount || 0) + (c.contactsCount === 1 ? ' contact' : ' contacts') : c.companyName ? c.role + ' · ' + c.companyName : '',
         cells: cols.map(function (k) { return assign({ k: k.k }, cell(c, k.k)); }),
         onRowClick: function (e) { if (e.target.closest('a,button,input,label,select')) return; navigate(href); },
@@ -474,6 +478,8 @@ const CSS = `
 .ac-cust{display:inline-flex;align-items:center;gap:6px;max-width:260px}
 .ac-cust>a{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .ac-trunc{display:block;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.ac-pslot{display:flex;grid-row:span 2;align-self:center}
+.ac-ptags{grid-column:2}
 .ac-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .ix-table tr.is-new td{animation:acNew 900ms ease-out}
 @keyframes acNew{from{background:var(--fill-success-soft)}to{background:transparent}}
@@ -640,11 +646,12 @@ export default class AllCustomersScreen extends Component {
                     <ul className="ix-plist" aria-label={v.caption}>
                       {v.rows.map((r) => (
                         <li key={r.key}>
-                          <__Link href={r.href} className={'ix-pitem' + (r.isNew ? ' ac-pitem-new' : '')}>
+                          <__Link href={r.href} className={'ix-pitem ix-pitem--thumb' + (r.isNew ? ' ac-pitem-new' : '')}>
+                            <span className="ac-pslot"><Pic src={r.pic} name={r.name} kind={r.company ? 'logo' : 'person'} /></span>
                             <span className="ix-pitem__top"><b>{r.name}</b><span>{r.spent}</span></span>
                             <span className="ix-pitem__mid">{r.sub ? r.sub + ' · ' : ''}{r.city} · {r.orders === 1 ? '1 order' : r.orders + ' orders'}</span>
                             {r.status !== 'Active' || r.due || r.wholesale || r.company ? (
-                              <span className="ix-pitem__tags">
+                              <span className="ix-pitem__tags ac-ptags">
                                 {r.status !== 'Active' ? <__StatusBadge tone={r.statusTone}>{r.status}</__StatusBadge> : null}
                                 {r.due ? <__StatusBadge tone="error" icon="circle-alert">{r.due} due</__StatusBadge> : r.company ? <__StatusBadge tone="info" icon="building-2">Company</__StatusBadge> : r.wholesale ? <__StatusBadge tone="primary" icon="store">Wholesale</__StatusBadge> : null}
                               </span>
@@ -668,11 +675,16 @@ export default class AllCustomersScreen extends Component {
                             <tr key={r.key} className={(r.sel ? 'is-sel' : '') + (r.isNew ? ' is-new' : '')} onClick={r.onRowClick}>
                               <td className="ix-check"><input type="checkbox" aria-label={`Select ${r.name}`} checked={r.sel} onChange={r.toggle} /></td>
                               <td>
-                                <span className="ac-cust" title={r.merged ? r.name + ' · ' + r.merged : undefined}>
-                                  <__Link href={r.href} className="ix-strong">{r.name}</__Link>
-                                  {r.company ? <__StatusBadge tone="info" icon="building-2">Company</__StatusBadge> : r.wholesale ? <__StatusBadge tone="primary" icon="store">Wholesale</__StatusBadge> : null}
+                                <span className="gc-picrow">
+                                  <Pic src={r.pic} name={r.name} kind={r.company ? 'logo' : 'person'} />
+                                  <span>
+                                    <span className="ac-cust" title={r.merged ? r.name + ' · ' + r.merged : undefined}>
+                                      <__Link href={r.href} className="ix-strong">{r.name}</__Link>
+                                      {r.company ? <__StatusBadge tone="info" icon="building-2">Company</__StatusBadge> : r.wholesale ? <__StatusBadge tone="primary" icon="store">Wholesale</__StatusBadge> : null}
+                                    </span>
+                                    {r.sub ? <span className="ac-sub">{r.sub}</span> : null}
+                                  </span>
                                 </span>
-                                {r.sub ? <span className="ac-sub">{r.sub}</span> : null}
                               </td>
                               {r.cells.map((cl) => (
                                 <td key={cl.k} className={cl.cls || ''}>{cl.badge ? <__StatusBadge tone={cl.badge}>{cl.v}</__StatusBadge> : cl.trunc ? <span className="ac-trunc" title={cl.v}>{cl.v}</span> : cl.v}</td>

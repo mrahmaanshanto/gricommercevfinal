@@ -10,8 +10,12 @@
 //   Delivered      the merchant approves it or asks for a change (changes left shown)
 // Side: the deadline (paused time added), the expert, money (paid, extra work, refunds — full before work starts, part
 // after; someone other than the asker approves; sent refunds reach Finance), store access, brief, history.
+// Batch D (SvcOrderWork.jsx): a custom offer waiting for payment shows its payment link to send first; the order can go
+// to a team; tasks with payouts to experts or teams, progress updates (shared with the store or team only), other costs
+// and the profit on the order.
 // Data: lib/platform/services.js; access sessions: lib/admin/supportAccess.js.
 
+import { checkKit, kitSummary } from '@/lib/storefront/kit';
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
@@ -29,6 +33,7 @@ import { access as accessStore } from '@/lib/admin/supportAccess';
 import { now as platformNow } from '@/lib/platform/store';
 import { AdminShell } from '../AdminShell';
 import { useSvc, OrderStatus, slaWord, tk, dShort, dTime, qp, SVA_CSS } from './svcAdmin';
+import { OfferCard, TeamPick, TasksCard, UpdatesCard, ProfitCard, WORK_CSS } from './SvcOrderWork';
 
 const say = (res, ok) => { if (res && res.ok === false) { toast(res.error, { tone: 'error' }); return false; } if (ok) toast(ok); return true; };
 const LEADS = ['admin', 'management', 'support', 'ops'];
@@ -56,7 +61,8 @@ export default function SvcOrder() {
   const pkg = pkgOf(st.svc, o.pkgId) || {};
   const monthly = o.cycle === 'monthly';
   const sug = suggestExpert(o.serviceId);
-  const experts = getExperts().filter((e) => e.active && e.skills.includes(o.serviceId));
+  const experts = getExperts().filter((e) => e.active && (st.svc.custom || e.skills.includes(o.serviceId)));
+  const unpaid = st.status === 'unpaid' || st.status === 'expired';
   const draftDl = o.deliverables.filter((d) => d.draft);
   const draftRep = o.reports.filter((r) => r.status === 'draft');
   const session = o.access && o.access.sessionId ? sessionById(o.access.sessionId) : null;
@@ -78,16 +84,17 @@ export default function SvcOrder() {
 
   return (
     <AdminShell active="svc-order" title={o.id}>
-      <style dangerouslySetInnerHTML={{ __html: SVA_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: SVA_CSS + WORK_CSS }} />
       <div className="ix-page">
         <RecordHeader back="/admin/services" backLabel="Service orders" title={`${o.shopName} · ${st.svc.name}`}
           badges={<><OrderStatus status={st.status} />{o.priority === 'high' ? <span className="gc-badge gc-badge--error">High priority</span> : null}{st.overdue ? <span className="gc-badge gc-badge--error">Overdue</span> : null}</>}
-          meta={<>{o.id} · {pkg.name}{monthly ? ' · monthly' : ''} · paid {dTime(o.paid.at)} by {payLabel(o.paid.method)}</>}
+          meta={<>{o.id} · {st.svc.custom ? 'Custom offer' : pkg.name}{monthly ? ' · monthly' : ''} · {o.paid.pending ? 'offered ' + dTime(o.paid.at) + ' · not paid' : `paid ${dTime(o.paid.at)} by ${payLabel(o.paid.method)}`}</>}
           more={[{ label: o.priority === 'high' ? 'Normal priority' : 'High priority', onClick: () => say(setPriority(o.id, o.priority === 'high' ? 'normal' : 'high', by)) }, { label: 'Open the store', href: '/admin/merchant?id=' + o.shopId }, !['closed', 'cancelled', 'refunded'].includes(st.status) ? { label: 'Close order', onClick: close, tone: 'danger' } : null].filter(Boolean)} />
 
         <div className="ix-record">
           <div className="ix-main">
             {/* ---- next step ---- */}
+            {unpaid ? <OfferCard o={o} by={by} /> : null}
             {st.status === 'brief' ? (
               <section className="ix-card sva-pad" aria-labelledby="so-next">
                 <h2 id="so-next">Assign an expert</h2>
@@ -98,6 +105,7 @@ export default function SvcOrder() {
                   </select>
                   <button type="button" className="ix-btn ix-btn--primary" disabled={!experts.length} onClick={doAssign}>Assign and start</button>
                 </div>
+                <TeamPick o={o} by={by} />
               </section>
             ) : null}
             {st.status === 'progress' ? (
@@ -118,7 +126,14 @@ export default function SvcOrder() {
                       <div><label className="gc-label" htmlFor="so-dn">File or link</label><input id="so-dn" className="gc-input" placeholder="home-design-v2.pdf" value={dl.name} onChange={(e) => setDl({ ...dl, name: e.target.value })} /></div>
                       <div><label className="gc-label" htmlFor="so-dd">Note for the merchant</label><input id="so-dd" className="gc-input" value={dl.note} onChange={(e) => setDl({ ...dl, note: e.target.value })} /></div>
                     </div>
-                    <div><button type="button" className="ix-btn" onClick={() => { if (say(addDeliverable(o.id, dl, st.expert ? st.expert.name : by), 'Added')) setDl({ name: '', note: '' }); }}>Add</button></div>
+                    {o.serviceId === 'store-design' ? (
+                      <div>
+                        <label className="gc-label" htmlFor="so-kit">Or the design file (.gcstore.json)</label>
+                        <input id="so-kit" type="file" accept=".json,application/json" className="gc-input" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { const res = checkKit(String(r.result || '')); setDl({ name: f.name, note: dl.note || (res.ok ? kitSummary(res.kit) : ''), kit: res.ok ? res.kit : null, kitErr: res.ok ? '' : (res.errors[0] || {}).text || 'The file has problems.' }); }; r.readAsText(f); }} />
+                        <p className="gc-help">{dl.kitErr ? <span style={{ color: 'var(--text-danger)' }}>{dl.kitErr} Check it with tools/store-kit/check.mjs.</span> : dl.kit ? `Checked: ${kitSummary(dl.kit)}. The merchant previews it on their own products and applies it in one click.` : 'Made with tools/store-kit (SKILL.md). The merchant previews it on their own products and applies it.'}</p>
+                      </div>
+                    ) : null}
+                    <div><button type="button" className="ix-btn" disabled={!!dl.kitErr} onClick={() => { if (say(addDeliverable(o.id, dl, st.expert ? st.expert.name : by), 'Added')) setDl({ name: '', note: '' }); }}>Add</button></div>
                   </div>
                 )}
                 <div className="sva-row">
@@ -191,6 +206,9 @@ export default function SvcOrder() {
               </section>
             ) : null}
 
+            {!unpaid && st.status !== 'cancelled' ? <TasksCard o={o} by={by} /> : null}
+            {!unpaid && st.status !== 'brief' ? <UpdatesCard o={o} by={by} /> : null}
+
             {/* ---- conversation ---- */}
             <section className="ix-card" aria-labelledby="so-msgs">
               <div className="ix-card__head"><h2 id="so-msgs">Conversation</h2><span className="ix-muted" style={{ fontSize: 'var(--text-xs)' }}>Notes are only for the team</span></div>
@@ -216,7 +234,7 @@ export default function SvcOrder() {
               {o.deliverables.length || o.files.length || o.reports.length ? (
                 <ul className="sva-files">
                   {o.reports.map((r) => <li key={r.id}><Icon name="file-bar-chart" width="16" height="16" aria-hidden="true" />{r.title}<small>{r.status === 'sent' ? 'sent ' + dShort(r.at) : 'draft'}{r.rating ? ' · ' + r.rating.stars + '★' : ''}</small></li>)}
-                  {o.deliverables.map((d) => <li key={d.id}><Icon name="file-check" width="16" height="16" aria-hidden="true" />{d.name}<small>v{d.version} · {d.draft ? 'not sent' : 'delivered'} · {d.by}</small></li>)}
+                  {o.deliverables.map((d) => <li key={d.id}><Icon name={d.kit ? 'paintbrush' : 'file-check'} width="16" height="16" aria-hidden="true" />{d.name}<small>v{d.version} · {d.kit ? 'design file · ' : ''}{d.draft ? 'not sent' : 'delivered'} · {d.by}</small></li>)}
                   {o.files.map((f, i) => <li key={'f' + i}><Icon name="file" width="16" height="16" aria-hidden="true" />{f.name}<small>from {f.by} · {dShort(f.at)}</small></li>)}
                 </ul>
               ) : <p className="ix-muted">Nothing yet.</p>}
@@ -235,8 +253,10 @@ export default function SvcOrder() {
             </section>
             {st.status !== 'brief' ? (
               <section className="ix-card sva-pad">
-                <h2>Expert</h2>
-                <p>{st.expert ? `${st.expert.name} · ${st.expert.kind === 'partner' ? 'partner, ' + st.expert.commission + '% commission' : 'GridCommerce staff'}` : 'None'}</p>
+                <h2>{st.team ? 'Team' : 'Expert'}</h2>
+                {st.team ? <p>{st.team.name} · lead {st.expert ? st.expert.name : '—'} · {st.team.members.length} people</p> : null}
+                <p>{st.expert ? `${st.team ? 'Lead: ' : ''}${st.expert.name} · ${st.expert.kind === 'partner' ? 'partner, ' + st.expert.commission + '% usual share' : 'GridCommerce staff'}` : unpaid ? 'Chosen when the offer is made, or after it is paid' : 'None'}</p>
+                {!unpaid ? <TeamPick o={o} by={by} done={['closed', 'cancelled', 'refunded'].includes(st.status)} /> : null}
                 {!['closed', 'cancelled', 'refunded'].includes(st.status) ? (
                   <div className="sva-row">
                     <select className="gc-input gc-select" style={{ flex: 1, minWidth: 0 }} aria-label="Move to another expert" value={pick || o.expertId || ''} onChange={(e) => setPick(e.target.value)}>{experts.map((e) => <option key={e.id} value={e.id}>{e.name} · {loadOf(e.id)}/{e.capacity}</option>)}</select>
@@ -248,10 +268,9 @@ export default function SvcOrder() {
             <section className="ix-card sva-pad">
               <h2>Money</h2>
               <KV rows={[
-                ['Paid', `${tk(o.total)} (fee ${tk(o.fee)} + VAT ${tk(o.vat)})`],
+                [o.paid.pending ? 'To pay' : 'Paid', `${tk(o.total)} (fee ${tk(o.fee)} + VAT ${tk(o.vat)})`],
                 ...o.quotes.map((q) => ['Extra work', `${q.text} · ${tk(q.total)} · ${q.status}`]),
                 monthly ? ['Each month', tk(o.total) + (o.stopAt ? ` · stops ${dShort(o.stopAt)}` : ' · with the subscription')] : null,
-                st.expert && st.expert.kind === 'partner' ? ['Partner earns', tk(Math.round((o.fee * st.expert.commission) / 100)) + (monthly ? ' a month' : '') + ' when approved'] : null,
                 ['Refundable', tk(st.refundable)],
               ].filter(Boolean)} />
               {o.refunds.map((r) => (
@@ -273,6 +292,7 @@ export default function SvcOrder() {
                 </div>
               ) : st.refundable > 0 ? <div><button type="button" className="ix-btn ix-btn--sm" onClick={() => setRefund({ amount: st.status === 'brief' ? String(st.refundable) : '', reason: '', note: '' })}>Refund…</button></div> : null}
             </section>
+            {!unpaid ? <ProfitCard o={o} by={by} /> : null}
             <section className="ix-card sva-pad">
               <h2>Store access</h2>
               {o.access.status === 'none' ? <p className="gc-help">{st.svc.access && st.svc.access.needed ? `This service usually needs ${areaLabel(st.svc.access.area).toLowerCase()}.` : 'Not needed so far.'}</p> : (<>

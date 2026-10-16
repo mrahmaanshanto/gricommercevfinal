@@ -19,6 +19,7 @@ import { downloadCsv } from '@/lib/reports/period';
 import { dmy } from '@/lib/platform/util';
 import { AFF_STATUS, PAYOUT_STATUS, affRows, affSummary, payoutRows, ruleText, approveAffiliate, rejectAffiliate } from '@/lib/admin/marketing2';
 import { AdminShell } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 import { MK_CSS, useMk2, Skeleton, ReasonDialog, money, num, plural, copyText, dayTime } from './mk2Shared';
 import { AFF_CSS, AffFormSheet, RulesSheet, PayoutSheet } from './AffShared';
 
@@ -113,7 +114,8 @@ export default function Affiliates() {
           ) : (<>
             <ul className="ix-plist" aria-label="Affiliates">
               {shown.map((a) => (
-                <li key={a.id}><Link href={'/admin/affiliates/view?id=' + a.id} className="ix-pitem">
+                <li key={a.id}><Link href={'/admin/affiliates/view?id=' + a.id} className="ix-pitem ix-pitem--thumb">
+                  <span style={{ gridRow: 'span 3', alignSelf: 'center', display: 'flex' }}><Pic src={a.photo || ''} name={a.name} kind="person" /></span>
                   <span className="ix-pitem__top"><b>{a.name}</b><StatusBadge tone={AFF_STATUS[a.status]}>{a.status}</StatusBadge></span>
                   <span className="ix-pitem__mid">{a.org || a.kind} · {a.code}</span>
                   <span className="ix-pitem__mid">{plural(a.referrals, 'referral')} · {num(a.conversions)} paid · {money(a.earned)} earned</span>
@@ -130,7 +132,7 @@ export default function Affiliates() {
                 <tbody>
                   {shown.map((a) => (
                     <tr key={a.id} tabIndex={0} onClick={() => open(a.id)} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) open(a.id); }}>
-                      <td><span className="mk-cell"><Link href={'/admin/affiliates/view?id=' + a.id} className="ix-strong" onClick={(e) => e.stopPropagation()}>{a.name}</Link><span className="mk-sub"><span className="mk-data">{a.id}</span> · {a.org || a.kind}</span></span></td>
+                      <td><span className="gc-picrow"><Pic src={a.photo || ''} name={a.name} kind="person" /><span className="mk-cell"><Link href={'/admin/affiliates/view?id=' + a.id} className="ix-strong" onClick={(e) => e.stopPropagation()}>{a.name}</Link><span className="mk-sub"><span className="mk-data">{a.id}</span> · {a.org || a.kind}</span></span></span></td>
                       <td><span className="mk-cell"><span className="mk-data">{a.phone}</span><span className="mk-sub">{a.email || '—'}</span></span></td>
                       <td><button type="button" className="af-code" onClick={(e) => { e.stopPropagation(); copyText(a.code, `${a.code} copied`); }} aria-label={'Copy code ' + a.code}>{a.code}<Icon name="copy" width="14" height="14" aria-hidden="true" /></button></td>
                       <td className="ix-num mk-data">{num(a.referrals)}</td>

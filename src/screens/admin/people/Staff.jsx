@@ -16,7 +16,7 @@ import { dmy } from '@/lib/platform/util';
 import { ADMIN_ROLES } from '@/lib/admin/access';
 import { DEPARTMENTS, STATUSES, empName, grossOf, isCurrent, addEmployee, keyOf } from '@/lib/admin/people';
 import { AdminShell } from '../AdminShell';
-import { PEOPLE_CSS, usePeople, meName, money, plural, viewHref, Person, EmpStatus, Skeleton, rowGo, setParam, Field, ctl } from './peopleShared';
+import { PEOPLE_CSS, usePeople, meName, money, plural, viewHref, Person, Avatar, EmpStatus, Skeleton, rowGo, setParam, Field, ctl } from './peopleShared';
 
 const PAGE = 25;
 const VIEWS = [['all', 'All'], ['active', 'Active'], ['probation', 'Probation'], ['onleave', 'On leave'], ['notice', 'Notice period'], ['left', 'Left']];
@@ -184,7 +184,8 @@ export default function Staff() {
               <ul className="ix-plist" aria-label={viewLabel + ' staff'}>
                 {rows.map((e) => (
                   <li key={e.id}>
-                    <Link href={viewHref(e.id)} className="ix-pitem">
+                    <Link href={viewHref(e.id)} className="ix-pitem ix-pitem--thumb">
+                      <span className="pp-pslot pp-pslot--3"><Avatar e={e} /></span>
                       <span className="ix-pitem__top"><b>{e.name}</b><EmpStatus e={e} /></span>
                       <span className="ix-pitem__mid"><span className="ix-id">{e.id}</span> · {e.designation}</span>
                       <span className="ix-pitem__mid">{e.dept} · {e.phone}</span>

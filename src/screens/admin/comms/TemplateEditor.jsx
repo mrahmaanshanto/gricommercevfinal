@@ -14,6 +14,8 @@ import { StatusBadge, EmptyState, InfoTip } from '@/components/ui';
 import { RecordHeader, IndexTabs, KV } from '@/components/ui/IndexKit';
 import { templateBy, saveTemplate, duplicateTemplate, templateUse, PURPOSES, purposeLabel, VARIABLES, CH_LABEL, contacts, varsFor, varsIn, validPhone, validEmail, fill } from '@/lib/admin/comms';
 import { AdminShell } from '../AdminShell';
+import { renderTemplate } from '@/lib/admin/emailDesign';
+import { previewHtml } from '@/lib/email/emailKit';
 import { useComms, COMMS_CSS, Skel, Card, Preview, VarChips, SmsCount, insertAt, whenText } from './commsShared';
 
 const CSS = `
@@ -156,6 +158,14 @@ function Editor({ tpl, data, t }) {
               <Preview ch={ch} subject={side.subject} body={side.body} vars={vars} lang={lang} to={contact ? (ch === 'sms' ? contact.phone : contact.email) : undefined} />
             </div>
           </Card>
+          {ch === 'email' ? (
+            <Card title="Designed email" action={<Link href={'/admin/templates/design?id=' + encodeURIComponent(tpl.id)}>Open the designer</Link>}>
+              <div style={{ height: 300, overflow: 'hidden', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', background: 'var(--surface-subtle)' }}>
+                <iframe title="Designed email" srcDoc={previewHtml(renderTemplate(data, { ...tpl, en: draft.en, bn: draft.bn }, lang))} sandbox="" style={{ border: 0, width: 680, height: 1100, transform: 'scale(.45)', transformOrigin: '0 0' }} />
+              </div>
+              <p className="gc-help" style={{ margin: '6px 0 0' }}>{tpl.design ? 'Designed by hand; the subject follows the text above.' : 'Made from the text above until you design it.'}</p>
+            </Card>
+          ) : null}
           <Card title="Send a test">
             <div className="cm-form">
               <div className="te-test">

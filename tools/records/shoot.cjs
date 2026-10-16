@@ -2,7 +2,8 @@
 // BEFORE (frozen handover build) and AFTER (work-branch build) JPEGs. Usage:
 //   node tools/records/shoot.cjs <recordsDir> <outImgDir> <beforeBase> <afterBase>
 // Env SHOTS=wholesale|normal filters by the shot's `wholesale` flag.
-// Each shot: { route, query, viewport: desktop|phone, steps:[{click|fill+value|goto|wait|press|scroll|eval}], crop, highlight, beforeToo }
+// Each shot: { route, query, viewport: desktop|phone, steps:[{click|fill+value|file+path|goto|wait|press|scroll|eval}], crop, highlight, beforeToo,
+//   ls: { key: value } (browser storage set before the page opens), dark: true (the computer in dark mode) }
 //   scroll: a selector brought to the top of the screen · eval: page code run before the next step (e.g. switch the language)
 const fs = require('fs'), path = require('path');
 const { chromium } = require(process.env.PW || '/opt/npm-tools/node_modules/playwright');
@@ -11,14 +12,19 @@ const VP = { desktop: { width: 1440, height: 900 }, phone: { width: 390, height:
 fs.mkdirSync(out, { recursive: true });
 const url = (base, route, q) => base + route + (route.includes('?') ? '&' : '?') + ['quiet=1', q].filter(Boolean).join('&');
 async function shoot(browser, base, s, file) {
-  const ctx = await browser.newContext({ viewport: VP[s.viewport || 'desktop'], deviceScaleFactor: 1 });
+  const ctx = await browser.newContext({ viewport: VP[s.viewport || 'desktop'], deviceScaleFactor: 1, colorScheme: s.dark ? 'dark' : 'light' });
   const p = await ctx.newPage();
   try {
+    if (s.ls) {
+      await p.goto(base + '/merchant-sign-in?quiet=1', { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await p.evaluate((ls) => { for (const [k, v] of Object.entries(ls)) localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); }, s.ls);
+    }
     await p.goto(url(base, s.route, s.query), { waitUntil: 'networkidle', timeout: 60000 });
     await p.waitForTimeout(900);
     for (const st of s.steps || []) {
       if (st.click) await p.locator(st.click).first().click({ timeout: 8000 });
       else if (st.fill) await p.locator(st.fill).first().fill(String(st.value ?? ''), { timeout: 8000 });
+      else if (st.file) await p.locator(st.file).first().setInputFiles(path.resolve(st.path));
       else if (st.press) await p.keyboard.press(st.press);
       else if (st.scroll) await p.evaluate((sel) => { const el = document.querySelector(sel); if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 90); }, st.scroll);
       else if (st.eval) await p.evaluate(st.eval);

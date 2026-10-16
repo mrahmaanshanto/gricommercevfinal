@@ -19,6 +19,7 @@ import { downloadCsv } from '@/lib/reports/period';
 import { DAY, dm, dmy, monthLong, yearOf, startOfMonth, startOfDay, addMonths } from '@/lib/platform/util';
 import { STATUSES, CHANNELS, GOALS, TEAM_NAMES, CH_COLOR, campaignRows, goalLabel } from '@/lib/admin/marketing';
 import { AdminShell } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 import { useMarketing, MK_CSS, Skel, Status, Channels, BudgetCell, CampaignSheet, money, num, orDash, plural } from './mkShared';
 
 const PAGE = 25;
@@ -219,7 +220,8 @@ export default function Campaigns() {
           <>
             <ul className="ix-plist" aria-label={tabLabel + ' campaigns'}>
               {rows.map((r) => (
-                <li key={r.id}><Link href={'/admin/campaigns/view?id=' + r.id} className="ix-pitem">
+                <li key={r.id}><Link href={'/admin/campaigns/view?id=' + r.id} className="ix-pitem ix-pitem--thumb" style={{ gridTemplateColumns: '43px minmax(0,1fr)' }}>
+                  <span style={{ gridRow: 'span 3' }}><Pic src={r.c.creative || r.c.image || ''} name={r.name} kind="cover" icon="megaphone" /></span>
                   <span className="ix-pitem__top"><b>{r.name}</b><span className="mk-fig">{money(r.spent)}</span></span>
                   <span className="ix-pitem__mid">{goalLabel(r.c.goal)} · {r.c.channels.join(', ')} · {dm(r.c.start)}–{dm(r.c.end)}</span>
                   <span className="ix-pitem__tags"><Status s={r.status} /><span className="ix-pitem__mid">{num(r.m.leads)} leads · {num(r.m.paid)} paid</span></span>
@@ -238,7 +240,7 @@ export default function Campaigns() {
                     const mark = r.status === 'Running' || r.status === 'Paused' ? Math.min(1, (t - r.c.start) / Math.max(DAY, r.c.end - r.c.start)) : undefined;
                     return (
                       <tr key={r.id} tabIndex={0} onClick={() => open(r.id)} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) open(r.id); }}>
-                        <td><span className="mk-name"><Link href={'/admin/campaigns/view?id=' + r.id} onClick={(e) => e.stopPropagation()}>{r.name}</Link><small className="mk-sub">{goalLabel(r.c.goal)} · {r.c.audience.type} · {r.c.audience.district}</small></span></td>
+                        <td><span className="gc-picrow"><Pic src={r.c.creative || r.c.image || ''} name={r.name} kind="cover" icon="megaphone" /><span className="mk-name"><Link href={'/admin/campaigns/view?id=' + r.id} onClick={(e) => e.stopPropagation()}>{r.name}</Link><small className="mk-sub">{goalLabel(r.c.goal)} · {r.c.audience.type} · {r.c.audience.district}</small></span></span></td>
                         <td><Status s={r.status} /></td>
                         <td><Channels list={r.c.channels} /></td>
                         <td className="ix-muted">{dm(r.c.start)} – {dm(Math.min(r.c.end, r.c.endedAt || Infinity))}</td>

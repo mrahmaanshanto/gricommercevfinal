@@ -198,6 +198,11 @@ export default function SetNotifications() {
                     </div>
                   </section>
 
+                  <section className="ix-card sn-card" aria-labelledby="sn-ed">
+                    <header><h2 id="sn-ed">Message design</h2><span style={{ display: 'flex', gap: 'var(--space-2)' }}><Link className="ix-btn ix-btn--sm" href="/message-design?tab=email">Email design</Link><Link className="ix-btn ix-btn--sm" href="/message-design?tab=sms">SMS design</Link></span></header>
+                    <p className="sn-tpl" style={{ padding: '0 var(--space-4) var(--space-4)' }}>How emails and SMS look now lives in Communications › Message design. Here you choose which go out and to whom.</p>
+                  </section>
+
                   <section className="ix-card sn-card" aria-labelledby="sn-wa">
                     <header><h2 id="sn-wa">WhatsApp</h2>{waOn ? null : <Link className="sn-conn" href="/connect?app=whatsapp">Connect WhatsApp</Link>}</header>
                     <div className="sn-wa">
@@ -286,6 +291,7 @@ export default function SetNotifications() {
             {ev && ev.scope === 'customer' ? null : <label className="sn-wa__sw"><input type="checkbox" checked={!!draft.waButton} onChange={() => setDraft({ ...draft, waButton: !draft.waButton })} style={{ width: 20, height: 20, accentColor: 'var(--primary)' }} />Add a "Track order" button</label>}
             <div className="sn-bubble">{fill(draft.waBody, SAMPLE)}{draft.waButton ? <span className="sn-bubble__btn">Track order</span> : null}</div>
             <h3>Email</h3>
+            <p className="sn-tpl">The email customers get is designed, in English and Bangla. <Link className="sn-conn" href={'/email-editor?event=' + encodeURIComponent(edit)}>Edit the designed email</Link>. The text below is its plain-text version.</p>
             <div><label className="gc-label" htmlFor="sn-sub">Subject</label><input id="sn-sub" className="gc-input" {...tf('subject')} /></div>
             <div><label className="gc-label" htmlFor="sn-body">Body</label><textarea id="sn-body" className="gc-input" rows={7} {...tf('body')} /></div>
             <div className="gc-cols-2 gc-cols--keep" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 'var(--space-3)' }}>

@@ -18,6 +18,7 @@ import {
 import { useHr, money, HrPage, profileHref } from '@/screens/staff-hr/hrShared';
 import { IdCard, ID_CARD_CSS, ID_CARD_PRINT } from '@/components/hr/IdCard';
 import { printNode } from '@/lib/printNode';
+import { linkStaff } from '@/lib/platform/career';
 import {
   FORM_CSS, PersonalFields, JobFields, AccessFields, ShiftFields, PayFields, checkPersonal, checkJob, checkPay, Seg,
 } from './staffForm';
@@ -89,6 +90,16 @@ export default function StaffCreate() {
   const [done, setDone] = useState(null);
 
   useEffect(() => {
+    // Batch F · Grid Career: Hiring › Hire opens this page with ?name=&phone=&email=&position=&branch=&from=APP-…
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('name') && qs.get('from')) {
+      const pos = (S.settings.positions || []).find((p) => p.title.toLowerCase() === (qs.get('position') || '').toLowerCase());
+      setF({ ...blank(S), name: qs.get('name') || '', phone: qs.get('phone') || '', email: qs.get('email') || '', ...(pos ? { designation: pos.title, department: pos.department, grade: pos.grade } : {}), ...(qs.get('branch') ? { branch: qs.get('branch') } : {}), fromApp: qs.get('from') });
+      setDirty(true);
+      toast('Filled in from the application. Check each step, then create.', { tone: 'info' });
+      return;
+    }
+    // end Batch F
     try {
       const d = JSON.parse(window.localStorage.getItem(DRAFT));
       if (d && d.f) { setF({ ...blank(S), ...d.f }); setStep(d.step || 0); setFar(d.far || d.step || 0); toast('Your draft is back where you left it.', { tone: 'info' }); }
@@ -111,7 +122,7 @@ export default function StaffCreate() {
   };
   const create = () => {
     for (let i = 0; i < STEPS.length - 1; i++) { const e = check(STEPS[i][0]); if (Object.keys(e).length) { setErr(e); go(i); toast('Something on this step still needs fixing', { tone: 'error' }); return; } }
-    const { invite, ...row } = f;
+    const { invite, fromApp, ...row } = f;
     const code = row.code || nextStaffCode(S);
     const st = {
       ...row, code, name: row.name.trim(), phone: row.phone.trim(),
@@ -125,6 +136,7 @@ export default function StaffCreate() {
     };
     Object.keys(st).forEach((k) => st[k] === undefined && delete st[k]);
     const saved = saveStaff(st);
+    if (fromApp) linkStaff(fromApp, saved.code);   // Batch F · Grid Career: the application shows the staff code
     try { window.localStorage.removeItem(DRAFT); } catch { /* ignore */ }
     setDirty(false);
     setDone(saved);

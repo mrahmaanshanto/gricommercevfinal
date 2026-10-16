@@ -17,7 +17,7 @@ import {
 } from '@/lib/admin/people';
 import { AdminShell } from '../AdminShell';
 import { ReviewDrawer } from './ReviewDrawer';
-import { PEOPLE_CSS, usePeople, meName, plural, Person, Skeleton, rowGo, setParam, Field, ctl } from './peopleShared';
+import { PEOPLE_CSS, usePeople, meName, plural, Person, Avatar, Skeleton, rowGo, setParam, Field, ctl } from './peopleShared';
 
 const CSS = `
 .lv-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:var(--space-3) var(--space-4) var(--space-4)}
@@ -128,7 +128,8 @@ export default function Leave() {
     <div className="lv-group">{label}</div>
     <ul className="ix-plist" aria-label={label}>
       {list.map((x) => { const e = empBy(D, x.emp) || { name: x.emp }; const n = leaveDays(x.from, x.to); return (
-        <li key={x.id}><button type="button" className="ix-pitem" onClick={() => setReview({ kind: 'leave', id: x.id })}>
+        <li key={x.id}><button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setReview({ kind: 'leave', id: x.id })}>
+          <span className="pp-pslot"><Avatar e={e} /></span>
           <span className="ix-pitem__top"><b>{e.name}</b><StatusBadge tone={REQ_STATUS[x.status].tone}>{REQ_STATUS[x.status].label}</StatusBadge></span>
           <span className="ix-pitem__mid">{LEAVE_TYPES[x.type].label} · {rangeLabel(x.from, x.to)} · {plural(n, 'day')}</span>
         </button></li>
@@ -168,7 +169,8 @@ export default function Leave() {
     body = decided.length ? (<>
       <ul className="ix-plist" aria-label="Decisions">
         {decided.map((x) => (
-          <li key={x.id}><button type="button" className="ix-pitem" onClick={() => setReview({ kind: 'leave', id: x.id })}>
+          <li key={x.id}><button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setReview({ kind: 'leave', id: x.id })}>
+            <span className="pp-pslot"><Avatar e={{ name: name(x.emp) }} /></span>
             <span className="ix-pitem__top"><b>{name(x.emp)}</b><StatusBadge tone={REQ_STATUS[x.status].tone}>{REQ_STATUS[x.status].label}</StatusBadge></span>
             <span className="ix-pitem__mid">{LEAVE_TYPES[x.type].label} · {rangeLabel(x.from, x.to)} · {x.by || '—'}</span>
           </button></li>

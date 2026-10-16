@@ -14,6 +14,8 @@ import { StatusBadge, Sheet } from '@/components/ui';
 import { KV } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
 import { formatBDT } from '@/lib/format';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 import {
   channelBy, STATUS, ISSUES, FIX_FIELDS, getChannels, syncJob, lastResult, dismissResult, startSync,
   retryItem, fixItem, setPublished, ago, agoLow, nowMs, photoOf, CHANNELS_EVENT,
@@ -171,11 +173,20 @@ export function StatusTag({ st }) {
 }
 
 /** Product tile + name + SKU, the same look as Products › All products. compact: the name only (a table row). */
+/** A channel row's picture: the photo added in Fix, else the product's own or demo photo — but never for a product whose
+ *  problem is a missing photo (the row would contradict itself). '' = the initial tile. */
+export function chPic(r) {
+  const fixed = photoOf(r.key);
+  if (fixed) return fixed;
+  if (r.noPhoto || (r.issue && /nophoto/.test(r.issue))) return '';
+  return productPic({ id: r.id, sku: r.sku, name: r.name });
+}
+
 export function ProductCell({ r, sub, compact }) {
-  const photo = photoOf(r.key);
+  const photo = chPic(r);
   return (
     <span className="ch-prod">
-      <span className="ch-thumb" style={{ background: r.tbg || 'var(--surface-subtle)' }}>{photo ? <img src={photo} alt="" /> : r.name.charAt(0)}</span>
+      {photo ? <Pic src={photo} name={r.name} kind="item" /> : <span className="ch-thumb" style={{ background: r.tbg || 'var(--surface-subtle)' }} aria-hidden="true">{r.name.charAt(0)}</span>}
       <span className="ch-prod__name"><b>{r.name}</b>{compact ? null : <small>{sub != null ? sub : (r.sku || 'No SKU') + (r.variants ? ` · ${r.variants} variants` : '')}</small>}</span>
     </span>
   );

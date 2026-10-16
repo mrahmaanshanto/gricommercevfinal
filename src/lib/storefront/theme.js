@@ -17,199 +17,11 @@
 import { read, update, newDoc, publishDoc, discardDoc, isDirty, pickDoc, makeRestorePoint } from './store';
 import { businessProfile } from '../businessProfile';
 
-export const GROUPS = [
-  { id: 'brand', label: 'Brand & colours', icon: 'palette' },
-  { id: 'type', label: 'Typography', icon: 'type' },
-  { id: 'layout', label: 'Layout', icon: 'layout-template' },
-  { id: 'styles', label: 'Global styles', icon: 'swatch-book' },
-  { id: 'forms', label: 'Form fields', icon: 'text-cursor-input' },
-  { id: 'icons', label: 'Icons and details', icon: 'shapes' },
-  { id: 'card', label: 'Product card', icon: 'layout-grid' },
-  { id: 'product', label: 'Product page', icon: 'package' },
-  { id: 'category', label: 'Category page', icon: 'folder-tree' },
-  { id: 'pages', label: 'About, policies, blog', icon: 'files' },
-  { id: 'cart', label: 'Cart & checkout', icon: 'shopping-cart' },
-  { id: 'footer', label: 'Footer', icon: 'panel-bottom' },
-  { id: 'shop', label: 'Shop details', icon: 'store' },
-  { id: 'extras', label: 'Extras', icon: 'sparkles' },
-];
-
-/** Heading + body font pairs; every pair falls back to Hind Siliguri for Bangla. */
-// A pair = the display face for headings and the text face, with the heading weight (hw) and tracking (tr) tuned to the
-// display face. Bangla falls back to Hind Siliguri. q = the Google Fonts request (only the weights the pair uses).
-export const FONT_PAIRS = [
-  { id: 'jakarta', label: 'Plus Jakarta Sans · crisp retail', head: '"Plus Jakarta Sans"', body: '"Plus Jakarta Sans"', hw: 700, tr: '-0.025em', q: 'family=Plus+Jakarta+Sans:wght@400;500;600;700;800' },
-  { id: 'archivo', label: 'Archivo · dense tech catalogue', head: 'Archivo', body: 'Archivo', hw: 800, tr: '-0.02em', q: 'family=Archivo:wght@400;500;600;700;800' },
-  { id: 'sora', label: 'Sora + Figtree · gadget lifestyle', head: 'Sora', body: 'Figtree', hw: 700, tr: '-0.03em', q: 'family=Sora:wght@600;700&family=Figtree:wght@400;500;600;700' },
-  { id: 'unbounded', label: 'Unbounded + Manrope · loud gadgets', head: 'Unbounded', body: 'Manrope', hw: 600, tr: '-0.02em', q: 'family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700' },
-  { id: 'bricolage', label: 'Bricolage + DM Sans · trend shop', head: '"Bricolage Grotesque"', body: '"DM Sans"', hw: 700, tr: '-0.03em', q: 'family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700' },
-  { id: 'fraunces', label: 'Fraunces + Figtree · warm grocery', head: 'Fraunces', body: 'Figtree', hw: 650, tr: '-0.02em', q: 'family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Figtree:wght@400;500;600;700' },
-  { id: 'youngserif', label: 'Young Serif + Nunito Sans · natural', head: '"Young Serif"', body: '"Nunito Sans"', hw: 400, tr: '-0.01em', q: 'family=Young+Serif&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700' },
-  { id: 'dmserif', label: 'DM Serif + Jost · beauty', head: '"DM Serif Display"', body: 'Jost', hw: 400, tr: '0em', q: 'family=DM+Serif+Display&family=Jost:wght@400;500;600' },
-  { id: 'instrument', label: 'Instrument Serif + Manrope · premium', head: '"Instrument Serif"', body: 'Manrope', hw: 400, tr: '-0.01em', q: 'family=Instrument+Serif&family=Manrope:wght@400;500;600;700' },
-  { id: 'bodoni', label: 'Bodoni Moda + Jost · fashion', head: '"Bodoni Moda"', body: 'Jost', hw: 500, tr: '-0.01em', q: 'family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600&family=Jost:wght@400;500;600' },
-  { id: 'lexend', label: 'Lexend · easy to read', head: 'Lexend', body: 'Lexend', hw: 600, tr: '-0.02em', q: 'family=Lexend:wght@400;500;600;700' },
-  { id: 'poppins', label: 'Poppins · clean', head: 'Poppins', body: 'Poppins', hw: 600, tr: '-0.01em', q: '' },
-  { id: 'inter', label: 'Inter · modern', head: 'Inter', body: 'Inter', hw: 700, tr: '-0.02em', q: 'family=Inter:wght@400;500;600;700' },
-  { id: 'elegant', label: 'Playfair + Lato · elegant', head: '"Playfair Display"', body: 'Lato', hw: 600, tr: '-0.01em', q: 'family=Playfair+Display:wght@500;600&family=Lato:wght@400;700' },
-  { id: 'friendly', label: 'Nunito · friendly', head: 'Nunito', body: 'Nunito', hw: 800, tr: '-0.01em', q: 'family=Nunito:wght@400;600;700;800' },
-  { id: 'bangla', label: 'Hind Siliguri · Bangla first', head: '"Hind Siliguri"', body: '"Hind Siliguri"', hw: 600, tr: '0em', q: '' },
-];
-export const fontPair = (id) => FONT_PAIRS.find((f) => f.id === id) || FONT_PAIRS[0];
+// The option list lives in schema.js (shared with the store kit and its checker).
+import { GROUPS, FONT_PAIRS, fontPair, OPTIONS, optionBy, DEFAULTS } from './schema.js';
+import { checkCss } from './customCode';
+export { GROUPS, FONT_PAIRS, fontPair, OPTIONS, optionBy, DEFAULTS };
 const BN = '"Hind Siliguri","Noto Sans Bengali"';
-
-const C = (key, group, label, type, def, extra = {}) => ({ key, group, label, type, default: def, words: '', ...extra });
-const ch = (...pairs) => pairs.map(([v, l]) => ({ value: v, label: l }));
-
-export const OPTIONS = [
-  // Brand & colours (lock: colours)
-  C('primary', 'brand', 'Primary colour', 'color', '#003087', { lock: 'colours', words: 'brand main button link colour color', help: 'Buttons, links and highlights. Starts from the brand colour in Settings › General.' }),
-  C('accent', 'brand', 'Accent colour', 'color', '#009cde', { lock: 'colours', words: 'second highlight badge colour color' }),
-  C('text', 'brand', 'Text colour', 'color', '#0f172a', { lock: 'colours', words: 'font words colour color' }),
-  C('bg', 'brand', 'Background', 'color', '#f8fafc', { lock: 'colours', words: 'page background colour color' }),
-  C('surface', 'brand', 'Card background', 'color', '#ffffff', { lock: 'colours', words: 'box panel card colour color' }),
-  C('sale', 'brand', 'Sale badge colour', 'color', '#dc2626', { lock: 'colours', words: 'discount offer red badge colour color' }),
-  C('logoImage', 'brand', 'Logo picture', 'image', '', { words: 'logo image brand mark png' , help: 'Shown in the header instead of the letter and name. Leave empty to use Settings › General.' }),
-  C('logoLight', 'brand', 'Logo for dark headers', 'image', '', { when: (v) => !!v.logoImage, words: 'logo white dark light' }),
-  C('headerTone', 'brand', 'Header', 'choice', 'light', { lock: 'colours', choices: ch(['light', 'Light'], ['dark', 'Dark'], ['brand', 'Primary colour']), words: 'top bar dark light' }),
-  // Typography (lock: colours = "Colours and fonts")
-  C('fontPair', 'type', 'Fonts', 'choice', 'poppins', { lock: 'colours', choices: FONT_PAIRS.map((f) => ({ value: f.id, label: f.label })), words: 'font typeface heading body bangla' }),
-  C('baseSize', 'type', 'Text size', 'choice', 'M', { lock: 'colours', choices: ch(['S', 'Small'], ['M', 'Medium'], ['L', 'Large']), words: 'font size bigger smaller' }),
-  C('headCase', 'type', 'Headings', 'choice', 'normal', { lock: 'colours', choices: ch(['normal', 'Normal'], ['upper', 'CAPITALS']), words: 'uppercase title' }),
-  C('headWeight', 'type', 'Heading weight', 'choice', '', { lock: 'colours', choices: ch(['', 'As the fonts set'], ['400', 'Regular'], ['500', 'Medium'], ['700', 'Bold'], ['800', 'Extra bold']), words: 'bold heavy light title weight' }),
-  C('headSpacing', 'type', 'Heading letter spacing', 'choice', '', { lock: 'colours', choices: ch(['', 'As the fonts set'], ['tight', 'Tight'], ['normal', 'Normal'], ['wide', 'Wide']), words: 'tracking letter spacing title' }),
-  C('headColour', 'type', 'Section title colour', 'choice', 'text', { lock: 'colours', choices: ch(['text', 'Text colour'], ['primary', 'Primary colour']), words: 'heading title colour color' }),
-  C('linkStyle', 'type', 'Links in text', 'choice', 'hover', { choices: ch(['hover', 'Underline on hover'], ['always', 'Always underlined'], ['none', 'Never underlined']), words: 'link underline anchor' }),
-  // Layout
-  C('width', 'layout', 'Site width', 'choice', 'boxed', { choices: ch(['boxed', 'Boxed (1200 px)'], ['full', 'Full width'], ['custom', 'Custom']), words: 'container wide narrow' }),
-  C('widthPx', 'layout', 'Custom width (px)', 'number', 1320, { min: 960, max: 1680, step: 20, when: (v) => v.width === 'custom', words: 'pixels' }),
-  C('corners', 'layout', 'Corners', 'choice', 'soft', { choices: ch(['sharp', 'Sharp'], ['soft', 'Soft'], ['round', 'Round']), words: 'radius rounded square' }),
-  C('spacing', 'layout', 'Spacing between sections', 'choice', 'comfortable', { choices: ch(['compact', 'Compact'], ['comfortable', 'Comfortable'], ['airy', 'Airy']), words: 'gap padding dense section space' }),
-  // Global styles: every section and page reads these; a section can still pick its own button look
-  C('buttons', 'styles', 'Buttons', 'choice', 'solid', { choices: ch(['solid', 'Solid'], ['outline', 'Outline'], ['soft', 'Soft'], ['pill', 'Pill']), words: 'button style rounded' }),
-  C('btnSize', 'styles', 'Button size', 'choice', 'M', { choices: ch(['S', 'Small'], ['M', 'Medium'], ['L', 'Large']), words: 'button size big small height' }),
-  C('btnCase', 'styles', 'Button text', 'choice', 'normal', { choices: ch(['normal', 'Normal'], ['upper', 'CAPITALS']), words: 'button uppercase capitals letters' }),
-  C('btnHover', 'styles', 'Button on hover', 'choice', 'darken', { choices: ch(['darken', 'Gets darker'], ['lift', 'Lifts up'], ['glow', 'Glows'], ['none', 'Stays the same']), words: 'button hover effect animation' }),
-  C('badgeStyle', 'styles', 'Badges', 'choice', 'rounded', { choices: ch(['rounded', 'Rounded'], ['square', 'Square'], ['outline', 'Outline'], ['pill', 'Pill']), words: 'sale label tag badge' }),
-  C('shadow', 'styles', 'Shadows', 'choice', 'none', { choices: ch(['none', 'None'], ['soft', 'Soft'], ['strong', 'Strong']), words: 'shadow depth card lift' }),
-  C('titleStyle', 'styles', 'Section titles', 'choice', 'plain', { choices: ch(['plain', 'Plain'], ['underline', 'Left, with underline and View all'], ['center', 'Centred, short underline'], ['caps', 'Small capitals, centred'], ['bold', 'Bold capitals with See all'], ['pill', 'Title in a pill'], ['subtitle', 'Centred with a line under'], ['lines', 'Centred between two lines'], ['bar', 'Coloured bar on the left'], ['band', 'Title on a tinted band']), words: 'heading section title view all see all woodmart bordered' }),
-  C('sectionCard', 'styles', 'Sections sit on', 'choice', 'page', { choices: ch(['page', 'The page'], ['card', 'White cards']), words: 'panel card box section background' }),
-  C('motion', 'styles', 'Motion', 'choice', 'subtle', { choices: ch(['none', 'None'], ['subtle', 'Subtle'], ['lively', 'Lively: sections rise in as you scroll']), words: 'animation motion scroll reveal hover effects' }),
-  // Form fields: every field on the website (checkout, contact, newsletter, search on pages, filters) reads these
-  C('fieldStyle', 'forms', 'Field look', 'choice', 'outlined', { choices: ch(['outlined', 'Outlined'], ['filled', 'Filled'], ['underline', 'Underline'], ['raised', 'White with a soft shadow'], ['pill', 'Rounded pill']), words: 'input box checkout search field form' }),
-  C('fieldSize', 'forms', 'Field height', 'choice', 'M', { choices: ch(['S', 'Small'], ['M', 'Medium'], ['L', 'Large']), words: 'input height size' }),
-  C('fieldCorners', 'forms', 'Field corners', 'choice', '', { choices: ch(['', 'Same as the theme'], ['square', 'Square'], ['round', 'Round']), words: 'input radius corners' }),
-  C('fieldFocus', 'forms', 'When a field is in use', 'choice', 'ring', { choices: ch(['ring', 'Coloured ring'], ['line', 'Coloured border only'], ['glow', 'Soft glow']), words: 'focus active outline' }),
-  C('checkStyle', 'forms', 'Tick boxes and choices', 'choice', 'standard', { choices: ch(['standard', 'Standard'], ['large', 'Large']), words: 'checkbox radio tick' }),
-  C('qtyStyle', 'forms', 'Quantity buttons', 'choice', 'boxed', { choices: ch(['boxed', 'Boxed'], ['round', 'Round'], ['soft', 'Soft fill'], ['minimal', 'Minimal']), words: 'quantity stepper plus minus' }),
-  C('chipStyle', 'forms', 'Option buttons (size, colour)', 'choice', 'theme', { choices: ch(['theme', 'Same as the buttons'], ['pill', 'Pills'], ['square', 'Square'], ['soft', 'Soft fill']), words: 'swatches variants options size colour chips' }),
-  // Icons and details
-  C('iconStyle', 'icons', 'Icon frame', 'choice', 'plain', { choices: ch(['plain', 'As each section draws it'], ['circle', 'Circle'], ['square', 'Rounded square'], ['outline', 'Outlined circle'], ['bare', 'No frame']), words: 'icon trust feature frame circle' }),
-  C('iconStroke', 'icons', 'Icon line', 'choice', 'regular', { choices: ch(['thin', 'Thin'], ['regular', 'Regular'], ['bold', 'Bold']), words: 'icon stroke weight thickness' }),
-  C('iconSize', 'icons', 'Feature icon size', 'choice', 'M', { choices: ch(['S', 'Small'], ['M', 'Medium'], ['L', 'Large']), words: 'icon size big' }),
-  C('iconColour', 'icons', 'Feature icon colour', 'choice', 'theme', { choices: ch(['theme', 'As each section sets it'], ['primary', 'Primary colour'], ['accent', 'Accent colour'], ['text', 'Text colour']), words: 'icon colour color' }),
-  C('socialStyle', 'icons', 'Social icons', 'choice', 'plain', { choices: ch(['plain', 'Plain'], ['round', 'In circles'], ['square', 'In squares'], ['brand', 'Brand colours']), words: 'facebook instagram youtube social icons' }),
-  C('starColour', 'icons', 'Rating stars', 'choice', 'gold', { choices: ch(['gold', 'Gold'], ['primary', 'Primary colour'], ['text', 'Text colour']), words: 'stars rating review colour' }),
-  // Product card
-  C('cardStyle', 'card', 'Card style', 'choice', 'classic', { choices: ch(['classic', 'Classic'], ['bordered', 'Bordered, button below'], ['horizontal', 'Picture beside the text'], ['spec', 'Key specs and compare'], ['solid', 'Solid button'], ['outline', 'Outline button'], ['centered', 'Centred with add bar'], ['minimal', 'Minimal, no button'], ['pill', 'Rounded badges'], ['clean', 'Clean, centred']), words: 'product card style layout look button' }),
-  C('cardButton', 'card', 'Card button', 'choice', 'add', { choices: ch(['add', 'Add to cart'], ['buy', 'Buy now (straight to checkout)'], ['both', 'Both']), when: (v) => v.cardStyle !== 'minimal', words: 'buy now add to cart quick checkout' }),
-  C('cardRatio', 'card', 'Image shape', 'choice', 'square', { choices: ch(['square', 'Square 1:1'], ['portrait', 'Portrait 4:5'], ['tall', 'Tall 3:4']), words: 'photo ratio aspect' }),
-  C('cardHover', 'card', 'On hover', 'choice', 'none', { choices: ch(['none', 'Nothing'], ['second', 'Show second photo']), words: 'mouse hover image' }),
-  C('cardRating', 'card', 'Show rating', 'bool', true, { words: 'stars review' }),
-  C('cardStock', 'card', 'Show stock', 'bool', true, { words: 'in stock left' }),
-  C('cardQuick', 'card', 'Quick add button', 'bool', true, { words: 'add to cart fast' }),
-  C('saleBadge', 'card', 'Sale badge', 'choice', 'percent', { choices: ch(['percent', '−12%'], ['text', 'Sale'], ['none', 'None']), words: 'discount label' }),
-  C('badgePos', 'card', 'Badge position', 'choice', 'left', { choices: ch(['left', 'Top left'], ['right', 'Top right']), words: 'badge position corner' }),
-  C('priceColour', 'card', 'Price colour', 'choice', 'text', { choices: ch(['text', 'Text colour'], ['primary', 'Primary colour'], ['sale', 'Sale colour']), words: 'price colour color taka' }),
-  C('priceSize', 'card', 'Price size', 'choice', 'M', { choices: ch(['S', 'Small'], ['M', 'Medium'], ['L', 'Large']), words: 'price size big' }),
-  C('oldPrice', 'card', 'Price before discount', 'choice', 'strike', { choices: ch(['strike', 'Crossed out'], ['hide', 'Hidden']), words: 'mrp old price compare at strike' }),
-  C('cardBrand', 'card', 'Show the brand', 'bool', false, { words: 'brand name card' }),
-  C('cardStockBar', 'card', 'Stock bar when few are left', 'bool', false, { words: 'stock progress bar hurry left woodmart' }),
-  C('cardWish', 'card', 'Wishlist heart', 'bool', true, { words: 'wishlist heart save favourite' }),
-  C('cardQuickView', 'card', 'Quick view', 'bool', true, { words: 'quick view popup preview' }),
-  C('imgZoom', 'card', 'Picture zoom on hover', 'bool', true, { words: 'zoom hover picture image' }),
-  // Product page
-  C('productLayout', 'product', 'Page layout', 'choice', 'classic', { choices: ch(['classic', 'Photos left'], ['right', 'Photos right'], ['sticky', 'Photos stacked, details stay in view'], ['wide', 'Big photos'], ['centered', 'Centred, one column'], ['compact', 'Small photo, more details'], ['panel', 'Photos on a tinted panel']), words: 'product page layout gallery left right sticky wide centred woodmart' }),
-  C('productStyle', 'product', 'Buy box style', 'choice', 'standard', { choices: ch(['standard', 'Standard'], ['grocery', 'Four buttons: cart, buy, WhatsApp, call'], ['specs', 'Specs: info pills, key features, EMI cards'], ['variants', 'Size cards, WhatsApp, expert advice'], ['accordion', 'Simple, Order now below'], ['beauty', 'Best-seller ranks, stock left, free delivery'], ['sale', 'Sale countdown and trust grid'], ['gadget', 'Brand, warranty, share and copy link'], ['nudge', 'Spend-more nudge and bulk order']), words: 'product page buy box add to cart whatsapp emi style' }),
-  C('detailsStyle', 'product', 'Details', 'choice', 'tabs', { choices: ch(['tabs', 'Tabs'], ['pills', 'Pill tabs'], ['accordion', 'Accordion'], ['open', 'All open'], ['side', 'Tabs on the side']), words: 'description specification tabs accordion' }),
-  C('gallery', 'product', 'Photos', 'choice', 'below', { choices: ch(['below', 'Thumbnails below'], ['side', 'Thumbnails at the side'], ['grid', 'Grid'], ['slider', 'Slider with arrows'], ['stack', 'All photos stacked']), words: 'gallery images thumbnails' }),
-  C('stickyCart', 'product', 'Sticky Add to cart on phones', 'bool', true, { words: 'mobile bottom button' }),
-  C('showDelivery', 'product', 'Delivery charge and COD note', 'bool', true, { words: 'shipping cash on delivery' }),
-  C('deliveryNote', 'product', 'Delivery note', 'text', 'Inside Dhaka ৳70 · Outside Dhaka ৳150 · Cash on delivery all over Bangladesh', { when: (v) => v.showDelivery, words: 'shipping text' }),
-  C('showWarranty', 'product', 'Warranty', 'bool', true, { words: 'guarantee service' }),
-  C('showEmi', 'product', 'EMI line', 'bool', false, { words: 'instalment bank card monthly' }),
-  C('emiMonths', 'product', 'EMI months', 'choice', '6', { choices: ch(['3', '3 months'], ['6', '6 months'], ['12', '12 months']), when: (v) => v.showEmi, words: 'instalment' }),
-  C('specsTable', 'product', 'Specifications table', 'bool', true, { words: 'specs details template' }),
-  C('stockBar', 'product', 'Stock bar (only a few left)', 'bool', true, { words: 'stock progress bar hurry left woodmart' }),
-  C('soldCount', 'product', 'How many sold recently', 'bool', true, { words: 'sold counter popular social proof' }),
-  C('saleTimer', 'product', 'Sale countdown', 'bool', true, { words: 'countdown timer flash sale ends' }),
-  C('boughtTogether', 'product', 'Frequently bought together', 'bool', true, { words: 'bundle bought together cross sell woodmart' }),
-  C('related', 'product', 'Related products', 'bool', true, { words: 'similar more' }),
-  C('reviewsPos', 'product', 'Reviews', 'choice', 'below', { choices: ch(['below', 'Below the details'], ['tab', 'In a tab'], ['hidden', 'Hidden']), words: 'ratings stars' }),
-  C('tabBlock', 'product', 'Extra tab', 'block', '', { blockType: 'tab', words: 'html block tab size guide warranty' }),
-  // Category page
-  C('colsDesktop', 'category', 'Columns on a computer', 'choice', '4', { choices: ch(['3', '3'], ['4', '4'], ['5', '5']), words: 'grid desktop' }),
-  C('colsPhone', 'category', 'Columns on a phone', 'choice', '2', { choices: ch(['1', '1'], ['2', '2']), words: 'grid mobile' }),
-  C('filters', 'category', 'Filters', 'choice', 'left', { choices: ch(['left', 'Left column'], ['top', 'Top bar'], ['drawer', 'Drawer']), words: 'filter sidebar brand price' }),
-  C('sortDefault', 'category', 'Sort first by', 'choice', 'featured', { choices: ch(['featured', 'Featured'], ['newest', 'Newest'], ['price-asc', 'Price, low to high'], ['price-desc', 'Price, high to low'], ['best', 'Best selling']), words: 'order sorting' }),
-  C('perPage', 'category', 'Products per page', 'choice', '24', { choices: ch(['12', '12'], ['24', '24'], ['36', '36']), words: 'count paging' }),
-  C('paging', 'category', 'More products', 'choice', 'pages', { choices: ch(['pages', 'Page numbers'], ['infinite', 'Load more as you scroll']), words: 'pagination infinite scroll' }),
-  // Cart & checkout
-  C('checkoutStyle', 'cart', 'Checkout style', 'choice', 'classic', { choices: ch(['classic', 'Classic, three steps on one page'], ['quick', 'Quick cash on delivery (fewest fields)'], ['grocery', 'Order review first, payment cards'], ['specs', 'Payment and delivery side by side, store pickup'], ['compact', 'Compact, two columns'], ['advance', 'Cash on delivery with an advance'], ['steps', 'Secure checkout with steps'], ['signin', 'Sign in with the mobile number first'], ['split', 'Form left, grey summary right'], ['center', 'One column, centred']), words: 'checkout page style one page quick cod advance steps' }),
-  C('checkoutMode', 'cart', 'Checkout opens as', 'choice', 'page', { choices: ch(['page', 'A page'], ['popup', 'A pop-up over the store']), words: 'popup modal checkout' }),
-  C('checkoutBump', 'cart', 'Offer one more product at checkout', 'bool', false, { words: 'order bump upsell add on' }),
-  C('advanceAmount', 'cart', 'Advance for cash on delivery (৳)', 'number', 200, { min: 0, max: 5000, step: 50, when: (v) => v.checkoutStyle === 'advance' || v.checkoutStyle === 'steps', words: 'advance bkash nagad deposit' }),
-  C('cartType', 'cart', 'Cart', 'choice', 'drawer', { choices: ch(['drawer', 'Side cart'], ['page', 'Cart page']), words: 'basket drawer' }),
-  C('freeShip', 'cart', 'Free delivery progress bar', 'bool', true, { words: 'shipping free bar' }),
-  C('freeShipAt', 'cart', 'Free delivery from (৳)', 'number', 3000, { min: 0, max: 100000, step: 100, when: (v) => v.freeShip, words: 'amount minimum' }),
-  C('trust', 'cart', 'Trust badges', 'bool', true, { words: 'bkash nagad cod secure marks' }),
-  C('orderNote', 'cart', 'Order note box', 'bool', true, { words: 'comment instructions' }),
-  // Footer (lock: footer)
-  // About, policy and blog pages (Online Store › Pages and the blog keep the words; these set how they look)
-  C('aboutStyle', 'pages', 'About us page', 'choice', 'classic', { choices: ch(['classic', 'Figures, values and shops'], ['story', 'Story with a big picture'], ['split', 'Title beside the text'], ['magazine', 'Magazine column'], ['team', 'Values, shops and reviews']), words: 'about us page story brand woodmart' }),
-  C('contactStyle', 'pages', 'Contact us page', 'choice', 'cards', { choices: ch(['cards', 'Ways to reach, form and map'], ['split', 'Details beside the form'], ['map', 'Map of the shop first']), words: 'contact us page form map branches shops open hours whatsapp' }),
-  C('policyStyle', 'pages', 'Policy pages', 'choice', 'card', { choices: ch(['card', 'Text in a card'], ['document', 'Plain document'], ['sidebar', 'Contents on the side'], ['accordion', 'Fold each part'], ['numbered', 'Numbered cards']), words: 'privacy policy terms returns refund shipping legal' }),
-  C('blogStyle', 'pages', 'Blog list', 'choice', 'grid', { choices: ch(['grid', 'Grid of cards'], ['list', 'List, picture beside'], ['featured', 'One big and a grid'], ['masonry', 'Masonry'], ['minimal', 'Titles only']), words: 'blog list posts articles news' }),
-  C('postStyle', 'pages', 'Blog post', 'choice', 'classic', { choices: ch(['classic', 'Classic'], ['wide', 'Big cover, title over it'], ['sidebar', 'With a sidebar'], ['centered', 'Narrow reading column'], ['magazine', 'Magazine']), words: 'blog post article reading' }),
-  C('footerSource', 'footer', 'Footer', 'choice', 'layout', { lock: 'footer', choices: ch(['layout', 'A footer layout'], ['block', 'An HTML block']), words: 'bottom' }),
-  C('footerLayout', 'footer', 'Footer layout', 'choice', 'columns', { lock: 'footer', choices: ch(['columns', 'Columns'], ['simple', 'One line'], ['centered', 'Centred'], ['brand', 'Brand column and payment grid'], ['support', 'Support boxes'], ['watermark', 'Big logo behind'], ['caps', 'Coloured headings']), when: (v) => v.footerSource !== 'block', words: 'columns simple' }),
-  C('footerBlock', 'footer', 'Footer block', 'block', '', { lock: 'footer', blockType: 'footer', when: (v) => v.footerSource === 'block', words: 'html' }),
-  C('footerTone', 'footer', 'Footer colours', 'choice', 'dark', { lock: 'footer', choices: ch(['dark', 'Dark'], ['light', 'Light'], ['brand', 'Primary colour']), words: 'background' }),
-  C('footerApp', 'footer', 'App download badges', 'bool', false, { lock: 'footer', words: 'google play app store mobile app' }),
-  C('footerAbout', 'footer', 'About text', 'bool', true, { lock: 'footer', words: 'description settings general' }),
-  C('footerMarks', 'footer', 'Payment and delivery marks', 'bool', true, { lock: 'footer', words: 'bkash nagad courier logos media' }),
-  C('copyright', 'footer', 'Copyright line', 'text', '', { lock: 'footer', placeholder: 'From Settings › General', words: 'copyright licence' }),
-  // Shop details: links the store shows in the footer, the phone menu, About us, Contact us and the Follow us section
-  // (phone, email, address and hours come from Settings › General; branches from Settings › Locations)
-  C('socialFacebook', 'shop', 'Facebook page', 'text', 'https://facebook.com/dazzleshopbd', { placeholder: 'https://facebook.com/yourshop', words: 'facebook social link page' }),
-  C('socialInstagram', 'shop', 'Instagram', 'text', 'https://instagram.com/dazzleshopbd', { placeholder: 'https://instagram.com/yourshop', words: 'instagram social link' }),
-  C('socialYoutube', 'shop', 'YouTube', 'text', 'https://youtube.com/@dazzleshopbd', { placeholder: 'https://youtube.com/@yourshop', words: 'youtube social channel' }),
-  C('socialTiktok', 'shop', 'TikTok', 'text', 'https://tiktok.com/@dazzleshopbd', { placeholder: 'https://tiktok.com/@yourshop', words: 'tiktok social' }),
-  C('messengerPage', 'shop', 'Messenger (page username)', 'text', 'dazzleshopbd', { placeholder: 'yourshop', words: 'messenger facebook chat' }),
-  // Extras
-  C('chat', 'extras', 'Chat button', 'choice', 'whatsapp', { choices: ch(['none', 'None'], ['whatsapp', 'WhatsApp'], ['messenger', 'Messenger']), words: 'whatsapp messenger floating' }),
-  C('chatTo', 'extras', 'Chat number or page', 'text', '8801811843300', { when: (v) => v.chat !== 'none', words: 'phone username' }),
-  C('announce', 'extras', 'Announcement bar', 'bool', true, { lock: 'header', words: 'top bar promo message' }),
-  C('announceText', 'extras', 'Announcement', 'text', '', { lock: 'header', placeholder: 'Today’s offer, from Marketing', when: (v) => v.announce, words: 'message text' }),
-  C('announceTone', 'extras', 'Announcement colours', 'choice', 'accent', { lock: 'header', choices: ch(['accent', 'Accent colour'], ['primary', 'Primary colour'], ['dark', 'Dark']), when: (v) => v.announce, words: 'background' }),
-  C('chatStyle', 'extras', 'Chat button look', 'choice', 'round', { choices: ch(['round', 'Round button'], ['greeting', 'With a greeting'], ['pill', 'Pill with text']), when: (v) => v.chat !== 'none', words: 'chat bubble greeting' }),
-  C('chatGreeting', 'extras', 'Greeting', 'text', 'Hi! How can we help you today?', { when: (v) => v.chat !== 'none' && v.chatStyle !== 'round', words: 'chat message hello' }),
-  C('floatCart', 'extras', 'Cart tab on the side', 'bool', false, { words: 'mini cart floating side tab total items' }),
-  C('backTop', 'extras', 'Back to top button', 'bool', false, { words: 'scroll top arrow' }),
-  C('popupImage', 'extras', 'Welcome pop-up picture', 'image', '', { words: 'popup promo image banner modal welcome' }),
-  C('popupHref', 'extras', 'Pop-up link', 'text', '/offers', { when: (v) => !!v.popupImage, words: 'popup link' }),
-  C('popupDelay', 'extras', 'Show the pop-up after (seconds)', 'number', 3, { min: 0, max: 60, step: 1, when: (v) => !!v.popupImage, words: 'popup delay' }),
-  C('catalogMode', 'extras', 'Catalogue mode (no prices or cart)', 'bool', false, { words: 'catalog mode hide price call for price login' }),
-  C('catalogText', 'extras', 'Instead of the price', 'text', 'Call or WhatsApp for the price', { when: (v) => v.catalogMode, words: 'catalog price text' }),
-  C('ageCheck', 'extras', 'Age check', 'bool', false, { words: 'age verification 18 adult' }),
-  C('ageText', 'extras', 'Age check question', 'text', 'Are you 18 or older?', { when: (v) => v.ageCheck, words: 'age question' }),
-  C('cookie', 'extras', 'Cookie notice', 'bool', false, { words: 'consent privacy gdpr' }),
-  C('cookieText', 'extras', 'Cookie notice text', 'text', 'We use cookies to keep your cart and to see what people like.', { when: (v) => v.cookie, words: 'consent' }),
-  C('customCss', 'extras', 'Custom CSS', 'bool', false, { lock: 'css', plan: 'business', words: 'css code style advanced' }),
-  C('css', 'extras', 'Your CSS', 'css', '', { lock: 'css', plan: 'business', when: (v) => v.customCss, words: 'css code' }),
-];
-export const optionBy = (key) => OPTIONS.find((o) => o.key === key) || null;
-export const DEFAULTS = Object.fromEntries(OPTIONS.map((o) => [o.key, o.default]));
 
 /** Options matching the words typed in the search box (label, group, choices, search words). */
 export function searchOptions(q) {
@@ -221,7 +33,7 @@ export function searchOptions(q) {
     return parts.every((p) => hay.includes(p));
   });
 }
-export const visibleOptions = (values, list = OPTIONS) => list.filter((o) => !o.when || o.when({ ...DEFAULTS, ...values }));
+export const visibleOptions = (values, list = OPTIONS) => list.filter((o) => !o.moved && (!o.when || o.when({ ...DEFAULTS, ...values })));
 
 /** The brand colours saved in Settings › General. */
 export function brandDefaults() {
@@ -354,7 +166,14 @@ export function fontHref(values) {
 export function customCss(values, allowed) {
   const v = full(values);
   if (!allowed || !v.customCss) return '';
-  return String(v.css || '').replace(/<\/?style[^>]*>/gi, '').replace(/<\/?script[^>]*>/gi, '').slice(0, 20000);
+  const r = checkCss(v.css, { max: 20000 });   // Batch C: the strict check (customCode.js); CSS that fails is not used
+  return r.ok ? r.css : '';
+}
+/** What is wrong with the Custom CSS ([] when it passes or is off): the editor refuses to save until it is fixed. */
+export function customCssProblems(values) {
+  const v = full(values);
+  if (!v.customCss || !String(v.css || '').trim()) return [];
+  return checkCss(v.css, { max: 20000 }).problems;
 }
 
 /** Root classes for the Global styles group (read by TOKENS_CSS). */

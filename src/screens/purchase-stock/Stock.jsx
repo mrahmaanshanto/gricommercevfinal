@@ -28,6 +28,8 @@ import { fmtQty, packsOf } from '@/lib/units';
 import { resolveScan } from '@/lib/identifiers';
 import { toast as __toast } from '@/runtime/ui';
 import { currentUser } from '@/lib/team';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 import { ModuleSetup } from '@/components/ModuleSetup';
 import { levelAt, placeLevel, productLevel, setPlaceLevel, isLow as lowBy, isOut as outBy, REORDER_EVENT } from '@/lib/reorder';
 
@@ -105,7 +107,7 @@ class Component extends DCLogic {
       if (f === 'low') return isLow(r); if (f === 'out') return isOut(r); if (f === 'exp') return r.i.exp; return true;
     }).map(function (r) {
       var p = r.p, n = r.n, out = isOut(r), low = isLow(r);
-      return { sku: p.sku, name: p.name, variant: p.variant || '', initial: p.name.charAt(0),
+      return { sku: p.sku, name: p.name, variant: p.variant || '', initial: p.name.charAt(0), pic: productPic(p),
         onHand: n.onHand, held: n.held, damaged: n.damaged, available: n.available, transit: n.transit,
         tone: out ? 'ix-bad' : low ? 'ix-warn' : '',
         flag: p.format === 'licence' ? ['Licence keys', 'info'] : p.bundle && p.bundle.type !== 'kit' ? ['From parts', 'info'] : out ? ['Out of stock', 'error'] : low ? ['Low stock', 'warning'] : r.i.exp ? ['Expiring soon', 'warning'] : null,
@@ -278,7 +280,8 @@ export default class StockScreen extends Component {
                     <ul className="ix-plist" aria-label="Stock list" aria-busy={v.loading || undefined}>
                       {v.rows.map((r) => (
                         <li key={r.sku}>
-                          <button type="button" className="ix-pitem" onClick={r.open}>
+                          <button type="button" className="ix-pitem ix-pitem--thumb" onClick={r.open}>
+                            <span style={{ gridRow: r.flag ? 'span 3' : 'span 2' }}><Pic src={r.pic} name={r.name} kind="item" /></span>
                             <span className="ix-pitem__top"><b>{r.name}</b><span className={r.tone}>{`${r.available} available`}</span></span>
                             <span className="ix-pitem__mid">{[r.sku, r.variant].filter(Boolean).join(' · ')}</span>
                             {r.flag ? <span className="ix-pitem__tags"><__StatusBadge tone={r.flag[1]}>{r.flag[0]}</__StatusBadge></span> : null}
@@ -305,7 +308,7 @@ export default class StockScreen extends Component {
                             <tr key={r.sku} onClick={r.onRowClick}>
                               <td>
                                 <span className="ix-prod st-prod">
-                                  <span className="ix-thumb st-thumb" aria-hidden="true">{r.initial}</span>
+                                  {r.pic ? <Pic src={r.pic} name={r.name} kind="item" /> : <span className="ix-thumb st-thumb" aria-hidden="true">{r.initial}</span>}
                                   <button type="button" className="ix-strong st-name" onClick={r.open}>{r.name}{r.variant ? <span className="ix-muted"> · {r.variant}</span> : null}</button>
                                   {r.flag ? <__StatusBadge tone={r.flag[1]}>{r.flag[0]}</__StatusBadge> : null}
                                 </span>

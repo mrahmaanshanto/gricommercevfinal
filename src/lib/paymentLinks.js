@@ -14,6 +14,7 @@ import { getOrders, findOrder, patchOrder, logOrder } from './orders';
 import { collect } from './settlements';
 import { claimRef } from './paymentRefs';
 import { currentUser } from './team';
+import { onLinkPaid } from './partialPayment';
 
 const KEY = 'gc.pay.links';
 const DAY = 864e5;
@@ -99,6 +100,8 @@ export function payLink(id, { method = 'bKash', txn = '' }, user = currentUser()
     if (!c.ok) return { ok: false, message: c.message };
     const paid = r2((o.paid || 0) + amount);
     patchOrder(o, { paid, payment: paid >= (o.amount || 0) ? 'Paid' : 'Partial' });
+    // a requested part payment (Batch C, lib/partialPayment.js): the advance is paid, the rest is the COD amount
+    onLinkPaid({ ...o, paid, payment: paid >= (o.amount || 0) ? 'Paid' : 'Partial' }, link, amount);
     logOrder(o.id, 'link', `৳${amount.toLocaleString('en-IN')} paid by payment link`, `${method} · ${txn}`);
     // a link payment goes through the gateway: it waits there until the payout
     collect(partner, { ref: o.id, party: o.customer, gross: amount, note: 'Payment link ' + link.code, by: user.name, kind: 'order payment' });

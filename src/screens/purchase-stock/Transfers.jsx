@@ -20,6 +20,8 @@ import { toast as __toast } from '@/runtime/ui';
 import { productBy, addMove } from '@/lib/stock';
 import { getTransfers, updateTransfer, missingOf, openShort, pendingShort } from '@/lib/transfers';
 import { formatBDT, formatDate, formatDateTime } from '@/lib/format';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -270,7 +272,7 @@ export default class TransfersScreen extends Component {
             <div className="ix-table-wrap ix-table-wrap--show">
               <table className="ix-table ix-table--static gc-table--keep">
                 <thead><tr><th scope="col">Product</th><th scope="col" className="ix-num">Sent</th><th scope="col" className="ix-num">Arrived</th></tr></thead>
-                <tbody>{v.viewLines.map((l) => (<tr key={l.sku}><td>{l.name}<span className="tf-sub">{l.sku}{l.variant ? ' · ' + l.variant : ''}</span></td><td className="ix-num">{l.qty}</td><td className="ix-num">{l.got}</td></tr>))}</tbody>
+                <tbody>{v.viewLines.map((l) => (<tr key={l.sku}><td><span className="gc-picrow"><Pic src={productPic(l)} name={l.name} kind="item" /><span>{l.name}<span className="tf-sub">{l.sku}{l.variant ? ' · ' + l.variant : ''}</span></span></span></td><td className="ix-num">{l.qty}</td><td className="ix-num">{l.got}</td></tr>))}</tbody>
               </table>
             </div>
           </>) : null}
@@ -286,7 +288,7 @@ export default class TransfersScreen extends Component {
                   <tbody>
                     {v.recvLines.map((l) => (
                       <tr key={l.sku}>
-                        <td><div style={{ fontWeight: "var(--weight-medium)" }}>{l.name}</div><span className="tf-sub">{l.sku}</span>{l.short > 0 ? <span className="gc-badge gc-badge--error" style={{ marginTop: 4 }}>{l.short} missing</span> : null}</td>
+                        <td><span className="gc-picrow" style={{ alignItems: 'flex-start' }}><Pic src={productPic(l)} name={l.name} kind="item" /><span><div style={{ fontWeight: "var(--weight-medium)" }}>{l.name}</div><span className="tf-sub">{l.sku}</span>{l.short > 0 ? <span className="gc-badge gc-badge--error" style={{ marginTop: 4 }}>{l.short} missing</span> : null}</span></span></td>
                         <td className="tf-num">{l.sent}</td>
                         <td className="tf-num"><input className="gc-input tf-got" type="number" min="0" max={l.sent} inputMode="numeric" aria-label={`Pieces of ${l.name} that arrived`} value={l.got} onChange={l.set} /></td>
                       </tr>

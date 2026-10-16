@@ -13,7 +13,7 @@ import { fromKey } from '@/lib/settlements';
 import {
   CHANGE_KINDS, changePct, cancelChange, staffBy, monthLabel, monthOf, todayKey, lastRaiseOf, positionOf, serviceOf, yearlyIncrement,
 } from '@/lib/hr';
-import { HrPage, useHr, Person, money, rowGo } from './hrShared';
+import { HrPage, useHr, Person, Avatar, money, rowGo } from './hrShared';
 import { ChangeDialog, LetterDialog, LETTER_CSS } from './ChangeDialog';
 import { FORM_CSS } from '@/screens/staff-profile/staffForm';
 
@@ -132,7 +132,8 @@ export default function PayChanges() {
                 const p = changePct(c);
                 return (
                   <li key={c.id}>
-                    <button type="button" className="ix-pitem" onClick={() => setLetter(c)}>
+                    <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setLetter(c)}>
+                      <span className="hr-pslot"><Avatar st={st || { name: c.code }} /></span>
                       <span className="ix-pitem__top"><b>{st ? st.name : c.code}</b><span className={p > 0 ? 'hr-in' : p < 0 ? 'hr-out' : ''}>{p != null ? `${p > 0 ? '+' : ''}${p}%` : ''}</span></span>
                       <span className="ix-pitem__mid">{label} · {monthLabel(c.effective, true)}{c.to.gross != null ? ` · ${money(c.from.gross)} → ${money(c.to.gross)}` : ''}</span>
                       {c.status === 'planned' ? <span className="ix-pitem__tags"><StatusBadge tone="warning">Planned</StatusBadge></span> : null}

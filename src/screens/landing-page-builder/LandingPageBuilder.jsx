@@ -2,11 +2,13 @@
 // Landing page builder (/landing-page-builder, ?id= opens a saved page, ?product= starts one for a product).
 //   Start   pick an active product, then start from a template or let the AI builder write the whole page.
 //   Build   left: Parts (the page's parts in order: drag or arrows to move, hide, copy, remove; Add part opens the
-//           library) · Page (product, title, link, accent colour, theme, font, corners, sticky order bar, checks) ·
+//           library: the sales-page parts, and every section of the store's library with its looks) · Page (product, title, link, accent colour, theme, font, corners, sticky order bar, checks) ·
 //           AI (the AI builder: tone, goal, language, length, audience, offer → a full page; headline ideas).
-//           Middle: the page as customers see it, on a phone or a computer (landingView.jsx; click a part to edit it).
-//           Right: the chosen part's settings (the same field editor as Online Store › Layouts) and the AI writer
-//           (shorter · stronger · urgent · friendly) on its words.
+//           Middle: the page as customers see it, in a preview frame at phone, tablet or computer width
+//           (/lp?draft=1&preview=1&edit=1; the unsaved page is posted with sendPreview; click a part to edit it).
+//           Right: the chosen part in three tabs, as in Online Store › Layouts: Content (its fields, or a store
+//           section's look and fields; the AI writer on its words) · Style (spacing per device, width, background,
+//           pattern, colours, fonts, buttons) · Advanced ("Order now" under it, show per device, animation, anchor).
 //   Header  Back · title · status · phone / computer · Undo / Redo (Ctrl+Z / Ctrl+Shift+Z) · SEO · Preview · Save ·
 //           Publish (or Unpublish). Leaving with unsaved changes asks first.
 // Pages and their parts live in lib/landingPages.js + lib/landingParts.js; /lp draws the same parts with a working
@@ -20,18 +22,23 @@ import { Sheet, PhoneMore } from '@/components/ui';
 import { allProducts, getSavedProducts } from '@/lib/products';
 import { formatBDT, formatTime } from '@/lib/format';
 import { getLandingPage, getLandingPages, newLandingPage, saveLandingPage, publishLandingPage, unpublishLandingPage, handleProblem, slugify, LP_BASE, TEMPLATES, LANDING_EVENT } from '@/lib/landingPages';
-import { PARTS, PART_GROUPS, partType, newPart, partsFor, factsOf, ensureParts, PAGE_STYLE, THEMES, FONTS, CORNERS, ACCENTS, aiBuild, aiRewrite, headlineIdeas, AI_TONES, AI_GOALS, AI_LANGS, AI_LENGTHS } from '@/lib/landingParts';
+import { PARTS, PART_GROUPS, partType, partKind, partLabel, partIcon, isStorePart, PATTERNS, newPart, partsFor, factsOf, ensureParts, PAGE_STYLE, THEMES, FONTS, CORNERS, ACCENTS, aiBuild, aiRewrite, headlineIdeas, AI_TONES, AI_GOALS, AI_LANGS, AI_LENGTHS } from '@/lib/landingParts';
 import SeoPanel, { SEO_PANEL_CSS } from '@/components/seo/SeoPanel';
 import { readSeo } from '@/lib/seo';
 import { contextOf } from '@/lib/seoItems';
 import { Field, FIELDS_CSS } from '@/screens/online-store/SectionFields';
-import { SFB_CSS } from '@/screens/online-store/sfShared';
-import LandingView from '@/screens/storefront/landingView';
+import { SFB_CSS, PreviewFrame } from '@/screens/online-store/sfShared';
+import { SectionFields, StyleTab, AdvancedTab, LibraryBody, LE_CSS } from '@/screens/online-store/LayoutEdit';
+import { STARTER, lookPatch } from '@/screens/storefront/sectionStarters';
+import { newSection } from '@/lib/storefront/layouts';
 
 const tk = (n) => formatBDT(Math.round(Number(n) || 0));
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const TEXT_KEYS = ['title', 'sub', 'text', 'offer', 'button'];
 const summaryOf = (p) => (p.type === 'announce' ? p.text : p.title) || '';
+const uid = () => 'pt-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const DEV_OF = { phone: 'm', tablet: 't', desktop: 'd' };
+const DEVICE_OF = { m: 'phone', t: 'tablet', d: 'desktop' };
 
 /** The product list for the start step (active, priced, physical, not gift-only). */
 function useProducts() {
@@ -149,6 +156,9 @@ export default function LandingPageBuilder() {
   const [sel, setSel] = useState('');
   const [tab, setTab] = useState('parts');
   const [device, setDevice] = useState('phone');
+  const [ins, setIns] = useState('content');
+  const [libTab, setLibTab] = useState('sales');
+  const [libQ, setLibQ] = useState('');
   const [lib, setLib] = useState(false);
   const [seoOpen, setSeoOpen] = useState(false);
   const [mob, setMob] = useState('preview');
@@ -219,28 +229,36 @@ export default function LandingPageBuilder() {
   // parts
   const parts = page ? page.parts || [] : [];
   const cur = parts.find((x) => x.id === sel) || null;
-  const curType = cur ? partType(cur.type) : null;
+  const curType = cur ? partKind(cur) : null;
   const setPart = (id, patch, coalesce = true) => setPage((pg) => ({ ...pg, parts: pg.parts.map((x) => (x.id === id ? { ...x, ...patch } : x)) }), { coalesce });
   const move = (i, d) => setPage((pg) => { const n = pg.parts.slice(); const j = i + d; if (j < 0 || j >= n.length) return pg; [n[i], n[j]] = [n[j], n[i]]; return { ...pg, parts: n }; });
   const moveTo = (from, to) => setPage((pg) => { if (from === to || from < 0) return pg; const n = pg.parts.slice(); const [x] = n.splice(from, 1); n.splice(to, 0, x); return { ...pg, parts: n }; });
-  const copy = (i) => setPage((pg) => { const n = pg.parts.slice(); const c = { ...clone(n[i]), id: newPart(n[i].type).id }; n.splice(i + 1, 0, c); setSel(c.id); return { ...pg, parts: n }; });
+  const copy = (i) => setPage((pg) => { const n = pg.parts.slice(); const c = { ...clone(n[i]), id: uid() }; n.splice(i + 1, 0, c); setSel(c.id); return { ...pg, parts: n }; });
   const remove = async (i) => {
     const x = parts[i];
-    if (x.type === 'order' && !(await confirmDialog({ title: 'Remove the order form?', body: 'Without it the page can’t take orders. Every Order button points to it.', confirmLabel: 'Remove', tone: 'danger' }))) return;
+    if (x.type === 'order' && !x.sf && !(await confirmDialog({ title: 'Remove the order form?', body: 'Without it the page can’t take orders. Every Order button points to it.', confirmLabel: 'Remove', tone: 'danger' }))) return;
     setPage((pg) => ({ ...pg, parts: pg.parts.filter((p) => p.id !== x.id) }));
     if (sel === x.id) setSel('');
-    toast((partType(x.type) || {}).label + ' removed. Undo brings it back.');
+    toast(partLabel(x) + ' removed. Undo brings it back.');
   };
-  const add = (type) => {
-    const fresh = partsFor('long', facts, page && page.lang === 'bn' ? 'bn' : 'en').find((x) => x.type === type);
-    const part = fresh || newPart(type);
+  const add = (type, look, store = false) => {
+    let part;
+    if (store) {
+      // a section of the store's library: its starter content and the chosen look, kept as the section itself
+      let sec = newSection(type, STARTER[type] ? (typeof STARTER[type] === 'function' ? STARTER[type]() : clone(STARTER[type])) : {});
+      if (look) sec = { ...sec, variant: look, ...lookPatch(sec, look) };
+      part = { ...sec, sf: true };
+    } else {
+      const fresh = partsFor('long', facts, page && page.lang === 'bn' ? 'bn' : 'en').find((x) => x.type === type);
+      part = fresh || newPart(type);
+    }
     setPage((pg) => {
       const n = pg.parts.slice();
       const at = sel ? n.findIndex((x) => x.id === sel) + 1 : n.length;
       n.splice(at > 0 ? at : n.length, 0, part);
       return { ...pg, parts: n };
     });
-    setSel(part.id); setLib(false); setMob('edit');
+    setSel(part.id); setLib(false); setMob('edit'); setIns('content');
   };
 
   // save / publish
@@ -255,7 +273,7 @@ export default function LandingPageBuilder() {
   };
   const publish = () => {
     if (problem) { toast(problem, { tone: 'error' }); setTab('page'); return; }
-    if (!parts.some((x) => x.type === 'order' && !x.hidden)) { toast('Add the order form first: a landing page takes orders with it.', { tone: 'error' }); return; }
+    if (!parts.some((x) => x.type === 'order' && !x.sf && !x.hidden)) { toast('Add the order form first: a landing page takes orders with it.', { tone: 'error' }); return; }
     const rec = save(true);
     const out = publishLandingPage(rec.id);
     if (!out || out.error) { toast((out && out.error) || 'Could not publish.', { tone: 'error' }); return; }
@@ -292,7 +310,7 @@ export default function LandingPageBuilder() {
   else if (facts && facts.stock < 10) checks.push(['package', `Only ${facts.stock} in stock.`]);
   if (facts && !facts.rating.count && parts.some((x) => x.type === 'reviews' && x.source !== 'own' && !x.hidden)) checks.push(['star', 'No published reviews yet: the Reviews part stays hidden on the live page.']);
   if (facts && !facts.photos.length) checks.push(['image-off', 'The product has no photo. Add one to the product, or set a picture on the Hero.']);
-  if (!parts.some((x) => x.type === 'order' && !x.hidden)) checks.push(['shopping-bag', 'There is no order form, so the page can’t take orders.']);
+  if (!parts.some((x) => x.type === 'order' && !x.sf && !x.hidden)) checks.push(['shopping-bag', 'There is no order form, so the page can’t take orders.']);
 
   if (!ready) return <div className="dc-screen ds" style={{ minHeight: '100vh' }} aria-busy="true" />;
   const status = page ? page.status : 'draft';
@@ -301,17 +319,19 @@ export default function LandingPageBuilder() {
 
   return (
     <div className="dc-screen ds lpb" data-screen="LandingPageBuilder">
-      <style dangerouslySetInnerHTML={{ __html: SFB_CSS + FIELDS_CSS + SEO_PANEL_CSS + LPB_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: SFB_CSS + FIELDS_CSS + LE_CSS + SEO_PANEL_CSS + LPB_CSS }} />
       <header className="lpb-head">
         <button type="button" className="ix-btn ix-btn--plain ix-btn--icon" aria-label="Back to Landing pages" onClick={back}><Icon name="arrow-left" width="18" height="18" aria-hidden="true" /></button>
         <div className="lpb-head__t">
-          {page ? <input className="lpb-title" aria-label="Page name" value={page.title || ''} onChange={(e) => setPage((pg) => ({ ...pg, title: e.target.value }), { coalesce: true })} /> : <b>New landing page</b>}
+          {page ? <h1 className="lpb-vh">{page.title || 'Landing page'}</h1> : null}
+          {page ? <input className="lpb-title" aria-label="Page name" value={page.title || ''} onChange={(e) => setPage((pg) => ({ ...pg, title: e.target.value }), { coalesce: true })} /> : <h1 className="lpb-h1">New landing page</h1>}
           <small>{page ? <><span className={'lpb-st is-' + status}>{status === 'published' ? 'Published' : 'Draft'}</span>{dirty ? 'Unsaved changes' : savedAt ? 'Saved ' + formatTime(savedAt) : 'Not saved yet'}</> : 'Pick a product to start'}</small>
         </div>
         {page ? (
           <div className="lpb-head__a">
             <span className="lpb-seg lpb-hide-s" role="group" aria-label="Preview size">
               <button type="button" aria-pressed={device === 'phone'} onClick={() => setDevice('phone')} aria-label="Phone"><Icon name="smartphone" width="16" height="16" aria-hidden="true" /></button>
+              <button type="button" aria-pressed={device === 'tablet'} onClick={() => setDevice('tablet')} aria-label="Tablet"><Icon name="tablet" width="16" height="16" aria-hidden="true" /></button>
               <button type="button" aria-pressed={device === 'desktop'} onClick={() => setDevice('desktop')} aria-label="Computer"><Icon name="monitor" width="16" height="16" aria-hidden="true" /></button>
             </span>
             <button type="button" className="ix-btn ix-btn--plain ix-btn--icon" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!hist.current.past.length} onClick={undo}><Icon name="undo-2" width="18" height="18" aria-hidden="true" /></button>
@@ -343,12 +363,12 @@ export default function LandingPageBuilder() {
                   <div className="lpb-pane">
                     <ol className="lpb-parts">
                       {parts.map((x, i) => {
-                        const t = partType(x.type) || { label: x.type, icon: 'square' };
+                        const t = { label: partLabel(x), icon: partIcon(x) };
                         return (
                           <li key={x.id} draggable onDragStart={() => { dragFrom.current = i; }} onDragOver={(e) => e.preventDefault()} onDrop={() => { moveTo(dragFrom.current, i); dragFrom.current = -1; }}
                             className={(sel === x.id ? 'is-sel' : '') + (x.hidden ? ' is-off' : '')}>
                             <span className="lpb-grip" aria-hidden="true"><Icon name="grip-vertical" width="14" height="14" /></span>
-                            <button type="button" className="lpb-part" onClick={() => { setSel(x.id); setMob('edit'); }}><Icon name={t.icon} width="16" height="16" aria-hidden="true" /><span><b>{t.label}</b>{summaryOf(x) ? <small>{summaryOf(x)}</small> : null}</span></button>
+                            <button type="button" className="lpb-part" onClick={() => { setSel(x.id); setMob('edit'); }} title={x.sf ? 'A section from the store library' : undefined}><Icon name={t.icon} width="16" height="16" aria-hidden="true" /><span><b>{t.label}</b>{summaryOf(x) ? <small>{summaryOf(x)}</small> : null}</span></button>
                             <span className="lpb-acts">
                               <button type="button" aria-label={`Move ${t.label} up`} disabled={i === 0} onClick={() => move(i, -1)}><Icon name="arrow-up" width="14" height="14" /></button>
                               <button type="button" aria-label={`Move ${t.label} down`} disabled={i === parts.length - 1} onClick={() => move(i, 1)}><Icon name="arrow-down" width="14" height="14" /></button>
@@ -380,6 +400,7 @@ export default function LandingPageBuilder() {
                     {[['theme', 'Background', THEMES], ['font', 'Fonts', FONTS], ['corners', 'Corners', CORNERS]].map(([k, l, opts]) => (
                       <label key={k} className="sfb-field"><span className="gc-label">{l}</span><select className="gc-input gc-select" value={style[k]} onChange={(e) => setStyle({ [k]: e.target.value })}>{opts.map(([v, x]) => <option key={v} value={v}>{x}</option>)}</select></label>
                     ))}
+                    <label className="sfb-field"><span className="gc-label">Background pattern</span><select className="gc-input gc-select" value={style.pattern || ''} onChange={(e) => setStyle({ pattern: e.target.value })}>{PATTERNS.map(([v, x]) => <option key={v || 'x'} value={v}>{x}</option>)}</select></label>
                     <label className="lpb-check"><input type="checkbox" checked={!!style.sticky} onChange={(e) => setStyle({ sticky: e.target.checked })} />Order bar stays at the bottom on phones</label>
                     {checks.length ? <div className="lpb-checks"><p className="gc-label">Before you publish</p>{checks.map(([ic, t]) => <p key={t}><Icon name={ic} width="15" height="15" aria-hidden="true" />{t}</p>)}{product ? <Link href={'/add-product?id=' + encodeURIComponent(product.id)}>Edit the product</Link> : null}</div> : <p className="lpb-ok"><Icon name="check-circle-2" width="15" height="15" aria-hidden="true" />Ready to publish.</p>}
                   </div>
@@ -389,9 +410,8 @@ export default function LandingPageBuilder() {
 
               {/* middle */}
               <main className="lpb-canvas" aria-label="Preview">
-                <div className={'lpb-frame is-' + device}>
-                  <LandingView page={page} product={product} editing selected={sel} onSelect={(id) => { setSel(id); setMob('edit'); }} />
-                </div>
+                <PreviewFrame src="/lp?draft=1&preview=1&edit=1" device={device} height="fill" title="Landing page preview" parts={[['landing', page], ['select', sel]]}
+                  onMessage={(d) => { const id = d && (d.gcSfSelect || d.gcSfPick); if (id && parts.some((x) => x.id === id)) { setSel(id); setMob('edit'); } }} />
               </main>
 
               {/* right */}
@@ -404,7 +424,17 @@ export default function LandingPageBuilder() {
                         <button type="button" aria-label="Remove this part" title="Remove" onClick={() => remove(parts.indexOf(cur))}><Icon name="trash-2" width="15" height="15" /></button>
                       </span>
                     </header>
-                    {TEXT_KEYS.some((k) => typeof cur[k] === 'string' && cur[k].trim()) ? (
+                    <div className="lpb-itabs" role="tablist" aria-label="Part settings">
+                      {[['content', 'Content'], ['style', 'Style'], ['advanced', 'Advanced']].map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={ins === k} onClick={() => setIns(k)}>{l}</button>)}
+                    </div>
+                    {ins === 'style' ? <StyleTab s={cur} dev={DEV_OF[device]} setDev={(d) => setDevice(DEVICE_OF[d])} setBox={(b) => setPart(cur.id, { box: b }, false)} /> : null}
+                    {ins === 'advanced' ? (<>
+                      {cur.type !== 'order' || cur.sf ? (
+                        <div className="sfb-field lpb-under"><label className="gc-label" htmlFor="lpb-under">“Order now” button under this part</label><input id="lpb-under" className="gc-input" placeholder="e.g. Order now (empty = no button)" value={cur.orderBtn || ''} onChange={(e) => setPart(cur.id, { orderBtn: e.target.value })} /></div>
+                      ) : null}
+                      <AdvancedTab s={cur} base={'/lp/' + page.handle} setBox={(b) => setPart(cur.id, { box: b }, false)} />
+                    </>) : null}
+                    {ins === 'content' && TEXT_KEYS.some((k) => typeof cur[k] === 'string' && cur[k].trim()) ? (
                       <div className="lpb-rw">
                         <span><Icon name="sparkles" width="14" height="14" aria-hidden="true" />Rewrite with AI</span>
                         {[['shorter', 'Shorter'], ['stronger', 'Stronger'], ['urgent', 'Urgent'], ['friendly', 'Friendly']].map(([how, l]) => (
@@ -412,10 +442,15 @@ export default function LandingPageBuilder() {
                         ))}
                       </div>
                     ) : null}
-                    <div className="lpb-fields">
-                      {curType.fields.filter((fd) => !fd[5] || fd[5](cur)).map((fd) => <Field key={cur.id + fd[0]} fd={fd} f={cur} set={(patch) => setPart(cur.id, patch)} locked={false} />)}
-                    </div>
-                    {cur.type === 'reviews' || cur.type === 'gallery' || cur.type === 'specs' || cur.type === 'hero' ? <p className="lpb-muted lpb-note">{cur.type === 'reviews' ? 'Reviews come from Products › Reviews (published, 4–5 stars).' : 'Photos, price and specs come from the product.'} {product ? <Link href={'/add-product?id=' + encodeURIComponent(product.id)}>Edit the product</Link> : null}</p> : null}
+                    {ins === 'content' ? (
+                      <div className="lpb-fields le-insp">
+                        {isStorePart(cur)
+                          ? <SectionFields f={cur} set={(patch) => setPart(cur.id, patch)} locked={false} />
+                          : curType.fields.filter((fd) => !fd[5] || fd[5](cur)).map((fd) => <Field key={cur.id + fd[0]} fd={fd} f={cur} set={(patch) => setPart(cur.id, patch)} locked={false} />)}
+                      </div>
+                    ) : null}
+                    {ins === 'content' && !cur.sf && (cur.type === 'reviews' || cur.type === 'gallery' || cur.type === 'specs' || cur.type === 'hero') ? <p className="lpb-muted lpb-note">{cur.type === 'reviews' ? 'Reviews come from Products › Reviews (published, 4–5 stars).' : 'Photos, price and specs come from the product.'} {product ? <Link href={'/add-product?id=' + encodeURIComponent(product.id)}>Edit the product</Link> : null}</p> : null}
+                    {ins === 'content' && cur.sf ? <p className="lpb-muted lpb-note">A section from the store’s library: the same looks and settings as in Online Store › Layouts, drawn in this page’s colours and fonts.</p> : null}
                   </div>
                 ) : <div className="lpb-pane lpb-empty"><Icon name="mouse-pointer-click" width="22" height="22" aria-hidden="true" /><p>Click a part on the page, or pick one from Parts, to change it.</p></div>}
               </aside>
@@ -424,14 +459,24 @@ export default function LandingPageBuilder() {
 
       {lib ? (
         <Sheet open title="Add a part" onClose={() => setLib(false)}>
+          <div className="lpb-libtabs" role="tablist" aria-label="Library">
+            {[['sales', 'Sales page parts', PARTS.length], ['store', 'Store sections', null]].map(([k, l, n]) => <button key={k} type="button" role="tab" aria-selected={libTab === k} onClick={() => setLibTab(k)}>{l}{n ? <small>{n}</small> : null}</button>)}
+          </div>
+          {libTab === 'store' ? (
+            <div className="lpb-storelib">
+              <input className="gc-input" type="search" placeholder="Search sections and looks" aria-label="Search sections" value={libQ} onChange={(e) => setLibQ(e.target.value)} />
+              <LibraryBody filter={libQ} onAdd={(type, look) => add(type, look, true)} />
+            </div>
+          ) : (
           <div className="lpb-lib">
             {PART_GROUPS.map(([g, gl]) => (
               <div key={g}>
                 <p className="gc-label">{gl}</p>
-                <div className="lpb-lib__grid">{PARTS.filter((p) => p.group === g).map((p) => <button key={p.type} type="button" onClick={() => add(p.type)}><Icon name={p.icon} width="20" height="20" aria-hidden="true" /><b>{p.label}</b>{parts.some((x) => x.type === p.type) ? <small>On the page</small> : null}</button>)}</div>
+                <div className="lpb-lib__grid">{PARTS.filter((p) => p.group === g).map((p) => <button key={p.type} type="button" onClick={() => add(p.type)}><Icon name={p.icon} width="20" height="20" aria-hidden="true" /><b>{p.label}</b>{parts.some((x) => x.type === p.type && !x.sf) ? <small>On the page</small> : null}</button>)}</div>
               </div>
             ))}
           </div>
+          )}
         </Sheet>
       ) : null}
       {seoOpen && page ? (
@@ -448,6 +493,8 @@ const LPB_CSS = `
 .lpb{display:flex;flex-direction:column;height:100vh;background:var(--surface-page,#f1f3f7);color:var(--text-body)}
 .lpb-head{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 16px;border-bottom:1px solid var(--border-subtle);background:var(--surface-card)}
 .lpb-head__t{display:flex;flex-direction:column;flex:1;min-width:0}
+.lpb-h1{margin:0;font-size:var(--text-base);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.lpb-vh{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .lpb-title{width:min(420px,100%);padding:2px 6px;margin-left:-6px;border:1px solid transparent;border-radius:var(--radius-lg);background:none;color:var(--text-heading);font:inherit;font-size:var(--text-base);font-weight:var(--weight-semibold)}
 .lpb-title:hover,.lpb-title:focus{border-color:var(--border-default);outline:none}
 .lpb-head__t small{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:var(--text-xs)}
@@ -480,9 +527,17 @@ const LPB_CSS = `
 .lpb-acts button:disabled{opacity:.35}
 .lpb-add{align-self:flex-start}
 .lpb-canvas{min-width:0;min-height:0;overflow:auto;padding:20px}
-.lpb-frame{margin:0 auto;border-radius:var(--radius-xl);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.08),0 20px 50px -24px rgba(15,23,42,.35);overflow:hidden}
-.lpb-frame.is-phone{width:390px;max-width:100%}
-.lpb-frame.is-desktop{width:100%;max-width:1200px}
+.lpb-canvas>.sfb-frame{height:100%}
+.lpb-itabs{display:flex;gap:2px;border-bottom:1px solid var(--border-subtle)}
+.lpb-itabs button{flex:1;min-height:36px;border:0;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer}
+.lpb-itabs button[aria-selected="true"]{color:var(--text-heading);border-bottom-color:var(--primary)}
+.lpb-right .le-insp{padding:0}
+.lpb-under{padding-bottom:12px;border-bottom:1px solid var(--border-subtle)}
+.lpb-libtabs{display:flex;gap:6px;margin-bottom:14px}
+.lpb-libtabs button{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border:1px solid var(--border-default);border-radius:var(--radius-full);background:var(--surface-card);color:var(--text-body);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer}
+.lpb-libtabs button[aria-selected="true"]{border-color:var(--primary);background:var(--primary);color:#fff}
+.lpb-libtabs small{font-size:var(--text-xs);opacity:.8}
+.lpb-storelib{display:flex;flex-direction:column;gap:12px}
 .lpb-right__h{display:flex;align-items:center;gap:8px;color:var(--text-heading)}
 .lpb-right__h .lpb-acts{margin-left:auto}
 .lpb-fields{display:flex;flex-direction:column;gap:12px}

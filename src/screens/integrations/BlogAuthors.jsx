@@ -19,6 +19,7 @@ import { BlogFrame, useBlog, Avatar, AuthorDialog } from './blogShared';
 const CSS = `
 .ba-who{display:inline-flex;align-items:center;gap:10px;min-width:0;max-width:280px}
 .ba-who>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ba-pslot{display:flex;grid-row:span 2;align-self:center}
 tr.is-off td{color:var(--text-muted)}
 .ba-roles{display:flex;flex-direction:column;margin:0!important;padding:0 var(--space-4) var(--space-2)}
 .ba-role{display:grid;grid-template-columns:110px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);min-height:40px;border-top:1px solid var(--border-subtle);font-size:var(--text-sm)}
@@ -56,7 +57,8 @@ export default function BlogAuthors() {
           <ul className="ix-plist" aria-label="Authors">
             {shown.map(({ a, s }) => (
               <li key={a.id}>
-                <Link href={profile(a)} className="ix-pitem">
+                <Link href={profile(a)} className="ix-pitem ix-pitem--thumb">
+                  <span className="ba-pslot"><Avatar author={a} size={32} /></span>
                   <span className="ix-pitem__top"><b>{a.name}</b><span className={'gc-badge gc-badge--' + (ROLE_TONE[a.role] || 'slate')}>{a.role}</span></span>
                   <span className="ix-pitem__mid">{s.posts} posts · {n(s.views)} views{a.active ? '' : ' · Inactive'}</span>
                 </Link>
@@ -70,7 +72,7 @@ export default function BlogAuthors() {
               <tbody>
                 {shown.map(({ a, s }) => (
                   <tr key={a.id} className={a.active ? '' : 'is-off'} onClick={(e) => { if (!e.target.closest('a,button')) navigate(profile(a)); }}>
-                    <td><span className="ba-who"><Avatar author={a} size={28} /><Link href={profile(a)} className="ix-strong">{a.name}</Link></span></td>
+                    <td><span className="ba-who"><Avatar author={a} size={32} /><Link href={profile(a)} className="ix-strong">{a.name}</Link></span></td>
                     <td><span className={'gc-badge gc-badge--' + (ROLE_TONE[a.role] || 'slate')}>{a.role}</span></td>
                     <td>{a.active ? <span className="gc-badge gc-badge--success">Active</span> : <span className="gc-badge gc-badge--slate">Inactive</span>}</td>
                     <td className="ix-num">{s.posts}<span className="ix-muted"> · {s.published} live</span></td>

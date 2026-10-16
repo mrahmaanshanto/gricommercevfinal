@@ -24,6 +24,7 @@ import { commit } from '@/lib/platform/store';
 import { STAGES, ONBOARDERS, PLAN_NAME, ladderLabel } from '@/lib/platform/catalogue';
 import { DAY, dur, dmy, hm, ago, lastSeen, startOfDay } from '@/lib/platform/util';
 import { AdminShell, usePlatform } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 
 const CSS = `
 .onb-skel{height:280px;border-radius:var(--radius-xl);background:linear-gradient(90deg,var(--surface-card),var(--surface-subtle),var(--surface-card));background-size:200% 100%;animation:onb-sk 1.4s ease infinite}
@@ -469,7 +470,8 @@ export default function Onboarding() {
               <ul className="ix-plist" aria-label="Stores">
                 {shown.map((r) => (
                   <li key={r.id}>
-                    <button type="button" className="ix-pitem" onClick={() => openRow(r.id)}>
+                    <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => openRow(r.id)}>
+                      <span style={{ gridRow: 'span 3' }}><Pic src={r.logo} name={r.name} kind="logo" /></span>
                       {view === 'setup' ? (<>
                         <span className="ix-pitem__top"><b>{r.name}</b><span className="onb-fig">{r.rs ? dur(r.rs.elapsed) : '—'}</span></span>
                         <span className="ix-pitem__mid">{r.current} · step {Math.min(r.done + 1, STAGES.length)} of {STAGES.length}</span>
@@ -506,7 +508,7 @@ export default function Onboarding() {
                   </thead>
                   <tbody>
                     {shown.map((r) => {
-                      const name = <><button type="button" className="onb-name" onClick={(e) => { e.stopPropagation(); openRow(r.id); }}>{r.name}</button><span className="onb-id">#{r.id}</span></>;
+                      const name = <span className="gc-picrow"><Pic src={r.logo} name={r.name} kind="logo" /><span><button type="button" className="onb-name" onClick={(e) => { e.stopPropagation(); openRow(r.id); }}>{r.name}</button><span className="onb-id">#{r.id}</span></span></span>;
                       if (view === 'setup') return (
                         <tr key={r.id} onClick={() => openRow(r.id)}>
                           <td>{name}</td>

@@ -2,7 +2,11 @@
 //   PARTS            the part library: { type, label, icon, group, fields } (fields as the section editor reads them:
 //                    [key, label, type, default, choices, when, sub-fields])
 //   newPart(type, patch) · partsFor(template, facts, lang) · factsOf(product) · ensureParts(page, product)
-//   PAGE_STYLE       the page's look: accent colour, theme, font, corners; sticky order bar on phones
+//   PAGE_STYLE       the page's look: accent colour, theme, font, corners, background pattern; sticky order bar on phones
+//   Store sections   a page may also hold any section of the store's library (layouts.js SECTION_TYPES, every look, the
+//                    Style / Advanced tabs): such a part is the section itself with `sf: true` (isStorePart), drawn by the
+//                    store's own Section (sections.jsx) inside the page's theme. partLabel / partIcon read either kind.
+//   Every part may carry `box` (Style / Advanced tabs, lib/storefront/styles.js) and `orderBtn` (an "Order now" button under it).
 //   aiBuild(brief, facts) → { parts, style, title, offerLine, steps, run }   the AI builder (writes a whole page)
 //   aiRewrite(text, how) · headlineIdeas(facts, lang)                       the AI writer on a single text
 // The AI is GridAI's marketing agent, simulated over the product's real data (name, price, discount, key features,
@@ -15,6 +19,8 @@ import { formatBDT } from './format';
 import { deliveryRates } from './deliveryRates';
 import { meter } from './gridai/usage';
 import { tierOf, modelFor, costOf } from './gridai/models';
+import { FONT_PAIRS, sectionType } from './storefront/schema.js';
+import { PATTERNS } from './storefront/styles';
 
 const uid = (p = 'lp') => p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const tk = (n) => formatBDT(Math.round(Number(n) || 0));
@@ -49,17 +55,37 @@ export const PARTS = [
     fields: [['title', 'Title', 'text', 'Buy without worry'], ['text', 'Text', 'area', 'Open the parcel in front of the rider. If it isn’t right, don’t pay. Changed your mind later? Return it within 7 days.']] },
   { type: 'order', label: 'Order form', icon: 'shopping-bag', group: 'sell',
     fields: [['title', 'Title', 'text', 'Order now, pay when it arrives'], ['sub', 'Line under it', 'text', 'Fill in the form. We call you to confirm before it ships.'], ['button', 'Button', 'text', 'Confirm order'],
-      ['tiers', 'Quantity offers', 'list', [], null, null, [['label', 'Name (e.g. 1 piece)', 'text'], ['qty', 'How many', 'text'], ['price', 'Price for all (৳)', 'text'], ['tag', 'Tag (e.g. Best value)', 'text']]],
-      ['variants', 'Let them pick a variant', 'bool', true], ['note', 'Note box', 'bool', true], ['freeAt', 'Free delivery from (৳, 0 = never)', 'text', '0'], ['thanks', 'After ordering', 'area', 'Thank you! We will call you within a few hours to confirm your order.']] },
+      ['mode', 'Customers choose', 'choice', 'qty', [['qty', 'How many of this product'], ['choices', 'One of several offers (products or combos)']]],
+      ['tiers', 'Quantity offers', 'list', [], null, (s) => s.mode !== 'choices', [['label', 'Name (e.g. 1 piece)', 'text'], ['qty', 'How many', 'text'], ['price', 'Price for all (৳)', 'text'], ['tag', 'Tag (e.g. Best value)', 'text']]],
+      ['choices', 'Offers', 'list', [], null, (s) => s.mode === 'choices', [['label', 'Name (e.g. Chocolate + Classic combo)', 'text'], ['product', 'Product (a combo is a bundle product)', 'product'], ['qty', 'How many', 'text'], ['price', 'Price for all (৳)', 'text'], ['mrp', 'Old price (৳, optional)', 'text'], ['tag', 'Tag (e.g. Best value)', 'text'], ['image', 'Picture (empty = the product photo)', 'image'], ['note', 'Line under it (e.g. 400 g + 400 g)', 'text']]],
+      ['variants', 'Let them pick a variant', 'bool', true, null, (s) => s.mode !== 'choices'], ['note', 'Note box', 'bool', true], ['freeAt', 'Free delivery from (৳, 0 = never)', 'text', '0'], ['thanks', 'After ordering', 'area', 'Thank you! We will call you within a few hours to confirm your order.']] },
   { type: 'faq', label: 'Questions', icon: 'circle-help', group: 'trust',
     fields: [['title', 'Title', 'text', 'Questions'], ['items', 'Questions', 'faq', []]] },
   { type: 'cta', label: 'Call to action', icon: 'mouse-pointer-click', group: 'sell',
     fields: [['title', 'Title', 'text', 'Ready to order?'], ['text', 'Line under it', 'text', 'Cash on delivery all over Bangladesh.'], ['button', 'Button', 'text', 'Order now']] },
   { type: 'contact', label: 'Call and WhatsApp', icon: 'phone', group: 'trust',
-    fields: [['title', 'Title', 'text', 'Need help choosing?'], ['text', 'Line under it', 'text', 'Call or message us. We reply within minutes.'], ['call', 'Call button', 'bool', true], ['whatsapp', 'WhatsApp button', 'bool', true]] },
+    fields: [['title', 'Title', 'text', 'Need help choosing?'], ['text', 'Line under it', 'text', 'Call or message us. We reply within minutes.'], ['call', 'Call button', 'bool', true], ['whatsapp', 'WhatsApp button', 'bool', true], ['facebook', 'Facebook page link (optional)', 'text', '']] },
+  { type: 'offers', label: 'Offer cards', icon: 'layout-grid', group: 'sell',
+    fields: [['title', 'Title', 'text', 'Choose your offer'], ['sub', 'Line under it', 'text', ''], ['look', 'Look', 'choice', 'cards', [['cards', 'Cards, two in a row'], ['wide', 'Wide rows'], ['compact', 'Compact list']]], ['button', 'Button', 'text', 'Order now'], ['save', 'Show how much they save', 'bool', true]] },
+  { type: 'callout', label: 'Callout box', icon: 'message-square-warning', group: 'tell',
+    fields: [['icon', 'Icon', 'icon', 'badge-check'], ['title', 'Title', 'text', 'No secrets'], ['text', 'Text', 'area', 'Real ingredients, an honest price. What you see is what you get.'], ['tone', 'Colours', 'choice', 'brand', [['brand', 'Accent colour'], ['success', 'Green'], ['warning', 'Amber'], ['danger', 'Red'], ['dark', 'Dark']]], ['look', 'Look', 'choice', 'soft', [['soft', 'Soft'], ['outline', 'Outline'], ['solid', 'Solid']]]] },
+  { type: 'proof', label: 'Customer proof', icon: 'users', group: 'trust',
+    fields: [['number', 'Big number', 'text', '10,000+'], ['label', 'What it counts', 'text', 'happy customers'], ['sub', 'Line under it', 'text', 'Thank you for trusting us.'], ['look', 'Look', 'choice', 'slider', [['header', 'Faces and number only'], ['slider', 'With a photo slider'], ['grid', 'With a photo grid']]],
+      ['avatars', 'Faces (small round photos)', 'list', [], null, null, [['image', 'Photo', 'image']]],
+      ['photos', 'Customer photos', 'list', [], null, (s) => s.look !== 'header', [['image', 'Photo', 'image'], ['caption', 'Caption', 'text']]]] },
+  { type: 'image', label: 'Picture banner', icon: 'image', group: 'show',
+    fields: [['image', 'Picture (a designed banner with its words works best)', 'image', ''], ['alt', 'What the picture says (for search and screen readers)', 'text', ''], ['width', 'Width', 'choice', 'contained', [['contained', 'Contained'], ['full', 'Edge to edge']]], ['button', 'Button under it (empty = none)', 'text', ''], ['href', 'Button goes to (empty = the order form)', 'text', '']] },
+  { type: 'logos', label: 'Certificates and logos', icon: 'award', group: 'trust',
+    fields: [['title', 'Title', 'text', 'Certified and trusted'], ['look', 'Look', 'choice', 'cards', [['cards', 'Cards'], ['plain', 'Logos only'], ['strip', 'One row that scrolls']]], ['items', 'Logos', 'list', [], null, null, [['image', 'Logo', 'image'], ['label', 'Name under it', 'text']]]] },
 ];
 export const PART_GROUPS = [['top', 'Top'], ['sell', 'Sell'], ['tell', 'Tell'], ['show', 'Show'], ['trust', 'Trust']];
 export const partType = (type) => PARTS.find((p) => p.type === type) || null;
+/** A store section placed on a landing page (any kind of the store's section library). */
+export const isStorePart = (p) => !!(p && p.sf);
+/** The part's kind as the builder lists it: a landing part, or a store section's kind. */
+export const partKind = (p) => (isStorePart(p) ? sectionType(p.type) : partType(p && p.type));
+export const partLabel = (p) => (partKind(p) || {}).label || 'Part';
+export const partIcon = (p) => (partKind(p) || {}).icon || 'square';
 
 export function newPart(type, patch = {}) {
   const t = partType(type);
@@ -70,10 +96,11 @@ export function newPart(type, patch = {}) {
 
 // ---- the page's look ------------------------------------------------------------------------------------------------
 export const PAGE_STYLE = {
-  accent: '#e11d48', theme: 'light', font: 'jakarta', corners: 'round', sticky: true,
+  accent: '#e11d48', theme: 'light', font: 'jakarta', corners: 'round', sticky: true, pattern: '',
 };
 export const THEMES = [['light', 'Light'], ['warm', 'Warm cream'], ['dark', 'Dark']];
-export const FONTS = [['jakarta', 'Plus Jakarta Sans'], ['sora', 'Sora + Figtree'], ['bricolage', 'Bricolage + DM Sans'], ['fraunces', 'Fraunces + Figtree'], ['dmserif', 'DM Serif + Jost'], ['bangla', 'Hind Siliguri (Bangla)']];
+export const FONTS = FONT_PAIRS.map((p) => [p.id, p.label]);
+export { PATTERNS };
 export const CORNERS = [['sharp', 'Sharp'], ['soft', 'Soft'], ['round', 'Round']];
 export const ACCENTS = ['#e11d48', '#ea580c', '#16a34a', '#2563eb', '#7c3aed', '#0f172a'];
 

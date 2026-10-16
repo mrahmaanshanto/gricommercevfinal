@@ -84,8 +84,10 @@ export const AREAS = [
   { id: 'area-comms', layer: 'company', label: 'Communications', icon: 'send', pages: [
     P('comms', 'Overview', '/admin/comms', 5, 'adapt', '/campaigns-messaging', { built: true }),
     P('sms', 'SMS', '/admin/sms', 5, 'adapt', '/campaigns-messaging', { built: true }),
-    P('email', 'Email', '/admin/email', 5, 'adapt', '/campaigns-messaging', { built: true }),
+    // Communications › Email moved to /admin/comms/email (Batch D): /admin/email is Business email's directory
+    P('email', 'Email', '/admin/comms/email', 5, 'adapt', '/campaigns-messaging', { built: true }),
     P('templates', 'Templates', '/admin/templates', 5, 'adapt', '/set-notifications (templates)', { built: true }),
+    P('email-design', 'Message design', '/admin/message-design', 5, 'adapt', '/message-design', { built: true }),
     P('notices', 'Merchant notices', '/admin/notices', 5, 'new', '', { built: true }),
     P('automations', 'Automations', '/admin/automations', 5, 'reuse', '/automations', { built: true }),
   ] },
@@ -99,7 +101,34 @@ export const AREAS = [
     P('svc-catalogue', 'Catalogue', '/admin/services/catalogue', 7, 'new', '', { built: true }),
     P('svc-experts', 'Experts', '/admin/services/experts', 7, 'new', '', { built: true }),
     P('svc-reports', 'Reports', '/admin/services/reports', 7, 'new', '', { built: true }),
+    // Batch D: who may use Services and Grid Shop (module on/off, chosen stores only, blocked stores)
+    P('svc-access', 'Access', '/admin/services/access', 7, 'new', '', { built: true }),
   ] },
+  // Batch D: Grid Shop, business supplies merchants buy (own stock + vendor-shipped); who may use it: Services › Access.
+  // Batch E: suppliers became vendors with their own portal (/vendor…); page id gshop-suppliers is kept (ids never change)
+  { id: 'area-gridshop', layer: 'company', label: 'Grid Shop', icon: 'shopping-bag', pages: [
+    P('gshop-orders', 'Orders', '/admin/grid-shop', 7, 'new', '', { built: true }),
+    P('gshop-products', 'Products', '/admin/grid-shop/products', 7, 'new', '', { built: true }),
+    P('gshop-suppliers', 'Vendors', '/admin/grid-shop/vendors', 7, 'new', '', { built: true }),
+    P('gshop-pricing', 'Pricing rules', '/admin/grid-shop/pricing', 7, 'new', '', { built: true }),
+  ] },
+  // Batch E · Grid Partners: models, influencers and video creators stores can hire (lib/platform/partners.js); who may
+  // use it: Services › Access (?m=partners)
+  { id: 'area-partners', layer: 'company', label: 'Grid Partners', icon: 'users-round', pages: [
+    P('pt-applications', 'Applications', '/admin/partners/applications', 7, 'new', '', { built: true }),
+    P('pt-directory', 'Partners', '/admin/partners', 7, 'new', '', { built: true }),
+    P('pt-requests', 'Requests', '/admin/partners/requests', 7, 'new', '', { built: true }),
+    P('pt-settings', 'Settings', '/admin/partners/settings', 7, 'new', '', { built: true }),
+  ] },
+  // end Batch E · Grid Partners
+  // Batch F · Grid Career: GridCommerce's own hiring (jobs, board, careers page /jobs) and the stores that use it
+  { id: 'area-career', layer: 'company', label: 'Grid Career', icon: 'user-search', pages: [
+    P('career-jobs', 'Jobs', '/admin/career', 7, 'new', '', { built: true }),
+    P('career-applicants', 'Applicants', '/admin/career/applicants', 7, 'new', '', { built: true }),
+    P('career-page', 'Careers page', '/admin/career/page', 7, 'new', '', { built: true }),
+    P('career-stores', 'Stores', '/admin/career/stores', 7, 'new', '', { built: true }),
+  ] },
+  // end Batch F
   { id: 'area-gridai', layer: 'company', label: 'GridAI', icon: 'sparkles', pages: [
     P('ai-training', 'Training', '/admin/gridai', 6, 'reuse', '/ai-knowledge', { built: true }),
     P('ai-test', 'Test chat', '/admin/gridai/test', 6, 'new', '', { built: true }),
@@ -169,7 +198,15 @@ export const RECORDS = [
   { id: 'merchant', label: 'Merchant profile', href: '/admin/merchant', phase: 2, how: 'new', from: '', area: 'area-merchants', under: 'merchants', built: true },
   { id: 'merchant-new', label: 'New merchant', href: '/admin/merchants/new', phase: 2, how: 'new', from: '', area: 'area-merchants', under: 'merchants', built: true },
   { id: 'svc-order', label: 'Service order', href: '/admin/service-order', phase: 7, how: 'new', from: '', area: 'area-services', under: 'svc-orders', built: true },
+  { id: 'svc-offer', label: 'New custom offer', href: '/admin/service-offer', phase: 7, how: 'new', from: '', area: 'area-services', under: 'svc-orders', built: true },
+  { id: 'gshop-order', label: 'Grid Shop order', href: '/admin/grid-shop/order', phase: 7, how: 'new', from: '', area: 'area-gridshop', under: 'gshop-orders', built: true },
+  { id: 'gshop-product', label: 'Grid Shop product', href: '/admin/grid-shop/product', phase: 7, how: 'new', from: '', area: 'area-gridshop', under: 'gshop-products', built: true },
+  { id: 'gshop-vendor', label: 'Grid Shop vendor', href: '/admin/grid-shop/vendor', phase: 7, how: 'new', from: '', area: 'area-gridshop', under: 'gshop-suppliers', built: true },
   { id: 'svc-edit', label: 'Edit service', href: '/admin/service-edit', phase: 7, how: 'new', from: '', area: 'area-services', under: 'svc-catalogue', built: true },
+  // Batch E · Grid Partners
+  { id: 'pt-partner', label: 'Grid Partner', href: '/admin/partner', phase: 7, how: 'new', from: '', area: 'area-partners', under: 'pt-directory', built: true },
+  // Batch F · Grid Career
+  { id: 'career-job', label: 'Job', href: '/admin/career/job', phase: 7, how: 'new', from: '', area: 'area-career', under: 'career-jobs', built: true },
 ];
 export const ALIAS = Object.fromEntries(RECORDS.map((r) => [r.id, r.under]));
 

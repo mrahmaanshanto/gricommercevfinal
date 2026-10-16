@@ -16,6 +16,12 @@ import { EmptyState, Sheet, StatusBadge, InfoTip } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import MarketingTabs from '@/screens/loyalty-promo/MarketingTabs';
 import { toast, confirmDialog } from '@/runtime/ui';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
+
+// the offer's picture: its banner, else the photo of the product it rewards or is about, else '' (a tag tile)
+const offerPic = (o) => o.banner || o.image || ((o.off === 'gift' || /prod/.test(o.off || '')) && productPic(o.oProd || ''))
+  || (/prod/.test(o.sit || '') && productPic(o.sProd || '')) || '';
 import { formatBDT, formatDateTime } from '@/lib/format';
 import {
   getOffers, saveOffer, deleteOffer, setOfferOn, sendNow, audienceOf, getRules, saveRules, getLog, totals, pickLists, blankOffer,
@@ -200,7 +206,8 @@ export default function SmartOffers() {
                   <ul className="ix-plist" aria-label="Offers">
                     {shown.map((o) => (
                       <li key={o.id}>
-                        <button type="button" className="ix-pitem" onClick={() => openEdit(o)}>
+                        <button type="button" className="ix-pitem ix-pitem--thumb" style={{ gridTemplateColumns: '43px minmax(0,1fr)' }} onClick={() => openEdit(o)}>
+                          <span style={{ gridRow: 'span 3' }}><Pic src={offerPic(o)} name={o.name} kind="cover" icon="tag" /></span>
                           <span className="ix-pitem__top"><b>{o.name}</b><span className={o.on ? '' : 'ix-muted'}>{o.on ? 'On' : 'Off'}</span></span>
                           <span className="ix-pitem__mid">{rewardText(o)}</span>
                           <span className="ix-pitem__mid">{num(o.sent)} sent · {pct(o.used, o.sent)}% used · {formatBDT(o.sales)}</span>
@@ -215,7 +222,7 @@ export default function SmartOffers() {
                       <tbody>
                         {shown.map((o) => (
                           <tr key={o.id} className={o.on ? '' : 'so-off'} onClick={(e) => { if (!e.target.closest('a,button')) openEdit(o); }}>
-                            <td><span className="so-name"><button type="button" className="ix-strong" onClick={() => openEdit(o)} style={{ textAlign: 'left' }}><b>{o.name}</b></button><small>{triggerText(o)}{waitText(o) ? ' · ' + waitText(o) : ''}</small></span></td>
+                            <td><span className="gc-picrow"><Pic src={offerPic(o)} name={o.name} kind="cover" icon="tag" /><span className="so-name"><button type="button" className="ix-strong" onClick={() => openEdit(o)} style={{ textAlign: 'left' }}><b>{o.name}</b></button><small>{triggerText(o)}{waitText(o) ? ' · ' + waitText(o) : ''}</small></span></span></td>
                             <td><span className="so-reward">{rewardText(o)}</span></td>
                             <td><span className="so-chs">{(o.ch || []).map((c) => <span key={c} className="gc-badge gc-badge--slate">{channelName(c)}</span>)}</span></td>
                             <td className="ix-num">{num(o.sent)}</td>

@@ -122,7 +122,8 @@ export default function Settlements() {
             <li className="ac-plh">{g.label}<small>{g.sub} · {money(sum(g.list))}</small></li>
             {g.list.map((p) => (
               <li key={p.id}>
-                <button type="button" className="ix-pitem" onClick={() => arrive(p)}>
+                <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => arrive(p)}>
+                  <span style={{ gridRow: 'span 3' }}><BrandLogo brand={p.p.brand} size={32} decorative /></span>
                   <span className="ix-pitem__top"><b>{p.p.short}</b><span className="st-fig">{money(p.net)}</span></span>
                   <span className="ix-pitem__mid">into {accName(p.account)} · {p.items.length} payment{p.items.length === 1 ? '' : 's'}</span>
                   {p.late || p.status === 'delayed' || p.due < today ? <span className="ix-pitem__tags">{statusOf(p, now)}</span> : null}
@@ -134,7 +135,8 @@ export default function Settlements() {
         {wallets.length ? <li className="ac-plh">Withdraw yourself<small>{money(walletNet)}</small></li> : null}
         {wallets.map((w) => (
           <li key={w.partner}>
-            <button type="button" className="ix-pitem" onClick={() => setWallet(w)}>
+            <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setWallet(w)}>
+              <span style={{ gridRow: 'span 2' }}><BrandLogo brand={w.p.brand} size={32} decorative /></span>
               <span className="ix-pitem__top"><b>{w.p.short} wallet</b><span className="st-fig">{money(w.net)}</span></span>
               <span className="ix-pitem__mid">{w.items.length} payments since {shortDate(w.since)}</span>
             </button>
@@ -150,7 +152,7 @@ export default function Settlements() {
               <tr className="ac-grp"><th scope="rowgroup" colSpan={4}>{g.label}<small>{g.sub}{g.note ? ' · ' + g.note : ''}</small></th><td className="ix-num st-fig">{money(sum(g.list))}</td><td /></tr>
               {g.list.map((p) => (
                 <tr key={p.id} onClick={rowClick(p)}>
-                  <td><span className="ac-logo"><BrandLogo brand={p.p.brand} size={24} decorative /><span className="ix-strong">{p.p.short}</span></span></td>
+                  <td><span className="ac-logo"><BrandLogo brand={p.p.brand} size={32} decorative /><span className="ix-strong">{p.p.short}</span></span></td>
                   <td className="ix-muted">{p.items.length} from {daysText(p.days)}</td>
                   <td className="ix-muted">{accName(p.account)}</td>
                   <td>{statusOf(p, now)}</td>
@@ -165,7 +167,7 @@ export default function Settlements() {
               <tr className="ac-grp"><th scope="rowgroup" colSpan={4}>Withdraw yourself<small>This money stays in the partner’s wallet until you withdraw it</small></th><td className="ix-num st-fig">{money(walletNet)}</td><td /></tr>
               {wallets.map((w) => (
                 <tr key={w.partner} onClick={(e) => { if (!e.target.closest('button')) setWallet(w); }}>
-                  <td><span className="ac-logo"><BrandLogo brand={w.p.brand} size={24} decorative /><span className="ix-strong">{w.p.short} wallet</span></span></td>
+                  <td><span className="ac-logo"><BrandLogo brand={w.p.brand} size={32} decorative /><span className="ix-strong">{w.p.short} wallet</span></span></td>
                   <td className="ix-muted">{w.items.length} since {shortDate(w.since)}</td>
                   <td className="ix-muted">usually {accName(w.p.to)}</td>
                   <td><StatusBadge tone="warning" icon="wallet">To withdraw</StatusBadge></td>
@@ -184,7 +186,8 @@ export default function Settlements() {
     <ul className="ix-plist" aria-label="Needs a look">
       {review.map((p) => (
         <li key={p.id}>
-          <button type="button" className="ix-pitem" onClick={() => arrive(p)}>
+          <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => arrive(p)}>
+            <span style={{ gridRow: 'span 2' }}><BrandLogo brand={p.p.brand} size={32} decorative /></span>
             <span className="ix-pitem__top"><b>{p.p.short} · {shortDate(p.due)}</b><span className="st-fig st-out">{p.net > p.received ? '−' : '+'}{money(p.net - p.received)}</span></span>
             <span className="ix-pitem__mid">Arrived {money(p.received)}, expected {money(p.net)}</span>
           </button>
@@ -198,7 +201,7 @@ export default function Settlements() {
         <tbody>{review.map((p) => (
           <tr key={p.id} onClick={rowClick(p)}>
             <td>{shortDate(p.due)}</td>
-            <td><span className="ac-logo"><BrandLogo brand={p.p.brand} size={24} decorative /><span className="ix-strong">{p.p.short}</span></span></td>
+            <td><span className="ac-logo"><BrandLogo brand={p.p.brand} size={32} decorative /><span className="ix-strong">{p.p.short}</span></span></td>
             <td className="ix-muted">{accName(p.account)}</td>
             <td className="ix-num st-fig">{money(p.net)}</td>
             <td className="ix-num st-fig ix-strong">{money(p.received)}</td>
@@ -216,7 +219,8 @@ export default function Settlements() {
         const diff = Math.round((p.received - p.net) * 100) / 100;
         return (
           <li key={p.id}>
-            <div className="ix-pitem">
+            <div className="ix-pitem ix-pitem--thumb">
+              <span style={{ gridRow: 'span 2' }}><BrandLogo brand={p.p.brand} size={32} decorative /></span>
               <span className="ix-pitem__top"><b>{p.p.short} · {shortDate(p.at || p.due)}</b><span className="st-fig">{money(p.received)}</span></span>
               <span className="ix-pitem__mid">into {accName(p.account)}{diff ? ` · ${diff < 0 ? '−' : '+'}${money(diff)}` : ''}</span>
             </div>
@@ -233,7 +237,7 @@ export default function Settlements() {
           return (
             <tr key={p.id} title={`${p.items.length} payment${p.items.length === 1 ? '' : 's'} from ${daysText(p.days)}`}>
               <td>{shortDate(p.at || p.due)}</td>
-              <td><span className="ac-logo"><BrandLogo brand={p.p.brand} size={24} decorative /><span className="ix-strong">{p.p.short}</span></span></td>
+              <td><span className="ac-logo"><BrandLogo brand={p.p.brand} size={32} decorative /><span className="ix-strong">{p.p.short}</span></span></td>
               <td className="ix-muted">{accName(p.account)}</td>
               <td>{diff ? <StatusBadge tone="warning">{REASON[p.reason] || 'Difference'}</StatusBadge> : <StatusBadge tone="success">Matched</StatusBadge>}</td>
               <td className="ix-num st-fig">{money(p.net)}</td>
@@ -261,7 +265,8 @@ export default function Settlements() {
     <ul className="ix-plist" aria-label="Partners">
       {partnerRows.map((r) => (
         <li key={r.p.id}>
-          <div className="ix-pitem">
+          <div className="ix-pitem ix-pitem--thumb">
+            <span style={{ gridRow: 'span 2' }}><BrandLogo brand={r.p.brand} size={32} decorative /></span>
             <span className="ix-pitem__top"><b>{r.p.short}</b><span className="st-fig">{money(r.held)}</span></span>
             <span className="ix-pitem__mid">{ruleText(r.p)} · {feeText(r.p)}</span>
           </div>
@@ -274,7 +279,7 @@ export default function Settlements() {
         <thead><tr><th scope="col">Partner</th><th scope="col">Pays out</th><th scope="col">Charges</th><th scope="col">Next</th><th scope="col">Last payout</th><th scope="col" className="ix-num">Holding for you</th></tr></thead>
         <tbody>{partnerRows.map((r) => (
           <tr key={r.p.id}>
-            <td><span className="ac-logo"><BrandLogo brand={r.p.brand} size={24} decorative /><span><span className="ix-strong">{r.p.short}</span> <span className="ix-muted">{r.p.kind === 'Courier' ? 'Courier' : r.p.id === 'card' ? 'Card machine' : 'Gateway'}</span></span></span></td>
+            <td><span className="ac-logo"><BrandLogo brand={r.p.brand} size={32} decorative /><span><span className="ix-strong">{r.p.short}</span> <span className="ix-muted">{r.p.kind === 'Courier' ? 'Courier' : r.p.id === 'card' ? 'Card machine' : 'Gateway'}</span></span></span></td>
             <td title={`No payouts on ${weekendText(r.p.weekend)} and holidays`}>{ruleText(r.p)}</td>
             <td className="ix-muted">{feeText(r.p)}</td>
             <td>{r.next}</td>

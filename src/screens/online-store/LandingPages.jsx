@@ -22,6 +22,11 @@ import {
   statsOf, templateOf,
 } from '@/lib/landingPages';
 import { StoreFrame } from './storeShared';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
+
+// the page's hero picture: its own, else the photo of the product it sells
+const heroOf = (p) => p.hero || p.image || productPic({ productId: p.productId, sku: p.sku, name: p.productName });
 
 const TABS = [['all', 'All'], ['published', 'Published'], ['draft', 'Drafts']];
 
@@ -29,7 +34,6 @@ const CSS = `
 .lp-title{display:flex;align-items:center;gap:var(--space-3);min-width:0;max-width:340px}
 .lp-title>span:last-child{min-width:0}
 .lp-title small{display:block;font-size:var(--text-xs);color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lp-ico{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:var(--radius-md);background:var(--surface-subtle);color:var(--text-muted)}
 .lp-url{font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap}
 .lp-num{font-family:var(--font-data);text-align:right;white-space:nowrap}
 `;
@@ -155,7 +159,8 @@ export default function LandingPages() {
           <ul className="ix-plist" aria-label="Landing pages">
             {shown.map((p) => (
               <li key={p.id}>
-                <Link href={edit(p)} className="ix-pitem">
+                <Link href={edit(p)} className="ix-pitem ix-pitem--thumb" style={{ gridTemplateColumns: '43px minmax(0,1fr)' }}>
+                  <span style={{ gridRow: 'span 2' }}><Pic src={heroOf(p)} name={p.title} kind="cover" icon={templateOf(p.template).icon || 'file-text'} /></span>
                   <span className="ix-pitem__top"><b>{p.title}</b><PageStatus status={p.status} /></span>
                   <span className="ix-pitem__mid">{`/lp/${p.handle} · ${st(p).live ? `${st(p).orders} orders · ${st(p).visits.toLocaleString('en-IN')} visits` : 'Not live yet'}`}</span>
                 </Link>
@@ -175,7 +180,7 @@ export default function LandingPages() {
                 {shown.map((p) => (
                   <tr key={p.id} className={picked.includes(p.id) ? 'is-sel' : ''} onClick={(e) => { if (!e.target.closest('a,button,input,label')) navigate(edit(p)); }}>
                     <td className="ix-check"><input type="checkbox" aria-label={`Select ${p.title}`} checked={picked.includes(p.id)} onChange={() => toggle(p.id)} /></td>
-                    <td><span className="lp-title"><span className="lp-ico" aria-hidden="true"><Icon name={templateOf(p.template).icon} width="16" height="16" /></span><span><Link href={edit(p)} className="ix-strong">{p.title}</Link><small>{p.productName}</small></span></span></td>
+                    <td><span className="lp-title"><Pic src={heroOf(p)} name={p.title} kind="cover" icon={templateOf(p.template).icon || 'file-text'} /><span><Link href={edit(p)} className="ix-strong">{p.title}</Link><small>{p.productName}</small></span></span></td>
                     <td><span className="lp-url">/lp/{p.handle}</span></td>
                     <td><PageStatus status={p.status} /></td>
                     <td className="lp-num">{fig(p, 'visits')}</td>

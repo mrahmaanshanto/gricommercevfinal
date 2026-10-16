@@ -15,8 +15,12 @@ import { FilterBar } from '@/components/ui/FilterBar';
 import { ShopHeader, IndexTabs, Pager } from '@/components/ui/IndexKit';
 import { downloadCsv } from '@/lib/reports/period';
 import { useAdminStore } from '@/lib/admin/store';
-import { webStore, LP_STATUSES, TEMPLATES, SITE_HOST, lpResults, lpCounts, lpUrl, addLanding, slugify, pct } from '@/lib/admin/website2';
+import { webStore, LP_STATUSES, TEMPLATES, SITE_HOST, lpResults, lpCounts, lpUrl, addLanding, slugify, pct, assetUrl } from '@/lib/admin/website2';
+
+// the page's hero picture (served by gridcommerce.net, as on the page view), else '' (the page icon shows)
+const heroOf = (l) => { const h = (l.sections || []).find((s) => s.kind === 'hero' && s.image); return l.cover || (h ? assetUrl(h.image) : ''); };
 import { AdminShell } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 import { W2_CSS, LpBadge, Field, ctl, Skeleton, me, num, plural, when } from './web2Shared';
 
 const PAGE = 20;
@@ -149,7 +153,8 @@ export default function LandingPages() {
                 <ul className="ix-plist" aria-label="Landing pages">
                   {rows.map((l) => (
                     <li key={l.id}>
-                      <Link href={'/admin/website/landing-pages/view?id=' + l.id} className="ix-pitem">
+                      <Link href={'/admin/website/landing-pages/view?id=' + l.id} className="ix-pitem ix-pitem--thumb" style={{ gridTemplateColumns: '43px minmax(0,1fr)' }}>
+                        <span style={{ gridRow: 'span 3' }}><Pic src={heroOf(l)} name={l.title} kind="cover" icon="file-text" /></span>
                         <span className="ix-pitem__top"><b>{l.title}</b><LpBadge s={l.status} /></span>
                         <span className="ix-pitem__mid">/lp/{l.slug} · {l.campaign || 'No campaign'}</span>
                         <span className="ix-pitem__mid">{num(res[l.id].visits)} visits · {num(res[l.id].subs)} submissions · {pct(res[l.id].rate)}</span>
@@ -172,10 +177,11 @@ export default function LandingPages() {
                         return (
                           <tr key={l.id} tabIndex={0} onClick={() => open(l.id)} onKeyDown={(ev) => { if (ev.key === 'Enter' && ev.target === ev.currentTarget) open(l.id); }}>
                             <td>
+                              <span className="gc-picrow"><Pic src={heroOf(l)} name={l.title} kind="cover" icon="file-text" />
                               <span className="w2-two w2-cell">
                                 <Link href={'/admin/website/landing-pages/view?id=' + l.id} className="ix-strong" onClick={(ev) => ev.stopPropagation()} title={l.title}>{l.title}</Link>
                                 <small className="w2-data">/lp/{l.slug}</small>
-                              </span>
+                              </span></span>
                             </td>
                             <td><span className="w2-two w2-cell"><span>{l.campaign || <span className="ix-muted">None</span>}</span><small>{l.template}</small></span></td>
                             <td className="ix-muted ix-nowrap">{formName(l.formId) || 'None'}</td>

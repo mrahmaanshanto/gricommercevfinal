@@ -1,0 +1,803 @@
+{
+  "gcstore": 1,
+  "meta": {
+    "id": "nokshi",
+    "name": "Nokshi",
+    "description": "Large imagery for products people want to look at.",
+    "for": "Clothing and fashion",
+    "version": "1.0",
+    "author": "GridCommerce",
+    "made": "2026-10-15"
+  },
+  "theme": {
+    "primary": "#6d28d9",
+    "accent": "#db2777",
+    "text": "#1f1630",
+    "bg": "#fbf8f4",
+    "sale": "#be123c",
+    "fontPair": "elegant",
+    "headCase": "upper",
+    "corners": "sharp",
+    "buttons": "outline",
+    "cardRatio": "portrait",
+    "cardHover": "second",
+    "cardStock": false,
+    "cardQuick": false,
+    "saleBadge": "text",
+    "gallery": "grid",
+    "showWarranty": false,
+    "specsTable": false,
+    "tabBlock": "blk-nokshi-size",
+    "colsDesktop": "3",
+    "filters": "drawer",
+    "sortDefault": "newest",
+    "paging": "infinite",
+    "freeShipAt": 2500,
+    "footerLayout": "centered",
+    "footerTone": "light",
+    "chat": "messenger",
+    "chatTo": "dazzleshopbd",
+    "cookie": true
+  },
+  "headers": [
+    {
+      "id": "hdr-nokshi-centered",
+      "name": "Nokshi · Centred logo",
+      "default": true,
+      "desktop": {
+        "top": {
+          "height": 34,
+          "tone": "accent",
+          "sticky": false,
+          "left": [],
+          "center": [
+            {
+              "type": "text",
+              "text": "Exchange within 7 days · hand-finished pieces"
+            }
+          ],
+          "right": [
+            "lang"
+          ]
+        },
+        "main": {
+          "height": 80,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            {
+              "type": "search",
+              "cats": false,
+              "size": "S",
+              "placeholder": "Search the collection"
+            }
+          ],
+          "center": [
+            {
+              "type": "logo",
+              "size": "L"
+            }
+          ],
+          "right": [
+            "account",
+            "wishlist",
+            "cart"
+          ]
+        },
+        "bottom": {
+          "height": 46,
+          "tone": "theme",
+          "sticky": false,
+          "left": [],
+          "center": [
+            "menu"
+          ],
+          "right": []
+        }
+      },
+      "mobile": {
+        "top": null,
+        "main": {
+          "height": 58,
+          "tone": "theme",
+          "sticky": true,
+          "left": [],
+          "center": [
+            "logo"
+          ],
+          "right": [
+            "cart"
+          ]
+        },
+        "bottom": null,
+        "drawer": [
+          "search",
+          "menu",
+          "account",
+          "lang",
+          "social"
+        ],
+        "bottomNav": true,
+        "navItems": [
+          "home",
+          "cats",
+          "wishlist",
+          "cart",
+          "account"
+        ]
+      }
+    },
+    {
+      "id": "hdr-nokshi-minimal",
+      "name": "Nokshi · Minimal",
+      "desktop": {
+        "top": null,
+        "main": {
+          "height": 72,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [
+            "menu"
+          ],
+          "right": [
+            {
+              "type": "search",
+              "cats": false,
+              "size": "S"
+            },
+            "cart"
+          ]
+        },
+        "bottom": null
+      },
+      "mobile": {
+        "top": null,
+        "main": {
+          "height": 56,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [],
+          "right": [
+            "cart"
+          ]
+        },
+        "bottom": null,
+        "drawer": [
+          "search",
+          "menu",
+          "account"
+        ],
+        "bottomNav": false,
+        "navItems": [
+          "home",
+          "cats",
+          "cart",
+          "account"
+        ]
+      }
+    },
+    {
+      "id": "hdr-nokshi-lookbook",
+      "name": "Nokshi · Lookbook",
+      "desktop": {
+        "top": null,
+        "main": {
+          "height": 76,
+          "tone": "brand",
+          "sticky": true,
+          "left": [
+            "menu"
+          ],
+          "center": [
+            {
+              "type": "logo",
+              "size": "L"
+            }
+          ],
+          "right": [
+            "wishlist",
+            "cart"
+          ]
+        },
+        "bottom": null
+      },
+      "mobile": {
+        "top": null,
+        "main": {
+          "height": 58,
+          "tone": "brand",
+          "sticky": true,
+          "left": [],
+          "center": [
+            "logo"
+          ],
+          "right": [
+            "cart"
+          ]
+        },
+        "bottom": null,
+        "drawer": [
+          "menu",
+          "search",
+          "account",
+          "social"
+        ],
+        "bottomNav": true,
+        "navItems": [
+          "home",
+          "cats",
+          "cart",
+          "account"
+        ]
+      }
+    }
+  ],
+  "layouts": [
+    {
+      "id": "lay-nokshi-home",
+      "kind": "home",
+      "name": "Home",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "hero",
+          "slides": [
+            {
+              "title": "The festive edit",
+              "text": "Hand-finished pieces in small runs.",
+              "button": "Shop new arrivals",
+              "href": "/category?handle=accessories",
+              "image": "/assets/cfbbbbd758347fbb3f71590345d24674.webp",
+              "tone": "dark"
+            },
+            {
+              "title": "Free delivery over ৳2,500",
+              "text": "Exchange within 7 days.",
+              "button": "See offers",
+              "href": "/offers",
+              "image": "",
+              "tone": "primary"
+            }
+          ],
+          "height": "L"
+        },
+        {
+          "type": "cattiles",
+          "title": "Shop the edit",
+          "style": "circles"
+        },
+        {
+          "type": "products",
+          "title": "New this week",
+          "count": 6
+        },
+        {
+          "type": "textimage",
+          "title": "Made to be looked at",
+          "text": "Every piece is photographed in daylight so the colour you see is the colour you get.",
+          "image": "/assets/dec2496b57e91a856eaa9f8fd17d9124.webp",
+          "side": "left",
+          "button": "Read our story",
+          "href": "/page?handle=about-us"
+        },
+        {
+          "type": "products",
+          "title": "On sale",
+          "source": "sale",
+          "layout": "carousel"
+        },
+        {
+          "type": "reviews",
+          "title": "Loved by customers"
+        },
+        {
+          "type": "html",
+          "block": "blk-nokshi-eid"
+        },
+        {
+          "type": "newsletter",
+          "title": "First look at new drops",
+          "text": "One message a week. No spam.",
+          "button": "Join"
+        }
+      ]
+    },
+    {
+      "id": "lay-nokshi-product",
+      "kind": "product",
+      "name": "Product page",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "products",
+          "title": "Complete the look",
+          "source": "related",
+          "count": 4
+        },
+        {
+          "type": "recent"
+        }
+      ]
+    },
+    {
+      "id": "lay-nokshi-category",
+      "kind": "category",
+      "name": "Category page",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "newsletter",
+          "title": "Get new drops first",
+          "text": "One message a week.",
+          "button": "Join"
+        }
+      ]
+    },
+    {
+      "id": "lay-nokshi-page",
+      "kind": "page",
+      "name": "Page",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "trust"
+        }
+      ]
+    },
+    {
+      "id": "lay-nokshi-cart",
+      "kind": "cart",
+      "name": "Cart",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "products",
+          "title": "Add to your order",
+          "source": "best",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": "lay-nokshi-search",
+      "kind": "search",
+      "name": "Search",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "recent"
+        }
+      ]
+    },
+    {
+      "id": "lay-nokshi-404",
+      "kind": "404",
+      "name": "Page not found",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "products",
+          "title": "Popular right now",
+          "source": "best",
+          "count": 4
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "blk-nokshi-delivery",
+      "name": "Delivery info",
+      "type": "content",
+      "content": [
+        {
+          "type": "h2",
+          "text": "Delivery"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Inside Dhaka: 1–2 days, ৳70",
+            "Outside Dhaka: 3–5 days, ৳150",
+            "Cash on delivery all over Bangladesh"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Open the parcel in front of the rider. If something is wrong, give it back right there."
+        }
+      ]
+    },
+    {
+      "id": "blk-nokshi-eid",
+      "name": "Eid banner",
+      "type": "banner",
+      "content": [
+        {
+          "type": "image",
+          "src": "/assets/cfbbbbd758347fbb3f71590345d24674.webp",
+          "alt": "Eid offer",
+          "caption": ""
+        },
+        {
+          "type": "h2",
+          "text": "Eid offer: gifts on orders over ৳3,000"
+        },
+        {
+          "type": "cta",
+          "label": "See the offers",
+          "url": "/offers",
+          "style": "solid"
+        }
+      ]
+    },
+    {
+      "id": "blk-nokshi-size",
+      "name": "Size guide",
+      "type": "tab",
+      "content": [
+        {
+          "type": "h2",
+          "text": "Size guide"
+        },
+        {
+          "type": "table",
+          "header": true,
+          "rows": [
+            [
+              "Size",
+              "Chest (in)",
+              "Length (in)"
+            ],
+            [
+              "S",
+              "36",
+              "40"
+            ],
+            [
+              "M",
+              "38",
+              "41"
+            ],
+            [
+              "L",
+              "40",
+              "42"
+            ],
+            [
+              "XL",
+              "42",
+              "43"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Between two sizes? Take the larger one."
+        }
+      ]
+    },
+    {
+      "id": "blk-nokshi-warranty",
+      "name": "Warranty info",
+      "type": "tab",
+      "content": [
+        {
+          "type": "h2",
+          "text": "Exchange"
+        },
+        {
+          "type": "p",
+          "text": "Exchange within 7 days if the tag is on and the piece is unworn."
+        }
+      ]
+    },
+    {
+      "id": "blk-nokshi-deals",
+      "name": "New season",
+      "type": "mega",
+      "content": [
+        {
+          "type": "image",
+          "src": "/assets/cfbbbbd758347fbb3f71590345d24674.webp",
+          "alt": "New season",
+          "caption": ""
+        },
+        {
+          "type": "p",
+          "text": "The festive edit is in. Hand-finished pieces, limited runs."
+        }
+      ]
+    },
+    {
+      "id": "blk-nokshi-footer",
+      "name": "Footer",
+      "type": "footer",
+      "content": [
+        {
+          "type": "p",
+          "text": "Made with care in Bangladesh. Exchange within 7 days."
+        },
+        {
+          "type": "p",
+          "text": "Call {{shop_phone}}"
+        }
+      ]
+    }
+  ],
+  "menus": [
+    {
+      "id": "main",
+      "name": "Main menu",
+      "place": "header",
+      "items": [
+        {
+          "label": "New in",
+          "link": {
+            "type": "home"
+          }
+        },
+        {
+          "label": "Accessories",
+          "link": {
+            "type": "category",
+            "ref": "Accessories"
+          },
+          "children": [
+            {
+              "label": "Cases & covers",
+              "link": {
+                "type": "category",
+                "ref": "Accessories › Cases & covers"
+              }
+            },
+            {
+              "label": "Holders & stands",
+              "link": {
+                "type": "category",
+                "ref": "Accessories › Holders & stands"
+              }
+            }
+          ],
+          "mega": {
+            "on": true,
+            "width": "full",
+            "px": 1200,
+            "cols": [
+              {
+                "kind": "cats",
+                "title": "Accessories",
+                "ref": "Accessories"
+              },
+              {
+                "kind": "block",
+                "block": "blk-nokshi-deals"
+              },
+              {
+                "kind": "image",
+                "title": "The festive edit",
+                "src": "/assets/cfbbbbd758347fbb3f71590345d24674.webp",
+                "href": "/offers"
+              }
+            ]
+          }
+        },
+        {
+          "label": "Wearables",
+          "link": {
+            "type": "category",
+            "ref": "Wearables"
+          }
+        },
+        {
+          "label": "Sale",
+          "link": {
+            "type": "offers"
+          }
+        },
+        {
+          "label": "Our story",
+          "link": {
+            "type": "page",
+            "ref": "about-us"
+          }
+        }
+      ]
+    },
+    {
+      "id": "footer",
+      "name": "Footer menu",
+      "place": "footer",
+      "items": [
+        {
+          "label": "Shop",
+          "link": {
+            "type": "home"
+          },
+          "children": [
+            {
+              "label": "Phones",
+              "link": {
+                "type": "category",
+                "ref": "Phones"
+              }
+            },
+            {
+              "label": "Accessories",
+              "link": {
+                "type": "category",
+                "ref": "Accessories"
+              }
+            },
+            {
+              "label": "Offers",
+              "link": {
+                "type": "offers"
+              }
+            },
+            {
+              "label": "Blog",
+              "link": {
+                "type": "blog",
+                "ref": ""
+              }
+            }
+          ]
+        },
+        {
+          "label": "Company",
+          "link": {
+            "type": "page",
+            "ref": "about-us"
+          },
+          "children": [
+            {
+              "label": "About us",
+              "link": {
+                "type": "page",
+                "ref": "about-us"
+              }
+            },
+            {
+              "label": "Contact us",
+              "link": {
+                "type": "page",
+                "ref": "contact-us"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "care",
+      "name": "Customer care",
+      "place": "footer",
+      "items": [
+        {
+          "label": "Shipping & delivery",
+          "link": {
+            "type": "page",
+            "ref": "shipping-delivery"
+          }
+        },
+        {
+          "label": "Return & refund",
+          "link": {
+            "type": "page",
+            "ref": "return-refund"
+          }
+        },
+        {
+          "label": "Privacy policy",
+          "link": {
+            "type": "page",
+            "ref": "privacy-policy"
+          }
+        },
+        {
+          "label": "WhatsApp us",
+          "link": {
+            "type": "url",
+            "url": "https://wa.me/{{whatsapp}}"
+          }
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "handle": "size-guide",
+      "title": "Size guide",
+      "status": "published",
+      "content": [
+        {
+          "type": "p",
+          "text": "Measure a piece you love and compare it with the table."
+        },
+        {
+          "type": "table",
+          "header": true,
+          "rows": [
+            [
+              "Size",
+              "Chest (in)",
+              "Length (in)"
+            ],
+            [
+              "S",
+              "36",
+              "40"
+            ],
+            [
+              "M",
+              "38",
+              "41"
+            ],
+            [
+              "L",
+              "40",
+              "42"
+            ],
+            [
+              "XL",
+              "42",
+              "43"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Between two sizes? Take the larger one. Exchange within 7 days."
+        }
+      ]
+    }
+  ],
+  "notices": [
+    {
+      "id": "today",
+      "text": "Free delivery on orders over ৳2,500",
+      "tone": "primary",
+      "place": "top"
+    }
+  ]
+}

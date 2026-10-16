@@ -19,6 +19,8 @@ import { toast } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { getOpportunities, contactOpportunity, queueCall, unqueueCall, stockBack, runReminders, recoveryReport, getReminderSettings, saveReminderSettings, OPP_STATES, OPP_TYPES, OPEN_STATES, RECOVERY_EVENT } from '@/lib/recovery';
 import { currentUser } from '@/lib/team';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 
 function bdt(n) { var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return '৳' + s; }
 function ago(t, now) { const m = Math.round((now - t) / 60000); if (m < 60) return m + ' min ago'; const h = Math.round(m / 60); if (h < 24) return h + (h === 1 ? ' hour ago' : ' hours ago'); const d = Math.round(h / 24); return d === 1 ? 'Yesterday' : d + ' days ago'; }
@@ -34,6 +36,12 @@ const CSS = `
 .rc-auto small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .rc-auto a{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);white-space:nowrap}
 .rc-items{display:block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rc-pic{display:inline-flex;align-items:center;gap:var(--space-1);flex:none}
+.rc-more{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
+.ix-pitem.rc-pitem{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:10px}
+.rc-pitem>.rc-pic{grid-row:span 4;align-self:start}
+.rc-pitem .rc-more{display:none}
+.ix-table .rc-pic{width:52px}
 .rc-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 `;
 
@@ -94,6 +102,13 @@ export default function AbandonedCartsScreen() {
   };
   const rowOpen = (o) => (e) => { if (e.target.closest('a,button,input,label,select')) return; if (o.customerId) navigate('/customer-crm?id=' + o.customerId + '&tab=insights'); };
   const itemsText = (o) => o.items[0].name + (o.items.length > 1 ? ' + ' + (o.items.length - 1) + ' more' : '');
+  // the cart's first item as a picture, "+n" for the rest (the phone card's text already says "+ n more")
+  const cartPic = (o) => (
+    <span className="rc-pic">
+      <Pic src={productPic(o.items[0])} name={o.items[0].name} kind="item" />
+      {o.items.length > 1 ? <span className="rc-more">+{o.items.length - 1}</span> : null}
+    </span>
+  );
   const lastText = (o) => (o.lastContact ? CH[o.lastContact.channel] + ' · ' + o.lastContact.by + ' · ' + ago(o.lastContact.at, now) : 'Not contacted');
   const allOn = open.length > 0 && picked.length === open.length;
 
@@ -148,7 +163,8 @@ export default function AbandonedCartsScreen() {
                 ) : (<>
                   <ul className="ix-plist" aria-label="Abandoned carts">
                     {list.map((o) => (
-                      <li key={o.id} className="ix-pitem">
+                      <li key={o.id} className="ix-pitem rc-pitem">
+                        {cartPic(o)}
                         <span className="ix-pitem__top"><b>{o.name}</b><span>{bdt(o.value)}</span></span>
                         <span className="ix-pitem__mid">{OPP_TYPES[o.type]} · {itemsText(o)} · {ago(o.leftAt, now)}</span>
                         <span className="ix-pitem__mid">{o.nextAction}</span>
@@ -178,7 +194,7 @@ export default function AbandonedCartsScreen() {
                               <td className="ix-check">{isOpen ? <input type="checkbox" checked={!!sel[o.id]} onChange={() => setSel({ ...sel, [o.id]: !sel[o.id] })} aria-label={`Select ${o.name}`} /> : null}</td>
                               <td>{o.customerId ? <__Link href={'/customer-crm?id=' + o.customerId + '&tab=insights'} className="ix-strong">{o.name}</__Link> : <span className="ix-strong">{o.name}</span>}<span className="rc-sub">{OPP_TYPES[o.type]} · {ago(o.leftAt, now)}</span></td>
                               <td>{status(o)}</td>
-                              <td><span className="rc-items" title={o.items.map((i) => i.qty + ' × ' + i.name).join(', ')}>{itemsText(o)}</span><span className="rc-sub">{lastText(o)}</span></td>
+                              <td><span className="gc-picrow">{cartPic(o)}<span><span className="rc-items" title={o.items.map((i) => i.qty + ' × ' + i.name).join(', ')}>{o.items[0].name}</span><span className="rc-sub">{lastText(o)}</span></span></span></td>
                               <td className="ix-num ix-strong">{bdt(o.value)}</td>
                               <td className="ix-muted">{o.nextAction}{o.state === 'suppressed' && o.block ? <> <InfoTip text={o.block} /></> : null}<span className="rc-sub">{o.owner}</span></td>
                               <td className="ix-num">{menu(o).length ? <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" items={menu(o)} /> : null}</td>

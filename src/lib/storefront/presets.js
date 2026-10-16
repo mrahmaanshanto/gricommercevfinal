@@ -20,6 +20,8 @@ import { getMenus, setMenus, STORE_MENUS_EVENT } from '../storeMenus';
 import { getPages, savePage } from '../storePages';
 import { PACK, isPack, packTheme, packHeaders, packLayouts, packMenu, PACK_DEFAULT_HEADER } from './presetsPack';
 import { premiumHome, completeHome } from './completeHome';
+import { checkKit, storeToKit } from './kit.js';
+import { libraryKits } from './access';
 
 /** The premium look's global settings (theme values a store saved before version 5 is given once). */
 export const PREMIUM_LOOK = { fontPair: 'jakarta', titleStyle: 'underline', cardStyle: 'classic', cardHover: 'second', cardRating: true, saleBadge: 'percent', badgeStyle: 'pill', shadow: 'soft', motion: 'lively', btnHover: 'lift', fieldStyle: 'filled', iconStyle: 'circle', iconColour: 'primary', socialStyle: 'round', sectionCard: 'page', spacing: 'comfortable', corners: 'soft', bg: '#f6f7fb', surface: '#ffffff', headerTone: 'light', footerLayout: 'columns', footerTone: 'dark', cardWish: true, cardQuickView: true, stockBar: true, soldCount: true, saleTimer: true, boughtTogether: true, trust: true };
@@ -396,3 +398,26 @@ export function resetThemeToPreset() {
 export const presetMenus = (id) => menusFor(presetBy(id).id);
 /** The preset's theme settings (for "Reset to preset" previews). */
 export const presetThemeValues = (id) => themeFor(id);
+
+// ---- design files (Nayeem's Batch A, merged 16 Oct) --------------------------------------------------------------------
+// Every built-in theme is also a store kit (lib/storefront/kit.js), made from the preset itself, so Theme › Preview,
+// Download design and the design service read the same file. Themes the super admin publishes with a kit join the
+// library (access.js › libraryKits) and open with the same tools.
+const kitCache = {};
+/** The preset as a checked design file (theme, headers, layouts, blocks and menus). */
+export function presetKit(id) {
+  const p = presetBy(id);
+  if (!kitCache[p.id]) {
+    const raw = storeToKit({ data: seedData(Date.now(), p.id), menus: menusFor(p.id), meta: { id: p.id, name: p.name, description: p.tagline || '', for: p.label || '', author: 'GridCommerce' } });
+    kitCache[p.id] = checkKit(raw).kit || raw;
+  }
+  return kitCache[p.id];
+}
+/** A design's name: a built-in theme's, or a library theme's from the super admin. */
+export function designName(id) {
+  if (PRESETS.some((p) => p.id === id)) return presetBy(id).name;
+  let lib = [];
+  try { lib = libraryKits(); } catch { lib = []; }
+  const l = lib.find((x) => x.id === id);
+  return l ? l.name : presetBy(id).name;
+}

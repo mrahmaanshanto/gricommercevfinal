@@ -20,6 +20,8 @@ import { formatBDT, formatDate } from '@/lib/format';
 import { clockNow } from '@/lib/settlements';
 import { approvalLimit, needsApproval, canApprove } from '@/lib/poFlow';
 import { currentUser } from '@/lib/team';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 
 // ---- form helpers: required marker, field error text, invalid attributes, focus the first error ----
 function __Req() { return <span aria-hidden="true" style={{ color: 'var(--text-danger)' }}> *</span>; }
@@ -75,7 +77,7 @@ class Component extends DCLogic {
       var per = s.split === 'value' ? (sub ? extra * p.cost / sub : 0) : (pieces ? extra / pieces : 0);
       var upd = function (q) { var ls = s.lines.slice(); if (q <= 0) ls.splice(idx, 1); else ls[idx] = { i: l.i, qty: q }; set({ lines: ls }); };
       return {
-        name: p.name, code: p.code, qty: l.qty, cost: bdt(p.cost), vat: p.vat + '%',
+        name: p.name, code: p.code, pic: productPic(productBy(p.name) || p.name), qty: l.qty, cost: bdt(p.cost), vat: p.vat + '%',
         landed: '৳' + (p.cost + per).toFixed(2), extra: '+৳' + per.toFixed(2) + ' extra',
         total: bdt(p.cost * l.qty * (1 + p.vat / 100)), rowCls: s.flash === l.i ? 'np-flash' : '',
         inc: function () { upd(l.qty + 1); }, dec: function () { upd(l.qty - 1); }, remove: function () { upd(0); }
@@ -304,7 +306,7 @@ export default class NewPOScreen extends Component {
                               <tbody>
                                 {__list(v.items).map((it, $index) => (
                                   <tr key={it.code + $index} className={it.rowCls}>
-                                    <td><span className="np-prod"><b>{it.name}</b><small>{it.code}</small></span></td>
+                                    <td><span className="gc-picrow"><Pic src={it.pic} name={it.name} kind="item" /><span className="np-prod"><b>{it.name}</b><small>{it.code}</small></span></span></td>
                                     <td>
                                       <span className="np-step">
                                         <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label={`Less ${it.name}`} onClick={it.dec}><__Icon name="minus" width="16" height="16" aria-hidden="true" /></button>

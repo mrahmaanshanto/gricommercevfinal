@@ -20,7 +20,7 @@ export const CONSENT_CHANNELS = [
 ];
 export const CONSENT_STATES = { in: 'Opted in', out: 'Opted out', unknown: 'Unknown' };
 export const CONSENT_TONE = { in: 'success', out: 'error', unknown: 'neutral' };
-export const CONSENT_SOURCES = ['Checkout', 'Shop counter (POS)', 'Sign-up form', 'WhatsApp chat', 'Phone call', 'Unsubscribe link', 'Replied STOP', 'Import', 'Staff'];
+export const CONSENT_SOURCES = ['Checkout', 'Shop counter (POS)', 'Sign-up form', 'My account', 'WhatsApp chat', 'Phone call', 'Unsubscribe link', 'Replied STOP', 'Import', 'Staff'];
 const ALIAS = { wa: 'whatsapp', phone: 'call', calls: 'call', voice: 'call', mail: 'email' };
 export const channelKey = (ch) => { const k = String(ch || '').toLowerCase(); return ALIAS[k] || k; };
 export const channelLabel = (ch) => (CONSENT_CHANNELS.find((c) => c.k === channelKey(ch)) || { label: ch }).label;

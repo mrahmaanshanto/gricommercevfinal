@@ -55,8 +55,8 @@ export default function ServiceOrder() {
   useEffect(() => { if (s && !pkgId) setPkgId(pkgOf(s, query('pkg')) ? query('pkg') : s.packages[Math.min(1, s.packages.length - 1)].id); }, [s, pkgId]);
   const m = useMemo(() => (s && pkgId ? priceOf(s, pkgId, addons) : null), [s, pkgId, addons]);
 
-  if (!ready) return <SvcFrame screen="ServiceOrder" active="svc-shop" page="Order"><div style={{ minHeight: 400 }} aria-busy="true" /></SvcFrame>;
-  if (!s || s.status !== 'live') return <SvcFrame screen="ServiceOrder" active="svc-shop" page="Order" narrow><RecordHeader back="/services" backLabel="Services" title="Service not found" /><section className="ix-card ix-empty"><EmptyState icon="briefcase" title="This service is not on sale" actionLabel="See all services" onAction={() => { window.location.href = '/services'; }} /></section></SvcFrame>;
+  if (!ready) return <SvcFrame gate="services" screen="ServiceOrder" active="svc-shop" page="Order"><div style={{ minHeight: 400 }} aria-busy="true" /></SvcFrame>;
+  if (!s || s.status !== 'live') return <SvcFrame gate="services" screen="ServiceOrder" active="svc-shop" page="Order" narrow><RecordHeader back="/services" backLabel="Services" title="Service not found" /><section className="ix-card ix-empty"><EmptyState icon="briefcase" title="This service is not on sale" actionLabel="See all services" onAction={() => { window.location.href = '/services'; }} /></section></SvcFrame>;
 
   const pkg = pkgOf(s, pkgId);
   const monthly = s.cycle === 'monthly';
@@ -81,7 +81,7 @@ export default function ServiceOrder() {
 
   if (done) {
     return (
-      <SvcFrame screen="ServiceOrder" active="svc-shop" page="Order placed" narrow>
+      <SvcFrame gate="services" screen="ServiceOrder" active="svc-shop" page="Order placed" narrow>
         <RecordHeader back="/services" backLabel="Services" title="Thank you, your order is in" badges={<span className="gc-badge gc-badge--success">Paid</span>} meta={`${done.id} · ${s.name} · ${pkg.name}`}
           primary={{ label: 'Open the order', href: '/my-service?id=' + done.id }} />
         <section className="ix-card svc-pad" aria-label="Invoice">
@@ -114,7 +114,7 @@ export default function ServiceOrder() {
   );
 
   return (
-    <SvcFrame screen="ServiceOrder" active="svc-shop" page={'Order ' + s.name}>
+    <SvcFrame gate="services" screen="ServiceOrder" active="svc-shop" page={'Order ' + s.name}>
       <RecordHeader back={'/service-detail?id=' + s.id} backLabel={s.name} title={'Order ' + s.name} meta={monthly ? 'Monthly · stop any time' : 'One-time'} />
       <div className="ix-record">
         <div className="ix-main">

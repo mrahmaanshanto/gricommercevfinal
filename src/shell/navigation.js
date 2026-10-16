@@ -104,6 +104,8 @@ export const NAV = [
       { id: 'comm-cal', icon: 'calendar-days', label: 'Social posts', to: 'communication/Calendar.dc.html' },
       { id: 'comm-new', icon: 'square-pen', label: 'Create post', to: 'communication/Composer.dc.html', hidden: true, under: 'comm-cal' },
       { id: 'msg-campaigns', icon: 'send', label: 'Campaigns', to: 'communication/CampaignsMessaging.dc.html' },
+      // Message design (Batch C step 4): how emails and SMS look, moved out of Settings › Notifications
+      { id: 'msg-design', icon: 'palette', label: 'Message design', to: 'communication/MessageDesign.dc.html' },
       // Automations is the one place for automatic work (review CX-U6): its tabs list the rules (AI rules too) and link
       // the order notifications, cart reminders, smart offers and auto-call. Those pages fold under it (`fold`: a page
       // shown as a tab of `under`; a person who can't open `under` gets it as its own row, team.js › navFor).
@@ -148,6 +150,8 @@ export const NAV = [
       { id: 'loy-products', icon: 'star', label: 'Product points', to: 'loyalty-promo/ProductPoints.dc.html', hidden: true, under: 'loy-home', fold: true },
       { id: 'loy-wallet', icon: 'wallet', label: 'Store credit', to: 'loyalty-promo/Wallet.dc.html', hidden: true, under: 'loy-home', fold: true },
       { id: 'loy-referrals', icon: 'share-2', label: 'Invite a friend', to: 'loyalty-promo/Referrals.dc.html', hidden: true, under: 'loy-home', fold: true },
+      { id: 'mkt-affiliates', icon: 'share-2', label: 'Affiliates', to: 'loyalty-promo/Affiliates.dc.html' },
+      { id: 'mkt-affiliate', icon: 'share-2', label: 'Affiliate', to: 'loyalty-promo/AffiliateProfile.dc.html', hidden: true, under: 'mkt-affiliates' },
       { id: 'rec-carts', icon: 'shopping-bag', label: 'Abandoned carts', live: 'carts', to: 'recovery/AbandonedCarts.dc.html' },
       { id: 'rec-audiences', icon: 'users-round', label: 'Ad audiences', to: 'recovery/AdAudiences.dc.html' },
       { id: 'ch-gbp', icon: 'map-pin', label: 'Google Business', to: 'channels/GoogleBusiness.dc.html' },
@@ -156,11 +160,15 @@ export const NAV = [
       // Storefront builder (Module A): theme settings + presets, the theme editor, header builder, layouts, HTML blocks
       { id: 'store-theme', icon: 'paintbrush', label: 'Theme', to: 'online-store/Theme.dc.html' },
       { id: 'store-theme-edit', icon: 'sliders-horizontal', label: 'Customize theme', to: 'online-store/ThemeEditor.dc.html', hidden: true, under: 'store-theme' },
+      { id: 'store-editor', icon: 'mouse-pointer-click', label: 'Store editor', to: 'online-store/StoreEditor.dc.html', hidden: true, under: 'store-theme' },
       { id: 'store-header', icon: 'panel-top', label: 'Header builder', to: 'online-store/HeaderBuilder.dc.html' },
+      { id: 'store-notices', icon: 'megaphone', label: 'Store notices', to: 'online-store/StoreNotices.dc.html' },
       { id: 'store-layouts', icon: 'layout-dashboard', label: 'Layouts', to: 'online-store/Layouts.dc.html' },
       { id: 'store-layout-edit', icon: 'layout-dashboard', label: 'Edit layout', to: 'online-store/LayoutEdit.dc.html', hidden: true, under: 'store-layouts' },
       { id: 'store-blocks', icon: 'blocks', label: 'HTML blocks', to: 'online-store/HtmlBlocks.dc.html' },
       { id: 'store-block-edit', icon: 'blocks', label: 'Edit HTML block', to: 'online-store/HtmlBlockEdit.dc.html', hidden: true, under: 'store-blocks' },
+      // Code snippets (Batch C step 8): tracking by ID, checked CSS, text / HTML; safe only, every plan, no JavaScript
+      { id: 'store-snippets', icon: 'code-xml', label: 'Snippets', to: 'online-store/Snippets.dc.html' },
       // Landing pages: the list (/landing-pages); the builder (/landing-page-builder?id=) opens from it
       { id: 'storefront', icon: 'layout-template', label: 'Landing pages', to: 'online-store/LandingPages.dc.html' },
       { id: 'store-pages', icon: 'file-text', label: 'Pages', to: 'online-store/StorePages.dc.html' },
@@ -198,6 +206,11 @@ export const NAV = [
       { id: 'hr-home', icon: 'layout-grid', label: 'HR dashboard', tab: 'Dashboard', to: 'staff-hr/HrDashboard.dc.html' },
       { id: 'hr-staff', icon: 'contact', label: 'All staff', tab: 'Staff', to: 'staff-hr/AllStaff.dc.html' },
       { id: 'hr-add', icon: 'user-plus', label: 'Add staff', to: 'staff-profile/StaffCreate.dc.html', hidden: true, under: 'hr-staff' },
+      // Batch F · Grid Career: job posts, the careers page and applicants (lib/platform/career.js; open per store)
+      { id: 'hr-hiring', icon: 'user-search', label: 'Hiring', to: 'career/Hiring.dc.html' },
+      { id: 'hr-job', icon: 'briefcase', label: 'Job', to: 'career/HiringJob.dc.html', hidden: true, under: 'hr-hiring' },
+      { id: 'hr-applicants', icon: 'users', label: 'Applicants', to: 'career/HiringApplicants.dc.html', hidden: true, under: 'hr-hiring' },
+      // end Batch F
       { id: 'hr-attendance', icon: 'calendar-check', label: 'Attendance', to: 'staff-hr/Attendance.dc.html' },
       { id: 'hr-shifts', icon: 'calendar-clock', label: 'Shifts & roster', tab: 'Shifts', to: 'staff-hr/Shifts.dc.html' },
       { id: 'hr-leave', icon: 'plane', label: 'Leave', to: 'staff-hr/Leave.dc.html' },
@@ -222,6 +235,16 @@ export const NAV = [
       { id: 'svc-order', icon: 'shopping-bag', label: 'Order a service', to: 'services/ServiceOrder.dc.html', hidden: true, under: 'svc-shop' },
       { id: 'svc-mine', icon: 'clipboard-list', label: 'My services', to: 'services/MyServices.dc.html' },
       { id: 'svc-view', icon: 'clipboard-list', label: 'Service order', to: 'services/MyService.dc.html', hidden: true, under: 'svc-mine' },
+      // Batch D: Grid Shop, business supplies from GridCommerce (open per store: lib/platform/marketAccess.js 'shop')
+      { id: 'gs-shop', icon: 'shopping-bag', label: 'Business supplies', tab: 'Supplies', to: 'services/GridShop.dc.html' },
+      { id: 'gs-item', icon: 'shopping-bag', label: 'Supply item', to: 'services/GridShopItem.dc.html', hidden: true, under: 'gs-shop' },
+      { id: 'gs-checkout', icon: 'shopping-cart', label: 'Supplies checkout', to: 'services/GridShopCheckout.dc.html', hidden: true, under: 'gs-shop' },
+      { id: 'gs-orders', icon: 'package', label: 'My supply orders', to: 'services/GridShopOrders.dc.html' },
+      { id: 'gs-order', icon: 'package', label: 'Supply order', to: 'services/GridShopOrder.dc.html', hidden: true, under: 'gs-orders' },
+      // Batch E · Grid Partners: models, influencers and video creators (lib/platform/partners.js; marketAccess 'partners')
+      { id: 'gp-browse', icon: 'users-round', label: 'Grid Partners', tab: 'Partners', to: 'partners/Partners.dc.html' },
+      { id: 'gp-profile', icon: 'users-round', label: 'Partner', to: 'partners/Partner.dc.html', hidden: true, under: 'gp-browse' },
+      { id: 'gp-requests', icon: 'inbox', label: 'Partner requests', to: 'partners/PartnerRequests.dc.html' },
     ] },
     // every outside app and service, connected from one place (src/lib/connections.js)
     { id: 'area-settings', icon: 'settings', label: 'Settings', children: [

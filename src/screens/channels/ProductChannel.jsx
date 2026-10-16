@@ -15,7 +15,8 @@ import { EmptyState, InfoTip } from '@/components/ui';
 import { ShopHeader, IndexTabs, SearchField, Menu, LearnMore } from '@/components/ui/IndexKit';
 import { channelBy, channelProducts, startSync, setAuto, disconnect, setPublished, retryMany, ISSUES, ago, syncJob, connectHref } from '@/lib/channels';
 import { formatDate } from '@/lib/format';
-import { ChannelFrame, ConnCard, StatusTag, SyncState, ProductCell, FixSheet, ItemSheet, useChannels, money } from './chShared';
+import { ChannelFrame, ConnCard, StatusTag, SyncState, ProductCell, FixSheet, ItemSheet, useChannels, money, chPic } from './chShared';
+import { Pic } from '@/components/ui/Pic';
 
 const TABS = {
   meta: [['all', 'All'], ['synced', 'Synced'], ['attention', 'Needs attention'], ['failed', 'Failed'], ['processing', 'Processing'], ['unpublished', 'Not published']],
@@ -134,7 +135,8 @@ export default function ProductChannel({ ch, active, screen }) {
         <ul className="ix-plist" aria-label={`Products on ${meta.short}`}>
           {shown.map((r) => (
             <li key={r.key}>
-              <button type="button" className="ix-pitem" onClick={() => setView(r)}>
+              <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setView(r)}>
+                <span style={{ gridRow: 'span 2' }}><Pic src={chPic(r)} name={r.name} kind="item" /></span>
                 <span className="ix-pitem__top"><b>{r.name}</b><StatusTag st={r.st} /></span>
                 <span className="ix-pitem__mid">{[issueText(r) || stockText(r), money(r.price)].join(' · ')}</span>
               </button>

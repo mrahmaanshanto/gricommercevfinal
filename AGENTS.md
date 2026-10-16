@@ -325,7 +325,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
     Category tiles (tiles, circles, cards, carousel, list), FAQ (accordion, columns, topics with `item.topic`, split).
     `LIB_GROUPS` / `groupOf` order the section library.
   - Style controls: `lib/storefront/styles.js` (`box` on a section: steps None…XL per device `{d,t,m}` for padding and
-    margin, width, alignment, background colour / picture + shade, text colour, heading font and size, button look,
+    margin, width, alignment, background colour / picture + shade, pattern (`PATTERNS`: grid, dots, lines, diagonal, waves), text colour, heading font and size, button look,
     hide per device, entrance animation, anchor, CSS class). `boxProps` → CSS variables + classes read by `BOX_CSS`
     (wrapper class `sfsx`; `sfx` is the side cart's). Computer ≥1024, tablet 641–1023, phone ≤640.
   - Global styles (Theme › Customize): `buttons` (solid / outline / soft / pill), `fieldStyle`, `badgeStyle`, `shadow`,
@@ -453,27 +453,37 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
     Dazzle wordmark (`public/assets/brand/dazzle-logo.svg` + `-white.svg`) is `businessProfile().brand.logo / logoOnDark`
     unless Settings › Brand assets has one; the store header, footer and letterheads use it. Flash sale's default look
     (`panel`) is a dark panel with the sale colour's glow, product photos (matched by name) and a pill button.
-- **Landing pages (16 Oct)**: one-product pages that take cash-on-delivery orders.
-  - **Data.** A page (`lib/landingPages.js`, `gc.landingPages`) holds:
-    - `parts`: `lib/landingParts.js › PARTS`, 15 kinds (hero, countdown, benefits, order form, reviews, FAQ, …), each with
-      SectionFields-style fields;
-    - `style`: accent, theme, font, corners, sticky order bar.
-    - `partsFor(template, factsOf(product))` fills the parts from the product. A page saved before parts existed gets them
-      through `ensureParts`.
-  - **Drawing.** `screens/storefront/landingView.jsx` draws a page in the builder and at `/lp?handle=`. It uses container
-    queries, so the builder's phone frame matches a real phone.
-  - **Order form.** Quantity offers, variant, AreaPicker, delivery fee from `deliveryRates`, a free-delivery threshold. It
-    calls `orderLinks.addOrder` (source Website, tag "Landing page"). A draft's form (`?preview=1`) and the builder's
-    preview make no order.
+- **Landing pages (16 Oct)**: one-product sales pages that take cash-on-delivery orders.
+  - **Data.** A page (`lib/landingPages.js`, `gc.landingPages`) holds `parts` and `style` (accent, theme, font from every
+    `FONT_PAIRS` entry incl. the Bangla display faces, corners, `pattern`, sticky order bar).
+    - Sales parts: `lib/landingParts.js › PARTS` (20: hero, countdown, benefits, order form, offer cards, callout box,
+      customer proof, picture banner, certificates and logos, reviews, FAQ, …), with SectionFields-style fields.
+    - **Store sections**: any kind of the store's library (`SECTION_TYPES`, every look). Such a part is the section itself
+      with `sf: true` (`isStorePart`); `partKind` / `partLabel` / `partIcon` read either kind.
+    - Every part may carry `box` (Style / Advanced tabs, `lib/storefront/styles.js`) and `orderBtn` (an "Order now" under it).
+    - `partsFor(template, factsOf(product))` fills sales parts from the product; `ensureParts` upgrades an old page.
+  - **Drawing.** `screens/storefront/landingView.jsx` draws the page inside the store theme (`.sf-theme`, `lpTheme(style)`:
+    the shop theme with the page's accent, font, corners, colours) with the store's CSS, so store sections are drawn by
+    `sections.jsx › Section` with their looks. Sales parts get the box classes (spacing per device, background, pattern,
+    colours, fonts, show per device, animation).
+  - **Order form.** `mode`: quantity offers of the page's product (`tiers`) or several offers (`choices`: any product or
+    a bundle product, qty, price, old price, tag, picture, note); `offersOf(part, product, products)`. Offer cards show the
+    same offers and their button picks one in the form. AreaPicker, delivery fee from `deliveryRates`, free delivery over an
+    amount, `orderLinks.addOrder` (tag "Landing page"). The visit's `utm_*` / `fbclid` / `gclid` are kept for the session
+    (`gc.lp.utm`) and saved on the order (`utm`, source Facebook / Instagram / TikTok / WhatsApp / Website);
+    `attribution.touchesOf` uses a recorded `utm` instead of the demo journey. Drafts and the builder make no order.
   - **Builder** (`/landing-page-builder`, `LandingPageBuilder.jsx`, full window):
     - start: pick a product, then a template or "Build it with AI";
-    - left panel: Parts (drag, arrows, hide, Add part library), Page (product, link, style, checks before publishing),
-      AI builder;
-    - middle: the live preview on a phone or computer; click a part to edit it;
-    - right panel: the part's fields and "Rewrite with AI";
+    - left: Parts (drag, arrows, hide; Add part = Sales page parts + Store sections with looks, `LayoutEdit › LibraryBody`),
+      Page (product, link, style, pattern, checks), AI builder;
+    - middle: a preview frame `/lp?draft=1&preview=1&edit=1` at phone / tablet / computer width (real media queries); the
+      unsaved page is posted with `sendPreview('landing')`, the selection with `'select'`; a click selects
+      (`gcSfSelect`);
+    - right: Content (fields, or `SectionFields` for a store section; Rewrite with AI) · Style (`StyleTab`) · Advanced
+      ("Order now" under it + `AdvancedTab`), the same tabs as Online Store › Layouts;
     - Undo / Redo, SEO (SeoPanel `landing`), Save, Publish / Unpublish.
-  - **The AI** (`aiBuild`: tone, goal, language, length, audience, offer, notes; `aiRewrite`, `headlineIdeas`) is GridAI's
-    marketing agent, simulated over the product data and metered (`usage.meter`, surface `landing`).
+  - **The AI** (`aiBuild`, `aiRewrite`, `headlineIdeas`) is GridAI's marketing agent, simulated and metered (surface `landing`).
+  - Templates built from the new parts (e.g. a combo-offer page) are still to come.
 - **Settings › Files (Oct 2026)** (`/files`, menu id `products-media` moved from Products to Settings, module core;
   `screens/files/Files.jsx`, `lib/files.js`, `components/files/FileParts.jsx` + `FilePicker.jsx`): every picture, video and
   document. Uploads are resized (2000 / 800 px WebP + a 200 px preview) and kept in IndexedDB `gc-files`; the list is
@@ -482,6 +492,192 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   (layouts, headers, blocks, menus, pages, products, brands, posts) keeps a used file from being deleted by mistake;
   Replace keeps the address. `ImageField` / `FilePicker` (Library · Upload · Web address) replace the old picture
   select (`sfShared › ImagePick` now uses it). Storage counts in Hosting › Usage.
+- **Merge with Nayeem's Batches A–F (16 Oct, branch `nayeem-update-2026-10-16`)**. Nayeem built A–F on the 14 Oct
+  handover, before the 16 Oct storefront work. The owner's decisions, and what they mean for the code:
+  - **Store engine: ours is the base.**
+    - `lib/storefront/schema.js` is the one vocabulary, as in Nayeem's design, but it holds this build's lists: the 14
+      option groups, the 41 section types with their looks (`styles`, `variant`), `PRODUCT_LOOKS` and `LIB_GROUPS`.
+    - His additions are kept: the `notice` header element, `HEADER_SWITCHES`, the `custom` section, `ITEM_ICONS`,
+      `STYLE_PRESETS`, notices, spots, block kinds and link types.
+    - `theme.js`, `headers.js` and `layouts.js` re-export from it. It has no imports: `tools/store-kit/check.mjs` runs it
+      in Node.
+  - **Older design files** (his section `look`, Category tiles `style`, types `icons` / `locator`) are converted by
+    `schema.js › fromOldSection` before `kit.js › checkKit`. The conversion is `OLD_LOOKS` / `OLD_TYPES`: icons →
+    iconlist, locator → outlet, testimonials `place` / `image` → `role` / `photo`.
+  - **Design files hold our parts too.** `kit.js` keeps a section's `variant` and `box`, list items' `id`, theme pictures
+    and the store's `words`. `presets.js › presetKit(id)` makes each of the 11 built-in themes a design file from the
+    preset itself, so Theme › Preview / Import / Export work for all of them. `designName(id)` reads library themes.
+    `kits/*.gcstore.json` are his originals, read only by `kitDraft.js` (Build with GridAI).
+  - **Two editors, for now.**
+    - Theme › Edit store opens his `/store-editor`. The store's "Tweak this page" stays ours, and is hidden inside
+      editor frames.
+    - Both use `LayoutEdit.jsx`'s exports: `SectionFields` (our looks + fields + colours), `summary`, `previewPath`,
+      `STARTER` (our `sectionStarters`; values may be functions), `LE_CSS`.
+    - In an edit frame, sections carry `data-sec-id` / `data-sec-label`. A click posts both `gcSfSelect` (Layouts) and
+      `gcSfPick` (store editor).
+    - `SectionFields.jsx › Field` gained his `custom` / `values` types; `sections.jsx` draws `custom` with `CustomBody`.
+    - His own section renderers and look CSS were dropped: they targeted the same classes as our looks.
+  - **Accounts: his.** `lib/storefront/account.js`, `/account` (`StoreAccount.jsx`), `/wishlist` (`StoreWishlist.jsx`),
+    `/compare` (`StoreCompare.jsx`).
+    - Our card heart / quick view / compare and the product page use `saved.js`, now a thin layer over `account.js`.
+    - A plain wishlist saved under the same key (`gc.store.wishlist`) by the old `saved.js` is read as the guest's list
+      (`account.js › wishMap`).
+    - His `storeAccount.jsx` is `accountParts.jsx`: a Mac can't hold both names. `StoreSaved.jsx` is gone.
+  - **Advance payment: his settings drive both.**
+    - Settings › Checkout › Partial payment (`lib/partialPayment.js › partFor`) sets the amount.
+    - The Advance and Steps checkout styles use `part.now` when a rule matches, else the theme's `advanceAmount`. They
+      keep their bKash / Nagad number + transaction ID (or a payment link) and hide his part-payment choice.
+    - Every other style shows his "Pay part now, rest on delivery".
+  - **Store chrome.** His notices (top / under the header / in the header / phone bar), placements (`Placed` spots, product
+    tabs), snippets and the compare bar sit around our header, footer, looks CSS, tweak dock and pop-up checkout.
+    `StoreChrome` takes `subject` (product / category) for notices and placements.
+  - **Still ours, in spite of his notes:** `npm run pattern` is never run on today's screens.
+- **Store design engine (Batch A, Oct 2026; Nayeem's copy)**: designs are files, not code.
+  - **Store kit** (`<name>.gcstore.json`, `gcstore: 1`): theme, headers, layouts, HTML blocks, menus, pages, notices,
+    placements and custom sections; never products, customers or orders. `lib/storefront/schema.js` is the one vocabulary
+    (options, elements, section types and their looks, block kinds, link types, notice places, spots, `ITEM_ICONS`,
+    `STYLE_PRESETS`); the editors, the checker and `tools/store-kit/VOCAB.md` all read it. `kit.js` (pure): `checkKit`,
+    `kitToStore`, `storeToKit`, `fillTokens` ({{shop_name}} …, {{brand_primary}}), `kitSummary`. `kitStore.js`: `applyKit`
+    (restore point first; `trusted` for GridCommerce's own files), `exportKit`, `kitPreviewParts` (a whole kit in a preview
+    frame), `appliedKit`. Tools: `tools/store-kit/check.mjs`, `render.mjs`, `SKILL.md` (how Claude builds a kit from a brief).
+    New option or section → `schema.js`, then `node tools/store-kit/check.mjs --vocab > tools/store-kit/VOCAB.md`.
+  - Signal, Nokshi and Counter are kits in `lib/storefront/kits/` (`presets.js` reads them); super admin theme releases can
+    carry a kit and published ones show on the merchant Theme page (`access.js › libraryKits`). New themes are kits.
+  - **Store notices** (`/store-notices`, `notices.js`, `show.js`, `storefront/storeNotices.jsx`): many notices, places top /
+    below-header / header element / phone bar, schedule, countdown, code, take turns. Header switches `overHero`, `shrink`.
+  - **Block placements** (`/html-blocks?view=placements`, `placements.js`, `storefront/storePlaced.jsx` `<Placed spot>`):
+    one HTML block into 12 spots for pages, categories, products, devices and dates.
+  - **Theme page** (`/theme`): Edit store (main), design file import / export / preview, library designs, **Build with
+    GridAI** (`kitDraft.js`, rules only), restore points.
+  - **Design service** (`lib/platform/services.js` store-design ৳2,500 / 5,000 / 10,000): the expert attaches a kit to the
+    delivery (`SvcOrder.jsx`), the merchant previews and applies it from `/my-service` (`KitPreviewSheet` in sfShared).
+  - **Section looks and new sections**: a `look` field per section (CSS classes `sfs--look-*` in `storefront/sections.jsx`);
+    new types gallery, icons, testimonials, locator (`catalog.storeBranches`), social; field type `list` (repeating items).
+    Customize › Style applies a `STYLE_PRESETS` entry.
+  - **Custom sections** (`/html-blocks?view=custom`, `customs.js`, `customCode.js`, `CustomSections.jsx`; section type
+    `custom` + `values`): HTML + CSS with `{{key}}` settings, allow-list sanitiser and scoped CSS; writing code needs the
+    Business plan and the theme's `code` switch. The server must repeat the sanitising.
+  - **Store editor** (`/store-editor`, `StoreEditor.jsx`; `storefront/editBridge.jsx` in the frame with
+    `?preview=1&edit=1`, sections carry `data-sec-id`): click to edit, drag, section library, style, header, undo / redo.
+    It shares `SectionFields` / `previewPath` / `STARTER` with `LayoutEdit.jsx` and `OptControl` with `ThemeEditor.jsx`.
+- **Designed emails (Batch B, Oct 2026; Nayeem's copy)**: one pure kit, `lib/email/emailKit.js` (parts heading · text ·
+  button · order · products · coupon · tracking · info · image · divider · spacer; `renderEmail` = 600 px table HTML with
+  inline styles and dark colours, `plainText`, `blocksFromText`, `emailProblem`; `{{var}}`, **bold**, [link](url)), used by
+  both sides. Shop: `lib/email/shopEmails.js` (`gc.email.*`, event `gc:email`; the look starts from Settings › General;
+  every notification event has an English and a Bangla designed email: `emailFor`, `saveEmail`, `resetEmail`,
+  `sendTestEmail`), Settings › Notifications › Email design `/email-design` and the editor `/email-editor?event=`
+  (`components/email/EmailStudio.jsx`, `EmailDesignForm.jsx`). Super admin: `lib/admin/emailDesign.js`,
+  `/admin/email-design`, `/admin/templates/design?id=` (comms store version 2). Sending stays simulated.
+- **Customer accounts (Batch B, Oct 2026; Nayeem's copy)**: `lib/storefront/account.js` (`gc.store.accounts`,
+  `gc.store.session`, `gc.store.wishlist`, `gc.store.compare`; event `gc:store-account`). One account per mobile number;
+  sign-in with a code (`sendCode`, `signInWithCode`; demo code `DEMO_CODE` 1234, demo shopper Nusrat Jahan 01553 336655)
+  or email + password (`signInWithPassword`, demo hash only); `createFromCheckout` ("Save my details"); addresses with
+  `bdAreas`; message choices write `lib/consent.js` (source "My account"); `ordersOf`, `buyAgainSkus`; wishlist per
+  account or guest (joins at sign-in, `wishlistLink`), compare up to `COMPARE_MAX` 4. Settings › Checkout › Customer
+  accounts (`accountSettings()`: accounts Off / Optional / Required — Required turns guest checkout off — code,
+  password, save_details). Pages: `/account?tab=` (`StoreAccount.jsx`), `/wishlist` (`?ids=` shared), `/compare`
+  (`StoreCompare.jsx`, template spec groups, `gc-table--keep`); shared pieces `storeAccount.jsx` (`useAccount`,
+  `WishButton`, `CompareButton`, `CompareBar`); the header's Account / Wishlist / Compare link to them with counts
+  (`useStorefront` › `me`, `wishCount`, `compareCount`). Checkout fills in from the account; `/track` opens for the
+  signed-in owner; the customer page meta shows "Has an account · last sign-in".
+- **Affiliates (Batch B, Oct 2026; Nayeem's copy)**: `lib/affiliates.js` (`gc.aff.*`, event `gc:affiliates`; module
+  `online`, menu `mkt-affiliates` / hidden `mkt-affiliate`). Settings `affSettings()` (`AFF_DEFAULTS`: 10%, 30-day link,
+  ৳500 minimum, manual approval, 7-day return window). `captureRef` runs in `useStorefront` for `?ref=`; Checkout calls
+  `attributeOrder(row, { phone, code })` (an affiliate code typed in the coupon box, `isAffiliateCode`, wins; own orders
+  never count). `getCommissions()` derives each order's state from the order (pending → approved after delivery + return
+  window → owed / paid from its Liabilities line → cancelled). `makePayouts` adds one `affiliate` liability
+  (`liabilities.addLiability`); payouts are paid in Finances › Liabilities. Pages: `/affiliates?tab=`
+  (`loyalty-promo/Affiliates.jsx`), `/affiliate?id=` (`AffiliateProfile.jsx`, NAMED_ROUTES), store `/affiliate-program`
+  (`StoreAffiliate.jsx`) and My account › Affiliate (`StoreAccount.jsx › AffiliateTab`). Demo affiliate login 01755 123456.
+- **Batch C (Oct 2026; Nayeem's copy)**:
+  - My account (`StoreAccount.jsx`): Profile first in `ACCOUNT_TABS`; Wishlist is a tab (`WishlistTab`); `/wishlist` is for
+    shared links (`?ids=`) and guests (a signed-in shopper's own list forwards to the tab; `storeHeader.jsx › wishHref`).
+    Profile picture: `AvatarCrop.jsx` (`AvatarField`, `Avatar`), `account.js › setAvatar / removeAvatar / initialsOf /
+    AVATAR_SIZE` (256 px JPEG data URL on the account; header `IconBtn pic`).
+  - Communications › Message design (`/message-design?tab=email|sms`, `screens/communication/MessageDesign.jsx`, menu
+    `msg-design`, module `commerce`): `components/email/EmailDesignPanel.jsx` (was SetEmailDesign; `/email-design`
+    forwards in `next.config.mjs`) and `components/sms/SmsDesignPanel.jsx` (+ `lib/smsDesign.js` wordings; texts stay in
+    `notifications.getNotifySettings`). Every email preview frame uses `emailKit.previewHtml(html, dark)`.
+  - Store editor is full screen (own `.se-bar`, no Sidebar / Topbar; GridAI hidden on `/store-editor`).
+  - Affiliate withdrawals: `affiliates.js › withdrawRules / requestPlan / requestWithdrawal / approveWithdrawal /
+    rejectWithdrawal / getWithdrawals` (`gc.aff.withdrawals`; settings `wdOn wdMax wdEvery wdApproval wdMethods`; state
+    `requested`); Withdrawals tab in `/affiliates`; My account › Affiliate › Withdraw.
+  - Partial payment: `lib/partialPayment.js` (`partFor`, `requestPartPayment`, `onLinkPaid`, `gc.partpay`), Settings ›
+    Checkout › Partial payment (`components/PartialPaymentSettings.jsx`), Checkout's COD option, order page "Request part
+    payment"; `paymentLinks.payLink` calls `onLinkPaid`.
+  - Code snippets: `lib/storefront/snippets.js` (`gc.store.snippets`, `liveSnippets(path)`, `NO_CODE_PAGES`, `killOf`;
+    kill switch `lib/admin/snippetGuard.js` / `gc.admin.snippets`), `/snippets`. All shop CSS (snippets, Theme › Custom CSS,
+    design files) must pass `customCode.js › checkCss` and is scoped to `.sf-theme`; never on checkout, account, order-link
+    or tracking pages. No shop-written JavaScript anywhere.
+- **Batch D (Oct 2026; Nayeem's copy): Services control, gig pages, custom offers, teams, Grid Shop**:
+  - Super admin Communications › Message design (`/admin/message-design?tab=email|sms`, `screens/admin/comms/MessageDesign.jsx`;
+    Email design = `EmailDesign.jsx › EmailDesignBody`; `/admin/email-design` forwards). Communications › Email moved to
+    `/admin/comms/email` (Business email owns `/admin/email`).
+  - Who may use Services and Grid Shop: `lib/platform/marketAccess.js` (`gc.platform.market`, `gc:market`; per module on/off,
+    every store or chosen stores, blocked stores with a reason; `canUse(module, shopId)`). Super admin › Services › Access
+    (`/admin/services/access?m=services|shop`) and a merchant's Modules tab (`MarketCard`). Merchant pages pass
+    `gate="services"|"shop"` to `SvcFrame` (`svcShared.jsx › useMarket`, `MarketClosed`).
+  - `lib/platform/services.js` v3: service `cover`, `gallery[{src,caption}]`, `proof[{src,title,result,client}]`
+    (pictures in `public/assets/services/`, `PICTURE_LIBRARY`); teams (`getTeams`, `saveTeam`, `assignTeam`; the lead is the
+    order's expert); experts and teams carry `bank` (`bankText`, `BANK_METHODS`); order `tasks[]` (who, cost, status; done →
+    payout `owed`; `payables()` = task payouts, booked by `servicesSync` as Finance expenses and read back as paid via
+    `markTaskPaid`), `costs[]`, `updates[]` (`postUpdate`, `publishUpdate`, `sharedUpdates`); `profitOf(order)`;
+    `reportOf` adds cost, profit, `byOrder`. Custom offers: `createOffer` (hidden service `custom: true`, status 'custom'; order
+    status `unpaid`, `paid.pending`, `offer { code, expiresAt, sent[] }`; `expired` worked out), `payOffer(code, method)`,
+    `extendOffer`, `withdrawOffer`, `logOfferSent`; store requests `requestCustom` / `getRequests` / `closeRequest`.
+    `autoShareText` / `shareText` / `saveShareText` (svc.share.text overrides).
+  - Merchant: `/service-detail` is a gig page (`ServiceDetail.jsx`: gallery + `Lightbox`, proof, who does it, ratings,
+    package tabs, phone bar); `/service-offer?code=` the payment link page (`OfferPay.jsx`, no menu); My services shows
+    offers to pay, Ask for a custom offer, and shared Progress updates on the order.
+  - Super admin: `SvcMedia.jsx` (pictures editor, `PicturePicker`), `SvcOffer.jsx` (`/admin/service-offer?request=`),
+    `SvcOrderWork.jsx` (OfferCard, TeamPick, TasksCard, UpdatesCard, ProfitCard), Orders tabs Requests and Offers, Experts ›
+    Teams tab and payout accounts, Reports with cost and profit. `ShareSheet.jsx` shares any item: editable automatic
+    text, email / SMS to picked stores through `admin/comms.sendMessage`, WhatsApp per store, social share pages, copy.
+  - Grid Shop (`lib/platform/gridShop.js`, `gc.gridshop`, `gc:gridshop`): products sold from our stock (`fulfil:'stock'`,
+    stock goes down on order) or shipped by a supplier (`'supplier'`); bulk `tiers`, `moq`; carts per store; orders split
+    into shipments (stock + one per supplier; supplier shipments owe our cost once shipped: `supplierPayables`);
+    `statusOf`, `profitOf`, `report`. `lib/admin/gridShopSync.js` books income and supplier payouts (AdminShell runs it).
+    Merchant (Services area, module of the Services menu): `/grid-shop`, `/grid-shop-item`, `/grid-shop-checkout`,
+    `/grid-shop-orders`, `/grid-shop-order` (`screens/services/GridShop*.jsx`, `gsShared.jsx`; menu `gs-*`). Super admin
+    area Grid Shop: `/admin/grid-shop` (orders), `/order`, `/products`, `/product`, `/suppliers` (`screens/admin/gridshop/`).
+- **Batch E (Oct 2026; Nayeem's copy): picture columns, Grid Shop vendors, Grid Partners**:
+  - Picture columns: a row gets a small picture only when it is one thing recognised faster by sight (a product, a person,
+    a company or visual content); money, logs, orders, settings and reports stay text-only. `components/ui/Pic.jsx`
+    (`Pic` kind item | person | logo | cover, `PicStack`, `PicRow`; styles `.gc-pic*` at the end of design-system.css), in
+    the first cell beside the name (`.gc-picrow`) and at the start of phone list items. `lib/pictures.js`: `productPic(row)`
+    (own photo, else the demo photo from `lib/productPhotos.js` by id / SKU / name), `initialsOf`, `toneOf`. Demo pictures are
+    drawn by `tools/records/product-photos.cjs` into `public/assets/products/` and `public/assets/gridshop/` (no brand marks);
+    the demo's two "No photo" products keep their tile. HR (`staff-hr/hrShared.jsx › Avatar`) and super admin People
+    (`admin/people/peopleShared.jsx › Avatar`) avatars render through Pic.
+  - Grid Shop vendors (`lib/platform/gridShop.js` v2; the header comment is the price rule book): vendors replace suppliers
+    (aliases kept); pricing model per vendor `commission` (default: the vendor sets the store price, we take a %) or `markup`
+    (the vendor sets what they get, we add a %); fee per parcel, monthly fee; rules (`rules[]`: side vendor | store, kind
+    commission | fee-per-order | monthly-fee | platform-fee | markup | discount, scope, dates, `fundedBy`; one rule per side and
+    kind, the most specific wins, no stacking); `priceFor(product, shopId, qty)` → breakdown, frozen on each order line
+    (`line.pb`); vendor products need approval (`review`, `pendingChange`); vendor payouts owed per delivered parcel;
+    `gridShopSync` books payouts. Vendor portal (own frame, no merchant menu): `/vendor-sign-in`, `/vendor`, `/vendor-products`,
+    `/vendor-product`, `/vendor-orders`, `/vendor-order`, `/vendor-money`, `/vendor-profile` (`screens/vendor/`). Super admin:
+    Grid Shop › Vendors (`/admin/grid-shop/vendors`, record `/vendor?id=`; page id stays `gshop-suppliers`), Products ›
+    Waiting for approval, Pricing rules `/admin/grid-shop/pricing` (rules + Try a price). Merchant shop shows Sold by, the
+    discount and a Platform fee line.
+  - Grid Partners (models, influencers, video creators; matching only, no money through GridCommerce):
+    `lib/platform/partners.js` (`gc.partners`: partners with handle, type, platforms + followers, samples, packages,
+    budget, availability, status applied | approved | rejected | suspended, verified, featured; requests sent → accepted |
+    declined → done (rated) | cancelled, contact released only after accept; settings = minimum standards,
+    `checkStandards`). Access: marketAccess module `partners`. Merchant Services › Grid Partners (`/partners`, `/partner?h=`,
+    `/partner-requests`; menu `gp-browse`, hidden `gp-profile`, `gp-requests`). Creators' app (own frame, reuses the vendor
+    frame styles): `/grid-partners`, `/grid-partners/join`, `/gp-sign-in`, `/gp`, `/gp-profile`, `/gp-requests`; public
+    profile `/p?h=<handle>` (approved only) with share links, QR and a downloadable share card (`screens/partners/`). Super
+    admin area Grid Partners: `/admin/partners` (+ `/applications`, `/requests`, `/settings`, record `/admin/partner?id=`).
+- **Batch F (Oct 2026; Nayeem's copy): Grid Career (hiring)**: one engine `lib/platform/career.js` (`gc.career`; employers
+  'gc' and stores with a careers page; jobs with an application-form builder and knockout answers; applications with stage
+  new → shortlisted → interview → offer → hired | rejected, rating, notes, tags, interviews, messages (logged), status
+  code; `?src=` source per share link; `hire` → prefill for `/staff-create?name=&phone=&email=&position=&branch=&from=`).
+  Access: marketAccess module `career` (chosen stores; Dazzle Shop open). Shared screens `screens/career/` (JobsList,
+  JobEditor, ShareJob, Applicants board/table/sheet, CareerSettings, PublicJob). Merchant Staff & HR › Hiring (`/hiring`,
+  `/hiring-job`, `/hiring-applicants`; menu `hr-hiring`, hidden `hr-job`, `hr-applicants`). Public: store `/careers`
+  (store theme), GridCommerce `/jobs`, candidate `/application?code=`. Super admin area Grid Career (`/admin/career`, `/job`,
+  `/applicants`, `/page`, `/stores` control centre; `screens/admin/career/`).
 - **Settings › Hosting (Oct 2026)** (`/set-hosting?tab=`, `screens/settings-console/SetHosting.jsx` + `hosting/*`,
   `lib/hosting.js`, browser storage `gc.hosting` + `gc.hosting.backups`, event `gc:hosting`): the store is hosted on
   GridCommerce and this section holds everything a web host offers. Tabs: Overview (address, certificate, email checks,

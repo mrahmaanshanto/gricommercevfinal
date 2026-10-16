@@ -18,6 +18,12 @@ import { formatDate } from '@/lib/format';
 import { getMembers, pointsLiability, walletLiability, getLoyaltySettings, addMember, monthRange } from '@/lib/loyalty';
 import { clockNow } from '@/lib/settlements';
 import { LoyPage, TierBadge, useLoyalty, money, pts, plural } from './loyShared';
+import { Pic } from '@/components/ui/Pic';
+import { accountOf } from '@/lib/storefront/account';
+
+// A member's profile picture from their store account (read only once the list has loaded, after mount).
+const picOf = (phone) => { try { const a = accountOf(phone); return (a && a.avatar) || ''; } catch (e) { return ''; } };
+const PIC_SLOT = { gridRow: 'span 2', alignSelf: 'center', display: 'flex' };
 
 const FILTERS = [['any', 'Any'], ['exp', 'Points expiring soon'], ['idle', 'Not bought in 30 days'], ['wallet', 'Has store credit']];
 const PAGE = 20;
@@ -105,7 +111,8 @@ export default function Members() {
           <ul className="ix-plist" aria-label="Members">
             {rows.map((m) => (
               <li key={m.phone}>
-                <Link href={`/member-detail?phone=${m.phone}`} className="ix-pitem">
+                <Link href={`/member-detail?phone=${m.phone}`} className="ix-pitem ix-pitem--thumb">
+                  <span style={PIC_SLOT}><Pic src={picOf(m.phone)} name={m.name} kind="person" /></span>
                   <span className="ix-pitem__top"><b>{m.name}</b><span>{pts(m.points)} points</span></span>
                   <span className="ix-pitem__mid">{m.tierObj.name} · {m.wallet ? 'credit ' + money(m.wallet) : 'bought ' + money(m.bought)}</span>
                 </Link>
@@ -119,7 +126,7 @@ export default function Members() {
               <tbody>
                 {rows.map((m) => (
                   <tr key={m.phone} onClick={open(m)}>
-                    <td><Link href={`/member-detail?phone=${m.phone}`} className="ix-strong">{m.name}</Link></td>
+                    <td><span className="gc-picrow"><Pic src={picOf(m.phone)} name={m.name} kind="person" /><Link href={`/member-detail?phone=${m.phone}`} className="ix-strong">{m.name}</Link></span></td>
                     <td><TierBadge m={m} /></td>
                     <td className="ix-num">{pts(m.points)}{m.expiring ? <span className="ix-warn"> · {pts(m.expiring)} expire soon</span> : null}</td>
                     <td className="ix-num">{m.wallet ? money(m.wallet) : '—'}</td>

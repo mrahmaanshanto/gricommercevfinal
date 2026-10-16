@@ -15,6 +15,7 @@ import { contextOf } from '@/lib/seoItems';
 import { demoHref, parsePath } from '@/lib/seo';
 import { categoryProducts, catChildren, sortProducts, filterProducts } from '@/lib/storefront/catalog';
 import { StoreChrome, useStoreItem, NotFound, Crumbs } from './storeChrome';
+import { Placed } from './storePlaced';
 import { Sections, useLayout, ProductList } from './sections';
 
 const CSS = `
@@ -133,7 +134,7 @@ export default function StoreCategory() {
   const ctx = useMemo(() => (c ? contextOf('category', c) : null), [c]);
   const lay = useLayout('category', { category: c }, c ? c.path : '');
   return (
-    <StoreChrome screen="StoreCategory" kind="category" css={CSS} head={st.ready ? st.head : null} movedFrom={st.movedFrom} headerId={lay ? lay.header : ''}
+    <StoreChrome screen="StoreCategory" kind="category" css={CSS} head={st.ready ? st.head : null} movedFrom={st.movedFrom} headerId={lay ? lay.header : ''} subject={c ? { category: c.path } : null}
       current={(it) => !!c && it.link && it.link.type === 'category' && it.link.ref === c.path}
       preview={st.ready && st.shows && c && c.hidden ? <>Preview · this category is hidden from the shop menu <Link href={`/categories?id=${c.id}`} style={{ color: 'inherit' }}>Edit category</Link></> : null}>
       {(shell) => (!st.ready || !lay ? <div style={{ minHeight: 400 }} aria-busy="true" /> : st.shows ? (
@@ -141,7 +142,9 @@ export default function StoreCategory() {
           main={(
             <div className="sf-wrap">
               <Crumbs items={(ctx.breadcrumbs || []).map((b, i, all) => { const x = parsePath(b.path); return { name: b.name, href: i < all.length - 1 && x ? demoHref(x.kind, x.handle) : undefined }; })} />
+              <Placed spot="category-top" />
               <CategoryMain c={c} ctx={ctx} v={shell.values} />
+              <Placed spot="category-bottom" />
             </div>
           )} />
       ) : <NotFound shell={shell} />)}

@@ -14,6 +14,7 @@ import { kycQueue } from '@/lib/platform/shops';
 import { subState, isLiveStore } from '@/lib/platform/billing';
 import { ownerOf } from '@/lib/admin/merchants';
 import { AdminShell, usePlatform } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 import { KycBadge, KycSheet } from './kycShared';
 
 const VIEWS = [['submitted', 'To review'], ['rejected', 'Rejected'], ['verified', 'Verified'], ['none', 'Not verified']];
@@ -72,7 +73,8 @@ export default function Verification() {
                 <ul className="ix-plist" aria-label={label}>
                   {rows.map(({ shop: sh, kyc: k }) => (
                     <li key={sh.id}>
-                      <button type="button" className="ix-pitem" style={{ width: '100%', textAlign: 'left', border: 0, background: 'none', font: 'inherit' }} onClick={() => setOpenId(sh.id)}>
+                      <button type="button" className="ix-pitem ix-pitem--thumb" style={{ width: '100%', textAlign: 'left', border: 0, background: 'none', font: 'inherit' }} onClick={() => setOpenId(sh.id)}>
+                        <span style={{ gridRow: 'span 3' }}><Pic src={sh.logo} name={sh.name} kind="logo" /></span>
                         <span className="ix-pitem__top"><b>{sh.name}</b><KycBadge k={k} /></span>
                         <span className="ix-pitem__mid"><span className="ix-id">#{sh.id}</span> · {ownerOf(sh).name}</span>
                         <span className="ix-pitem__mid">{k.state === 'submitted' ? 'Sent ' + dmy(k.submittedAt) : k.reviewedAt ? dmy(k.reviewedAt) + ' · ' + k.reviewedBy : 'Nothing sent'}</span>
@@ -96,7 +98,7 @@ export default function Verification() {
                     <tbody>
                       {rows.map(({ shop: sh, kyc: k }) => (
                         <tr key={sh.id} tabIndex={0} onClick={() => setOpenId(sh.id)} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) setOpenId(sh.id); }}>
-                          <td><span className="kyc-name"><Link href={'/admin/merchant?id=' + sh.id} className="ix-strong" onClick={(e) => e.stopPropagation()}>{sh.name}</Link><small>#{sh.id}</small></span></td>
+                          <td><span className="gc-picrow"><Pic src={sh.logo} name={sh.name} kind="logo" /><span className="kyc-name"><Link href={'/admin/merchant?id=' + sh.id} className="ix-strong" onClick={(e) => e.stopPropagation()}>{sh.name}</Link><small>#{sh.id}</small></span></span></td>
                           <td>{k.ownerName || ownerOf(sh).name}</td>
                           <td><span className="kyc-data">{k.licence || '—'}</span></td>
                           <td><span className="kyc-data">{k.tin || '—'}</span></td>

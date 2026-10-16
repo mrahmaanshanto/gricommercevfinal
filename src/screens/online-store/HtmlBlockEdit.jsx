@@ -19,6 +19,8 @@ import { getBlock, newHtmlBlock, saveBlock, duplicateBlock, deleteBlock, usedIn,
 import { BLOG_CSS, BlockView } from '@/screens/integrations/blogShared';
 import { BLOCK_EDITOR_CSS, BlockEditor, AddMenu } from '@/screens/integrations/BlogEditor';
 import { StoreFrame, queryParam } from './storeShared';
+import { PlacementSheet, PLACEMENT_CSS } from './PlacementSheet';
+import { placeBlock, newPlacement } from '@/lib/storefront/placements';
 import { useSf, when, SFB_CSS } from './sfShared';
 
 const clone = (x) => JSON.parse(JSON.stringify(x));
@@ -35,6 +37,7 @@ export default function HtmlBlockEdit() {
   const [isNew, setIsNew] = useState(true);
   const [base, setBase] = useState('');
   const [missing, setMissing] = useState(false);
+  const [pl, setPl] = useState(null);   // a new placement of this block (Place in the store)
   const [mode, setMode] = useState('edit');
   const [menuAt, setMenuAt] = useState(null);
   const [catalog, setCatalog] = useState([]);
@@ -85,7 +88,8 @@ export default function HtmlBlockEdit() {
     : <div key={'i' + at} className="be-ins"><button type="button" className="be-plus" aria-label={at === 0 ? 'Add a block at the start' : `Add a block after block ${at}`} title="Add a block" onClick={() => setMenuAt(at)}><Icon name="plus" width="16" height="16" /></button></div>);
 
   return (
-    <StoreFrame screen="HtmlBlockEdit" active="store-blocks" page={isNew ? 'Add block' : 'Edit block'} css={BLOG_CSS + BLOCK_EDITOR_CSS + CSS} narrow>
+    <StoreFrame screen="HtmlBlockEdit" active="store-blocks" page={isNew ? 'Add block' : 'Edit block'} css={BLOG_CSS + BLOCK_EDITOR_CSS + CSS + PLACEMENT_CSS} narrow
+      after={<PlacementSheet open={!!pl} draft={pl} setDraft={setPl} isNew blockFixed onClose={() => setPl(null)} onSave={() => { if (dirty) save(); const made = placeBlock(b.id, pl.spots, { show: pl.show, start: pl.start, end: pl.end, order: pl.order }); setPl(null); toast(made.length === 1 ? 'Block placed · see HTML blocks › Placements' : `Block placed in ${made.length} spots · see HTML blocks › Placements`); }} />}>
       {!b ? <div style={{ minHeight: 320 }} aria-busy="true" /> : (<>
         <RecordHeader back="/html-blocks" backLabel="HTML blocks" title={b.name || (isNew ? 'Add block' : 'Untitled block')}
           meta={<>{kindOf(b.type).label}{dirty ? ' · Unsaved changes' : isNew ? ' · not saved yet' : ' · edited ' + when(b.updatedAt)}</>}
@@ -129,7 +133,8 @@ export default function HtmlBlockEdit() {
             </section>
             <section className="ix-card ix-card--pad hbe-card" aria-label="Used in">
               <h2 style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)' }}>Used in</h2>
-              {uses.length ? <ul className="hbe-uses">{uses.map((u) => <li key={u.where}><Link href={u.href} className="bl-link">{u.where}</Link></li>)}</ul> : <p className="sfb-muted">Not used yet. Place it in a layout, the header builder, a mega menu or the theme’s footer.</p>}
+              {uses.length ? <ul className="hbe-uses">{uses.map((u, i) => <li key={u.where + i}><Link href={u.href} className="bl-link">{u.where}</Link></li>)}</ul> : <p className="sfb-muted">Not used yet. Place it in the store, a layout, the header builder, a mega menu or the theme’s footer.</p>}
+              {!isNew ? <button type="button" className="gc-btn" style={{ marginTop: 'var(--space-3)' }} onClick={() => setPl({ ...newPlacement({ block: b.id }), spots: [] })}><Icon name="map-pin" width="16" height="16" aria-hidden="true" />Place in the store</button> : null}
             </section>
           </aside>
         </div>

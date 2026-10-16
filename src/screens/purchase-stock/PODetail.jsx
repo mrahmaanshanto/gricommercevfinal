@@ -26,6 +26,8 @@ import { poOf, approvePO, rejectPO, submitPO, markSent, cancelPO, closeRemaining
 import { currentUser, SESSION_EVENT } from '@/lib/team';
 import { MERCHANT } from '@/lib/merchant';
 import { PODocument, printPO, ReasonDialog, PO_DOC_CSS } from './poParts';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 
 const DEFAULT_NO = 'PO-2609-0020';
 const COST_LABEL = { ship: 'Transport / shipping', customs: 'Customs & LC charges', courier: 'Courier & labour' };
@@ -228,7 +230,7 @@ export default function PODetail() {
                       const left = ['closed', 'cancelled'].includes(po.s) ? 0 : Math.max(0, l.qty - (l.received || 0));
                       return (
                         <tr key={(l.code || '') + l.name}>
-                          <td><span className="ix-strong">{l.name}</span>{l.code ? <span className="pd-sub pd-id">{l.code}</span> : null}</td>
+                          <td><span className="gc-picrow"><Pic src={productPic(l)} name={l.name} kind="item" /><span><span className="ix-strong">{l.name}</span>{l.code ? <span className="pd-sub pd-id">{l.code}</span> : null}</span></span></td>
                           <td className="ix-num">{l.qty}</td>
                           <td className="ix-num ix-strong">{l.received || 0}</td>
                           <td className={'ix-num' + (left ? ' ix-warn' : ' ix-muted')}>{left || '—'}</td>

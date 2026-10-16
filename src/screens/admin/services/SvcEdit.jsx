@@ -4,19 +4,23 @@
 // add-ons; the brief form builder (each question: label, kind — short / long text, web address, amount, number, pick one,
 // files — required or not, help, options; move up and down, remove); questions and sample work; whether the work needs
 // store access (what may be opened, how long); who may buy it (editions, plans); On sale / Paused.
+// Batch D: pictures (cover, gallery, proof of work; SvcMedia.jsx).
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { RecordHeader } from '@/components/ui/IndexKit';
-import { serviceById, saveService, CATS, FIELD_TYPES, AREAS } from '@/lib/platform/services';
+import { serviceById, saveService, CATS, FIELD_TYPES, AREAS, autoShareText, saveShareText } from '@/lib/platform/services';
+import { canUse } from '@/lib/platform/marketAccess';
+import { ShareSheet } from './ShareSheet';
 import { AdminShell } from '../AdminShell';
 import { useSvc, qp, SVA_CSS } from './svcAdmin';
+import { ServicePictures, MEDIA_CSS } from './SvcMedia';
 
 const EDITIONS = [['online', 'Online'], ['retail-online', 'Retail + Online'], ['retail-wholesale', 'Retail'], ['comms', 'Connect']];
 const PLANS = [['starter', 'Starter'], ['growth', 'Growth'], ['business', 'Business']];
-const blank = () => ({ id: '', name: '', cat: 'grow', icon: 'briefcase', cycle: 'oneoff', blurb: '', gets: [], packages: [{ id: 'starter', name: 'Starter', price: '', days: 7, revisions: 1, includes: [] }], addons: [], brief: [{ id: 'goal', label: 'What do you want from this?', type: 'textarea', req: true }], faq: [], samples: [], access: { needed: false, area: 'products', minutes: 60 }, editions: [], plans: [], status: 'paused' });
+const blank = () => ({ id: '', name: '', cat: 'grow', icon: 'briefcase', cycle: 'oneoff', blurb: '', gets: [], packages: [{ id: 'starter', name: 'Starter', price: '', days: 7, revisions: 1, includes: [] }], addons: [], brief: [{ id: 'goal', label: 'What do you want from this?', type: 'textarea', req: true }], faq: [], samples: [], cover: '', gallery: [], proof: [], access: { needed: false, area: 'products', minutes: 60 }, editions: [], plans: [], status: 'paused' });
 const lines = (v) => String(v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 const toggle = (list, k) => (list.includes(k) ? list.filter((x) => x !== k) : [...list, k]);
 
@@ -25,6 +29,7 @@ export default function SvcEdit() {
   const router = useRouter();
   const [s, setS] = useState(null);
   const [isNew, setNew] = useState(true);
+  const [share, setShare] = useState(false);
   useEffect(() => {
     if (!ready || s) return;
     const found = qp('id') ? serviceById(qp('id')) : null;
@@ -39,7 +44,7 @@ export default function SvcEdit() {
   const setQ = (i, patch) => set({ brief: s.brief.map((f, j) => (j === i ? { ...f, ...patch } : f)) });
   const moveQ = (i, d) => { const b = s.brief.slice(); const j = i + d; if (j < 0 || j >= b.length) return; [b[i], b[j]] = [b[j], b[i]]; set({ brief: b }); };
   const save = () => {
-    const r = saveService({ ...s, brief: s.brief.map((f, i) => ({ ...f, id: f.id || 'q' + (i + 1) + Date.now().toString(36).slice(-3) })), addons: s.addons.filter((a) => String(a.name || '').trim()).map((a, i) => ({ ...a, id: a.id || 'add' + (i + 1), price: Number(a.price) || 0 })) });
+    const r = saveService({ ...s, share: s.id ? (serviceById(s.id) || {}).share || null : null, brief: s.brief.map((f, i) => ({ ...f, id: f.id || 'q' + (i + 1) + Date.now().toString(36).slice(-3) })), addons: s.addons.filter((a) => String(a.name || '').trim()).map((a, i) => ({ ...a, id: a.id || 'add' + (i + 1), price: Number(a.price) || 0 })) });
     if (!r.ok) { toast(r.error, { tone: 'error' }); return; }
     toast(isNew ? 'Service added' + (r.service.status === 'live' ? '' : ' (paused until you put it on sale)') : 'Saved');
     if (isNew) router.replace('/admin/service-edit?id=' + r.service.id);
@@ -48,11 +53,11 @@ export default function SvcEdit() {
 
   return (
     <AdminShell active="svc-edit" title={s.name || 'New service'}>
-      <style dangerouslySetInnerHTML={{ __html: SVA_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: SVA_CSS + MEDIA_CSS }} />
       <div className="ix-page">
         <RecordHeader back="/admin/services/catalogue" backLabel="Catalogue" title={s.name || 'New service'}
           badges={<span className={'gc-badge gc-badge--' + (s.status === 'live' ? 'success' : 'slate')}>{s.status === 'live' ? 'On sale' : 'Paused'}</span>}
-          secondary={[{ label: s.status === 'live' ? 'Pause' : 'Put on sale', onClick: () => set({ status: s.status === 'live' ? 'paused' : 'live' }) }]}
+          secondary={[{ label: s.status === 'live' ? 'Pause' : 'Put on sale', onClick: () => set({ status: s.status === 'live' ? 'paused' : 'live' }) }, !isNew && s.status === 'live' ? { label: 'Share', icon: 'share-2', onClick: () => setShare(true) } : null].filter(Boolean)}
           primary={{ label: 'Save', icon: 'check', onClick: save }} />
         <div className="ix-record">
           <div className="ix-main">
@@ -66,6 +71,8 @@ export default function SvcEdit() {
               <div><label className="gc-label" htmlFor="se-blurb">Short pitch (one sentence)</label><input id="se-blurb" className="gc-input" value={s.blurb} onChange={(e) => set({ blurb: e.target.value })} /></div>
               <div><label className="gc-label" htmlFor="se-gets">What you get (one per line)</label><textarea id="se-gets" className="gc-input" rows={4} key={'g' + s.id} defaultValue={(s.gets || []).join('\n')} onChange={(e) => set({ gets: lines(e.target.value) })} /></div>
             </section>
+
+            <ServicePictures s={s} set={set} />
 
             <section className="ix-card sva-pad" aria-labelledby="se-pk">
               <h2 id="se-pk">Packages</h2>
@@ -139,6 +146,7 @@ export default function SvcEdit() {
           </aside>
         </div>
       </div>
+      {share ? (() => { const cur = serviceById(s.id) || s; const link = window.location.origin + '/service-detail?id=' + s.id; return <ShareSheet open onClose={() => setShare(false)} title={s.name} subject={`${s.name} from GridCommerce experts`} link={link} autoText={autoShareText(cur, link)} savedText={cur.share && cur.share.text ? cur.share.text : ''} eligible={(id) => canUse('services', id).ok} onSaveText={(t) => saveShareText(s.id, t)} />; })() : null}
     </AdminShell>
   );
 }

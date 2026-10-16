@@ -5,7 +5,8 @@
 //   where it is (Order placed → Confirmed → Packed → With the courier → Delivered, with the times), the courier and
 //   tracking ID with the courier's scans, the cash to pay on delivery, the items, and how to reach the shop.
 // Nothing else (no address, no other orders). A delivered order can ask for a return here (lib/returnRequests.js:
-// items, reason, refund or exchange); an open request shows its stage.
+// items, reason, refund or exchange); an open request shows its stage. A signed-in shopper (My account › Orders,
+// lib/storefront/account.js) who owns the order sees it at once, without typing the mobile number.
 // Front end only: orders come from this browser (lib/orders.js); the live shop serves the same page on its domain.
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -15,6 +16,7 @@ import { trackingOf, isDigitalOrder } from '@/lib/orderFlow';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { businessProfile } from '@/lib/businessProfile';
 import { requestsForOrder, requestReturn, canRequestReturn, RR_LABEL, RR_REASONS, REFUND_TO, RETURN_REQUESTS_EVENT } from '@/lib/returnRequests';
+import { currentAccount } from '@/lib/storefront/account';
 import { StoreChrome, Crumbs } from './storeChrome';
 
 const digits = (t) => String(t || '').replace(/\D/g, '').replace(/^88(?=01)/, '');
@@ -84,11 +86,14 @@ export default function TrackOrder() {
   const [tick, setTick] = useState(0);
   const [ret, setRet] = useState(null);     // the return form: { qty, reason, want, method, number, note, error }
   const [sent, setSent] = useState('');
+  const [auto, setAuto] = useState('');
   const [shop, setShop] = useState({ phone: '', email: '' });   // Settings › General's customer contact
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     setNum(p.get('id') || '');
+    // a signed-in shopper (My account › Orders) sees their own order without typing the number again
+    try { const me = currentAccount(); if (me) { setPhone(me.phone); if (p.get('id')) setAuto(p.get('id')); } } catch { /* guest */ }
     try { const c = businessProfile().contact || {}; setShop({ phone: c.phone || '', email: c.email || '' }); } catch { /* defaults */ }
     setReady(true);
     const again = () => setTick((t) => t + 1);
@@ -99,15 +104,25 @@ export default function TrackOrder() {
   const all = useMemo(() => (ready ? getOrders() : []), [ready, tick]);
   const o = found ? all.find((x) => x.id === found) || null : null;
 
-  const look = (e) => {
-    e.preventDefault();
-    const n = num.trim().replace(/^#?/, '#').toUpperCase();
-    const raw = num.trim().toUpperCase();
+  const match = (numText, phoneText) => {
+    const n = numText.trim().replace(/^#?/, '#').toUpperCase();
+    const raw = numText.trim().toUpperCase();
     const hit = all.find((x) => !/^(POS|Wholesale)/.test(String(x.channel || '')) && !x.isInvoice && (x.id.toUpperCase() === n || (x.consignment && x.consignment !== '—' && x.consignment.toUpperCase() === raw)));
     // the mobile number must match the order's: nothing shows otherwise (the same message either way)
-    if (!hit || digits(hit.phone).length < 10 || digits(hit.phone) !== digits(phone)) { setFound(''); setErr('No order matches that number and mobile number.'); return; }
+    return hit && digits(hit.phone).length >= 10 && digits(hit.phone) === digits(phoneText) ? hit : null;
+  };
+  const look = (e) => {
+    e.preventDefault();
+    const hit = match(num, phone);
+    if (!hit) { setFound(''); setErr('No order matches that number and mobile number.'); return; }
     setErr(''); setFound(hit.id); setRet(null); setSent('');
   };
+  useEffect(() => {
+    if (!auto || !all.length) return;
+    const hit = match(auto, phone);
+    if (hit) setFound(hit.id);
+    setAuto('');
+  }, [auto, all]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shell = (body) => (
     <StoreChrome screen="TrackOrder" head={{ title: 'Track your order', description: '', robots: 'noindex, nofollow', canonical: '', og: {}, jsonld: [] }}>

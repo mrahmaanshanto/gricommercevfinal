@@ -63,6 +63,8 @@ export function StockBar({ stock }) {
   if (!(stock > 0 && stock <= 10)) return null;
   return <span className="sf-sbar"><small data-w="hurryLeft">{w('hurryLeft', { n: stock })}</small><span className="sf-sbar__t" aria-hidden="true"><i style={{ width: Math.max(8, stock * 10) + '%' }} /></span></span>;
 }
+import { currentAccount, wishlist, compareList, ACCOUNT_EVENT } from '@/lib/storefront/account';
+import { captureRef } from '@/lib/affiliates';
 
 export const bdt = (n) => formatBDT(Math.round(Number(n) || 0));
 
@@ -71,6 +73,8 @@ export function useStorefront(headerId = '') {
   const [st, setSt] = useState({ ready: false, values: null, header: null, menus: [], cats: [], count: 0, shop: null, general: {} });
   useEffect(() => {
     listenPreview();
+    // an affiliate's link (/store?ref=CODE, Marketing › Affiliates): remember who sent this visitor
+    try { const ref = new URLSearchParams(window.location.search).get('ref'); if (ref) captureRef(ref); } catch { /* ignore */ }
     const load = () => {
       refreshCatalog();
       let shop = null;
@@ -82,10 +86,12 @@ export function useStorefront(headerId = '') {
       const h = headerFor(headerId);
       let catalog = [];
       try { catalog = getCatalog(); } catch { catalog = []; }
-      setSt({ ready: true, values, header: h.header, headerId: h.id, menus: previewPreset() ? presetMenus(previewPreset()) : getMenus(), cats: storeCategories(), count: cartCount(), total: cartTotal(cartLines()), catalog, shop, general, cssAllowed: !lockOf(optionBy('css')), edit: editing() });
+      let me = null;
+      try { me = currentAccount(); } catch { me = null; }
+      setSt({ ready: true, me, wishCount: wishlist().length, compareCount: compareList().length, values, header: h.header, headerId: h.id, menus: previewPreset() ? presetMenus(previewPreset()) : getMenus(), cats: storeCategories(), count: cartCount(), total: cartTotal(cartLines()), catalog, shop, general, cssAllowed: !lockOf(optionBy('css')), edit: editing() });
     };
     load();
-    const evs = [SF_EVENT, STORE_MENUS_EVENT, STORE_PAGES_EVENT, CART_EVENT, CATEGORIES_EVENT, SETTINGS_EVENT, 'storage'];
+    const evs = [SF_EVENT, ACCOUNT_EVENT, STORE_MENUS_EVENT, STORE_PAGES_EVENT, CART_EVENT, CATEGORIES_EVENT, SETTINGS_EVENT, 'storage'];
     evs.forEach((e) => window.addEventListener(e, load));
     return () => evs.forEach((e) => window.removeEventListener(e, load));
   }, [headerId]);
@@ -276,8 +282,8 @@ export function BlockContent({ id, catalog, compact }) {
   return <div ref={ref} className={'bl-article sf-block' + (compact ? ' is-compact' : '')}>{(b.blocks || []).map((x) => <BlockView key={x.id} block={x} catalog={catalog} live />)}</div>;
 }
 
-/** Customer-account things that need the live store's server (accounts come later). */
-export const later = (what) => toast(`${what} opens on the live store once customer accounts are switched on.`, { tone: 'info' });
+/** Customer-account things that need the live store's server. */
+export const later = (what) => toast(`${what} opens on the live store.`, { tone: 'info' });
 
 export const SF_CSS = `
 .spd-chips{display:flex;flex-wrap:wrap;gap:6px}

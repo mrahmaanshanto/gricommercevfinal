@@ -22,6 +22,8 @@ import { COLUMNS, DEFAULT_COLS, colBy, cellText, previewChanges, runJob, getJobs
 import { getStockSetup } from '@/lib/stockSetup';
 import { formatBDT, formatDateTime } from '@/lib/format';
 import { currentUser } from '@/lib/team';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 
 const COLS_KEY = 'gc.products.bulkCols';
 const show = (field, v) => {
@@ -218,7 +220,7 @@ export default function BulkEdit() {
                           return (
                             <tr key={p.id} className={off[p.id] ? 'be-off' : ''}>
                               <td className="ix-check"><input type="checkbox" checked={!off[p.id]} onChange={() => setOff((o) => ({ ...o, [p.id]: !o[p.id] }))} aria-label={'Edit ' + p.name} /></td>
-                              <td><span className="be-name" title={p.name}>{isEdited(p, 'name') ? edits[p.id].name : p.name}</span><span className="ix-muted" style={{ fontSize: 'var(--text-xs)' }}>{p.sku || 'No SKU'}</span></td>
+                              <td><span className="gc-picrow"><Pic src={productPic(p)} name={p.name} kind="item" /><span><span className="be-name" title={p.name}>{isEdited(p, 'name') ? edits[p.id].name : p.name}</span><span className="ix-muted" style={{ fontSize: 'var(--text-xs)' }}>{p.sku || 'No SKU'}</span></span></span></td>
                               {shownCols.map((k, ci) => {
                                 const chk = cellCheck(p, k), c = colBy(k), numCol = c.type === 'money' || c.type === 'int';
                                 return (

@@ -4,15 +4,16 @@
 // store page inside it — lib/storefront/store.js › sendPreview), pickers (image, HTML block, category, product), the
 // draft / published badge, the "locked" note and the CSS (classes sfb-*). Front end only.
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '@/runtime/dc';
-import { StatusBadge } from '@/components/ui';
+import { StatusBadge, Sheet } from '@/components/ui';
 import { formatDate, formatTime } from '@/lib/format';
 import { read, SF_EVENT, sendPreview, docStatus, DOC_STATUS } from '@/lib/storefront/store';
 import { ImageField } from '@/components/files/FilePicker';
 import { blocksOfType, kindOf } from '@/lib/storefront/blocks';
 import { getCategories } from '@/lib/productCategories';
 import { allProducts } from '@/lib/products';
+import { kitPreviewParts } from '@/lib/storefront/kitStore';
 
 /** The storefront store after mount; re-read on every change. */
 export function useSf() {
@@ -113,6 +114,29 @@ export function PreviewFrame({ src, device = 'desktop', parts = [], height = 640
     <div ref={box} className={'sfb-frame' + (device === 'phone' || device === 'tablet' ? ' is-phone' : '')} style={{ height: fill ? '100%' : h }}>
       {w ? <iframe ref={frame} src={src} title={title} onLoad={send} style={{ width: base + 'px', height: Math.round(h / scale) + 'px', transform: `scale(${scale})` }} /> : null}
     </div>
+  );
+}
+
+/** A store design file (a kit) live over the shop's own products, in a side panel. footer: the panel's buttons. */
+export function KitPreviewSheet({ kit, title, onClose, footer, note }) {
+  const [device, setDevice] = useState('desktop');
+  const [page, setPage] = useState('/store');
+  const parts = useMemo(() => kitPreviewParts(kit), [kit]);
+  return (
+    <Sheet open title={title} onClose={onClose} footer={footer}>
+      <style>{SFB_CSS}</style>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+        <select className="gc-input gc-select" aria-label="Page to preview" value={page} onChange={(e) => setPage(e.target.value)} style={{ maxWidth: 220 }}>
+          <option value="/store">Home</option>
+          <option value="/category?handle=phones">Category page</option>
+          <option value="/product?handle=galaxy-a15-6-128gb">Product page</option>
+          <option value="/cart">Cart</option>
+        </select>
+        <DeviceSwitch device={device} onChange={setDevice} />
+      </div>
+      <PreviewFrame src={page + (page.includes('?') ? '&' : '?') + 'preview=1'} device={device} parts={parts} height={560} title={title} />
+      {note ? <p className="sfb-muted" style={{ marginTop: 8 }}>{note}</p> : null}
+    </Sheet>
   );
 }
 

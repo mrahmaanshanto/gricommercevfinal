@@ -2,7 +2,7 @@
 // storeHeader — the store's header as built in Online Store › Header builder (lib/storefront/headers.js): desktop and
 // phone rows drawn separately (phones below 900 px), each row with its height, colours and "sticky"; the elements
 // (logo, main menu with drop-downs and mega menus, All categories, search with a category picker, cart, account,
-// wishlist, compare, language, hotline, WhatsApp, button, HTML block, social icons, short text, divider); the phone
+// wishlist, compare, language, hotline, WhatsApp, button, HTML block, social icons, short text, divider, store notice); the phone
 // drawer (☰) and the bottom navigation bar. Menus come from Online Store › Menus; a top item with a mega menu opens a
 // panel of columns on a computer and a plain list on a phone.
 
@@ -19,6 +19,7 @@ import { ROWS, AREAS } from '@/lib/storefront/headers';
 import { openSideCart } from '@/lib/storefront/cart';
 import { catChildren, catByPath } from '@/lib/storefront/catalog';
 import { BlockContent, bdt } from './storeKit';
+import { NoticeBar } from './storeNotices';
 
 const live = (it) => { const r = resolveLink(it.link); return !r.broken && !r.note; };
 const telOf = (n) => 'tel:' + String(n || '').replace(/[^\d+]/g, '');
@@ -50,6 +51,9 @@ const TONE = {
 };
 
 // ---- mega menu -----------------------------------------------------------------------------------------------------
+// a signed-in shopper's wishlist lives in My account (Batch C); guests keep the /wishlist page
+const wishHref = (ctx) => (ctx.me ? '/account?tab=wishlist' + (ctx.preview ? '&preview=1' : '') : '/wishlist' + (ctx.preview ? '?preview=1' : ''));
+
 function MegaPanel({ item, ctx }) {
   const m = item.mega;
   const cols = (m.cols || []).slice(0, 5);
@@ -159,7 +163,7 @@ function Logo({ el, ctx }) {
 function SavedLink({ kind, el, ctx }) {
   const saved = useSaved();
   const n = kind === 'wish' ? saved.wish.length : saved.compare.length;
-  return <Labeled icon={kind === 'wish' ? 'heart' : 'git-compare'} label={kind === 'wish' ? 'Wishlist' : 'Compare'} sub={el.sub} look={el.label} href={kind === 'wish' ? '/wishlist' : '/compare'} badge={n || null} mobile={ctx.device === 'mobile'} />;
+  return <Labeled icon={kind === 'wish' ? 'heart' : 'git-compare'} label={kind === 'wish' ? 'Wishlist' : 'Compare'} sub={el.sub} look={el.label} href={kind === 'wish' ? wishHref(ctx) : '/compare' + (ctx.preview ? '?preview=1' : '')} badge={n || null} mobile={ctx.device === 'mobile'} />;
 }
 function Labeled({ icon, label, sub, look, onClick, href, badge, mobile }) {
   const st = mobile ? 'none' : look === true ? 'beside' : look || 'none';
@@ -173,8 +177,9 @@ function Labeled({ icon, label, sub, look, onClick, href, badge, mobile }) {
   return href ? <a className={cls} href={href} aria-label={st === 'none' ? label : undefined}>{inner}</a>
     : <button type="button" className={cls} aria-label={st === 'none' ? label : undefined} onClick={onClick}>{inner}</button>;
 }
-function IconBtn({ icon, label, showLabel, onClick, badge, href }) {
-  const inner = <><Icon name={icon} width="20" height="20" aria-hidden="true" />{showLabel ? <span>{label}</span> : null}{badge ? <em className="sfi-badge">{badge}</em> : null}</>;
+function IconBtn({ icon, label, showLabel, onClick, badge, href, pic }) {
+  // pic: the signed-in shopper's profile picture (Batch C step 3) in place of the icon
+  const inner = <>{pic ? <img className="sfi-pic" src={pic} alt="" width="24" height="24" /> : <Icon name={icon} width="20" height="20" aria-hidden="true" />}{showLabel ? <span>{label}</span> : null}{badge ? <em className="sfi-badge">{badge}</em> : null}</>;
   return href ? <a className="sfi" href={href} aria-label={showLabel ? undefined : label}>{inner}</a>
     : <button type="button" className="sfi" aria-label={showLabel ? undefined : label} onClick={onClick}>{inner}</button>;
 }
@@ -202,10 +207,15 @@ function El({ el, ctx, rowKey }) {
       if (el.label && el.label !== 'none' && !withTotal) return <Labeled icon="shopping-cart" label="Cart" sub={`${ctx.count} item${ctx.count === 1 ? '' : 's'}`} look={el.label} badge={ctx.count || null} onClick={cartAction(ctx)} mobile={ctx.device === 'mobile'} />;
       return <IconBtn icon="shopping-cart" label={withTotal ? bdt(ctx.total || 0) : `Cart, ${ctx.count} item${ctx.count === 1 ? '' : 's'}`} showLabel={withTotal} badge={ctx.count || null} onClick={cartAction(ctx)} />;
     }
-    case 'account': return <Labeled icon="user" label={el.label === 'two' ? 'Account' : 'Sign in'} sub={el.sub || 'Register or log in'} look={el.label} href="/account" mobile={ctx.device === 'mobile'} />;
     case 'wishlist': return <SavedLink kind="wish" el={el} ctx={ctx} />;
     case 'compare': return <SavedLink kind="compare" el={el} ctx={ctx} />;
     case 'iconlink': return <Labeled icon={el.icon || 'link'} label={el.label || 'Link'} sub={el.sub} look={el.look || 'below'} href={el.href || '#'} mobile={ctx.device === 'mobile'} />;
+    case 'account': {
+      const first = ctx.me ? (ctx.me.name || 'My account').split(' ')[0] : '';
+      const href = '/account' + (ctx.preview ? '?preview=1' : '');
+      if (ctx.me && ctx.me.avatar) return <IconBtn icon="user" pic={ctx.me.avatar} label={first} showLabel={!!el.label && el.label !== 'none' && ctx.device !== 'mobile'} href={href} />;
+      return <Labeled icon="user" label={ctx.me ? first : el.label === 'two' ? 'Account' : 'Sign in'} sub={ctx.me ? 'My account' : el.sub || 'Register or log in'} look={el.label} href={href} mobile={ctx.device === 'mobile'} />;
+    }
     case 'lang': return <Lang />;
     case 'phone': return <a className="sft" href={telOf(el.number || phone)}><Icon name="phone" width="16" height="16" aria-hidden="true" />{ctx.device === 'mobile' ? null : <span>{el.label ? el.label + ' ' : ''}{el.number || phone}</span>}</a>;
     case 'whatsapp': return <a className="sfw" href={waOf(el.number || phone)} target="_blank" rel="noopener noreferrer" aria-label={el.label || 'WhatsApp'}><Icon name="message-circle" width="16" height="16" aria-hidden="true" />{ctx.device === 'mobile' ? null : <span>{el.label || 'WhatsApp'}</span>}</a>;
@@ -214,6 +224,7 @@ function El({ el, ctx, rowKey }) {
     case 'social': return <Social el={el} />;
     case 'text': return el.text ? <span className="sft">{el.text}</span> : null;
     case 'divider': return el.kind === 'space' ? <span className="sfh-space" aria-hidden="true" /> : <span className="sfh-div" aria-hidden="true" />;
+    case 'notice': return (ctx.notices || []).length ? <div className="sfh-notice"><NoticeBar list={ctx.notices} place="header" /></div> : null;
     default: return null;
   }
 }
@@ -223,7 +234,7 @@ function Row({ r, rowKey, device, top, ctx, burger }) {
   const grow = (list) => (list || []).some((e) => e.type === 'search' && !(device === 'mobile' && rowKey === 'main'));
   return (
     <div className={'sfh-row ' + (device === 'mobile' ? 'sfh-m' : 'sfh-d') + (r.sticky ? ' is-sticky' : '') + ' is-' + rowKey}
-      style={{ minHeight: r.height + 'px', top: r.sticky ? top + 'px' : undefined, background: bg, color: fg, borderBottom: '1px solid ' + line }}>
+      style={{ '--row-h': r.height + 'px', '--row-top': top + 'px', minHeight: r.height + 'px', top: r.sticky ? top + 'px' : undefined, background: bg, color: fg, borderBottom: '1px solid ' + line }}>
       <div className="sf-wrap sfh-in">
         {AREAS.map(([a]) => (
           <div key={a} className={'sfh-a sfh-' + a + (grow(r[a]) ? ' is-grow' : '')}>
@@ -289,7 +300,7 @@ export function MobileDrawer({ open, focus, H, ctx, onClose }) {
         </nav>
       ) : null;
       case 'catmenu': return <div key={k} className="sfd-sec"><b className="sfd-h">Categories</b><ul className="sfd-list">{tops.map((c) => <li key={c.id}><a href={c.href}>{c.name}<small>{c.count}</small></a></li>)}</ul></div>;
-      case 'account': return <div key={k} className="sfd-sec"><a className="sfd-row" href="/account"><Icon name="user" width="18" height="18" aria-hidden="true" />Account</a><a className="sfd-row" href="/wishlist"><Icon name="heart" width="18" height="18" aria-hidden="true" />Wishlist</a></div>;
+      case 'account': return <div key={k} className="sfd-sec"><a className="sfd-row" href={'/account' + (ctx.preview ? '?preview=1' : '')}><Icon name="user" width="18" height="18" aria-hidden="true" />{ctx.me ? 'My account' : 'Sign in'}</a><a className="sfd-row" href={wishHref(ctx)}><Icon name="heart" width="18" height="18" aria-hidden="true" />Wishlist{ctx.wishCount ? ' (' + ctx.wishCount + ')' : ''}</a></div>;
       case 'lang': return <div key={k} className="sfd-sec"><Lang /></div>;
       case 'phone': { const n = (ctx.general && ctx.general.support_phone) || '+8801811843300'; return <div key={k} className="sfd-sec"><a className="sfd-row" href={telOf(n)}><Icon name="phone" width="18" height="18" aria-hidden="true" />{n}</a></div>; }
       case 'social': return <div key={k} className="sfd-sec"><Social el={Object.fromEntries(shopSocials(ctx.values || {}).map((x) => [x.k, x.href]))} /></div>;
@@ -312,12 +323,12 @@ export function BottomNav({ H, ctx }) {
   const m = H && H.mobile;
   if (!m || !m.bottomNav) return null;
   const NAV = { home: ['Home', 'house'], cats: ['Categories', 'layout-grid'], search: ['Search', 'search'], cart: ['Cart', 'shopping-cart'], account: ['Account', 'user'], wishlist: ['Wishlist', 'heart'] };
-  const act = (k) => (k === 'home' ? () => { window.location.href = '/store' + (ctx.preview ? '?preview=1' : ''); } : k === 'cats' ? () => ctx.openDrawer('cats') : k === 'search' ? () => ctx.openDrawer('search') : k === 'cart' ? cartAction(ctx) : k === 'account' ? () => { window.location.href = '/account'; } : () => { window.location.href = '/wishlist'; });
+  const act = (k) => (k === 'home' ? () => { window.location.href = '/store' + (ctx.preview ? '?preview=1' : ''); } : k === 'cats' ? () => ctx.openDrawer('cats') : k === 'search' ? () => ctx.openDrawer('search') : k === 'cart' ? cartAction(ctx) : k === 'account' ? () => { window.location.href = '/account' + (ctx.preview ? '?preview=1' : ''); } : () => { window.location.href = wishHref(ctx); });
   return (
     <nav className="sfb" aria-label="Quick links">
       {(m.navItems || []).filter((k) => NAV[k]).map((k) => (
         <button key={k} type="button" onClick={act(k)} className={ctx.kind === 'home' && k === 'home' ? 'on' : undefined}>
-          <span className="sfb-ico"><Icon name={NAV[k][1]} width="20" height="20" aria-hidden="true" />{k === 'cart' && ctx.count ? <em>{ctx.count}</em> : null}</span>
+          <span className="sfb-ico">{k === 'account' && ctx.me && ctx.me.avatar ? <img className="sfi-pic" src={ctx.me.avatar} alt="" width="22" height="22" /> : <Icon name={NAV[k][1]} width="20" height="20" aria-hidden="true" />}{k === 'cart' && ctx.count ? <em>{ctx.count}</em> : null}</span>
           <span>{NAV[k][0]}</span>
         </button>
       ))}
@@ -366,12 +377,14 @@ export const HEADER_CSS = `
 .sfh-div{width:1px;height:20px;background:currentColor;opacity:.25}
 .sfh-space{width:16px}
 .sfh-html{max-height:100%;overflow:hidden}
+.sfh-notice{min-width:0;max-width:100%}
 .sfh-html .bl-article :is(p,h3,h4){margin:0}
 .sfl{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit;flex:none}
 .sfl-mark{display:grid;place-items:center;width:36px;height:36px;border-radius:var(--sf-radius);background:var(--sf-primary);color:var(--sf-on-primary);font-weight:var(--weight-semibold);font-size:var(--sf-fs-lg)}
 .sfl-name{font-family:var(--sf-font-head);font-size:var(--sf-fs-h3);font-weight:var(--weight-semibold);white-space:nowrap}
 .sfl--S .sfl-mark{width:28px;height:28px;font-size:var(--sf-fs)}.sfl--S .sfl-name{font-size:var(--sf-fs-lg)}
 .sfl--L .sfl-mark{width:44px;height:44px;font-size:var(--sf-fs-h3)}.sfl--L .sfl-name{font-size:var(--sf-fs-h2)}
+.sfi-pic{width:24px;height:24px;border-radius:50%;object-fit:cover;display:block;box-shadow:0 0 0 1px var(--sf-line)}
 .sfi{position:relative;display:inline-flex;align-items:center;gap:6px;min-width:40px;min-height:40px;justify-content:center;padding:0 6px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-decoration:none}
 .sfi-badge{position:absolute;top:2px;right:0;min-width:18px;height:18px;padding:0 4px;border-radius:var(--radius-full);background:var(--sf-sale);color:var(--sf-on-sale);font-style:normal;font-size:var(--sf-fs-sm);line-height:18px;text-align:center}
 .sfi--lang{gap:4px;font-size:var(--sf-fs-sm)}.sfi--lang b{font-weight:var(--weight-medium);opacity:.6}.sfi--lang b.on{opacity:1;text-decoration:underline}

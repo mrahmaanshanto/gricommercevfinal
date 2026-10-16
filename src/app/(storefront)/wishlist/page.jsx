@@ -1,4 +1,4 @@
-import { StoreWishlist as Screen } from '@/screens/storefront/StoreSaved';
+import Screen from '@/screens/storefront/StoreWishlist';
 
 export const metadata = { title: "Wishlist" };
 

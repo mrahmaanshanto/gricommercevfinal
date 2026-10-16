@@ -1,51 +1,34 @@
-// storefront/saved — a shopper's wishlist and compare list on the website (this browser; the live store keeps them on
-// the customer's account once they sign in). Product ids only; pages read the products from catalog.js.
+// storefront/saved — the wishlist and compare list as the store's cards, quick view and product page use them. Since the
+// merge with Nayeem's customer accounts (Batch B) they are lib/storefront/account.js's lists: the wishlist belongs to the
+// signed-in shopper (or the guest, joined at sign-in) and compare holds up to COMPARE_MAX. This file keeps the older calls.
 //   getWish() · isWished(id) · toggleWish(id) → true when added · getCompare() · toggleCompare(id) → { added, full }
-//   clearCompare() · useSaved() → { wish, compare } (re-reads on SAVED_EVENT)
+//   clearCompare() · useSaved() → { wish, compare } (re-reads on ACCOUNT_EVENT)
 
 import { useEffect, useState } from 'react';
+import { wishlist, toggleWishlist, compareList, toggleCompare as accToggleCompare, clearCompare as accClear, ACCOUNT_EVENT, COMPARE_MAX } from './account';
 
-export const SAVED_EVENT = 'gc:store-saved';
-const WISH = 'gc.store.wishlist';
-const COMPARE = 'gc.store.compare';
-export const COMPARE_MAX = 4;
+export const SAVED_EVENT = ACCOUNT_EVENT;
+export { COMPARE_MAX };
 
-const readList = (key) => {
-  if (typeof window === 'undefined') return [];
-  try { const l = JSON.parse(window.localStorage.getItem(key) || '[]'); return Array.isArray(l) ? l.filter((x) => typeof x === 'string') : []; } catch { return []; }
-};
-const writeList = (key, list) => {
-  try { window.localStorage.setItem(key, JSON.stringify(list)); window.dispatchEvent(new CustomEvent(SAVED_EVENT)); } catch { /* ignore */ }
-  return list;
-};
-
-export const getWish = () => readList(WISH);
+export const getWish = () => wishlist();
 export const isWished = (id) => getWish().includes(id);
-export function toggleWish(id) {
-  const l = getWish();
-  const on = !l.includes(id);
-  writeList(WISH, on ? [id, ...l].slice(0, 100) : l.filter((x) => x !== id));
-  return on;
-}
+export const toggleWish = (id) => toggleWishlist(id);
 
-export const getCompare = () => readList(COMPARE);
+export const getCompare = () => compareList();
 export function toggleCompare(id) {
-  const l = getCompare();
-  if (l.includes(id)) { writeList(COMPARE, l.filter((x) => x !== id)); return { added: false, full: false }; }
-  if (l.length >= COMPARE_MAX) return { added: false, full: true };
-  writeList(COMPARE, [...l, id]);
-  return { added: true, full: false };
+  const r = accToggleCompare(id);
+  return { added: !!(r && r.ok && r.on), full: !!(r && !r.ok) };
 }
-export const clearCompare = () => writeList(COMPARE, []);
+export const clearCompare = () => { accClear(); try { window.dispatchEvent(new CustomEvent(ACCOUNT_EVENT)); } catch { /* ignore */ } };
 
 export function useSaved() {
   const [st, setSt] = useState({ wish: [], compare: [] });
   useEffect(() => {
     const read = () => setSt({ wish: getWish(), compare: getCompare() });
     read();
-    window.addEventListener(SAVED_EVENT, read);
+    window.addEventListener(ACCOUNT_EVENT, read);
     window.addEventListener('storage', read);
-    return () => { window.removeEventListener(SAVED_EVENT, read); window.removeEventListener('storage', read); };
+    return () => { window.removeEventListener(ACCOUNT_EVENT, read); window.removeEventListener('storage', read); };
   }, []);
   return st;
 }

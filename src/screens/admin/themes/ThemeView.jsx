@@ -8,6 +8,7 @@
 // for Signal, Nokshi and Counter, the one-click preset merchants are offered on this theme's packages.
 // Data: lib/admin/themes.js. ?id= is read after mount.
 
+import { kitSummary } from '@/lib/storefront/kit';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
@@ -35,6 +36,16 @@ const CSS = `
 
 const STAGE_TONE = { draft: 'neutral', review: 'warning', approved: 'primary', published: 'success', rolledback: 'error' };
 const LOG_ICON = { release: 'rocket', state: 'power', assign: 'store', edit: 'pencil', package: 'package' };
+
+/** Save a design file (a release's store kit). */
+function downloadJson(obj, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }));
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
 
 export default function ThemeView() {
   const { db, t, data, ready } = useThemes();
@@ -158,8 +169,10 @@ export default function ThemeView() {
                       r.stage === 'rolledback' ? `Rolled back by ${r.rolledBackBy}: ${r.rollbackReason}` : null,
                       r.rejected && r.stage === 'draft' ? `Sent back by ${r.rejected.by}: ${r.rejected.reason}` : null,
                       r.scheduledAt && r.stage === 'approved' ? `Goes out ${when(r.scheduledAt, t)}` : null,
+                      r.kit ? 'Design file: ' + kitSummary(r.kit) : null,
                     ].filter(Boolean).join(' · ')}
-                    end={r.version === live ? <StatusBadge tone="success">Live</StatusBadge>
+                    end={r.kit && r.version === live ? <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><button type="button" className="ix-btn ix-btn--sm" onClick={() => downloadJson(r.kit, `${item.id}-${r.version}.gcstore.json`)}><Icon name="download" width="14" height="14" aria-hidden="true" />File</button><StatusBadge tone="success">Live</StatusBadge></span>
+                      : r.version === live ? <StatusBadge tone="success">Live</StatusBadge>
                       : r.stage === 'published' ? <span className="thm-muted thm-small">Earlier</span>
                         : <Link href={'/admin/themes/releases?id=' + r.id} aria-label={`Open ${r.version} on Releases`}><StatusBadge tone={STAGE_TONE[r.stage]}>{stageLabel(r.stage)}</StatusBadge></Link>} />
                 )) : <p className="thm-empty">No versions yet.</p>}

@@ -22,6 +22,9 @@ import { useWholesale } from '@/lib/useWholesale';
 import { quoteBy, quoteState, quoteTotals, QUOTE_STATE } from '@/lib/quotes';
 import QuoteDialog from '@/screens/merchant-orders/QuoteDialog';
 import { TeamPage, useMe, useLeads, UserAvatar, userName, rowGo } from './teamShared';
+import { Pic } from '@/components/ui/Pic';
+
+const PIC_SLOT = { gridRow: 'span 2', alignSelf: 'center', display: 'flex' };
 
 const money = (n) => formatBDT(Math.round(n || 0));
 const CSS = `
@@ -205,10 +208,11 @@ export default function SalesLeads() {
               <ul className="ix-plist" aria-label="Leads">
                 {list.map((l) => { const [, sl, tone] = stageOf(l.stage); return (
                   <li key={l.id}>
-                    <button type="button" className="ix-pitem" onClick={() => setOpenId(l.id)}>
+                    <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setOpenId(l.id)}>
+                      <span style={PIC_SLOT}><Pic name={l.name} kind="person" /></span>
                       <span className="ix-pitem__top"><b>{l.name}</b><span>{money(l.value)}</span></span>
                       <span className="ix-pitem__mid">{l.company || l.kind} · {l.source}{l.next && OPEN_STAGES.includes(l.stage) ? ` · next ${formatDate(l.next.at)}` : ''}</span>
-                      <span className="ix-pitem__tags"><StatusBadge tone={tone === 'slate' ? 'neutral' : tone}>{sl}</StatusBadge></span>
+                      <span className="ix-pitem__tags" style={{ gridColumn: 2 }}><StatusBadge tone={tone === 'slate' ? 'neutral' : tone}>{sl}</StatusBadge></span>
                     </button>
                   </li>
                 ); })}
@@ -219,7 +223,7 @@ export default function SalesLeads() {
                   <thead><tr><th scope="col">Lead</th><th scope="col">Source</th><th scope="col">Stage</th><th scope="col" className="ix-num">Value</th><th scope="col">Next</th><th scope="col">Owner</th></tr></thead>
                   <tbody>{list.map((l) => { const [, sl, tone] = stageOf(l.stage); const fs = followState(l, now); return (
                     <tr key={l.id} onClick={rowGo(() => setOpenId(l.id))}>
-                      <td><button type="button" className="ix-strong" onClick={() => setOpenId(l.id)}>{l.name}</button><span className="tm-sub">{l.company || l.kind}</span></td>
+                      <td><span className="gc-picrow"><Pic name={l.name} kind="person" /><span><button type="button" className="ix-strong" onClick={() => setOpenId(l.id)}>{l.name}</button><span className="tm-sub">{l.company || l.kind}</span></span></span></td>
                       <td className="ix-muted">{l.source}</td>
                       <td><StatusBadge tone={tone === 'slate' ? 'neutral' : tone}>{sl}</StatusBadge></td>
                       <td className="ix-num tm-fig">{money(l.value)}</td>

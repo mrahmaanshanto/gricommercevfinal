@@ -25,6 +25,11 @@ import { productBy, addMove } from '@/lib/stock';
 import { STOCK_PLACES, getStockPlaces, placeByName, placeName } from '@/lib/locations';
 import { unitCost } from '@/lib/purchaseOrders';
 import { getStockSetup, isOnePlace } from '@/lib/stockSetup';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
+
+// a damaged hold names its product; its picture comes from the catalogue row
+const picOf = (h) => productPic(productBy(h.product) || h.product);
 
 const WRITE_OFF_REASONS = ['Broken beyond repair', 'Expired', 'Leaked or spoiled', 'Eaten by rats or pests', 'Water damage', 'Missing parts'];
 // any shelf place, also one renamed or deactivated since (the pieces were counted there)
@@ -117,7 +122,8 @@ export default function DamagedStockPanel() {
         <ul className="ix-plist" aria-label="Damaged stock">
           {damaged.map((h) => (
             <li key={h.id}>
-              <button type="button" className="ix-pitem" onClick={() => setView(h.id)}>
+              <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setView(h.id)}>
+                <span style={{ gridRow: 'span 2' }}><Pic src={picOf(h)} name={h.product} kind="item" /></span>
                 <span className="ix-pitem__top"><b>{h.product}</b><span>{`${h.qty} pcs`}</span></span>
                 <span className="ix-pitem__mid">{cameFrom(h)} · {h.note || '—'} · {formatBDT(costOf(h))}</span>
               </button>
@@ -131,7 +137,7 @@ export default function DamagedStockPanel() {
             <tbody>
               {damaged.map((h) => (
                 <tr key={h.id} onClick={openRow(h)}>
-                  <td><button type="button" className="ix-strong dsp-cell" onClick={() => setView(h.id)}>{h.product}</button></td>
+                  <td><span className="gc-picrow"><Pic src={picOf(h)} name={h.product} kind="item" /><button type="button" className="ix-strong dsp-cell" onClick={() => setView(h.id)}>{h.product}</button></span></td>
                   <td className="ix-muted"><span className="dsp-cell">{cameFrom(h)}</span></td>
                   <td className="ix-muted"><span className="dsp-cell">{h.note || '—'}</span></td>
                   <td className="ix-num ix-strong">{h.qty}</td>

@@ -173,6 +173,22 @@ export const CUSTOMER_EVENTS = [
   C('Warranty & service', 'service-ready', 'Ready to collect', 'The repaired item is back', true, false,
     '{{store_name}}: {{item_name}} is ready to collect. Bring {{claim_id}}.',
     '{{item_name}} is ready', 'Hi {{customer_name}},\n\n{{item_name}} is ready to collect. Please bring {{claim_id}}.\n\n{{store_name}}', { vars: ['claim_id', 'item_name'], mod: 'catalog', source: 'Service', sender: 'Products › Warranty claims' }),
+  // Batch B step 1: returns asked for on the tracking page, and the online store's own messages
+  C('Refunds & returns', 'return-requested', 'Return requested', 'A customer asks for a return', true, true,
+    '{{store_name}}: We got your return request {{return_id}}. We\'ll reply within a day.',
+    'Return request {{return_id}}', 'Hi {{customer_name}},\n\nWe got your return request {{return_id}} for order {{order_id}}. We\'ll reply within a day.\n\n{{store_name}}', { vars: ['return_id', 'order_id'], mod: 'online', source: 'Orders', sender: '' }),
+  C('Refunds & returns', 'return-approved', 'Return approved', 'The shop approves a return', true, false,
+    '{{store_name}}: Return {{return_id}} approved. A courier will pick it up.',
+    'Return {{return_id}} approved', 'Hi {{customer_name}},\n\nYour return {{return_id}} is approved. A courier will pick it up; please keep the item packed.\n\n{{store_name}}', { vars: ['return_id', 'order_id'], mod: 'online', source: 'Orders', sender: '' }),
+  C('Online store', 'cart-reminder', 'Cart reminder', 'A cart is left for a few hours', true, false,
+    '{{store_name}}: You left items in your cart. Finish your order: {{cart_link}}',
+    'You left something in your cart', 'Hi {{customer_name}},\n\nYou left items in your cart. They are still there for you.\n{{cart_link}}\n\n{{store_name}}', { vars: ['cart_link', 'coupon_code', 'coupon_text'], cls: 'Marketing', mod: 'online', source: 'Recovery', sender: '' }),
+  C('Online store', 'back-in-stock', 'Back in stock', 'An item they asked about is back', true, false,
+    '{{store_name}}: {{product_name}} is back in stock: {{product_link}}',
+    '{{product_name}} is back', 'Hi {{customer_name}},\n\n{{product_name}} is back in stock.\n{{product_link}}\n\n{{store_name}}', { vars: ['product_name', 'product_link'], mod: 'online', source: 'Online store', sender: '' }),
+  C('Online store', 'review-request', 'Review request', 'A few days after delivery', true, false,
+    '{{store_name}}: How was your order {{order_id}}? Rate it: {{review_link}}',
+    'How was your order?', 'Hi {{customer_name}},\n\nHow was your order {{order_id}}? A quick rating helps other shoppers.\n{{review_link}}\n\n{{store_name}}', { vars: ['order_id', 'review_link'], mod: 'online', source: 'Online store', sender: '' }),
   C('Account', 'welcome', 'Welcome', 'A customer is added', false, false,
     '{{store_name}}: Welcome, {{customer_name}}! Thanks for shopping with us.',
     'Welcome to {{store_name}}', 'Hi {{customer_name}},\n\nWelcome to {{store_name}}. Thanks for shopping with us.\n\n{{store_name}}', { source: 'Account', sender: 'Customers › Add customer' }),
@@ -193,6 +209,9 @@ export const CUSTOMER_VARIABLES = [
   ['payment_link', 'Payment link', 'https://dazzleshop.com.bd/pay/INV-1042'], ['ticket_id', 'Ticket number', 'TKT-2305'], ['ticket_subject', 'Ticket subject', 'Change the delivery address'],
   ['reply_text', 'The reply', 'Done, we changed it.'], ['claim_id', 'Service request', 'WS-118'], ['item_name', 'Item', 'Redmi Note 13'], ['claim_status', 'Repair step', 'Sent to the service centre'],
   ['otp_code', 'Sign-in code', '482913'], ['reset_link', 'Reset link', 'https://dazzleshop.com.bd/reset/8K2Q'],
+  ['return_id', 'Return number', 'RR-1018'], ['order_id', 'Order number', '#136829'], ['cart_link', 'Cart link', 'https://dazzleshop.com.bd/cart'],
+  ['coupon_code', 'Coupon code', 'COMEBACK5'], ['coupon_text', 'Coupon text', '5% off, this week only'], ['product_name', 'Product', 'Galaxy A15 6/128GB'],
+  ['product_link', 'Product link', 'https://dazzleshop.com.bd/product?handle=galaxy-a15-6-128gb'], ['review_link', 'Review link', 'https://dazzleshop.com.bd/track?id=136829#review'],
 ];
 // Nayeem's brief #11: every template and send carries a class. Order-life events are Transactional; delivery
 // problems, verification calls and returns are Service.

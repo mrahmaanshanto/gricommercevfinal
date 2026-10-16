@@ -4,7 +4,7 @@
 // Steps, not free pixels, so a store stays tidy on phones. Values are kept on the section as `box`; customer pages turn
 // them into CSS variables and classes (boxProps) read by BOX_CSS.
 //
-//   box { pt, pb, mt, mb: { d, t, m } (step keys; '' = the theme's spacing), width, align, bg, bgImage, overlay, color,
+//   box { pt, pb, mt, mb: { d, t, m } (step keys; '' = the theme's spacing), width, align, bg, bgImage, overlay, pattern, color,
 //         font, hsize, btn, hide: { d, t, m }, anim, anchor, cls }
 //   STEPS · DEVICES · WIDTHS · ALIGNS · HSIZES · BTNS · ANIMS · stepAt(box, key, dev) · setStep(box, key, dev, v)
 //   boxProps(box, { bgUrl, editing }) → { id, className, style } · boxSummary(box) · boxIsSet(box) · cleanBox(box)
@@ -29,6 +29,8 @@ const HSCALE = { S: 0.82, M: 1, L: 1.22, XL: 1.5 };
 export const BTNS = [['', 'Theme'], ['solid', 'Solid'], ['outline', 'Outline'], ['soft', 'Soft'], ['pill', 'Pill']];
 /** Shaped edges at the top or bottom of a section (WoodMart's section dividers), in the page's background colour. */
 export const DIVIDERS = [['', 'None'], ['wave', 'Wave'], ['curve', 'Curve'], ['slant', 'Slant'], ['point', 'Point'], ['zigzag', 'Zigzag']];
+/** Background patterns drawn in a light tint of the primary colour (a sales page's grid paper, dots …), under the content. */
+export const PATTERNS = [['', 'None'], ['grid', 'Grid paper'], ['dots', 'Dots'], ['lines', 'Lines'], ['diagonal', 'Diagonal'], ['waves', 'Waves']];
 export const ANIMS = [['', 'None'], ['fade', 'Fade in'], ['rise', 'Rise up'], ['zoom', 'Zoom in']];
 export const FONTS = [['', 'Theme'], ...FONT_PAIRS.map((f) => [f.id, f.label])];
 
@@ -62,6 +64,7 @@ export function boxProps(box, { bgUrl = '', editing = false } = {}) {
   if (b.width) cls.push('sfx-w-' + b.width);
   if (b.align) cls.push('sfx-al-' + b.align);
   if (hex(b.bg)) { style['--sfx-bg'] = b.bg; cls.push('sfx-has-bg'); }
+  if (b.pattern && PATTERNS.some(([v]) => v && v === b.pattern)) cls.push('sfx-pat', 'sfx-pat-' + b.pattern);
   if (bgUrl) {
     const o = Math.max(0, Math.min(85, Number(b.overlay) || 0)) / 100;
     style['--sfx-bgimg'] = `linear-gradient(rgba(0,0,0,${o}),rgba(0,0,0,${o})),url("${String(bgUrl).replace(/"/g, '%22')}")`;
@@ -90,7 +93,7 @@ export function cleanBox(box) {
   const b = box || {};
   const out = {};
   SPACING.forEach(([k]) => { const v = b[k] || {}; const o = {}; ['d', 't', 'm'].forEach((dev) => { if (v[dev] != null && v[dev] !== '') o[dev] = v[dev]; }); if (Object.keys(o).length) out[k] = o; });
-  ['width', 'align', 'bg', 'bgImage', 'color', 'font', 'hsize', 'btn', 'anim', 'anchor', 'cls', 'divTop', 'divBottom'].forEach((k) => { if (b[k]) out[k] = b[k]; });
+  ['width', 'align', 'bg', 'bgImage', 'pattern', 'color', 'font', 'hsize', 'btn', 'anim', 'anchor', 'cls', 'divTop', 'divBottom'].forEach((k) => { if (b[k]) out[k] = b[k]; });
   if (b.bgImage && Number(b.overlay)) out.overlay = Number(b.overlay);
   const h = b.hide || {};
   if (h.d || h.t || h.m) out.hide = { d: !!h.d, t: !!h.t, m: !!h.m };
@@ -124,6 +127,13 @@ export function sectionFonts(sections) {
 
 /** CSS for every section wrapper (.sfs.sfx). */
 export const BOX_CSS = `
+/* background patterns (Style › Pattern): a tint of the primary colour, behind the content and under a picture */
+.sfx-pat{--sfx-patc:color-mix(in srgb,var(--sf-primary,#0a5bcf) 11%,transparent)}
+.sfx-pat-grid{background-image:linear-gradient(var(--sfx-patc) 1px,transparent 1px),linear-gradient(90deg,var(--sfx-patc) 1px,transparent 1px)!important;background-size:22px 22px!important}
+.sfx-pat-dots{background-image:radial-gradient(var(--sfx-patc) 1.6px,transparent 1.8px)!important;background-size:18px 18px!important}
+.sfx-pat-lines{background-image:repeating-linear-gradient(0deg,var(--sfx-patc) 0 1px,transparent 1px 16px)!important}
+.sfx-pat-diagonal{background-image:repeating-linear-gradient(45deg,var(--sfx-patc) 0 1px,transparent 1px 14px)!important}
+.sfx-pat-waves{background-image:radial-gradient(circle at 50% 0,transparent 9px,var(--sfx-patc) 10px,transparent 11px)!important;background-size:24px 14px!important}
 /* section dividers (Style › Top / Bottom edge): a shape in the page colour over the section's edge */
 .sfx-has-div{position:relative}
 .sfx-div{position:absolute;left:0;right:0;z-index:1;height:clamp(22px,4vw,56px);background:var(--sf-bg);pointer-events:none;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
@@ -146,7 +156,7 @@ export const BOX_CSS = `
 .sfx-al-center :is(.sfs-slide__text,.sfs-offer>div,.sfs-ti>div,.sfs-news>div,.sfx-flexcol){align-items:center;margin-left:auto;margin-right:auto}
 .sfx-al-right :is(.sfs-slide__text,.sfs-offer>div,.sfs-ti>div,.sfx-flexcol){align-items:flex-end;margin-left:auto}
 .sfx-al-center .sfs-faq,.sfx-al-center .sfx-narrow{margin-left:auto;margin-right:auto}
-.sfx-has-bg{background:var(--sfx-bg)!important}
+.sfx-has-bg{background-color:var(--sfx-bg)!important}
 .sfx-has-img{background-image:var(--sfx-bgimg)!important;background-size:cover!important;background-position:center!important;color:#fff}
 .sfx-has-fg,.sfx-has-fg :is(h1,h2,h3,p,small,b){color:var(--sfx-fg)!important}
 .sfx-has-font :is(h1,h2,h3,.sfs-title){font-family:var(--sfx-font)!important}

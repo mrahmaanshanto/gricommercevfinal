@@ -14,11 +14,106 @@ export const HELP = {
     bn: E('নিজের Domain-এ Email (যেমন sales@yourshop.com) আপনার আর টিমের জন্য, প্রতি Mailbox হিসেবে বিল।', ['প্রথমে Settings › Domains-এ আপনার Domain যোগ করুন।', 'Plan আর কয়টি Mailbox বাছুন, Domain যাচাই করুন আর চারটি DNS record যোগ করুন (Copy করুন, বা Add records for me)।', 'Mailbox বানান, তারপর info@ আর sales@ এর মতো শেয়ার করা ঠিকানা।', 'Apps খুলে Web-এ Mail পড়ুন বা ফোনে QR code স্ক্যান করুন।'], ['কেউ চলে গেলে (Staff & HR) তার Mailbox বন্ধ হয় আর Mail ফরোয়ার্ড হয়।', 'SPF আর DKIM সবুজ হলে Order-এর Email আপনার Domain থেকে যায়।'], null),
     related: ['/set-domains', '/set-users', '/set-notifications'],
   },
+  // Batch F · Grid Career
+  '/hiring': {
+    en: E('Hire without Google Forms or spreadsheets: post jobs on your careers page, share them, and follow every applicant on one board.', ['Press New job, write the job and add the questions applicants answer.', 'Mark a knockout answer (for example “No” to “Can you work Fridays?”) to reject people who don’t fit by themselves.', 'Publish, then Share the link on Facebook, WhatsApp or LinkedIn.', 'Open Applicants to review, shortlist, book interviews and hire.'], ['Each shared link remembers where it was posted, so you see which post brought each applicant.', 'Turn the careers page on or off, and set its headline, about and benefits, in the Careers page card.', 'Grid Career is opened per store by GridCommerce. If the page says it is closed, ask GridCommerce support.'], null),
+    bn: E('Google Form বা Spreadsheet ছাড়াই নিয়োগ দিন: আপনার Careers page-এ Job দিন, শেয়ার করুন, আর এক Board-এ প্রত্যেক আবেদনকারীকে দেখুন।', ['New job চাপুন, Job লিখুন আর আবেদনকারীরা যে প্রশ্নের উত্তর দেবেন তা যোগ করুন।', 'Knockout উত্তর ঠিক করুন (যেমন “শুক্রবার কাজ করতে পারবেন?”-এ “No”), যাঁরা মেলেন না তাঁরা নিজে থেকেই বাদ পড়বেন।', 'Publish করুন, তারপর Facebook, WhatsApp বা LinkedIn-এ Link শেয়ার করুন।', 'Applicants খুলে দেখুন, Shortlist করুন, Interview ঠিক করুন আর নিয়োগ দিন।'], ['প্রতিটি শেয়ার করা Link মনে রাখে কোথায় পোস্ট হয়েছিল, তাই কোন পোস্ট থেকে কে এসেছেন দেখতে পাবেন।', 'Careers page কার্ডে পেজ চালু বা বন্ধ করুন, আর শিরোনাম, পরিচিতি ও সুবিধা লিখুন।', 'Grid Career প্রতিটি Store-এর জন্য GridCommerce চালু করে। বন্ধ দেখালে GridCommerce support-কে বলুন।'], null),
+    related: ['/hiring-applicants', '/staff-create', '/positions'],
+  },
+  '/hiring-applicants': {
+    en: E('Every applicant by stage: New, Shortlisted, Interview, Offer, Hired and Rejected.', ['Drag a card to another column, or press its button for the next step.', 'Open a card to read the answers and CV, rate them, add notes and send a message.', 'Book interview sets the time and place and sends the invite by SMS.', 'Hire opens Add staff with their name, mobile, email and position filled in.'], ['Table shows the same applicants as a sheet, with filters and a CSV export.', 'Applicants follow their status on their own page with the code in their SMS; they never see your notes or ratings.'], null),
+    bn: E('ধাপ অনুযায়ী প্রত্যেক আবেদনকারী: New, Shortlisted, Interview, Offer, Hired আর Rejected।', ['একটি Card টেনে অন্য কলামে নিন, বা পরের ধাপের Button চাপুন।', 'Card খুলে উত্তর আর CV পড়ুন, Rating দিন, Note লিখুন আর Message পাঠান।', 'Book interview সময় ও জায়গা ঠিক করে SMS-এ আমন্ত্রণ পাঠায়।', 'Hire চাপলে Add staff খোলে, নাম, মোবাইল, Email আর পদ আগে থেকেই বসানো থাকে।'], ['Table-এ একই আবেদনকারীদের Sheet-এর মতো দেখায়, Filter আর CSV Export সহ।', 'আবেদনকারীরা SMS-এর Code দিয়ে নিজেদের পেজে অবস্থা দেখেন; আপনার Note বা Rating তাঁরা কখনো দেখেন না।'], null),
+    related: ['/hiring', '/staff-create'],
+  },
+  '/admin/career': {
+    en: E('Grid Career: GridCommerce’s own hiring, and the control centre for stores that hire with it.', ['Post GridCommerce’s jobs here; they show on /jobs.', 'Follow applicants in Applicants (board or table).', 'Set the /jobs page’s headline, benefits and messages in Careers page.', 'See which stores use Grid Career, and hide a store job that breaks the rules, in Stores.'], ['Open Grid Career for more stores, or block one, in Services › Access › Grid Career.'], null),
+    bn: E('Grid Career: GridCommerce-এর নিজের নিয়োগ, আর যেসব Store এটি দিয়ে নিয়োগ দেয় তাদের নিয়ন্ত্রণ।', ['GridCommerce-এর Job এখানে দিন; সেগুলো /jobs-এ দেখায়।', 'Applicants-এ আবেদনকারীদের দেখুন (Board বা Table)।', 'Careers page-এ /jobs পেজের শিরোনাম, সুবিধা আর Message ঠিক করুন।', 'Stores-এ দেখুন কোন Store Grid Career ব্যবহার করছে, আর নিয়ম ভাঙা Job লুকান।'], ['Services › Access › Grid Career-এ আরও Store-এর জন্য চালু করুন বা কোনো Store বন্ধ করুন।'], null),
+    related: ['/admin/career/applicants', '/admin/career/page', '/admin/career/stores', '/admin/services/access'],
+  },
+  // end Batch F
   '/services': {
     en: E('Buy expert help from GridCommerce and its partners: SEO, ads, branding, store design, product upload, moving platforms, setup and product writing.', ['Pick a service and compare its packages.', 'Order it: choose a package, answer the short brief and pay.', 'An expert starts within a working day; follow it in My services.'], ['SEO and ads are monthly: the first month is paid now, the rest with your subscription.', 'Ad spend is never in our price: you pay Meta or Google directly.'], null),
     bn: E('GridCommerce ও তার Partner-দের কাছ থেকে Expert-এর সাহায্য কিনুন: SEO, Ads, Branding, Store design, Product upload, অন্য Platform থেকে আনা, Setup আর Product লেখা।', ['একটি Service বেছে তার Package মিলিয়ে দেখুন।', 'Order করুন: Package বাছুন, ছোট Brief-এর উত্তর দিন আর Payment করুন।', 'এক কর্মদিবসের মধ্যে Expert কাজ শুরু করেন; My services-এ দেখুন।'], ['SEO আর Ads মাসিক: প্রথম মাস এখন, বাকিগুলো Subscription-এর সাথে।', 'Ad-এর খরচ আমাদের দামে নেই: Meta বা Google-কে আপনি সরাসরি দেন।'], null),
     related: ['/my-services'],
   },
+  '/grid-shop': {
+    en: E('Grid Shop: business supplies from GridCommerce: packaging, receipt printers and scanners, labels and shop supplies.', ['Pick a category or search, then Add to the cart.', 'Open an item to see bulk prices, where it ships from and the days.', 'Check out: the address, then pay with bKash, Nagad, card or credits.'], ['Some items ship from GridCommerce stock; others come straight from the maker in their own parcel.', 'Bulk prices apply from the quantity shown.'], null),
+    bn: E('Grid Shop: GridCommerce থেকে ব্যবসার সামগ্রী: প্যাকেজিং, রসিদ প্রিন্টার ও স্ক্যানার, লেবেল আর দোকানের সামগ্রী।', ['একটি বিভাগ বাছুন বা খুঁজুন, তারপর Cart-এ দিন।', 'একটি সামগ্রী খুলে বেশি কেনার দাম, কোথা থেকে আসে আর কত দিন লাগে দেখুন।', 'Checkout: ঠিকানা দিন, তারপর bKash, Nagad, Card বা Credit দিয়ে Payment করুন।'], ['কিছু সামগ্রী GridCommerce-এর স্টক থেকে যায়; বাকিগুলো নির্মাতা নিজে আলাদা পার্সেলে পাঠান।', 'দেখানো পরিমাণ থেকে বেশি কেনার দাম প্রযোজ্য।'], null),
+    related: ['/grid-shop-orders', '/services'],
+  },
+  '/grid-shop-orders': {
+    en: E('Your Grid Shop orders and where each parcel is.', ['Open an order to see each parcel, its courier and tracking number.', 'Cancel for a full refund until the first parcel leaves.'], ['Order again puts the same items back in the cart.'], null),
+    bn: E('আপনার Grid Shop Order আর প্রতিটি পার্সেল কোথায়।', ['একটি Order খুলে প্রতিটি পার্সেল, কুরিয়ার আর ট্র্যাকিং নম্বর দেখুন।', 'প্রথম পার্সেল রওনা হওয়ার আগ পর্যন্ত বাতিল করলে পুরো টাকা ফেরত।'], ['আবার Order করুন একই সামগ্রী Cart-এ দেয়।'], null),
+    related: ['/grid-shop'],
+  },
+  // Batch E · Grid Shop vendor portal and pricing rules
+  '/vendor-sign-in': {
+    en: E('Sign in to the Grid Shop vendor portal, where vendors sell to GridCommerce stores.', ['Demo: tap a vendor, such as Star Tech, to sign in.', 'The real portal sends a one-time code to the vendor’s email.'], ['Want to sell on Grid Shop? Write to vendors@gridcommerce.net.'], null),
+    bn: E('Grid Shop Vendor portal-এ Sign in করুন, যেখানে Vendor-রা GridCommerce-এর দোকানগুলোতে বিক্রি করেন।', ['Demo: একটি Vendor (যেমন Star Tech) চাপলেই Sign in হবে।', 'আসল Portal Vendor-এর Email-এ একবারের Code পাঠায়।'], ['Grid Shop-এ বিক্রি করতে চান? vendors@gridcommerce.net-এ লিখুন।'], null),
+    related: ['/vendor'],
+  },
+  '/vendor': {
+    en: E('Your Grid Shop at a glance: sales, parcels to ship, your balance and products waiting for approval.', ['Ship the parcels in Parcels to ship first.', 'Check Products for approval: a rejected product shows why.', 'Your rates show what GridCommerce takes and any store discount you pay for.'], ['GridCommerce takes the store’s payment; you are paid for a parcel once it is delivered.'], null),
+    bn: E('এক নজরে আপনার Grid Shop: বিক্রি, পাঠানোর পার্সেল, আপনার Balance আর অনুমোদনের অপেক্ষায় থাকা Product।', ['আগে Parcels to ship-এর পার্সেলগুলো পাঠান।', 'Products for approval দেখুন: বাতিল হলে কারণ দেখাবে।', 'Your rates-এ GridCommerce কত নেয় আর কোন Discount আপনি দেন তা দেখাবে।'], ['দোকানের Payment GridCommerce নেয়; পার্সেল পৌঁছালে আপনি টাকা পান।'], null),
+    related: ['/vendor-orders', '/vendor-products', '/vendor-money'],
+  },
+  '/vendor-products': {
+    en: E('Everything you sell on Grid Shop, with what stores pay and what you get.', ['Add product, fill it in and send it for approval.', 'Change stock right in the row: it saves at once.', 'A rejected product shows the reason; fix it and send it again.'], ['Changes to price, text or pictures of a live product wait for GridCommerce to approve them.'], null),
+    bn: E('Grid Shop-এ আপনি যা বিক্রি করেন, দোকান কত দেয় আর আপনি কত পান সহ।', ['Add product চেপে তথ্য দিন আর অনুমোদনের জন্য পাঠান।', 'Row-এই Stock বদলান: সাথে সাথে Save হয়।', 'বাতিল হওয়া Product-এ কারণ দেখাবে; ঠিক করে আবার পাঠান।'], ['চালু Product-এর দাম, লেখা বা ছবি বদলালে GridCommerce-এর অনুমোদনের অপেক্ষায় থাকে।'], null),
+    related: ['/vendor-product', '/vendor'],
+  },
+  '/vendor-product': {
+    en: E('Add or change one of your products.', ['Fill in the name, category, short pitch and what it is.', 'Add pictures and your price; the box shows what stores will pay and what you get.', 'Save a draft, or send it for approval.'], ['Stock changes at once; other changes to a live product wait for approval.', 'Bulk prices apply from the quantity you set.'], null),
+    bn: E('আপনার একটি Product যোগ করুন বা বদলান।', ['নাম, বিভাগ, ছোট বর্ণনা আর বিস্তারিত লিখুন।', 'ছবি আর আপনার দাম দিন; পাশে দেখাবে দোকান কত দেবে আর আপনি কত পাবেন।', 'Draft রাখুন, বা অনুমোদনের জন্য পাঠান।'], ['Stock সাথে সাথে বদলায়; চালু Product-এর বাকি বদল অনুমোদনের অপেক্ষায় থাকে।', 'যত পরিমাণ থেকে ঠিক করবেন, সেখান থেকে বেশি কেনার দাম।'], null),
+    related: ['/vendor-products'],
+  },
+  '/vendor-orders': {
+    en: E('Parcels stores bought from you: to ship, on the way and delivered.', ['Open a parcel to accept it.', 'Pack it, then book Steadfast, Pathao or RedX, or use your own courier.', 'Mark it delivered when the store has it.'], ['A delivered parcel is owed to you and paid in your next payout.'], null),
+    bn: E('দোকান আপনার কাছ থেকে যে পার্সেল কিনেছে: পাঠানোর, পথে আর পৌঁছানো।', ['পার্সেল খুলে Accept করুন।', 'Pack করুন, তারপর Steadfast, Pathao বা RedX Book করুন, বা নিজের কুরিয়ার দিন।', 'দোকান পেলে Delivered করুন।'], ['পৌঁছানো পার্সেলের টাকা আপনার পাওনা, পরের Payout-এ পাবেন।'], null),
+    related: ['/vendor-order', '/vendor-money'],
+  },
+  '/vendor-order': {
+    en: E('One parcel: the items, where it goes and its next step.', ['Accept, then Start packing.', 'Book a courier: the tracking number goes to the store.', 'Mark delivered once the store has it.'], ['Money for this parcel shows the commission, any discount you pay and your fee per parcel.'], null),
+    bn: E('একটি পার্সেল: সামগ্রী, কোথায় যাবে আর পরের ধাপ।', ['Accept করুন, তারপর Start packing।', 'কুরিয়ার Book করুন: ট্র্যাকিং নম্বর দোকানে যায়।', 'দোকান পেলে Mark delivered করুন।'], ['Money for this parcel-এ Commission, আপনার দেওয়া Discount আর প্রতি পার্সেলের Fee দেখাবে।'], null),
+    related: ['/vendor-orders'],
+  },
+  '/vendor-money': {
+    en: E('What Grid Shop owes you, parcel by parcel, and your payouts.', ['Check the balance: delivered parcels less monthly fees due.', 'Request payout to be paid to the account in your profile.', 'See every payout and monthly fee in the tabs.'], ['Parcels are owed once delivered.', 'Monthly fees come off a payout when the balance covers them.'], null),
+    bn: E('Grid Shop আপনাকে কত দেবে, পার্সেল ধরে, আর আপনার Payout।', ['Balance দেখুন: পৌঁছানো পার্সেল থেকে মাসিক Fee বাদে।', 'Request payout চাপলে Profile-এর Account-এ টাকা যায়।', 'Tab-এ প্রতিটি Payout আর মাসিক Fee দেখুন।'], ['পার্সেল পৌঁছালে তবে টাকা পাওনা হয়।', 'Balance-এ কুলালে মাসিক Fee Payout থেকে কাটা হয়।'], null),
+    related: ['/vendor-orders', '/vendor-profile'],
+  },
+  '/vendor-profile': {
+    en: E('Your company, contact, payout account and return and warranty terms.', ['Add your logo and check the contact details.', 'Check the payout account twice: every payout goes there.', 'Write your return and warranty terms: stores see them on each product.'], ['Your pricing and charges are agreed with GridCommerce and shown here read-only.'], null),
+    bn: E('আপনার প্রতিষ্ঠান, যোগাযোগ, Payout Account আর ফেরত ও Warranty-র শর্ত।', ['Logo দিন আর যোগাযোগের তথ্য দেখুন।', 'Payout Account দুবার মিলিয়ে নিন: সব Payout সেখানে যায়।', 'ফেরত আর Warranty-র শর্ত লিখুন: দোকান প্রতিটি Product-এ দেখে।'], ['আপনার দাম আর চার্জ GridCommerce-এর সাথে ঠিক করা; এখানে শুধু দেখা যায়।'], null),
+    related: ['/vendor-money'],
+  },
+  '/admin/grid-shop/pricing': {
+    en: E('GridCommerce’s charges and discounts on both sides of Grid Shop.', ['Add a rule: who pays, what it is (commission, markup, fee, discount, platform fee), the amount and who it covers.', 'Set dates for a time-limited offer, and switch rules on or off.', 'Try a price: pick a product, a store and a quantity to see what everyone pays and gets.'], ['One rule of each kind applies: the most specific (product, then vendor, store, plan).', 'Orders keep the prices they were sold at.'], null),
+    bn: E('Grid Shop-এর দুই দিকে GridCommerce-এর চার্জ আর Discount।', ['Rule যোগ করুন: কে দেবে, কী (Commission, Markup, Fee, Discount, Platform fee), কত আর কার জন্য।', 'সময়সীমা দিন, আর Rule চালু বা বন্ধ করুন।', 'Try a price: Product, দোকান আর পরিমাণ বেছে দেখুন কে কত দেয় আর পায়।'], ['একেক ধরনের একটিই Rule খাটে: সবচেয়ে নির্দিষ্টটি (Product, তারপর Vendor, দোকান, Plan)।', 'Order যে দামে বিক্রি হয়েছে সেই দামই থাকে।'], null),
+    related: ['/admin/grid-shop/vendors', '/admin/grid-shop/products'],
+  },
+  // Batch E · Grid Partners (models, influencers, video creators)
+  '/partners': {
+    en: E('Grid Partners: models, influencers and video creators checked by GridCommerce, ready to work with your shop.', ['Pick a type, or filter by niche, city, followers and budget.', 'Open a profile to see their platforms, sample work and rate card.', 'Send Request a quote with your brief, budget and date.'], ['Once the partner accepts, you both see each other’s phone and email.', 'You agree the work and pay the partner directly: GridCommerce takes no cut.'], null),
+    bn: E('Grid Partners: GridCommerce-এর যাচাই করা মডেল, ইনফ্লুয়েন্সার আর ভিডিও ক্রিয়েটর, আপনার শপের সাথে কাজ করতে তৈরি।', ['একটি ধরন বাছুন, বা নিশ, শহর, ফলোয়ার আর বাজেট দিয়ে ফিল্টার করুন।', 'প্রোফাইল খুলে তাদের প্ল্যাটফর্ম, কাজের নমুনা আর রেট কার্ড দেখুন।', 'আপনার ব্রিফ, বাজেট আর তারিখ দিয়ে Request a quote পাঠান।'], ['পার্টনার রাজি হলে দুই পক্ষই একে অপরের ফোন ও ইমেইল দেখতে পাবেন।', 'কাজ আর টাকা আপনারা নিজেরাই ঠিক করবেন: GridCommerce কোনো কমিশন নেয় না।'], null),
+    related: ['/partner-requests'],
+  },
+  '/partner-requests': {
+    en: E('Your quote requests to Grid Partners and their answers.', ['Open a request to read the conversation and send a message.', 'Once accepted, call or email the partner from the request.', 'Mark it done when the work is delivered, then rate it.'], ['A waiting request can be withdrawn.', 'Your rating shows on the partner’s profile.'], null),
+    bn: E('Grid Partners-এর কাছে আপনার কোটেশনের অনুরোধ আর তাদের উত্তর।', ['অনুরোধ খুলে কথোপকথন পড়ুন আর মেসেজ পাঠান।', 'রাজি হলে অনুরোধ থেকেই পার্টনারকে কল বা ইমেইল করুন।', 'কাজ পেলে Mark done চাপুন, তারপর রেটিং দিন।'], ['অপেক্ষায় থাকা অনুরোধ ফিরিয়ে নেওয়া যায়।', 'আপনার রেটিং পার্টনারের প্রোফাইলে দেখাবে।'], null),
+    related: ['/partners'],
+  },
+  '/gp': {
+    en: E('Your Grid Partners home: requests from stores, profile views and your share card.', ['Answer new requests first.', 'Finish your profile: stores pick complete profiles.', 'Share your public link or download the share card for social media.'], ['Stores see your phone and email only after you accept.', 'GridCommerce takes no cut: you agree the payment with the store.'], null),
+    bn: E('আপনার Grid Partners হোম: দোকানের অনুরোধ, প্রোফাইল ভিউ আর শেয়ার কার্ড।', ['আগে নতুন অনুরোধের উত্তর দিন।', 'প্রোফাইল পূর্ণ করুন: দোকানগুলো পূর্ণ প্রোফাইল বেছে নেয়।', 'সোশ্যাল মিডিয়ার জন্য পাবলিক লিংক শেয়ার করুন বা শেয়ার কার্ড ডাউনলোড করুন।'], ['আপনি রাজি হলে তবেই দোকান আপনার ফোন ও ইমেইল দেখে।', 'GridCommerce কোনো কমিশন নেয় না: টাকা দোকানের সাথে ঠিক করুন।'], null),
+    related: ['/gp-requests', '/gp-profile'],
+  },
+  '/admin/partners': {
+    en: E('Every Grid Partner: approved and suspended models, influencers and video creators.', ['Review new creators in Applications against the minimum standards.', 'Open a partner to give the blue tick, feature or suspend them.', 'Requests shows every store ↔ partner request; cancel only for abuse.'], ['The standards, niches and cities are in Settings.', 'Who may use Grid Partners: Services › Access.'], null),
+    bn: E('সব Grid Partner: অনুমোদিত ও স্থগিত মডেল, ইনফ্লুয়েন্সার আর ভিডিও ক্রিয়েটর।', ['Applications-এ ন্যূনতম মান মিলিয়ে নতুন ক্রিয়েটর যাচাই করুন।', 'পার্টনার খুলে ব্লু টিক দিন, ফিচার করুন বা স্থগিত করুন।', 'Requests-এ দোকান ↔ পার্টনারের সব অনুরোধ; শুধু অপব্যবহারে বাতিল করুন।'], ['মান, নিশ আর শহর Settings-এ।', 'কে Grid Partners ব্যবহার করতে পারবে: Services › Access।'], null),
+    related: ['/admin/partners/applications', '/admin/partners/requests', '/admin/partners/settings'],
+  },
+  // end Batch E · Grid Partners
   '/my-services': {
     en: E('The services you bought: where each one is and what it needs from you.', ['Needs you lists orders waiting for an answer, store access, an approval or extra work.', 'Open an order to message the expert, approve the work or ask for a change, and rate it.'], ['The deadline stops while an order waits for you; without a reply it closes by itself after 14 days.'], null),
     bn: E('আপনার কেনা Service-গুলো: কোনটা কোথায় আছে আর আপনার কাছে কী দরকার।', ['Needs you-এ সেই Order-গুলো যেগুলো উত্তর, Store access, Approval বা বাড়তি কাজের অপেক্ষায়।', 'Order খুলে Expert-কে Message দিন, কাজ Approve করুন বা পরিবর্তন চান, আর Rating দিন।'], ['আপনার অপেক্ষায় থাকলে Deadline থেমে থাকে; উত্তর না দিলে ১৪ দিন পরে নিজে থেকে বন্ধ হয়।'], null),
@@ -112,9 +207,14 @@ export const HELP = {
     related: ['/return-exchange', '/return-history', '/payment-ops'],
   },
   '/set-checkout': {
-    en: E('How the online store’s checkout works.', ['Choose guest checkout or sign-in with the mobile number, and whether the number is checked with a code.', 'Choose which details are asked: email, district and area, a note, the terms box.', 'Set a cash-on-delivery fee, a COD limit and the smallest order.'], ['The thank-you page links to the customer’s order page.']),
-    bn: E('Online Store-এর Checkout কীভাবে চলবে।', ['Guest checkout নাকি মোবাইল নম্বরে Sign-in, আর নম্বর Code দিয়ে যাচাই হবে কি না বাছুন।', 'কোন তথ্য চাওয়া হবে বাছুন: Email, জেলা আর এলাকা, Note, Terms-এর বক্স।', 'COD fee, COD-এর সীমা আর সবচেয়ে ছোট Order ঠিক করুন।'], ['Thank-you পেজে Customer-এর Order পেজের Link থাকে।']),
+    en: E('How the online store’s checkout works.', ['Customer accounts: off, optional or required, and how customers sign in (a code to the mobile number, or email and password). “Save my details” makes an account after a guest order.', 'Choose guest checkout or sign-in with the mobile number, and whether the number is checked with a code.', 'Choose which details are asked: email, district and area, a note, the terms box.', 'Set a cash-on-delivery fee, a COD limit and the smallest order.'], ['The thank-you page links to the customer’s order page.']),
+    bn: E('Online Store-এর Checkout কীভাবে চলবে।', ['Customer অ্যাকাউন্ট: বন্ধ, ঐচ্ছিক বা বাধ্যতামূলক, আর কীভাবে Sign in (মোবাইলে Code, বা Email ও Password)। “আমার তথ্য Save করুন” Guest order-এর পরে অ্যাকাউন্ট খোলে।', 'Guest checkout নাকি মোবাইল নম্বরে Sign-in, আর নম্বর Code দিয়ে যাচাই হবে কি না বাছুন।', 'কোন তথ্য চাওয়া হবে বাছুন: Email, জেলা আর এলাকা, Note, Terms-এর বক্স।', 'COD fee, COD-এর সীমা আর সবচেয়ে ছোট Order ঠিক করুন।'], ['Thank-you পেজে Customer-এর Order পেজের Link থাকে।']),
     related: ['/set-delivery', '/set-payments', '/set-privacy'],
+  },
+  '/affiliates': {
+    en: E('People who promote your shop and earn a commission on the orders they bring.', ['Settings: the commission (% or fixed, other rates per category), how long a link counts, the minimum payout, the return window and the terms.', 'Applications come from the store’s “Become an affiliate” page; open one to Approve or Reject it.', 'Commission is payable after delivery and the return window. Make payouts adds it to Finances › Liabilities, where you pay it.'], ['An affiliate’s own orders never count. A code typed at checkout wins over a link.']),
+    bn: E('যারা আপনার শপের প্রচার করে আর তাদের আনা Order-এ Commission পায়।', ['Settings: Commission (% বা নির্দিষ্ট টাকা, কিছু Category-র আলাদা হার), Link কত দিন গোনা হবে, সর্বনিম্ন Payout, Return-এর সময় আর শর্ত।', 'Store-এর “Affiliate হোন” পেজ থেকে আবেদন আসে; খুলে Approve বা Reject করুন।', 'Delivery আর Return-এর সময় পেরোলে Commission দেওয়ার যোগ্য হয়। Make payouts সেটা Finances › Liabilities-এ যোগ করে, সেখান থেকে দিন।'], ['Affiliate-এর নিজের Order কখনো গোনা হয় না। Checkout-এ লেখা Code, Link-এর চেয়ে আগে গোনা হয়।']),
+    related: ['/liabilities', '/promo', '/loyalty'],
   },
   '/meetings': {
     en: E('Meetings with leads and customers on Zoom, Google Meet, by phone or at the shop.', ['Press New meeting: choose who, when, how long and where.', 'The link is made and the invite goes by WhatsApp or SMS; a reminder goes an hour before.', 'After the meeting, open it and write a short note, the outcome and the next follow-up.'], ['Needs a note lists meetings that ended without one. Connect Zoom or Google Meet in Connections.']),
@@ -127,6 +227,26 @@ export const HELP = {
     bn: E('আপনার Online store দেখতে কেমন: এখনকার Look, Preset আর Restore point।', ['রং, Font আর পেজের Option বদলাতে Customize চাপুন।', 'নিজের Product দিয়ে একটি Preset (Signal, Nokshi, Counter) Preview করুন, তারপর যে অংশগুলো চান Import করুন।', 'প্রতিটি Import আর Publish-এর আগে একটি Restore point তৈরি হয়: Go back এক চাপে আগের অবস্থায় ফেরায়।'], ['Import কখনো Product, Customer বা Order ছোঁয় না।', 'GridCommerce আপনার Theme-এ যা ঠিক রাখে তা Locked দেখায়।']),
     related: ['/theme-editor', '/header-builder', '/layouts', '/html-blocks'],
   },
+  '/snippets': {
+    en: E('Safe code for your online store, without JavaScript.', ['Add snippet, then pick Tracking & verification (an ID from Meta, Google, TikTok or Bing), CSS, or Text or HTML.', 'Each one is checked as you type; it saves only when it is safe.', 'Use the switch to turn one off without deleting it.'], ['CSS and HTML never go on checkout, account or payment pages.', 'GridCommerce writes the tracking code from the ID; you never paste a script.']),
+    bn: E('আপনার Online store-এর জন্য নিরাপদ কোড, JavaScript ছাড়া।', ['Add snippet চাপুন, তারপর Tracking & verification (Meta, Google, TikTok বা Bing-এর ID), CSS, অথবা Text or HTML বাছুন।', 'লেখার সাথে সাথে প্রতিটি যাচাই হয়; নিরাপদ হলে তবেই Save হয়।', 'মুছে না ফেলে বন্ধ রাখতে Switch ব্যবহার করুন।'], ['CSS আর HTML কখনো Checkout, Account বা Payment পেজে যায় না।', 'GridCommerce ID থেকে Tracking কোড লেখে; আপনাকে কোনো Script পেস্ট করতে হয় না।']),
+    related: ['/theme-editor', '/html-blocks', '/seo'],
+  },
+  '/message-design': {
+    en: E('How your emails and SMS look, set once for every message.', ['Email design: set the logo, colours, font, header and footer; the sample shows it on white, or press Dark to see the dark version.', 'Choose the language customers get: English, Bangla, or Bangla with English below.', 'Press Edit on any email to change its words and parts. SMS design: set the sender name and edit each SMS with a phone preview.'], ['Your shop details from Settings › General fill it in until you change them.', 'Which messages go out, and to whom, is set in Settings › Notifications.']),
+    bn: E('আপনার ইমেইল আর SMS দেখতে কেমন হবে, সব মেসেজের জন্য একবারে।', ['Email design: লোগো, রং, ফন্ট, হেডার আর ফুটার ঠিক করুন; নমুনা সাদা ব্যাকগ্রাউন্ডে দেখায়, Dark চাপলে ডার্ক রূপ।', 'Customer কোন ভাষায় পাবেন বাছুন: ইংরেজি, বাংলা, বা বাংলার নিচে ইংরেজি।', 'যেকোনো ইমেইলের কথা আর অংশ বদলাতে Edit চাপুন। SMS design: Sender name আর প্রতিটি SMS ফোনের Preview-সহ বদলান।'], ['বদলানোর আগ পর্যন্ত Settings › General-এর তথ্য দিয়ে ভরা থাকে।', 'কোন মেসেজ কাকে যাবে তা Settings › Notifications-এ ঠিক হয়।']),
+    related: ['/set-notifications', '/email-editor'],
+  },
+  '/email-editor': {
+    en: E('Build one email from parts, in English and Bangla.', ['Pick a part on the left to change it; Add a part puts a new one after it.', 'Tap a variable to put it where you are typing; the preview fills it with a sample.', 'Check it on a computer and a phone, light and dark, then Save. Send test sends it to your shop email.'], ['Back to the default (More) puts the original email back.', '**bold** and [links](https://…) work in text.']),
+    bn: E('অংশ দিয়ে একটি ইমেইল বানান, ইংরেজি আর বাংলায়।', ['বদলাতে বাঁ দিকে একটি অংশ বাছুন; Add a part তার পরে নতুন অংশ যোগ করে।', 'যেখানে লিখছেন সেখানে বসাতে একটি Variable চাপুন; Preview নমুনা দিয়ে দেখায়।', 'কম্পিউটার আর ফোনে, Light আর Dark-এ দেখে Save করুন। Send test আপনার শপের ইমেইলে পাঠায়।'], ['Back to the default (More) আগের ইমেইল ফিরিয়ে আনে।', 'লেখায় **bold** আর [link](https://…) চলে।']),
+    related: ['/message-design', '/set-notifications'],
+  },
+  '/store-editor': {
+    en: E('Edit your store on the page itself.', ['Pick the page at the top of the preview (Home, a product, a category …).', 'Click any section on the page, or in the list, and change it on the left. Drag sections to reorder them; Add section opens the library with every section and its looks.', 'Style changes the whole store at once; Header picks this page’s header. Save draft keeps your work; Publish shows it to customers.'], ['Undo and Redo (Ctrl+Z, Ctrl+Shift+Z) cover everything you change here.', 'Customize, Layouts and Header builder still hold every option.']),
+    bn: E('পেজের ওপরেই আপনার Store সাজান।', ['Preview-এর ওপরে পেজ বাছুন (Home, একটি Product, একটি Category …)।', 'পেজে বা তালিকায় যেকোনো Section-এ চাপ দিন, বাঁ দিকে বদলান। টেনে Section-এর ক্রম বদলান; Add section-এ সব Section আর তাদের Look পাবেন।', 'Style এক চাপে পুরো Store বদলায়; Header এই পেজের Header বাছে। Save draft আপনার কাজ রাখে; Publish Customer-কে দেখায়।'], ['Undo আর Redo (Ctrl+Z, Ctrl+Shift+Z) এখানে করা সব বদল ফেরায়।', 'Customize, Layouts আর Header builder-এ সব Option আগের মতোই আছে।']),
+    related: ['/theme', '/theme-editor', '/layouts', '/header-builder'],
+  },
   '/theme-editor': {
     en: E('Change the theme’s options and see each change at once.', ['Pick a group or search an option (for example WhatsApp or font).', 'Change it: the preview on the right shows it on a computer or a phone.', 'Save draft keeps your work; Publish shows it to customers.'], ['Undo to last published throws your draft away. Reset to preset puts the preset’s options back in the draft.', 'A warning shows when text is hard to read on a colour.']),
     bn: E('Theme-এর Option বদলান আর সাথে সাথে দেখুন।', ['একটি Group বাছুন বা Option খুঁজুন (যেমন WhatsApp বা Font)।', 'বদলান: ডানের Preview কম্পিউটার বা ফোনে দেখায়।', 'Save draft আপনার কাজ রাখে; Publish Customer-কে দেখায়।'], ['Undo to last published Draft বাদ দেয়। Reset to preset Preset-এর Option Draft-এ ফেরায়।', 'কোনো রঙে লেখা পড়তে কষ্ট হলে সতর্কতা দেখায়।']),
@@ -136,6 +256,11 @@ export const HELP = {
     en: E('Build the top of your store, separately for computers and phones.', ['Choose a header, then Computer or Phone.', 'Press Add in an area to place the logo, menu, search, cart and more; pick an element to change or move it.', 'Set each row’s height, colours and sticky, then Publish header.'], ['The default header shows everywhere; a layout can pick another.', 'Phone menu sets what the ☰ drawer holds and the bottom bar.']),
     bn: E('আপনার Store-এর উপরের অংশ বানান, কম্পিউটার আর ফোনের জন্য আলাদা করে।', ['একটি Header বাছুন, তারপর Computer বা Phone।', 'কোনো Area-তে Add চেপে Logo, Menu, Search, Cart ইত্যাদি বসান; বদলাতে বা সরাতে একটি Element বাছুন।', 'প্রতিটি Row-এর উচ্চতা, রং আর Sticky ঠিক করে Publish header চাপুন।'], ['Default header সবখানে দেখায়; একটি Layout অন্যটি বাছতে পারে।', 'Phone menu ঠিক করে ☰ Drawer-এ কী থাকবে আর নিচের Bar।']),
     related: ['/theme', '/store-menus', '/layouts'],
+  },
+  '/store-notices': {
+    en: E('Short messages on your store: a sale with a countdown, a coupon code, a delivery cut-off.', ['Press Add notice and write it in English (and Bangla if you like), or fill it from an offer.', 'Choose where it shows, on which pages and devices, and from when until when.', 'Save: it shows at once. The preview at the bottom shows your store with it.'], ['Two notices in one place take turns. Turn one off without deleting it.', 'Customers can copy a code with one tap; a closed notice stays closed for that customer.']),
+    bn: E('Store-এ ছোট বার্তা: Countdown সহ Sale, Coupon code, Delivery-র শেষ সময়।', ['Add notice চেপে ইংরেজিতে (চাইলে বাংলায়ও) লিখুন, বা একটি Offer থেকে ভরুন।', 'কোথায়, কোন পেজে আর ডিভাইসে, কখন থেকে কখন পর্যন্ত দেখাবে বাছুন।', 'Save করুন: সাথে সাথে দেখায়। নিচের Preview আপনার Store-এ সেটি দেখায়।'], ['একই জায়গায় দুটি Notice পালা করে দেখায়। মুছে না ফেলে একটি বন্ধ রাখা যায়।', 'Customer এক চাপে Code কপি করতে পারে; বন্ধ করা Notice সেই Customer-এর জন্য বন্ধই থাকে।']),
+    related: ['/header-builder', '/theme', '/promo'],
   },
   '/html-blocks': {
     en: E('Reusable content: delivery info, a size guide, a banner, a footer.', ['Press Add block and build it like a page.', 'Place it in a layout, the header builder, a mega menu, the footer or the product page tab.'], ['Used in shows where each block appears. Deleting one warns you first.']),

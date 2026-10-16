@@ -24,6 +24,7 @@ import {
 import { AdminShell } from '../AdminShell';
 import { MK_CSS, useMk2, Skeleton, num, short, pct, plural, dayTime, Field, ctl } from './mk2Shared';
 import SocialComposer from './SocialComposer';
+import { Pic } from '@/components/ui/Pic';
 
 const TABS = [['calendar', 'Calendar'], ['posts', 'Posts'], ['library', 'Library'], ['engagement', 'Engagement']];
 const POST_VIEWS = [['published', 'Published'], ['scheduled', 'Scheduled'], ['draft', 'Drafts']];
@@ -305,6 +306,11 @@ function CalendarView({ data, t, onOpen, onCreate }) {
 }
 
 // ---- Posts --------------------------------------------------------------------------------------------------------
+// a post's picture: its first media file's picture when the library keeps one, else an icon for what it carries
+function creativeOf(p, lib) {
+  const m = (p.media || []).map((id) => lib.find((x) => x.id === id)).filter(Boolean)[0];
+  return { src: (m && (m.src || m.thumb)) || p.image || '', icon: !m ? 'share-2' : m.kind === 'video' ? 'video' : m.kind === 'image' ? 'image' : 'share-2' };
+}
 function PostsView({ data, t, view, setView, onOpen, onCreate }) {
   const v = POST_VIEWS.some(([k]) => k === view) ? view : 'published';
   const [s, setS] = useState('');
@@ -334,7 +340,8 @@ function PostsView({ data, t, view, setView, onOpen, onCreate }) {
       ) : (<>
         <ul className="ix-plist" aria-label="Posts">
           {rows.map((p) => { const e = engOf(p); return (
-            <li key={p.id}><button type="button" className="ix-pitem" onClick={() => onOpen(p)}>
+            <li key={p.id}><button type="button" className="ix-pitem ix-pitem--thumb" style={{ gridTemplateColumns: '43px minmax(0,1fr)' }} onClick={() => onOpen(p)}>
+              <span style={{ gridRow: 'span 2' }}><Pic {...creativeOf(p, data.social.library)} name={p.title} kind="cover" /></span>
               <span className="ix-pitem__top"><b>{p.title}</b><Icons list={p.platforms} /></span>
               <span className="ix-pitem__mid">{p.at ? dayTime(p.at) : 'No date'}{e ? ` · reach ${short(e.reach)} · ${short(e.eng)} engagements` : ''}</span>
             </button></li>
@@ -347,7 +354,7 @@ function PostsView({ data, t, view, setView, onOpen, onCreate }) {
             <tbody>
               {rows.map((p) => { const e = engOf(p); return (
                 <tr key={p.id} tabIndex={0} onClick={() => onOpen(p)} onKeyDown={(ev) => { if (ev.key === 'Enter') onOpen(p); }}>
-                  <td><span className="mk-cell" style={{ maxWidth: 420 }}><b>{p.title}</b><span className="so-snip">{p.text.split('\n').slice(1).join(' ') || p.text}</span></span></td>
+                  <td><span className="gc-picrow"><Pic {...creativeOf(p, data.social.library)} name={p.title} kind="cover" /><span className="mk-cell" style={{ maxWidth: 420 }}><b>{p.title}</b><span className="so-snip">{p.text.split('\n').slice(1).join(' ') || p.text}</span></span></span></td>
                   <td><Icons list={p.platforms} size={16} /></td>
                   <td className="ix-muted" style={{ whiteSpace: 'nowrap' }}>{p.at && v !== 'draft' ? dayTime(p.at) : dayTime(p.updatedAt || p.createdAt)}</td>
                   {v === 'published' ? <><td className="ix-num mk-fig">{num(e.reach)}</td><td className="ix-num mk-fig">{num(e.eng)}</td><td className="ix-num mk-fig">{num(e.clicks)}</td></> : null}

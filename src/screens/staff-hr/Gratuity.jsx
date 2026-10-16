@@ -13,7 +13,7 @@ import { navigate } from '@/runtime/routes';
 import { formatDate } from '@/lib/format';
 import { fromKey } from '@/lib/settlements';
 import { gratuityOf, serviceOf, todayKey, saveSettings, addDays } from '@/lib/hr';
-import { HrPage, useHr, Person, money, profileHref, rowGo } from './hrShared';
+import { HrPage, useHr, Person, Avatar, money, profileHref, rowGo } from './hrShared';
 import { FORM_CSS, Seg } from '@/screens/staff-profile/staffForm';
 
 const CSS = `
@@ -66,7 +66,8 @@ export default function Gratuity() {
             <ul className="ix-plist" aria-label="Everyone">
               {rows.map(({ s, gr }) => (
                 <li key={s.code}>
-                  <button type="button" className="ix-pitem" onClick={() => navigate(profileHref(s.code, 'salary'))}>
+                  <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => navigate(profileHref(s.code, 'salary'))}>
+                    <span className="hr-pslot"><Avatar st={s} /></span>
                     <span className="ix-pitem__top"><b>{s.name}</b><span>{gr.amount ? money(gr.amount) : money(gr.provision)}</span></span>
                     <span className="ix-pitem__mid">{gr.service.text} · {gr.eligible ? 'Eligible' : `from ${formatDate(fromKey(gr.eligibleOn))}`}</span>
                   </button>

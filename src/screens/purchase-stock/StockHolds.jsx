@@ -21,6 +21,11 @@ import { usePlaceList } from '@/lib/usePlaces';
 import { CATALOG as STOCK, productBy, stockAt, getMoves } from '@/lib/stock';
 import { addReturn } from '@/lib/returns';
 import { ProductPicker, PICKER_CSS } from '@/components/ProductPicker';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
+
+// a hold names its product; find the catalogue row for its picture
+const holdPic = (h) => productPic(STOCK.find((p) => p.name === h.product) || { sku: h.sku, name: h.product });
 
 const TABS = [['held', 'On hold'], ['online', 'Online orders'], ['retail', 'Retail orders'], ['damaged', 'Damaged'], ['closed', 'Closed']];
 const STATUS = { held: ['On hold', 'warning'], released: ['Released', 'success'], delivered: ['Delivered', 'neutral'], damaged: ['Damaged', 'error'], returned: ['Back to supplier', 'info'], disposed: ['Written off', 'neutral'] };
@@ -140,7 +145,8 @@ export default function StockHolds() {
                   <ul className="ix-plist" aria-label="Stock holds">
                     {shown.map((h) => (
                       <li key={h.id}>
-                        <button type="button" className="ix-pitem" onClick={() => setView(h.id)}>
+                        <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setView(h.id)}>
+                          <span style={{ gridRow: 'span 3' }}><Pic src={holdPic(h)} name={h.product} kind="item" /></span>
                           <span className="ix-pitem__top"><b>{h.product}</b><span>{`${h.qty} pcs`}</span></span>
                           <span className="ix-pitem__mid">{forText(h)} · {h.place}</span>
                           <span className="ix-pitem__tags"><StatusBadge tone={STATUS[h.status][1]}>{STATUS[h.status][0]}</StatusBadge></span>
@@ -157,7 +163,7 @@ export default function StockHolds() {
                           <tr key={h.id} onClick={openRow(h)}>
                             <td><button type="button" className="ix-strong sh-id" onClick={() => setView(h.id)}>{h.id}</button></td>
                             <td className="ix-muted">{formatDate(h.at)}</td>
-                            <td><span className="sh-cell">{h.product}</span></td>
+                            <td><span className="gc-picrow"><Pic src={holdPic(h)} name={h.product} kind="item" /><span className="sh-cell">{h.product}</span></span></td>
                             <td className="ix-num ix-strong">{h.qty}</td>
                             <td className="ix-muted"><span className="sh-cell">{forText(h)}</span></td>
                             <td className="ix-muted">{h.place}</td>
@@ -180,7 +186,7 @@ export default function StockHolds() {
                     <tbody>
                       {table.map((p) => (
                         <tr key={p.sku}>
-                          <td className="ix-strong">{p.name}</td>
+                          <td className="ix-strong"><span className="gc-picrow"><Pic src={productPic(p)} name={p.name} kind="item" /><span>{p.name}</span></span></td>
                           <td className="ix-muted sh-id">{p.sku}</td>
                           <td className="ix-num">{p.onHand}</td>
                           <td className="ix-num">{p.online || '—'}</td>

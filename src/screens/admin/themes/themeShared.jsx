@@ -13,6 +13,7 @@
 //   <MerchantEditing item />             which parts merchants may edit (read by the merchant's storefront builder)
 // Themes are a future module: no theme files are rendered and nothing is sent anywhere.
 
+import { checkKit, kitSummary } from '@/lib/storefront/kit';
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
@@ -477,6 +478,13 @@ export function ReleaseSheet({ item: given, close, pick }) {
   const live = item ? liveVersion(data, item.id) : null;
   const [f, setF] = useState({ version: top ? bump(top, 'minor') : '1.0.0', notes: '', rollout: 'next-visit', stores: [] });
   const [err, setErr] = useState(null);
+  const [kitFile, setKitFile] = useState(null);   // { name, res: checkKit result }
+  const readKit = (file) => {
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => setKitFile({ name: file.name, res: checkKit(String(r.result || '')) });
+    r.readAsText(file);
+  };
   const set = (k) => (e) => { setErr(null); setF({ ...f, [k]: e.target.value }); };
   const using = item ? (item.kind === 'theme' ? storesOn(data, db, item.id).map((s) => [s.shop.id, `${s.shop.name} · ${s.version}`]) : templateUse(data, db, item.id).map((u) => [u.shop.id, `${u.shop.name} · ${plural(u.pages.length, 'page')}`])) : [];
   const pickItem = (e) => {
@@ -487,7 +495,8 @@ export function ReleaseSheet({ item: given, close, pick }) {
   };
   const submit = () => {
     if (!item) { setErr({ field: 'item', text: 'Choose a theme or template.' }); return; }
-    const r = newRelease(item.id, { version: f.version, notes: f.notes, rollout: f.rollout, stores: f.stores, submit: true });
+    if (kitFile && !kitFile.res.ok) { setErr({ field: 'kit', text: 'Fix the design file first: ' + (kitFile.res.errors[0] || {}).text }); return; }
+    const r = newRelease(item.id, { version: f.version, notes: f.notes, rollout: f.rollout, stores: f.stores, submit: true, kit: kitFile ? kitFile.res.kit : null });
     if (!r.ok) { setErr({ field: fieldFor(r.error, [[/version|higher/i, 'version'], [/changed/i, 'notes'], [/stores/i, 'stores']]), text: r.error }); return; }
     toast(`${item.name} ${f.version.trim()} sent for review`);
     close();
@@ -515,6 +524,14 @@ export function ReleaseSheet({ item: given, close, pick }) {
                 <button key={p} type="button" className="ix-btn ix-btn--sm" aria-pressed={f.version === bump(top, p)} onClick={() => { setErr(null); setF({ ...f, version: bump(top, p) }); }}>{l} · <span className="thm-data">{bump(top, p)}</span></button>
               ))}
             </div>
+          ) : null}
+          {item.kind === 'theme' ? (
+            <Field id="thm-rel-k" label="Design file (.gcstore.json)" error={errOf(err, 'kit')} hint="The theme itself, made with tools/store-kit. Shops can import a version only when it carries one.">
+              <input id="thm-rel-k" type="file" accept=".json,application/json" className="gc-input" onChange={(e) => { setErr(null); readKit(e.target.files && e.target.files[0]); }} />
+              {kitFile ? (kitFile.res.ok
+                ? <p className="thm-note">{kitFile.res.kit.meta.name}: {kitSummary(kitFile.res.kit)}{kitFile.res.warnings.length ? ` · ${plural(kitFile.res.warnings.length, 'warning')}: ${kitFile.res.warnings[0].text}` : ' · no problems'}</p>
+                : <p className="thm-note thm-note--warn">{plural(kitFile.res.errors.length, 'problem')}: {kitFile.res.errors.slice(0, 3).map((x) => x.text).join(' · ')}</p>) : null}
+            </Field>
           ) : null}
           <Field id="thm-rel-n" label="Release notes" error={errOf(err, 'notes')} hint="What changed, in plain words: merchants see this">
             <textarea id="thm-rel-n" className={'gc-input' + (errOf(err, 'notes') ? ' gc-input--error' : '')} rows={3} value={f.notes} onChange={set('notes')} />

@@ -138,7 +138,8 @@ export default function SalaryStatements() {
                 <ul className="ix-plist" aria-label="Everyone">
                   {all.map(({ s, x }) => (
                     <li key={s.code}>
-                      <button type="button" className="ix-pitem" onClick={() => pickCode(s.code)}>
+                      <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => pickCode(s.code)}>
+                        <span className="hr-pslot"><Avatar st={s} /></span>
                         <span className="ix-pitem__top"><b>{s.name}</b><span>{money(x.totals.net)}</span></span>
                         <span className="ix-pitem__mid">{x.rows.filter((r) => r.kind === 'salary').length} months · earned {money(x.totals.earned)}{x.totals.owed ? ` · ${money(x.totals.owed)} due` : ''}</span>
                       </button>

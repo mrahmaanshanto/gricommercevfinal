@@ -5,7 +5,7 @@
 //   block  { id, name, type, blocks: [blog block], updatedAt }
 //   BLOCK_KINDS (content · banner · mega · footer · tab · cattext) · kindOf(type)
 //   getBlocks() · getBlock(id) · saveBlock(b) · newHtmlBlock(type) · duplicateBlock(id) · deleteBlock(id)
-//   usedIn(id) → [{ where, href }] — the headers, layouts, menus (mega menu columns) and theme settings that show it
+//   usedIn(id) → [{ where, href }] — the headers, layouts, menus (mega menu columns), theme settings and placements that show it
 //   blocksOfType(type) — the picker lists (a footer picker shows footer blocks first, then the rest)
 
 import { read, update, sfId } from './store';
@@ -13,15 +13,8 @@ import { newBlock } from '../blog';
 import { elementsOf } from './headers';
 import { getMenus } from '../storeMenus';
 
-export const BLOCK_KINDS = [
-  { type: 'content', label: 'Content', icon: 'file-text', hint: 'Any page part: text, pictures, buttons.' },
-  { type: 'banner', label: 'Banner', icon: 'image', hint: 'A picture with a line and a button.' },
-  { type: 'mega', label: 'Mega menu column', icon: 'columns-3', hint: 'One column of a mega menu.' },
-  { type: 'footer', label: 'Footer', icon: 'panel-bottom', hint: 'The whole footer, instead of the footer layout.' },
-  { type: 'tab', label: 'Product page tab', icon: 'panels-top-left', hint: 'An extra tab on every product page.' },
-  { type: 'cattext', label: 'Category text', icon: 'text', hint: 'Text at the top or bottom of a category page.' },
-];
-export const kindOf = (type) => BLOCK_KINDS.find((k) => k.type === type) || BLOCK_KINDS[0];
+import { BLOCK_KINDS, kindOf, spotBy } from './schema.js';
+export { BLOCK_KINDS, kindOf };
 
 export const getBlocks = () => (read().blocks || []).slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 export const getBlock = (id) => (read().blocks || []).find((b) => b.id === id) || null;
@@ -54,6 +47,8 @@ export function deleteBlock(id) {
     d.blocks = (d.blocks || []).filter((b) => b.id !== id);
     const off = (v) => (v && v.footerBlock === id ? { ...v, footerBlock: '', footerSource: 'layout' } : v && v.tabBlock === id ? { ...v, tabBlock: '' } : v);
     if (d.theme) d.theme = { ...d.theme, draft: off(d.theme.draft), live: off(d.theme.live) };
+    // its placements (HTML blocks › Placements) go with it
+    if (Array.isArray(d.placements)) d.placements = d.placements.filter((p) => p.block !== id);
   });
 }
 
@@ -76,5 +71,6 @@ export function usedIn(id, menus = getMenus()) {
   (menus || []).forEach((m) => (m.items || []).forEach((it) => {
     if (it.mega && it.mega.on && (it.mega.cols || []).some((c) => c.kind === 'block' && c.block === id)) out.push({ where: `Menu · ${m.name} › ${it.label}`, href: '/store-menus?menu=' + m.id });
   }));
+  (d.placements || []).filter((p) => p.block === id).forEach((p) => { const sp = spotBy(p.spot); out.push({ where: 'Placed · ' + (sp ? sp.label : p.spot) + (p.on ? '' : ' (off)'), href: '/html-blocks?view=placements' }); });
   return out;
 }

@@ -9,7 +9,8 @@ import { StatusBadge } from '@/components/ui';
 import { formatBDT } from '@/lib/format';
 import { useAdminStore } from '@/lib/admin/store';
 import { staff as platformStaff } from '@/lib/platform/store';
-import { people, catchUp, statusOf, ini } from '@/lib/admin/people';
+import { people, catchUp, statusOf } from '@/lib/admin/people';
+import { Pic } from '@/components/ui/Pic';
 
 /** The People data: { D, t, live }. Before load it is the demo at the design moment; once live, missed days are added. */
 export function usePeople() {
@@ -35,11 +36,10 @@ export const PEOPLE_CSS = `
 .pp-warn{color:var(--text-warning)}
 .pp-who{display:flex;align-items:center;gap:10px;min-width:0}
 .pp-who>span:last-child{min-width:0}
+.pp-pslot{display:flex;grid-row:span 2;align-self:center}
+.pp-pslot--3{grid-row:span 3}
 .pp-who a{color:var(--text-heading);font-weight:var(--weight-medium);text-decoration:none}
 .pp-who a:hover{color:var(--primary);text-decoration:underline}
-.pp-av{display:inline-flex;flex:none;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium)}
-.pp-av--lg{width:40px;height:40px;font-size:var(--text-sm)}
-.ix-table .pp-av{width:28px;height:28px;font-size:var(--text-2xs)}
 .pp-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .pp-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
 .pp-chip{display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
@@ -74,14 +74,9 @@ export const PEOPLE_CSS = `
 }
 `;
 
-const AV_TONES = [
-  ['var(--fill-info-soft)', 'var(--text-info)'], ['var(--fill-primary-soft)', 'var(--primary)'], ['var(--fill-warning-soft)', 'var(--text-warning)'],
-  ['var(--fill-success-soft)', 'var(--text-success)'], ['var(--fill-error-soft)', 'var(--text-danger)'], ['var(--fill-secondary-soft)', 'var(--secondary)'],
-];
-const toneOf = (id) => AV_TONES[(Number(String(id).replace(/\D/g, '')) || 0) % AV_TONES.length];
+/** The person's picture: their photo, else initials on the colour that stays with their name (components/ui/Pic). */
 export function Avatar({ e, large }) {
-  const [bg, fg] = toneOf(e.id);
-  return <span className={'pp-av' + (large ? ' pp-av--lg' : '')} style={{ background: bg, color: fg }} aria-hidden="true">{ini(e.name)}</span>;
+  return <Pic src={e.photo || e.avatar || ''} name={e.name} kind="person" size={large ? 40 : 32} />;
 }
 /** Avatar + name (to the employee's page) + an optional second line. */
 export function Person({ e, sub, tab }) {

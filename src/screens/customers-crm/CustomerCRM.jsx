@@ -24,6 +24,8 @@ import { Icon as __Icon } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { Dialog as __Dialog, StatusBadge as __StatusBadge, InfoTip, EmptyState } from '@/components/ui';
 import { RecordHeader, MetricStrip, IndexTabs, KV, Menu } from '@/components/ui/IndexKit';
+import { accountOf } from '@/lib/storefront/account';
+import { formatDate as fmtAccDate } from '@/lib/format';
 import { toast as uiToast, confirmDialog } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { saveDemoEdit } from '@/lib/customerEdits';
@@ -524,7 +526,11 @@ export default function CustomerCRMScreen() {
 
   // ---- header ----
   const badges = <>{company ? <__StatusBadge tone="info" icon="building-2">Company</__StatusBadge> : <__StatusBadge tone={level === 'Gold' ? 'warning' : level === 'Platinum' ? 'primary' : 'neutral'} icon="crown">{level}</__StatusBadge>}<__StatusBadge tone={STATUS_TONE[c.status] || 'neutral'}>{c.status}</__StatusBadge></>;
-  const meta = [c.id, company ? 'Company' : 'Person', c.signup && c.signup !== '—' ? 'Customer since ' + c.signup : '', c.area, c.owner ? 'Looked after by ' + c.owner : ''].filter(Boolean).join(' · ');
+  // the online store account (lib/storefront/account.js): made at sign-in or with "Save my details" after an order
+  let storeAcc = null;
+  try { storeAcc = !company && hasModule('online') ? accountOf(c.bookPhone || c.digits || c.phone) : null; } catch { storeAcc = null; }
+  const accLine = storeAcc ? 'Has an account' + (storeAcc.last ? ' · last sign-in ' + fmtAccDate(storeAcc.last) : '') : '';
+  const meta = [c.id, company ? 'Company' : 'Person', c.signup && c.signup !== '—' ? 'Customer since ' + c.signup : '', c.area, accLine, c.owner ? 'Looked after by ' + c.owner : ''].filter(Boolean).join(' · ');
   const tabs = AREAS.map(([k, l]) => ({ key: k, id: 'crm-area-' + k, label: l, on: k === tab, onClick: () => setTab(k), count: k === 'orders' && D.orders.length ? D.orders.length : k === 'invoices' && D.unpaid ? D.unpaid : k === 'controls' && active.length ? active.length : undefined }));
 
   // ---- areas ----

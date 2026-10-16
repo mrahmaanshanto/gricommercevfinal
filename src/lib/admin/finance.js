@@ -1220,7 +1220,7 @@ export function bookServiceCharge(c) {
     const nos = nextIncomeNo(F, when);
     const rec = {
       ...nos, src: c.src, at: when, serviceId: c.financeId || null, serviceName: c.label, category: c.category || 'Services', incomeCat: 'services',
-      customer: { type: 'store', shopId: c.shopId, name: c.shopName }, description: 'Services order ' + String(c.src).split(':')[0], qty: 1, unit: 'oneoff',
+      customer: { type: 'store', shopId: c.shopId, name: c.shopName }, description: c.description || 'Services order ' + String(c.src).split(':')[0], qty: 1, unit: 'oneoff',
       unitPrice: c.fee, discount: 0, vatPct: c.vatPct, vat: c.vat, total: c.total, dueAt: null, payments: [], createdBy: 'Services (automatic)', createdAt: t,
       attachments: [], note: c.method === 'subscription' ? 'Monthly service billed with the subscription' : '', voided: null, history: [{ at: t, by: 'Services', text: 'Booked from the order' }],
     };
@@ -1238,8 +1238,9 @@ export function bookPartnerPayout(p) {
     if (!v) { v = { id: 'V' + pad4(F.seq.ven++), name: p.partner.name, category: 'partners', contact: p.partner.name, phone: p.partner.phone || '—', email: p.partner.email || '—', terms: 'Net 15', account: 'city' }; F.vendors.push(v); }
     F.expenses.push({
       id: 'EXP-' + pad4(F.seq.exp++), key: null, src: p.src, at: Math.min(p.at || t, t), category: 'partners', vendor: v.id, account: 'city', amount: p.amount, vat: 0,
-      attachment: '', note: 'Partner payout · ' + p.label, createdBy: 'Services (automatic)', createdAt: t, approver: 'Nusrat Islam', approvedBy: null, approvedAt: null,
-      status: 'waiting', paidAt: null, paidBy: null, ref: '',
+      attachment: '', note: 'Partner payout · ' + p.label, createdBy: 'Services (automatic)', createdAt: t, approver: 'Nusrat Islam', approvedBy: p.paid ? 'Nusrat Islam' : null, approvedAt: p.paid ? p.paid.at : null,
+      // a payout already paid before the books saw it (demo history) comes in paid
+      status: p.paid ? 'paid' : 'waiting', paidAt: p.paid ? p.paid.at : null, paidBy: p.paid ? 'Nusrat Islam' : null, ref: p.paid ? p.paid.ref || '' : '',
     });
     return { ok: true };
   });

@@ -14,7 +14,7 @@ import { routeOf } from '../runtime/routes';
 export const MODULES = {
   core: {
     label: 'Core', desc: 'Dashboard, team tasks and chat, customers and leads, settings',
-    nav: ['home', 'my-dash', 'notifications', 'tasks', 'team-chat', 'customers', 'leads', 'cust-settings', 'connections', 'settings', 'set-store', 'products-media', 'set-users', 'set-import', 'set-billing', 'set-help', 'svc-shop', 'svc-detail', 'svc-order', 'svc-mine', 'svc-view', 'set-email'],
+    nav: ['home', 'my-dash', 'notifications', 'tasks', 'team-chat', 'customers', 'leads', 'cust-settings', 'connections', 'settings', 'set-store', 'products-media', 'set-users', 'set-import', 'set-billing', 'set-help', 'svc-shop', 'svc-detail', 'svc-order', 'svc-mine', 'svc-view', 'set-email', 'gs-shop', 'gs-item', 'gs-checkout', 'gs-orders', 'gs-order', 'gp-browse', 'gp-profile', 'gp-requests'],
     routes: ['/connect', '/my-account', '/set-profile', '/set-privacy', '/set-hosting', '/set-domains', '/set-invoices', '/set-verification', '/settings-history', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-media', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
   },
   catalog: {
@@ -45,14 +45,17 @@ export const MODULES = {
   },
   hr: {
     label: 'Staff & HR', desc: 'Staff, attendance, leave, payroll, increments, gratuity',
-    nav: ['hr-home', 'hr-people', 'hr-staff', 'hr-add', 'hr-positions', 'hr-idcards', 'hr-time', 'hr-attendance', 'hr-shifts', 'hr-leave', 'hr-devices', 'hr-pay', 'hr-payroll', 'hr-statements', 'hr-changes', 'hr-gratuity', 'hr-loans', 'hr-setup'],
+    nav: ['hr-home', 'hr-people', 'hr-staff', 'hr-add', 'hr-positions', 'hr-idcards', 'hr-time', 'hr-attendance', 'hr-shifts', 'hr-leave', 'hr-devices', 'hr-pay', 'hr-payroll', 'hr-statements', 'hr-changes', 'hr-gratuity', 'hr-loans', 'hr-setup',
+      // Batch F · Grid Career (Hiring; open per store through lib/platform/marketAccess.js 'career')
+      'hr-hiring', 'hr-job', 'hr-applicants'],
     routes: ['/staff-profile', '/staff-create'],
   },
   commerce: {
     label: 'Orders & returns', desc: 'All orders, quotes for business buyers, returns and exchanges, payment settings',
     // quotes are for any business buyer (companies, leads, wholesale buyers), so every edition that takes orders has them
-    nav: ['orders', 'orders-all', 'orders-quotes', 'sales-return', 'pay-setup'],
-    routes: ['/order-detail', '/return-history', '/set-payments', '/set-notifications'],
+    // msg-design: Communications › Message design (Batch C) — emails and SMS go out in every edition that takes orders
+    nav: ['orders', 'orders-all', 'orders-quotes', 'sales-return', 'pay-setup', 'msg-design'],
+    routes: ['/order-detail', '/return-history', '/set-payments', '/set-notifications', '/email-editor'],
   },
   marketing: {
     label: 'Offers & loyalty', desc: 'Offers, coupons, loyalty points, wallets and referrals',
@@ -72,8 +75,8 @@ export const MODULES = {
   },
   online: {
     label: 'Online', desc: 'Online orders and couriers, the online store, blog, flash sales, cart recovery and ads tracking',
-    nav: ['orders-rto', 'orders-courier', 'orders-handover', 'orders-returns', 'orders-work', 'orders-settings', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'rec-offers', 'rec-audiences', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'an-hub', 'an-campaigns', 'an-attribution', 'an-traffic', 'an-alerts', 'storefront', 'store-theme', 'store-theme-edit', 'store-header', 'store-layouts', 'store-layout-edit', 'store-blocks', 'store-block-edit', 'store-pages', 'store-menus', 'store-reviews', 'store-seo', 'store-seo-bulk', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
-    routes: ['/order-settings', '/order-work', '/ad-accounts', '/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-checkout', '/set-seo', '/checkout', '/track', '/offer-detail', '/offers', '/order-link', '/store-page-edit', '/page', '/landing-page-builder', '/store', '/cart', '/search', '/blog', '/wishlist', '/compare', '/account', '/author'],
+    nav: ['orders-rto', 'orders-courier', 'orders-handover', 'orders-returns', 'orders-work', 'orders-settings', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'rec-offers', 'rec-audiences', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'an-hub', 'an-campaigns', 'an-attribution', 'an-traffic', 'an-alerts', 'storefront', 'store-theme', 'store-theme-edit', 'store-header', 'store-layouts', 'store-layout-edit', 'store-blocks', 'store-block-edit', 'store-pages', 'store-menus', 'store-reviews', 'store-seo', 'store-seo-bulk', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors', 'mkt-affiliates', 'mkt-affiliate', 'store-editor', 'store-notices', 'store-snippets'],
+    routes: ['/order-settings', '/order-work', '/ad-accounts', '/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-checkout', '/set-seo', '/checkout', '/track', '/offer-detail', '/offers', '/order-link', '/store-page-edit', '/page', '/landing-page-builder', '/store', '/cart', '/search', '/blog', '/wishlist', '/compare', '/account', '/author', '/affiliate-program'],
   },
   channels: {
     label: 'Sales channels', desc: 'Product sync to the Meta catalog, Google Merchant Center, WooCommerce and Shopify; Google Business Profile',

@@ -39,6 +39,8 @@ export function previewPreset() {
 /** The whole store (the Signal preset until something is saved). On the server: the seed, never saved. */
 export function read() {
   if (ssr()) { if (!serverSeed) serverSeed = seedData(0); return serverSeed; }
+  // a preview frame showing a whole other design (a kit: a library theme, a delivered design, a GridAI draft)
+  if (OV.store && isPreview()) return OV.store;
   const pp = previewPreset();
   if (pp) { if (!presetLooks[pp]) presetLooks[pp] = seedData(Date.now(), pp); return presetLooks[pp]; }
   let raw = null;
@@ -114,7 +116,8 @@ export function listenPreview() {
   // tell the editor this frame is ready for its copy
   try { if (window.parent && window.parent !== window) window.parent.postMessage({ gcSfReady: true }, window.location.origin); } catch { /* ignore */ }
 }
-/** The editor sends its unsaved copy of a part ('theme', 'header:<id>', 'layout:<id>') to a preview frame. */
+/** The editor sends its unsaved copy of a part ('theme', 'header:<id>', 'layout:<id>', 'notices', 'placements', or a
+ *  whole design: 'store' + 'menus' — kitStore.js › kitPreviewParts) to a preview frame. */
 export function sendPreview(frame, part, value) {
   try { if (frame && frame.contentWindow) frame.contentWindow.postMessage({ gcSf: { part, value: clone(value) } }, window.location.origin); } catch { /* ignore */ }
 }
@@ -126,7 +129,7 @@ export function isEditing() {
 }
 /** In the editor's frame: tell the editor which section was clicked. */
 export function selectInEditor(id) {
-  try { window.parent.postMessage({ gcSfSelect: id }, window.location.origin); } catch { /* ignore */ }
+  try { window.parent.postMessage({ gcSfSelect: id, gcSfPick: id }, window.location.origin); } catch { /* ignore */ }
 }
 /** What a page draws for a document: live for customers; the editor's copy or the draft in preview. */
 export function pickDoc(doc, part) {

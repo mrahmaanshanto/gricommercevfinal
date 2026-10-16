@@ -11,6 +11,7 @@
 //   Experts     { id, name, kind 'staff'|'partner', skills[serviceIds], capacity, commission (% to a partner), rating, active }
 //   Orders      { id 'SO-1012', invNo, shopId, shopName, serviceId, pkgId, addons[], cycle, fee, vatPct, vat, total, brief{},
 //               files[], paid { method, txId, at }, status, expertId, priority, startedAt, dueAt, pausedMs, waitingSince,
+//               (a deliverable may carry `kit`: a store design file the merchant previews and applies, Batch A)
 //               revisionsUsed, messages[], deliverables[], reports[] (monthly), access, quotes[], refunds[], rating,
 //               history[], closedAt, closeReason }
 //   Statuses    brief (Brief received) → progress (In progress) ⇄ waiting (Waiting for you; the deadline stops) → qa (In
@@ -21,6 +22,25 @@
 //               payables(order) what a partner expert earns (commission % of the fee, when the work is approved);
 //               refunds: full before work starts, part after (reason, approved by someone else). Ad spend is never ours:
 //               the brief asks the budget, the merchant pays Meta / Google directly.
+//
+// Batch D (Oct 2026):
+//   Pictures    a service has `cover` (picture or '' = a coloured tile with its icon), `gallery[{ src, caption }]` and
+//               `proof[{ src, title, result, client }]` (proof of work), shown on its own page like a Fiverr gig.
+//   Offers      createOffer(): an instant custom service for one store (a hidden service, `custom: true`, status 'custom')
+//               and an order in `unpaid` (Awaiting payment) with `offer { code, expiresAt, sent[] }`; the store opens the
+//               payment link (/service-offer?code=) and pays (payOffer) to confirm; past expiresAt it is `expired`.
+//               An unpaid order's `paid` is { at: created, method: '', txId: '', pending: true } and bills nothing.
+//   Teams       teams[{ id, name, lead, members[expertIds], skills[], bank }]; an order may go to a team (`teamId`, its
+//               lead is the expert). Experts and teams carry `bank { method, name, account, branch }`.
+//   Tasks       order.tasks[{ id, title, who { kind 'expert'|'team', id }, due, status 'todo'|'doing'|'done', cost,
+//               pay { status 'unpaid'|'owed'|'paid', at, ref, to (bank at the time) } }]: the work split into tasks, each
+//               with what its expert or team is paid; a task's payout is owed once the task is done and paid through
+//               Finance (servicesSync books it as an expense waiting for approval and reads back when it is paid).
+//               order.costs[{ id, label, kind, amount, at, by }] = other money spent on the order (tools, stock photos …).
+//   Updates     order.updates[{ id, at, by, text, progress, shared, publishedAt }]: progress notes; only shared ones show
+//               to the store (publishUpdate / unpublishUpdate).
+//   Profit      profitOf(order) = fees billed − refunds (without VAT) − task payouts − other costs.
+//   Sharing     shareText(svc) = an automatic summary for WhatsApp / email / social; `svc.share.text` overrides it.
 // Front end only. A real build keeps this on the server; payments go through the gateway, store access through the
 // access-session service, files through storage.
 
@@ -42,6 +62,8 @@ export const CATS = [
 export const catName = (id) => (CATS.find((c) => c.id === id) || { name: id }).name;
 
 export const STATUS = {
+  unpaid: { label: 'Awaiting payment', tone: 'warning', step: -1, admin: 'Offer sent · awaiting payment' },
+  expired: { label: 'Offer expired', tone: 'neutral', step: 5 },
   brief: { label: 'Brief received', tone: 'info', step: 0 },
   progress: { label: 'In progress', tone: 'primary', step: 1 },
   waiting: { label: 'Waiting for you', tone: 'warning', step: 2, admin: 'Waiting for the merchant' },
@@ -59,6 +81,11 @@ export const payLabel = (k) => (PAY_METHODS.find((x) => x[0] === k) || [k, k])[1
 export const AREAS = [['products', 'Products only'], ['online-store', 'Online Store only'], ['all', 'The whole store']];
 export const areaLabel = (k) => (AREAS.find((x) => x[0] === k) || [k, k])[1];
 export const REFUND_REASONS = ['Work not started', 'Not what was agreed', 'Late delivery', 'Merchant cancelled', 'Goodwill', 'Other'];
+export const TASK_STATUS = [['todo', 'To do'], ['doing', 'Doing'], ['done', 'Done']];
+export const PAY_STATUS = { unpaid: 'Not due yet', owed: 'Owed · in Finance', paid: 'Paid' };
+export const COST_KINDS = [['tools', 'Tools and software'], ['stock', 'Stock photos, fonts, music'], ['print', 'Printing and samples'], ['travel', 'Travel'], ['other', 'Other']];
+export const BANK_METHODS = [['bank', 'Bank account'], ['bkash', 'bKash'], ['nagad', 'Nagad']];
+export const bankText = (b) => (!b || !b.account ? 'No payout account yet' : b.method === 'bank' ? `${b.name || 'Bank'} · ${b.account}${b.branch ? ' · ' + b.branch : ''}` : `${(BANK_METHODS.find((x) => x[0] === b.method) || ['', b.method])[1]} · ${b.account}`);
 export const FIELD_TYPES = [['text', 'Short text'], ['textarea', 'Long text'], ['url', 'Web address'], ['money', 'Amount (৳)'], ['number', 'Number'], ['select', 'Pick one'], ['files', 'Files']];
 
 // ---- clock -------------------------------------------------------------------------------------------------------------
@@ -131,12 +158,14 @@ const SERVICES = [
   },
   {
     id: 'store-design', name: 'Custom store design', cat: 'look', icon: 'layout-template', cycle: 'oneoff', financeId: 'SV-04',
-    blurb: 'Your online store designed to your brand: home page, product and category pages.',
-    gets: ['Home, product and category pages designed', 'Set up in your Online Store', 'Phone and desktop checked'],
+    blurb: 'Your online store designed to your brand, delivered as a design file you preview on your own products and apply in one click.',
+    gets: ['A design made for your shop', 'Preview it on your own products first', 'Apply in one click, go back any time', 'Phone and computer checked'],
+    // Batch A (Oct 2026): most shops pay ৳5,000–10,000, so designs are built from GridCommerce's looks library and
+    // style presets with Claude (tools/store-kit); bigger brands get a quote (Exceptional, through extra work)
     packages: [
-      P('starter', 'Starter', 25000, 15, 2, ['Home page', 'Theme colours and fonts']),
-      P('standard', 'Standard', 45000, 21, 3, ['Home, product and category pages', 'Header and footer', 'Banners for 2 offers']),
-      P('pro', 'Pro', 80000, 30, 4, ['Everything in Standard', 'Landing page for a campaign', 'Brand photos styled']),
+      P('starter', 'Quick restyle', 2500, 2, 1, ['A ready design in your logo, colours and fonts', '3 banners', 'Within 2 days']),
+      P('standard', 'Standard design', 5000, 5, 2, ['Home page laid out for your shop', 'Header and footer', 'Product and category pages styled']),
+      P('pro', 'Premium design', 10000, 7, 3, ['Everything in Standard', 'Up to 2 sections made only for you', 'A campaign landing page']),
     ],
     addons: [{ id: 'landing', name: 'One more landing page', price: 8000 }],
     brief: [F('site', 'Your website', 'url', true), F('like', 'Websites you like', 'textarea', true), F('must', 'What must be on the home page?', 'textarea'), BRAND_FILES],
@@ -199,70 +228,170 @@ const SERVICES = [
   },
 ];
 
+// Batch D: the pictures on each service's page (our own store and panel screenshots, and the demo shop's photos)
+const A = '/assets/services/';
+const PHOTO = { counter: '/assets/99e39eac40a8abf8968649c253b23f9e.webp', packing: '/assets/901f735d539a8b71fb8e8162bb755ec3.webp', parcel: '/assets/cfbbbbd758347fbb3f71590345d24674.webp', filming: '/assets/dec2496b57e91a856eaa9f8fd17d9124.webp' };
+const MEDIA = {
+  seo: { cover: A + 'seo-health.jpg', gallery: [{ src: A + 'seo-health.jpg', caption: 'Every page’s search score with what to fix' }, { src: A + 'product-page.jpg', caption: 'Product pages with titles and descriptions written for search' }],
+    proof: [{ src: A + 'seo-health.jpg', title: 'Mobile shop in Dhanmondi', result: '3.1× Google visits in 4 months', client: 'Phone and gadget shop' }, { src: A + 'product-page.jpg', title: 'Fashion page', result: 'Top 3 for “jamdani saree online”', client: 'Saree shop, Mirpur' }] },
+  'meta-ads': { cover: PHOTO.filming, gallery: [{ src: PHOTO.filming, caption: 'Short product videos for Reels and Stories' }, { src: A + 'analytics.jpg', caption: 'Ad spend against delivered sales, week by week' }],
+    proof: [{ src: A + 'analytics.jpg', title: 'Gadget shop', result: 'Cost per order down from ৳310 to ৳140 in 6 weeks', client: 'Gadget shop, Uttara' }] },
+  'google-ads': { cover: A + 'google-feed.jpg', gallery: [{ src: A + 'google-feed.jpg', caption: 'Merchant Center feed checked product by product' }, { src: A + 'analytics.jpg', caption: 'Google next to Meta and TikTok in one report' }], proof: [] },
+  branding: { cover: PHOTO.counter, gallery: [{ src: PHOTO.counter, caption: 'A counter that looks like the brand' }, { src: A + 'email-look.jpg', caption: 'The brand carried into emails and receipts' }],
+    proof: [{ src: A + 'email-look.jpg', title: 'Pixel Studio', result: '40+ shops branded, from logo to receipts', client: 'Partner studio' }] },
+  'store-design': { cover: A + 'store-signal.jpg', gallery: [{ src: A + 'store-signal.jpg', caption: 'Signal: calm, big photos for a phone shop' }, { src: A + 'store-nokshi.jpg', caption: 'Nokshi: warm and handmade for a festival edit' }, { src: A + 'store-counter.jpg', caption: 'Counter: a grocery-style aisle home page' }, { src: A + 'store-phone.jpg', caption: 'Every design checked on a phone' }],
+    proof: [{ src: A + 'store-signal.jpg', title: 'Dhaka Gadget Hub', result: 'Signal-based store live in 3 days', client: 'Phone shop' }, { src: A + 'store-nokshi.jpg', title: 'Shonali Crafts', result: 'Festive home page ready before Eid', client: 'Crafts and sarees' }] },
+  'product-upload': { cover: A + 'products-list.jpg', gallery: [{ src: A + 'products-list.jpg', caption: 'Products in with stock, category and status' }, { src: A + 'product-page.jpg', caption: 'How a product looks on the store after upload' }, { src: PHOTO.packing, caption: 'Ready to sell the same week' }],
+    proof: [{ src: A + 'products-list.jpg', title: 'Dazzle Shop', result: '212 accessories added in 2 days', client: 'Phone and accessories shop' }] },
+  migration: { cover: A + 'import.jpg', gallery: [{ src: A + 'import.jpg', caption: 'Customers, stock and past orders brought in' }], proof: [] },
+  'store-setup': { cover: PHOTO.parcel, gallery: [{ src: PHOTO.parcel, caption: 'Couriers and payments ready for the first parcel' }, { src: PHOTO.packing, caption: 'Packing slips and order steps set up' }], proof: [] },
+  descriptions: { cover: '', gallery: [{ src: A + 'product-page.jpg', caption: 'Clear descriptions with a specs table' }], proof: [] },
+  'photo-guide': { cover: PHOTO.filming, gallery: [{ src: PHOTO.filming, caption: 'A phone, a window and a white card' }], proof: [] },
+};
+/** Pictures staff can pick without uploading (super admin › edit a service, custom offers). */
+export const PICTURE_LIBRARY = [
+  ['store-signal.jpg', 'Store design · Signal'], ['store-nokshi.jpg', 'Store design · Nokshi'], ['store-counter.jpg', 'Store design · Counter'], ['store-phone.jpg', 'Store on a phone'],
+  ['products-list.jpg', 'Products list'], ['product-page.jpg', 'Product page'], ['seo-health.jpg', 'SEO health'], ['analytics.jpg', 'Ads and sales report'],
+  ['google-feed.jpg', 'Google Merchant feed'], ['import.jpg', 'Import data'], ['email-look.jpg', 'Email design'],
+].map(([f, label]) => ({ src: A + f, label })).concat([
+  { src: PHOTO.counter, label: 'Photo · shop counter' }, { src: PHOTO.packing, label: 'Photo · packing an order' }, { src: PHOTO.parcel, label: 'Photo · seller with a parcel' }, { src: PHOTO.filming, label: 'Photo · filming a product' },
+]);
+const withMedia = (s) => ({ cover: '', gallery: [], proof: [], ...s, ...(MEDIA[s.id] || {}) });
+
 const EXPERTS = [
-  { id: 'tanvir', name: 'Tanvir Alam', kind: 'staff', skills: ['seo', 'google-ads', 'descriptions'], capacity: 6, commission: 0, rating: 4.7, phone: '+880 1711-220031', email: 'tanvir@gridcommerce.net', active: true },
-  { id: 'sumaiya', name: 'Sumaiya Ahmed', kind: 'staff', skills: ['store-design', 'branding'], capacity: 4, commission: 0, rating: 4.8, phone: '+880 1711-220032', email: 'sumaiya@gridcommerce.net', active: true },
-  { id: 'nabila', name: 'Nabila Chowdhury', kind: 'staff', skills: ['descriptions', 'product-upload', 'store-setup'], capacity: 8, commission: 0, rating: 4.6, phone: '+880 1711-220033', email: 'nabila@gridcommerce.net', active: true },
-  { id: 'adscraft', name: 'AdsCraft BD', kind: 'partner', skills: ['meta-ads', 'google-ads'], capacity: 10, commission: 65, rating: 4.5, phone: '+880 1819-440010', email: 'team@adscraft.com.bd', active: true },
-  { id: 'pixel', name: 'Pixel Studio', kind: 'partner', skills: ['branding', 'photo-guide', 'store-design'], capacity: 5, commission: 60, rating: 4.9, phone: '+880 1913-550020', email: 'hello@pixelstudio.bd', active: true },
-  { id: 'datamove', name: 'DataMove', kind: 'partner', skills: ['migration', 'product-upload'], capacity: 6, commission: 55, rating: 4.4, phone: '+880 1515-660030', email: 'ops@datamove.com.bd', active: true },
+  { id: 'tanvir', name: 'Tanvir Alam', kind: 'staff', skills: ['seo', 'google-ads', 'descriptions'], capacity: 6, commission: 0, rating: 4.7, phone: '+880 1711-220031', email: 'tanvir@gridcommerce.net', active: true, bank: { method: 'bank', name: 'City Bank', account: '1502 0011 4410', branch: 'Gulshan' } },
+  { id: 'sumaiya', name: 'Sumaiya Ahmed', kind: 'staff', skills: ['store-design', 'branding'], capacity: 4, commission: 0, rating: 4.8, phone: '+880 1711-220032', email: 'sumaiya@gridcommerce.net', active: true, bank: { method: 'bank', name: 'BRAC Bank', account: '2051 7730 0921', branch: 'Dhanmondi' } },
+  { id: 'nabila', name: 'Nabila Chowdhury', kind: 'staff', skills: ['descriptions', 'product-upload', 'store-setup'], capacity: 8, commission: 0, rating: 4.6, phone: '+880 1711-220033', email: 'nabila@gridcommerce.net', active: true, bank: { method: 'bkash', name: '', account: '01711-220033', branch: '' } },
+  { id: 'adscraft', name: 'AdsCraft BD', kind: 'partner', skills: ['meta-ads', 'google-ads'], capacity: 10, commission: 65, rating: 4.5, phone: '+880 1819-440010', email: 'team@adscraft.com.bd', active: true, bank: { method: 'bank', name: 'Dutch-Bangla Bank', account: '117 110 22893', branch: 'Banani' } },
+  { id: 'pixel', name: 'Pixel Studio', kind: 'partner', skills: ['branding', 'photo-guide', 'store-design'], capacity: 5, commission: 60, rating: 4.9, phone: '+880 1913-550020', email: 'hello@pixelstudio.bd', active: true, bank: { method: 'bank', name: 'Eastern Bank', account: '1011 0602 7781', branch: 'Mohakhali' } },
+  { id: 'datamove', name: 'DataMove', kind: 'partner', skills: ['migration', 'product-upload'], capacity: 6, commission: 55, rating: 4.4, phone: '+880 1515-660030', email: 'ops@datamove.com.bd', active: true, bank: { method: 'nagad', name: '', account: '01515-660030', branch: '' } },
+];
+const TEAMS = [
+  { id: 'team-design', name: 'Design team', lead: 'sumaiya', members: ['sumaiya', 'pixel'], skills: ['store-design', 'branding', 'photo-guide'], bank: { method: 'bank', name: 'Eastern Bank', account: '1011 0602 7781', branch: 'Mohakhali' }, active: true },
+  { id: 'team-growth', name: 'Growth team', lead: 'tanvir', members: ['tanvir', 'adscraft'], skills: ['seo', 'meta-ads', 'google-ads'], bank: { method: 'bank', name: 'Dutch-Bangla Bank', account: '117 110 22893', branch: 'Banani' }, active: true },
+  { id: 'team-setup', name: 'Setup crew', lead: 'nabila', members: ['nabila', 'datamove'], skills: ['product-upload', 'migration', 'store-setup', 'descriptions'], bank: { method: 'nagad', name: '', account: '01515-660030', branch: '' }, active: true },
 ];
 
 // ---- seed orders -----------------------------------------------------------------------------------------------------------
 const VAT = 15;
 const money = (fee, vatPct = VAT) => { const vat = Math.round((fee * vatPct) / 100); return { fee, vatPct, vat, total: fee + vat }; };
-function seedOrders(t) {
+/** A hidden one-off service made for one store (an instant custom offer). */
+function customService(id, f) {
+  return {
+    id, custom: true, forShop: f.shopId, name: String(f.title).trim(), cat: f.cat || 'setup', icon: 'sparkles', cycle: 'oneoff', financeId: null,
+    blurb: String(f.scope || '').trim(), gets: (f.includes || []).filter(Boolean),
+    packages: [P('offer', 'Custom offer', Number(f.fee), Number(f.days) || 7, Number(f.revisions) || 0, (f.includes || []).filter(Boolean))],
+    addons: [], brief: [], faq: [], samples: [], cover: f.cover || '', gallery: [], proof: [], access: { needed: false }, editions: [], plans: [], status: 'custom',
+  };
+}
+const OFFER_DAYS = 7;
+const offerCode = (seed) => { const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let x = Math.abs(Math.floor(seed)) || 1, out = ''; for (let i = 0; i < 6; i++) { x = (x * 48271) % 2147483647; out += c[x % c.length]; } return out; };
+const taskOf = (id, title, who, cost, status, extra = {}) => ({ id, title, who, due: extra.due || null, status, cost: cost || 0, note: extra.note || '', at: extra.at || 0, by: extra.by || 'Mahin Khan', pay: extra.pay || { status: status === 'done' && cost ? 'owed' : 'unpaid', at: null, ref: '', to: null } });
+
+function seedOrders(t, services, teams) {
   const out = [];
   let n = 1001;
   const mk = (o) => {
-    const svc = SERVICES.find((s) => s.id === o.serviceId);
+    const svc = services.find((s) => s.id === o.serviceId);
     const pkg = svc.packages.find((p) => p.id === o.pkgId);
     const addFee = (o.addons || []).reduce((a, id) => a + ((svc.addons.find((x) => x.id === id) || {}).price || 0), 0);
     const paidAt = t - o.daysAgo * DAY;
-    const startedAt = o.status === 'brief' ? null : paidAt + 4 * H;
+    const unpaid = o.status === 'unpaid';
+    const startedAt = o.status === 'brief' || unpaid ? null : paidAt + 4 * H;
     const id = 'SO-' + n++;
     const order = {
       id, invNo: 'SINV-' + id.slice(3), shopId: o.shopId, shopName: o.shopName, serviceId: svc.id, pkgId: pkg.id, addons: o.addons || [], cycle: svc.cycle,
       ...money(pkg.price + addFee), brief: o.brief || {}, files: o.files || [],
-      paid: { method: o.method || 'bkash', txId: 'TXS' + String(paidAt).slice(-8), at: paidAt },
-      status: o.status, expertId: o.expertId || null, priority: o.priority || 'normal', startedAt, dueAt: startedAt ? startedAt + pkg.days * DAY : null,
+      paid: unpaid ? { method: '', txId: '', at: paidAt, pending: true } : { method: o.method || 'bkash', txId: 'TXS' + String(paidAt).slice(-8), at: paidAt },
+      status: o.status, expertId: o.expertId || null, teamId: o.teamId || null, priority: o.priority || 'normal', startedAt, dueAt: startedAt ? startedAt + pkg.days * DAY : null,
       pausedMs: o.pausedMs || 0, waitingSince: o.status === 'waiting' ? t - (o.waitingDays || 1) * DAY : null, revisionsUsed: o.revisionsUsed || 0,
       qa: true, messages: [], deliverables: o.deliverables || [], reports: o.reports || [], access: o.access || { status: 'none' }, quotes: [], refunds: [],
-      rating: o.rating || null, history: [{ at: paidAt, by: o.shopName, text: 'Ordered and paid ' + payLabel(o.method || 'bkash') }], closedAt: o.status === 'closed' ? t - (o.closedDays || 2) * DAY : null, closeReason: o.status === 'closed' ? 'Approved' : '',
+      rating: o.rating || null, history: [{ at: paidAt, by: unpaid || svc.custom ? 'Mahin Khan' : o.shopName, text: unpaid ? 'Custom offer made and sent' : svc.custom ? 'Custom offer paid ' + payLabel(o.method || 'bkash') : 'Ordered and paid ' + payLabel(o.method || 'bkash') }], closedAt: o.status === 'closed' ? t - (o.closedDays || 2) * DAY : null, closeReason: o.status === 'closed' ? 'Approved' : '',
+      tasks: [], costs: [], updates: [],
     };
+    if (svc.custom) order.offer = { code: offerCode(paidAt), expiresAt: paidAt + OFFER_DAYS * DAY, sent: o.sent || [], by: 'Mahin Khan', at: paidAt };
     (o.msgs || []).forEach(([from, name, text, hoursAgo, internal]) => order.messages.push({ id: id + '-M' + (order.messages.length + 1), at: t - hoursAgo * H, from, name, text, files: [], internal: !!internal }));
+    // tasks: given, or one "Main work" task for the expert (a partner is paid its commission once the task is done)
+    const ex = EXPERTS.find((e) => e.id === order.expertId);
+    const tasks = o.tasks || (ex && startedAt ? [['Main work', { kind: 'expert', id: ex.id }, ex.kind === 'partner' ? Math.round((order.fee * ex.commission) / 100) : 0, ['delivered', 'closed', 'qa'].includes(o.status) ? 'done' : 'doing']] : []);
+    order.tasks = tasks.map(([title, who, cost, status, extra], i) => {
+      const tk = taskOf('T' + (i + 1), title, who, cost, status, { at: startedAt || paidAt, due: startedAt ? startedAt + pkg.days * DAY : null, ...(extra || {}) });
+      if (tk.pay.status !== 'unpaid') tk.pay.to = bankOfWho(who, teams);
+      if (tk.pay.status === 'owed') tk.pay.at = (startedAt || paidAt) + 2 * DAY;
+      return tk;
+    });
+    order.costs = (o.costs || []).map(([label, kind, amount, daysAgo], i) => ({ id: 'C' + (i + 1), label, kind, amount, at: t - daysAgo * DAY, by: 'Mahin Khan' }));
+    order.updates = (o.updates || []).map(([text, progress, shared, hoursAgo, by], i) => ({ id: 'U' + (i + 1), at: t - hoursAgo * H, by: by || (ex ? ex.name : 'GridCommerce'), text, progress, shared: !!shared, publishedAt: shared ? t - hoursAgo * H : null }));
     out.push(order);
     return order;
   };
   mk({ shopId: SELF_SHOP, shopName: SELF_NAME, serviceId: 'product-upload', pkgId: 'standard', daysAgo: 3, status: 'progress', expertId: 'nabila', method: 'nagad',
     brief: { notes: 'Accessories first: cases, chargers, cables. Prices in the sheet include VAT.' }, files: [{ name: 'dazzle-accessories.xlsx', size: '84 KB', by: SELF_NAME, at: t - 3 * DAY }],
     access: { status: 'used', area: 'products', minutes: 60, askedAt: t - 2.5 * DAY, approvedAt: t - 2.4 * DAY },
+    tasks: [['Accessories (212)', { kind: 'expert', id: 'nabila' }, 0, 'done'], ['Phones and tablets (88)', { kind: 'expert', id: 'nabila' }, 0, 'doing'], ['Photo clean-up', { kind: 'team', id: 'team-setup' }, 1800, 'todo']],
+    updates: [['Accessories are in: 212 products with prices, stock and categories.', 70, true, 20, 'Nabila Chowdhury'], ['Sheet has 6 chargers without a warranty line; asked the merchant.', 70, false, 19, 'Nabila Chowdhury']],
     msgs: [['expert', 'Nabila Chowdhury', 'Got the sheet, thank you. 212 accessories are in so far. Phones next.', 20], ['merchant', SELF_NAME, 'Great. Please keep the warranty line on each charger.', 18], ['expert', 'Nabila Chowdhury', 'Will do. Done by Friday.', 17]] });
+  mk({ shopId: SELF_SHOP, shopName: SELF_NAME, serviceId: 'store-design', pkgId: 'standard', daysAgo: 2, status: 'progress', expertId: 'sumaiya', teamId: 'team-design', method: 'bkash',
+    brief: { site: 'https://dazzleshop.com.bd', like: 'Apple and Samsung stores: dark, calm, big product photos. Gadstyle for the menu.', must: 'New phones first, EMI line, warranty promise, hotline in the header.' },
+    tasks: [['Home page layout', { kind: 'expert', id: 'sumaiya' }, 0, 'doing'], ['3 banners', { kind: 'expert', id: 'pixel' }, 1500, 'todo'], ['Phone check', { kind: 'expert', id: 'sumaiya' }, 0, 'todo']],
+    costs: [['Stock photo licence (2 photos)', 'stock', 600, 1]],
+    updates: [['Mood board done: dark and calm, big phone photos, hotline in the header. Home page next.', 25, true, 26, 'Sumaiya Ahmed'], ['Banners go to Pixel Studio once the home page is agreed.', 25, false, 25, 'Sumaiya Ahmed']],
+    msgs: [['expert', 'Sumaiya Ahmed', 'Thanks for the brief. You will get a design file to preview on your own products before anything changes.', 30]] });
   mk({ shopId: SELF_SHOP, shopName: SELF_NAME, serviceId: 'branding', pkgId: 'starter', daysAgo: 26, status: 'closed', expertId: 'pixel', method: 'card', closedDays: 12, revisionsUsed: 1,
+    tasks: [['Logo and colours', { kind: 'expert', id: 'pixel' }, 7200, 'done', { pay: { status: 'paid', at: t - 10 * DAY, ref: 'EBL-TRF-55120', to: null } }]],
+    updates: [['Two logo ideas sent. The second one with the phone outline was chosen.', 60, true, 20 * 24, 'Pixel Studio'], ['Final files delivered in every size.', 100, true, 13 * 24, 'Pixel Studio']],
     deliverables: [{ id: 'D1', name: 'dazzle-logo-final.zip', note: 'Logo in all sizes, colours and fonts', at: t - 13 * DAY, by: 'Pixel Studio', version: 2 }],
     rating: { stars: 5, text: 'Loved the new logo.', at: t - 12 * DAY } });
-  mk({ shopId: '0007', shopName: 'Rongdhonu Fashion', serviceId: 'meta-ads', pkgId: 'standard', daysAgo: 40, status: 'progress', expertId: 'adscraft',
-    brief: { spend: '120000', goal: 'Eid sales of sarees and panjabis' }, reports: [{ id: 'R1', month: 1, title: 'Month 1 report', summary: 'Cost per order ৳182 (target ৳200). Best ad: the jamdani carousel.', kpis: [['Orders from ads', '412'], ['Cost per order', '৳182'], ['Return on ad spend', '4.1×']], status: 'sent', at: t - 9 * DAY, rating: { stars: 4, text: '' } }] });
+  mk({ shopId: '0007', shopName: 'Rongdhonu Fashion', serviceId: 'meta-ads', pkgId: 'standard', daysAgo: 40, status: 'progress', expertId: 'adscraft', teamId: 'team-growth',
+    tasks: [['Month 1 campaigns', { kind: 'team', id: 'team-growth' }, 11700, 'done'], ['Month 2 campaigns', { kind: 'team', id: 'team-growth' }, 11700, 'doing']],
+    costs: [['Video editing app (1 month)', 'tools', 1200, 30]],
+    updates: [['Month 2: the jamdani carousel gets 60% of the budget; two new videos this week.', 55, true, 30, 'AdsCraft BD']],
+    brief: { spend: '120000', goal: 'Eid sales of sarees and panjabis' }, reports: [{ id: 'R1', month: 1, title: 'Month 1 report', summary: 'Cost per order ৳182 (target ৳200). Best ad: the jamdani carousel.', kpis: [['Orders from ads', '412'], ['Cost per order', '৳182'], ['Return on ad spend', '4.1×']], status: 'sent', at: t - 9 * DAY, rating: { stars: 4, text: 'Good month, more videos please.' } }] });
   mk({ shopId: '0012', shopName: 'Mohona Traders', serviceId: 'migration', pkgId: 'standard', daysAgo: 6, status: 'waiting', expertId: 'datamove', waitingDays: 2, pausedMs: 0,
     msgs: [['expert', 'DataMove', 'We need the WooCommerce admin login (or an export) to move past orders.', 50]] });
-  mk({ shopId: '0017', shopName: 'Shonali Crafts', serviceId: 'store-design', pkgId: 'standard', daysAgo: 18, status: 'qa', expertId: 'sumaiya', priority: 'high',
+  mk({ shopId: '0017', shopName: 'Shonali Crafts', serviceId: 'store-design', pkgId: 'standard', daysAgo: 18, status: 'qa', expertId: 'sumaiya', teamId: 'team-design', priority: 'high',
+    tasks: [['Home, product and category pages', { kind: 'expert', id: 'sumaiya' }, 0, 'done'], ['Festive banners', { kind: 'expert', id: 'pixel' }, 2000, 'done']],
+    updates: [['First version is ready and in our quality check.', 90, true, 22, 'Sumaiya Ahmed']],
     deliverables: [{ id: 'D1', name: 'shonali-home-v1.pdf', note: 'Home, product and category pages', at: t - 1 * DAY, by: 'Sumaiya Ahmed', version: 1 }] });
   mk({ shopId: '0031', shopName: 'Dhaka Gadget Hub', serviceId: 'seo', pkgId: 'starter', daysAgo: 35, status: 'delivered', expertId: 'tanvir',
     reports: [{ id: 'R1', month: 1, title: 'Month 1 report', summary: 'Titles and descriptions written for 48 products; 6 keywords on page 1.', kpis: [['Google visits', '+64%'], ['Keywords on page 1', '6 of 10'], ['Orders from Google', '31']], status: 'sent', at: t - 2 * DAY }] });
   mk({ shopId: '0044', shopName: 'Bindu Beauty', serviceId: 'descriptions', pkgId: 'standard', daysAgo: 15, status: 'progress', expertId: 'nabila', priority: 'high' });
   mk({ shopId: '0066', shopName: 'Mehedi Traders', serviceId: 'store-setup', pkgId: 'standard', daysAgo: 1, status: 'brief', brief: { needs: 'bKash, Steadfast and POS for 2 counters' } });
   mk({ shopId: '0072', shopName: 'Sabuj Bazar', serviceId: 'google-ads', pkgId: 'starter', daysAgo: 0.3, status: 'brief', brief: { spend: '40000', goal: 'Grocery orders in Sylhet' } });
+  // custom offers (Batch D): one paid and under way, one waiting for Dazzle Shop to pay
+  mk({ shopId: '0044', shopName: 'Bindu Beauty', serviceId: 'custom-bindu-insta', pkgId: 'offer', daysAgo: 8, status: 'progress', expertId: 'sumaiya', teamId: 'team-design', method: 'bkash',
+    tasks: [['Shoot 20 products', { kind: 'expert', id: 'pixel' }, 6000, 'done'], ['Instagram shop and highlights', { kind: 'expert', id: 'sumaiya' }, 0, 'doing']],
+    costs: [['Studio rental (half day)', 'other', 2500, 6]],
+    updates: [['20 products shot; the edited photos are in your files.', 60, true, 40, 'Pixel Studio'], ['Instagram shop sections set up; highlights next.', 80, true, 6, 'Sumaiya Ahmed']],
+    sent: [{ ch: 'email', to: 'owner@bindubeauty.com.bd', at: t - 9 * DAY, by: 'Mahin Khan' }, { ch: 'whatsapp', to: '+880 1712-440044', at: t - 9 * DAY, by: 'Mahin Khan' }] });
+  mk({ shopId: SELF_SHOP, shopName: SELF_NAME, serviceId: 'custom-dazzle-eid', pkgId: 'offer', daysAgo: 1, status: 'unpaid',
+    sent: [{ ch: 'email', to: 'owner@dazzleshop.com.bd', at: t - 1 * DAY, by: 'Mahin Khan' }, { ch: 'whatsapp', to: '+880 1553-336655', at: t - 1 * DAY, by: 'Mahin Khan' }] });
   return { list: out, seq: n };
 }
+function bankOfWho(who, teams = TEAMS) {
+  if (!who) return null;
+  const x = who.kind === 'team' ? teams.find((m) => m.id === who.id) : EXPERTS.find((m) => m.id === who.id);
+  return x && x.bank ? { ...x.bank } : null;
+}
+const SEED_CUSTOM = [
+  customService('custom-bindu-insta', { shopId: '0044', title: 'Instagram shop and 20 product photos', scope: 'Product photos for 20 bestsellers and an Instagram shop with highlights, made for Bindu Beauty.', includes: ['20 products shot and edited', 'Instagram shop sections', '4 story highlights'], fee: 16000, days: 10, revisions: 1, cat: 'content' }),
+  customService('custom-dazzle-eid', { shopId: SELF_SHOP, title: 'Eid campaign kit: 6 banners and 3 product videos', scope: 'A ready Eid campaign for Dazzle Shop: 6 banners for the store and Facebook, and 3 short product videos for Reels.', includes: ['6 banners (store + Facebook sizes)', '3 product videos, 15–20 seconds', 'Captions in Bangla and English'], fee: 18000, days: 7, revisions: 2, cat: 'grow', cover: PHOTO.filming }),
+];
 
 function seed(t) {
-  const o = seedOrders(t);
-  return { v: 1, services: JSON.parse(JSON.stringify(SERVICES)), experts: JSON.parse(JSON.stringify(EXPERTS)), orders: o.list, seq: { order: o.seq, refund: 1, quote: 1 }, settings: { vatPct: VAT, qaDefault: true, quietDays: QUIET_DAYS } };
+  const services = [...SERVICES.map(withMedia), ...SEED_CUSTOM];
+  const o = seedOrders(t, services, TEAMS);
+  return { v: DB_VERSION, services: JSON.parse(JSON.stringify(services)), experts: JSON.parse(JSON.stringify(EXPERTS)), teams: JSON.parse(JSON.stringify(TEAMS)), orders: o.list, requests: [
+    { id: 'RQ-1', shopId: '0012', shopName: 'Mohona Traders', text: 'Labels and stickers for our own spice packets (4 sizes), print-ready.', budget: 8000, at: t - 0.6 * DAY, by: 'Mohona Traders', status: 'open', orderId: null },
+  ], seq: { order: o.seq, refund: 1, quote: 1, custom: 1, request: 2 }, settings: { vatPct: VAT, qaDefault: true, quietDays: QUIET_DAYS, offerDays: OFFER_DAYS } };
 }
 
 // ---- storage ------------------------------------------------------------------------------------------------------------
 let cache = { raw: undefined, db: null };
-const EMPTY = { v: 1, services: SERVICES, experts: EXPERTS, orders: [], seq: { order: 1001, refund: 1, quote: 1 }, settings: { vatPct: VAT, qaDefault: true, quietDays: QUIET_DAYS } };
+// 2: store design repriced and delivered as a design file (Batch A); 3: pictures, custom offers, teams, tasks, costs and
+// updates (Batch D). Saved demo data restarts once.
+const DB_VERSION = 3;
+const EMPTY = { v: DB_VERSION, services: SERVICES.map(withMedia), experts: EXPERTS, teams: TEAMS, orders: [], requests: [], seq: { order: 1001, refund: 1, quote: 1, custom: 1, request: 1 }, settings: { vatPct: VAT, qaDefault: true, quietDays: QUIET_DAYS, offerDays: OFFER_DAYS } };
 export function read() {
   if (!isBrowser) return EMPTY;
   let raw = null;
@@ -270,7 +399,7 @@ export function read() {
   if (raw && raw === cache.raw && cache.db) return cache.db;
   let db = null;
   try { db = raw ? JSON.parse(raw) : null; } catch { db = null; }
-  if (!db || db.v !== 1) { db = seed(now()); write(db, true); return db; }
+  if (!db || db.v !== DB_VERSION) { db = seed(now()); write(db, true); return db; }
   cache = { raw, db };
   return db;
 }
@@ -298,6 +427,14 @@ export const serviceById = (id) => read().services.find((s) => s.id === id) || n
 export const pkgOf = (svc, pkgId) => (svc ? svc.packages.find((p) => p.id === pkgId) || null : null);
 export const getExperts = () => read().experts;
 export const expertById = (id) => read().experts.find((e) => e.id === id) || null;
+export const getTeams = () => read().teams || [];
+export const teamById = (id) => (read().teams || []).find((x) => x.id === id) || null;
+/** Who a task goes to: { kind, id, name, bank, kind } for an expert or a team. */
+export function whoOf(who) {
+  if (!who) return null;
+  const x = who.kind === 'team' ? teamById(who.id) : expertById(who.id);
+  return x ? { kind: who.kind, id: x.id, name: x.name, bank: x.bank || null, partner: who.kind === 'expert' && x.kind === 'partner', phone: x.phone || '', email: x.email || '' } : { kind: who.kind, id: who.id, name: who.id, bank: null };
+}
 export const settings = () => read().settings;
 /** Services a store sees: live, and for its edition and plan (empty lists = everyone). */
 export function catalogFor({ edition = 'full', plan = 'business' } = {}) {
@@ -329,6 +466,7 @@ export function stateOf(o, t = now()) {
   const quietDays = settings().quietDays || QUIET_DAYS;
   let status = o.status;
   let autoClosed = false;
+  if (status === 'unpaid' && o.offer && o.offer.expiresAt && t > o.offer.expiresAt) status = 'expired';
   const waitingMs = o.status === 'waiting' && o.waitingSince ? t - o.waitingSince : 0;
   if (o.status === 'waiting' && waitingMs > quietDays * DAY) { status = 'closed'; autoClosed = true; }
   const paused = (o.pausedMs || 0) + (status === 'waiting' ? waitingMs : 0);
@@ -336,14 +474,14 @@ export function stateOf(o, t = now()) {
   const working = ['brief', 'progress', 'qa'].includes(status);
   const overdue = !!due && working && t > due;
   const refunded = (o.refunds || []).filter((r) => r.status === 'sent').reduce((a, r) => a + r.amount, 0);
-  const paidTotal = o.total + (o.quotes || []).filter((q) => q.status === 'accepted').reduce((a, q) => a + q.total, 0);
+  const paidTotal = (o.paid && o.paid.pending ? 0 : o.total) + (o.quotes || []).filter((q) => q.status === 'accepted').reduce((a, q) => a + q.total, 0);
   return {
     status, autoClosed, due, overdue, left: due ? due - t : null, paused, waiting: status === 'waiting',
     quietLeft: status === 'waiting' ? Math.max(0, Math.ceil((quietDays * DAY - waitingMs) / DAY)) : null,
     quietWarn: status === 'waiting' && waitingMs > QUIET_WARN * DAY,
     revisionsLeft: Math.max(0, (pkg.revisions || 0) - (o.revisionsUsed || 0)),
     lastReport: (o.reports || []).filter((r) => r.status === 'sent').slice(-1)[0] || null,
-    svc, pkg, expert: o.expertId ? expertById(o.expertId) : null, paidTotal, refunded, refundable: paidTotal - refunded - (o.refunds || []).filter((r) => ['requested', 'approved'].includes(r.status)).reduce((a, r) => a + r.amount, 0),
+    svc, pkg, expert: o.expertId ? expertById(o.expertId) : null, team: o.teamId ? teamById(o.teamId) : null, unpaid: status === 'unpaid', paidTotal, refunded, refundable: paidTotal - refunded - (o.refunds || []).filter((r) => ['requested', 'approved'].includes(r.status)).reduce((a, r) => a + r.amount, 0),
   };
 }
 /** Active orders on an expert (for load and suggestions). */
@@ -359,6 +497,7 @@ export function suggestExpert(serviceId) {
 // ---- money: what is charged and what partners earn ------------------------------------------------------------------------------
 /** Each charge once: { key, at, fee, vat, total, method, txId, label } — the payment, accepted quotes, each month of a retainer. */
 export function billables(o, t = now()) {
+  if (o.paid && o.paid.pending) return [];
   const svc = serviceById(o.serviceId) || { name: o.serviceId };
   const out = [{ key: o.id + ':pay', at: o.paid.at, fee: o.fee, vat: o.vat, total: o.total, method: o.paid.method, txId: o.paid.txId, label: `${svc.name} · ${(pkgOf(svc, o.pkgId) || {}).name || ''}${o.cycle === 'monthly' ? ' · month 1' : ''}` }];
   (o.quotes || []).filter((q) => q.status === 'accepted').forEach((q) => out.push({ key: o.id + ':' + q.id, at: q.acceptedAt, fee: q.fee, vat: q.vat, total: q.total, method: q.method, txId: q.txId, label: `${svc.name} · extra work: ${q.text}` }));
@@ -371,16 +510,37 @@ export function billables(o, t = now()) {
   }
   return out;
 }
-/** What a partner expert earns: commission % of the fee, once the work (or a month's report) is approved. */
+/**
+ * What GridCommerce pays out for an order (Batch D): each task's payout once it is owed or paid, to the task's expert or
+ * team (`payee` with the bank at the time). servicesSync books each as a Finance expense waiting for approval.
+ */
 export function payables(o) {
-  const ex = o.expertId ? expertById(o.expertId) : null;
-  if (!ex || ex.kind !== 'partner' || !ex.commission) return [];
   const svc = serviceById(o.serviceId) || { name: o.serviceId };
-  const out = [];
-  if (o.cycle === 'oneoff' && o.status === 'closed' && o.closeReason === 'Approved') out.push({ key: o.id + ':payout', at: o.closedAt, amount: Math.round((o.fee * ex.commission) / 100), expert: ex, label: `${svc.name} for ${o.shopName} (${o.id})` });
-  (o.reports || []).filter((r) => r.status === 'sent' && r.approvedAt).forEach((r) => out.push({ key: o.id + ':payout:' + r.id, at: r.approvedAt, amount: Math.round((o.fee * ex.commission) / 100), expert: ex, label: `${svc.name} month ${r.month} for ${o.shopName} (${o.id})` }));
-  return out;
+  return (o.tasks || []).filter((x) => x.cost > 0 && x.pay && x.pay.status !== 'unpaid').map((x) => {
+    const w = whoOf(x.who) || { name: '—' };
+    return { key: o.id + ':task:' + x.id, at: x.pay.at || x.at, amount: x.cost, expert: { name: w.name, phone: w.phone, email: w.email }, bank: x.pay.to || w.bank, taskId: x.id, status: x.pay.status, ref: x.pay.ref || '', label: `${x.title} · ${svc.name} for ${o.shopName} (${o.id})` };
+  });
 }
+/** Money on one order: { revenue (fees billed, no VAT), refunds (no VAT), tasks (payouts planned), costs (other spend), cost, profit, margin, paidOut, owed }. */
+export function profitOf(o, t = now()) {
+  const revenue = billables(o, t).reduce((a, b) => a + b.fee, 0);
+  const refunds = Math.round((o.refunds || []).filter((r) => r.status === 'sent').reduce((a, r) => a + (r.amount * 100) / (100 + (o.vatPct || 0)), 0));
+  const tasks = (o.tasks || []).reduce((a, x) => a + (x.cost || 0), 0);
+  const costs = (o.costs || []).reduce((a, x) => a + (x.amount || 0), 0);
+  const paidOut = (o.tasks || []).filter((x) => x.pay && x.pay.status === 'paid').reduce((a, x) => a + x.cost, 0);
+  const owed = (o.tasks || []).filter((x) => x.pay && x.pay.status === 'owed').reduce((a, x) => a + x.cost, 0);
+  const net = revenue - refunds;
+  const profit = net - tasks - costs;
+  return { revenue, refunds, tasks, costs, cost: tasks + costs, profit, margin: net > 0 ? Math.round((profit / net) * 100) : null, paidOut, owed };
+}
+/** The automatic share text for a service: name, what it is, the starting price and the link (svc.share.text overrides). */
+export function autoShareText(svc, link) {
+  if (!svc) return '';
+  const from = Math.min(...svc.packages.map((p) => p.price));
+  const gets = (svc.gets || []).slice(0, 3).join(' · ');
+  return `${svc.name} by GridCommerce experts\n${svc.blurb}${gets ? '\n' + gets : ''}\nFrom ৳${from.toLocaleString('en-IN')}${svc.cycle === 'monthly' ? ' a month' : ''} + VAT.${link ? '\n' + link : ''}`;
+}
+export const shareText = (svc, link) => (svc && svc.share && svc.share.text ? svc.share.text + (link && !svc.share.text.includes(link) ? '\n' + link : '') : autoShareText(svc, link));
 
 // ---- helpers --------------------------------------------------------------------------------------------------------------
 const fail = (error, field) => ({ ok: false, error, field });
@@ -545,7 +705,9 @@ export function assign(id, expertId, by) {
     const ex = db.experts.find((e) => e.id === expertId);
     if (!o) return fail('This order is gone.');
     if (!ex || !ex.active) return fail('Pick an active expert.');
-    if (!ex.skills.includes(o.serviceId)) return fail(`${ex.name} doesn’t do this service. Add the skill on Experts first.`);
+    const osvc = db.services.find((s) => s.id === o.serviceId);
+    if (!ex.skills.includes(o.serviceId) && !(osvc && osvc.custom)) return fail(`${ex.name} doesn’t do this service. Add the skill on Experts first.`);
+    if (o.status === 'unpaid') return fail('The store has not paid this offer yet.');
     const was = o.expertId;
     o.expertId = ex.id;
     if (o.status === 'brief') {
@@ -576,13 +738,14 @@ export function askMerchant(id, text, by) {
 export function resume(id, by) {
   return commit((db, t) => { const o = findOrder(db, id); if (!o || o.status !== 'waiting') return fail('This order is not waiting.'); unwait(o, t); o.status = 'progress'; hist(o, t, by, 'Back in progress · deadline running'); return { ok: true }; });
 }
-export function addDeliverable(id, { name, note }, by) {
+/** A file or link for the merchant. kit: a checked store kit (a store design: the merchant previews and applies it). */
+export function addDeliverable(id, { name, note, kit = null }, by) {
   if (!String(name || '').trim()) return fail('Name the file or link.', 'name');
   return commit((db, t) => {
     const o = findOrder(db, id);
     if (!o) return fail('This order is gone.');
     const prev = o.deliverables.filter((d) => d.name === String(name).trim()).length;
-    o.deliverables.push({ id: 'D' + (o.deliverables.length + 1), name: String(name).trim(), note: String(note || '').trim(), at: t, by, version: prev + 1, draft: true });
+    o.deliverables.push({ id: 'D' + (o.deliverables.length + 1), name: String(name).trim(), note: String(note || '').trim(), at: t, by, version: prev + 1, draft: true, ...(kit ? { kit } : {}) });
     hist(o, t, by, `Added ${String(name).trim()}`);
     return { ok: true };
   });
@@ -721,7 +884,9 @@ export function saveService(svc) {
   if ((svc.brief || []).some((f) => !String(f.label || '').trim())) return fail('Every brief question needs a label.', 'brief');
   return commit((db) => {
     const id = svc.id || String(svc.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36).slice(-3);
-    const rec = { addons: [], brief: [], faq: [], samples: [], access: { needed: false }, editions: [], plans: [], status: 'paused', gets: [], ...svc, id, packages: svc.packages.map((p) => ({ ...p, price: Number(p.price), days: Number(p.days), revisions: Number(p.revisions) || 0 })) };
+    const rec = { addons: [], brief: [], faq: [], samples: [], cover: '', gallery: [], proof: [], access: { needed: false }, editions: [], plans: [], status: 'paused', gets: [], ...svc, id,
+      gallery: (svc.gallery || []).filter((g) => g && g.src).map((g) => ({ src: g.src, caption: String(g.caption || '').trim() })),
+      proof: (svc.proof || []).filter((g) => g && (g.src || String(g.title || '').trim())).map((g) => ({ src: g.src || '', title: String(g.title || '').trim(), result: String(g.result || '').trim(), client: String(g.client || '').trim() })), packages: svc.packages.map((p) => ({ ...p, price: Number(p.price), days: Number(p.days), revisions: Number(p.revisions) || 0 })) };
     const i = db.services.findIndex((s) => s.id === id);
     if (i >= 0) db.services[i] = rec; else db.services.push(rec);
     return { ok: true, service: rec };
@@ -735,7 +900,7 @@ export function saveExpert(ex) {
   if (ex.kind === 'partner' && !(Number(ex.commission) >= 0 && Number(ex.commission) <= 100)) return fail('Commission is a percent from 0 to 100.', 'commission');
   return commit((db) => {
     const id = ex.id || 'ex-' + Date.now().toString(36);
-    const rec = { skills: [], capacity: 5, commission: 0, rating: 0, active: true, ...ex, id, capacity: Number(ex.capacity) || 1, commission: ex.kind === 'partner' ? Number(ex.commission) || 0 : 0 };
+    const rec = { skills: [], capacity: 5, commission: 0, rating: 0, active: true, ...ex, bank: cleanBank(ex.bank), id, capacity: Number(ex.capacity) || 1, commission: ex.kind === 'partner' ? Number(ex.commission) || 0 : 0 };
     const i = db.experts.findIndex((e) => e.id === id);
     if (i >= 0) db.experts[i] = rec; else db.experts.push(rec);
     return { ok: true, expert: rec };
@@ -754,13 +919,14 @@ export function markBooked(id, field, key, ref) {
 // ---- reports ------------------------------------------------------------------------------------------------------------------
 export function reportOf(t = now(), from = 0) {
   const db = read();
-  const orders = db.orders.filter((o) => o.paid.at >= from);
+  const orders = db.orders.filter((o) => o.paid.at >= from && !o.paid.pending);
   const byService = db.services.map((s) => {
     const os = orders.filter((o) => o.serviceId === s.id);
     const revenue = os.reduce((a, o) => a + billables(o, t).filter((b) => b.at >= from).reduce((x, b) => x + b.fee, 0), 0);
     const done = os.filter((o) => ['delivered', 'closed'].includes(stateOf(o, t).status) || (o.reports || []).some((r) => r.status === 'sent'));
     const onTime = done.filter((o) => { const h = o.history.find((x) => /Delivered/.test(x.text)); return h && o.dueAt ? h.at <= o.dueAt + (o.pausedMs || 0) : true; });
-    return { id: s.id, name: s.name, orders: os.length, revenue, onTime: done.length ? Math.round((onTime.length / done.length) * 100) : null, revisions: os.length ? Math.round((os.reduce((a, o) => a + (o.revisionsUsed || 0), 0) / os.length) * 10) / 10 : 0, rating: ratingOf(s.id, orders) };
+    const pr = os.reduce((a, o) => { const p = profitOf(o, t); return { cost: a.cost + p.cost, profit: a.profit + p.profit, refunds: a.refunds + p.refunds }; }, { cost: 0, profit: 0, refunds: 0 });
+    return { id: s.id, name: s.custom ? s.name + ' (custom)' : s.name, custom: !!s.custom, orders: os.length, revenue, cost: pr.cost, profit: pr.profit, margin: revenue - pr.refunds > 0 ? Math.round((pr.profit / (revenue - pr.refunds)) * 100) : null, onTime: done.length ? Math.round((onTime.length / done.length) * 100) : null, revisions: os.length ? Math.round((os.reduce((a, o) => a + (o.revisionsUsed || 0), 0) / os.length) * 10) / 10 : 0, rating: ratingOf(s.id, orders) };
   }).filter((r) => r.orders);
   const byExpert = db.experts.map((e) => {
     const os = orders.filter((o) => o.expertId === e.id);
@@ -770,5 +936,293 @@ export function reportOf(t = now(), from = 0) {
   }).filter((r) => r.orders);
   const shops = {};
   orders.forEach((o) => { shops[o.shopId] = (shops[o.shopId] || 0) + 1; });
-  return { byService, byExpert, orders: orders.length, revenue: byService.reduce((a, r) => a + r.revenue, 0), repeat: Object.values(shops).filter((n) => n > 1).length, buyers: Object.keys(shops).length };
+  const byOrder = orders.map((o) => ({ o, ...profitOf(o, t) })).sort((a, b) => b.o.paid.at - a.o.paid.at);
+  const cost = byService.reduce((a, r) => a + r.cost, 0), profit = byService.reduce((a, r) => a + r.profit, 0);
+  const owed = byOrder.reduce((a, r) => a + r.owed, 0), paidOut = byOrder.reduce((a, r) => a + r.paidOut, 0);
+  return { byService, byExpert, byOrder, cost, profit, owed, paidOut, orders: orders.length, revenue: byService.reduce((a, r) => a + r.revenue, 0), repeat: Object.values(shops).filter((n) => n > 1).length, buyers: Object.keys(shops).length };
+}
+
+// ---- Batch D: teams, tasks and payouts, other costs, progress updates, custom offers, share text -------------------------------
+const clean = (x) => String(x == null ? '' : x).trim();
+const amt = (x) => Math.round(Number(String(x == null ? '' : x).replace(/[^0-9.]/g, '')) || 0);
+function cleanBank(b) {
+  if (!b || !clean(b.account)) return null;
+  return { method: BANK_METHODS.some((m) => m[0] === b.method) ? b.method : 'bank', name: clean(b.name), account: clean(b.account), branch: clean(b.branch) };
+}
+export function saveTeam(team) {
+  if (!clean(team.name)) return fail('Name the team.', 'name');
+  if (!(team.members || []).length) return fail('Add at least one person.', 'members');
+  if (!team.lead || !(team.members || []).includes(team.lead)) return fail('Pick the lead from the team.', 'lead');
+  return commit((db) => {
+    db.teams = db.teams || [];
+    const id = team.id || 'team-' + Date.now().toString(36);
+    const rec = { skills: [], active: true, ...team, id, name: clean(team.name), bank: cleanBank(team.bank) };
+    const i = db.teams.findIndex((x) => x.id === id);
+    if (i >= 0) db.teams[i] = rec; else db.teams.push(rec);
+    return { ok: true, team: rec };
+  });
+}
+export const setBank = (bank) => cleanBank(bank);
+
+/** Give the order to a team: its lead becomes the expert. */
+export function assignTeam(id, teamId, by) {
+  return commit((db, t) => {
+    const o = findOrder(db, id);
+    const tm = (db.teams || []).find((x) => x.id === teamId);
+    if (!o) return fail('This order is gone.');
+    if (o.status === 'unpaid') return fail('The store has not paid this offer yet.');
+    if (!tm || tm.active === false) return fail('Pick an active team.');
+    const lead = db.experts.find((e) => e.id === tm.lead);
+    o.teamId = tm.id;
+    o.expertId = lead ? lead.id : o.expertId;
+    if (o.status === 'brief') {
+      const svc = db.services.find((s) => s.id === o.serviceId);
+      const pkg = svc && svc.packages.find((p) => p.id === o.pkgId);
+      o.status = 'progress'; o.startedAt = t; o.dueAt = t + ((pkg && pkg.days) || 7) * DAY;
+      sysMsg(o, t, `${tm.name}${lead ? ' (lead ' + lead.name + ')' : ''} is on your order. Work has started; delivery by ${new Date(o.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}.`);
+    }
+    hist(o, t, by, `Given to ${tm.name}`);
+    return { ok: true };
+  });
+}
+export function clearTeam(id, by) {
+  return commit((db, t) => { const o = findOrder(db, id); if (!o || !o.teamId) return fail('No team on this order.'); hist(o, t, by, 'Team taken off'); o.teamId = null; return { ok: true }; });
+}
+
+/** A task on the order for an expert or a team, with what they are paid for it. f: { title, who { kind, id }, due, cost, note } */
+export function addTask(id, f, by) {
+  if (!clean(f.title)) return fail('Name the task.', 'title');
+  if (!f.who || !f.who.id) return fail('Pick who does it.', 'who');
+  const cost = amt(f.cost);
+  return commit((db, t) => {
+    const o = findOrder(db, id);
+    if (!o) return fail('This order is gone.');
+    o.tasks = o.tasks || [];
+    const n = o.tasks.reduce((m, x) => Math.max(m, Number(String(x.id).slice(1)) || 0), 0) + 1;
+    o.tasks.push({ id: 'T' + n, title: clean(f.title), who: { kind: f.who.kind === 'team' ? 'team' : 'expert', id: f.who.id }, due: f.due || null, status: 'todo', cost, note: clean(f.note), at: t, by, pay: { status: 'unpaid', at: null, ref: '', to: null } });
+    const w = whoOfDb(db, f.who);
+    hist(o, t, by, `Task “${clean(f.title)}” for ${w ? w.name : f.who.id}${cost ? ' · pays ৳' + cost.toLocaleString('en-IN') : ''}`);
+    return { ok: true };
+  });
+}
+function whoOfDb(db, who) {
+  const x = who.kind === 'team' ? (db.teams || []).find((m) => m.id === who.id) : db.experts.find((m) => m.id === who.id);
+  return x || null;
+}
+/** Change a task: title, who, due, cost, note (not after its payout is owed), or its status. Done makes the payout owed. */
+export function updateTask(id, taskId, patch, by) {
+  return commit((db, t) => {
+    const o = findOrder(db, id);
+    const x = o && (o.tasks || []).find((k) => k.id === taskId);
+    if (!x) return fail('This task is gone.');
+    const locked = x.pay && x.pay.status !== 'unpaid';
+    if (locked && ['who', 'cost'].some((k) => k in patch && JSON.stringify(patch[k]) !== JSON.stringify(x[k]))) return fail('Its payout is already owed: the person and the amount can’t change. Add another task for the difference.');
+    if ('title' in patch) { if (!clean(patch.title)) return fail('Name the task.', 'title'); x.title = clean(patch.title); }
+    if ('who' in patch) x.who = { kind: patch.who.kind === 'team' ? 'team' : 'expert', id: patch.who.id };
+    if ('cost' in patch) x.cost = amt(patch.cost);
+    if ('due' in patch) x.due = patch.due || null;
+    if ('note' in patch) x.note = clean(patch.note);
+    if ('status' in patch && TASK_STATUS.some((s) => s[0] === patch.status) && patch.status !== x.status) {
+      if (locked && patch.status !== 'done') return fail('Its payout is already owed, so it stays done.');
+      x.status = patch.status;
+      hist(o, t, by, `Task “${x.title}” · ${(TASK_STATUS.find((s) => s[0] === x.status) || [])[1]}`);
+      if (x.status === 'done' && x.cost > 0 && x.pay.status === 'unpaid') {
+        const w = whoOfDb(db, x.who);
+        x.pay = { status: 'owed', at: t, ref: '', to: w && w.bank ? { ...w.bank } : null };
+        hist(o, t, by, `Payout owed · ৳${x.cost.toLocaleString('en-IN')} to ${w ? w.name : '—'} (Finance approves and pays it)`);
+      }
+    }
+    return { ok: true };
+  });
+}
+export function removeTask(id, taskId, by) {
+  return commit((db, t) => {
+    const o = findOrder(db, id);
+    const i = o ? (o.tasks || []).findIndex((k) => k.id === taskId) : -1;
+    if (i < 0) return fail('This task is gone.');
+    if (o.tasks[i].pay && o.tasks[i].pay.status !== 'unpaid') return fail('Its payout is already owed, so it stays on the order.');
+    hist(o, t, by, `Removed task “${o.tasks[i].title}”`);
+    o.tasks.splice(i, 1);
+    return { ok: true };
+  });
+}
+/** Finance paid a task's payout (servicesSync reads it back from the expense). */
+export function markTaskPaid(id, taskId, { at, ref, by } = {}) {
+  return commit((db, t) => {
+    const o = findOrder(db, id);
+    const x = o && (o.tasks || []).find((k) => k.id === taskId);
+    if (!x || !x.pay || x.pay.status !== 'owed') return fail('Nothing owed on this task.');
+    x.pay = { ...x.pay, status: 'paid', at: at || t, ref: ref || '' };
+    hist(o, at || t, by || 'Finance', `Payout paid · ৳${x.cost.toLocaleString('en-IN')}${ref ? ' · ref ' + ref : ''}`);
+    return { ok: true };
+  });
+}
+/** Other money spent on the order (tools, stock photos, printing …). */
+export function addCost(id, f, by) {
+  const a = amt(f.amount);
+  if (!clean(f.label)) return fail('Say what it was for.', 'label');
+  if (!a) return fail('Enter the amount.', 'amount');
+  return commit((db, t) => {
+    const o = findOrder(db, id);
+    if (!o) return fail('This order is gone.');
+    o.costs = o.costs || [];
+    const n = o.costs.reduce((m, x) => Math.max(m, Number(String(x.id).slice(1)) || 0), 0) + 1;
+    o.costs.push({ id: 'C' + n, label: clean(f.label), kind: COST_KINDS.some((k) => k[0] === f.kind) ? f.kind : 'other', amount: a, at: t, by });
+    hist(o, t, by, `Cost · ${clean(f.label)} · ৳${a.toLocaleString('en-IN')}`);
+    return { ok: true };
+  });
+}
+export function removeCost(id, costId, by) {
+  return commit((db, t) => {
+    const o = findOrder(db, id);
+    const i = o ? (o.costs || []).findIndex((k) => k.id === costId) : -1;
+    if (i < 0) return fail('This cost is gone.');
+    hist(o, t, by, `Removed cost “${o.costs[i].label}”`);
+    o.costs.splice(i, 1);
+    return { ok: true };
+  });
+}
+
+/** A progress update. shared = the store sees it now; otherwise it stays with the team until published. */
+export function postUpdate(id, { text, progress, shared }, by) {
+  if (!clean(text)) return fail('Write the update.', 'text');
+  const p = Math.max(0, Math.min(100, Math.round(Number(progress) || 0)));
+  return commit((db, t) => {
+    const o = findOrder(db, id);
+    if (!o) return fail('This order is gone.');
+    o.updates = o.updates || [];
+    o.updates.push({ id: 'U' + (o.updates.length + 1), at: t, by, text: clean(text), progress: p, shared: !!shared, publishedAt: shared ? t : null });
+    hist(o, t, by, shared ? `Shared an update (${p}%)` : 'Wrote an update for the team');
+    return { ok: true };
+  });
+}
+export function publishUpdate(id, updId, shared, by) {
+  return commit((db, t) => {
+    const o = findOrder(db, id);
+    const u = o && (o.updates || []).find((x) => x.id === updId);
+    if (!u) return fail('This update is gone.');
+    u.shared = !!shared; u.publishedAt = shared ? t : null;
+    hist(o, t, by, shared ? 'Shared an update with the store' : 'Took an update back from the store');
+    return { ok: true };
+  });
+}
+/** The updates a store sees, newest first, and how far the work is (the latest shared progress). */
+export function sharedUpdates(o) {
+  const list = (o.updates || []).filter((u) => u.shared).slice().sort((a, b) => (b.publishedAt || b.at) - (a.publishedAt || a.at));
+  return { list, progress: list.length ? list[0].progress : null };
+}
+
+/**
+ * An instant custom service for one store: GridCommerce writes it, sends the payment link, and the store pays to confirm.
+ * f: { shopId, shopName, title, scope, includes[], fee, days, revisions, cat, expertId, teamId, validDays, cover } → { ok, order }
+ */
+export function createOffer(f, by) {
+  const fee = amt(f.fee);
+  if (!f.shopId) return fail('Pick the store.', 'shopId');
+  if (!clean(f.title)) return fail('Name the work.', 'title');
+  if (!clean(f.scope)) return fail('Say what is included.', 'scope');
+  if (!fee) return fail('Enter the price.', 'fee');
+  if (!(Number(f.days) > 0)) return fail('Enter the days to deliver.', 'days');
+  return commit((db, t) => {
+    const n = (db.seq.custom = (db.seq.custom || 1)) && db.seq.custom++;
+    const sid = 'custom-' + t.toString(36) + n;
+    const svc = customService(sid, { ...f, fee });
+    db.services.push(svc);
+    const id = 'SO-' + db.seq.order++;
+    const m = money(fee, db.settings.vatPct);
+    const valid = Number(f.validDays) || db.settings.offerDays || OFFER_DAYS;
+    const o = {
+      id, invNo: 'SINV-' + id.slice(3), shopId: f.shopId, shopName: f.shopName || f.shopId, serviceId: sid, pkgId: 'offer', addons: [], cycle: 'oneoff', ...m, brief: {}, files: [],
+      paid: { method: '', txId: '', at: t, pending: true }, status: 'unpaid', expertId: f.expertId || null, teamId: f.teamId || null, priority: 'normal', startedAt: null, dueAt: null,
+      pausedMs: 0, waitingSince: null, revisionsUsed: 0, qa: db.settings.qaDefault !== false, messages: [], deliverables: [], reports: [], access: { status: 'none' }, quotes: [], refunds: [],
+      rating: null, history: [], closedAt: null, closeReason: '', tasks: [], costs: [], updates: [],
+      offer: { code: offerCode(t + n * 7919), expiresAt: t + valid * DAY, sent: [], by, at: t },
+    };
+    if (o.teamId) { const tm = (db.teams || []).find((x) => x.id === o.teamId); if (tm) o.expertId = tm.lead; }
+    const rq = f.requestId && (db.requests || []).find((x) => x.id === f.requestId);
+    if (rq) { rq.status = 'offered'; rq.orderId = id; o.requestId = rq.id; }
+    hist(o, t, by, `Custom offer made · ৳${m.total.toLocaleString('en-IN')} with VAT · valid ${valid} days`);
+    db.orders.push(o);
+    return { ok: true, order: o };
+  });
+}
+/** Log that the payment link went out (email, sms, whatsapp, messenger, copy …). */
+export function logOfferSent(id, { ch, to }, by) {
+  return commit((db, t) => {
+    const o = findOrder(db, id);
+    if (!o || !o.offer) return fail('This offer is gone.');
+    o.offer.sent.push({ ch, to: clean(to), at: t, by });
+    hist(o, t, by, `Payment link sent · ${ch}${to ? ' · ' + clean(to) : ''}`);
+    return { ok: true };
+  });
+}
+export const offerByCode = (code) => read().orders.find((o) => o.offer && o.offer.code === String(code || '').trim().toUpperCase()) || null;
+/** The payment link (path; the page adds its own address). */
+export const offerPath = (o) => '/service-offer?code=' + (o && o.offer ? o.offer.code : '');
+/** The store pays an offer: the order starts (with the team or expert already on it, or waits for one). */
+export function payOffer(code, method, payer) {
+  if (!PAY_METHODS.some((m) => m[0] === method)) return fail('Pick how you pay.', 'method');
+  return commit((db, t) => {
+    const o = db.orders.find((x) => x.offer && x.offer.code === String(code || '').trim().toUpperCase());
+    if (!o) return fail('This payment link is not valid.');
+    if (o.status !== 'unpaid') return fail(o.status === 'cancelled' ? 'This offer was withdrawn.' : 'This offer is already paid.');
+    if (t > o.offer.expiresAt) return fail('This offer has expired. Ask GridCommerce for a new link.');
+    o.paid = { method, txId: txId(t), at: t };
+    const svc = db.services.find((s) => s.id === o.serviceId);
+    const pkg = svc && svc.packages[0];
+    if (o.expertId) { o.status = 'progress'; o.startedAt = t; o.dueAt = t + ((pkg && pkg.days) || 7) * DAY; }
+    else o.status = 'brief';
+    hist(o, t, payer || o.shopName, `Paid the custom offer · ${payLabel(method)}`);
+    sysMsg(o, t, o.expertId ? `Thank you, payment received. Work has started; delivery by ${new Date(o.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}.` : 'Thank you, payment received. An expert is assigned within one working day.');
+    return { ok: true, order: o };
+  });
+}
+export function withdrawOffer(id, by) {
+  return commit((db, t) => {
+    const o = findOrder(db, id);
+    if (!o || o.status !== 'unpaid') return fail('Only an unpaid offer can be withdrawn.');
+    o.status = 'cancelled'; o.closedAt = t; o.closeReason = 'Offer withdrawn';
+    hist(o, t, by, 'Offer withdrawn');
+    return { ok: true };
+  });
+}
+/** Give an unpaid (or expired) offer more days. */
+export function extendOffer(id, days, by) {
+  return commit((db, t) => {
+    const o = findOrder(db, id);
+    if (!o || o.status !== 'unpaid') return fail('Only an unpaid offer can be extended.');
+    o.offer.expiresAt = Math.max(o.offer.expiresAt, t) + (Number(days) || 7) * DAY;
+    hist(o, t, by, `Offer valid until ${new Date(o.offer.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`);
+    return { ok: true };
+  });
+}
+/** Save (or clear) the share text that overrides the automatic one. */
+export function saveShareText(serviceId, text) {
+  return commit((db) => {
+    const s = db.services.find((x) => x.id === serviceId);
+    if (!s) return fail('This service is gone.');
+    s.share = clean(text) ? { text: String(text).trim() } : null;
+    return { ok: true };
+  });
+}
+
+/** A store asks for work that is not in the catalogue; GridCommerce answers with a custom offer (createOffer › requestId). */
+export function requestCustom({ shopId, shopName, text, budget }) {
+  if (clean(text).length < 10) return fail('Say what you need in a sentence or two.', 'text');
+  return commit((db, t) => {
+    db.requests = db.requests || [];
+    db.seq.request = db.seq.request || 1;
+    const rq = { id: 'RQ-' + db.seq.request++, shopId: shopId || SELF_SHOP, shopName: shopName || SELF_NAME, text: clean(text), budget: amt(budget) || null, at: t, by: shopName || SELF_NAME, status: 'open', orderId: null };
+    db.requests.push(rq);
+    return { ok: true, request: rq };
+  });
+}
+export const getRequests = (shopId) => (read().requests || []).filter((r) => !shopId || r.shopId === shopId).slice().sort((a, b) => b.at - a.at);
+export function closeRequest(id, note, by) {
+  return commit((db, t) => {
+    const rq = (db.requests || []).find((x) => x.id === id);
+    if (!rq || rq.status !== 'open') return fail('This request is not open.');
+    Object.assign(rq, { status: 'closed', closedAt: t, closedBy: by, note: clean(note) });
+    return { ok: true };
+  });
 }

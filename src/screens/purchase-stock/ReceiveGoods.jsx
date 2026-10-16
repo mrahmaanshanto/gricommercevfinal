@@ -36,6 +36,8 @@ import { trackOf, checkIncoming } from '@/lib/receiveTracking';
 import { receiveSerials } from '@/lib/serials';
 import { recordSerial } from '@/lib/serialTrace';
 import { addBatches } from '@/lib/batches';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 
 const ASKS = ['Send replacements', 'Give a credit note', 'Refund the money', 'Take the items back'];
 const REPORT_KEY = 'gc.receive.reports';
@@ -448,6 +450,7 @@ export default function ReceiveGoods() {
                           {rows.map((r) => (
                             <tr key={r.code + r.i} className={flash === r.i ? 'rg-flash' : ''}>
                               <td>
+                                <span className="gc-picrow" style={{ alignItems: 'flex-start' }}><Pic src={productPic({ sku: r.sku, name: r.name })} name={r.name} kind="item" /><span>
                                 <span className="ix-strong">{r.name}</span><span className="rg-sub rg-id">{r.code}</span>
                                 {(r.track === 'imei' || r.track === 'serial') && r.got ? (
                                   <button type="button" className={'rg-nums' + (r.missing ? ' is-missing' : '')} disabled={!!done} onClick={() => { setNumFor(r.i); setNumIn(''); setNumErr(''); }}>
@@ -461,6 +464,7 @@ export default function ReceiveGoods() {
                                     <input className="gc-input" type="date" aria-label={'Expiry date of ' + r.name} value={r.lot.expiry} disabled={!!done} onChange={(e) => setLots({ ...lots, [r.i]: { ...r.lot, expiry: e.target.value } })} />
                                   </span>
                                 ) : null}
+                                </span></span>
                               </td>
                               <td className="ix-num">{r.added ? '—' : r.pending}</td>
                               <td>

@@ -10,7 +10,8 @@ import { Sidebar, Topbar } from '@/shell/Shell';
 import { StatusBadge } from '@/components/ui';
 import { ShopHeader, RecordHeader } from '@/components/ui/IndexKit';
 import { formatBDT } from '@/lib/format';
-import { seedSnapshot, loadSnapshot, HR_EVENT, initials, shiftBy, SHIFT_COLORS, t12, STAFF_STATUS, statusOf } from '@/lib/hr';
+import { toneOf as picTone, initialsOf as picInitials } from '@/lib/pictures';
+import { seedSnapshot, loadSnapshot, HR_EVENT, shiftBy, SHIFT_COLORS, t12, STAFF_STATUS, statusOf } from '@/lib/hr';
 
 /**
  * The HR data for a page. The first render (server and browser) uses the demo seed so they match;
@@ -49,9 +50,10 @@ export const HR_CSS = `
 .hr-who > span:last-child{min-width:0}
 .hr-who a{color:var(--text-heading);font-weight:var(--weight-medium);text-decoration:none}
 .hr-who a:hover{color:var(--primary);text-decoration:underline}
-.hr-av{display:inline-flex;flex:none;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium)}
+.hr-av{width:32px;height:32px}
 .hr-av--lg{width:40px;height:40px;font-size:var(--text-sm)}
-.ix-table .hr-av{width:28px;height:28px;font-size:var(--text-2xs)}
+.hr-pslot{display:flex;grid-row:span 2;align-self:center}
+.hr-pslot~.ix-pitem__tags{grid-column:2}
 .hr-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--space-2)}
 .hr-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .hr-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
@@ -147,14 +149,14 @@ export function HrPage({ screen, active, page, title, description, about, action
   );
 }
 
-const AV_TONES = [
-  ['var(--fill-info-soft)', 'var(--text-info)'], ['var(--fill-primary-soft)', 'var(--primary)'], ['var(--fill-warning-soft)', 'var(--text-warning)'],
-  ['var(--fill-success-soft)', 'var(--text-success)'], ['var(--fill-error-soft)', 'var(--text-danger)'], ['var(--fill-secondary-soft)', 'var(--secondary)'],
-];
-const toneOf = (code) => AV_TONES[(Number(String(code).replace(/\D/g, '')) || 0) % AV_TONES.length];
+/** A person's picture, drawn like components/ui/Pic (kind person): the photo, else initials on the colour that stays
+ *  with the name. It keeps the hr-av class so pages that resize it (Positions, Shifts) still can. */
 export function Avatar({ st, large }) {
-  const [bg, fg] = toneOf(st.code);
-  return <span className={'hr-av' + (large ? ' hr-av--lg' : '')} style={{ background: bg, color: fg }} aria-hidden="true">{initials(st.name)}</span>;
+  const cls = 'gc-pic gc-pic--person hr-av' + (large ? ' hr-av--lg' : '');
+  const src = st.photo || st.avatar || '';
+  if (src) return <span className={cls} aria-hidden="true"><img src={src} alt="" loading="lazy" decoding="async" /></span>;
+  const [bg, fg] = picTone(st.name);
+  return <span className={cls} style={{ background: bg, color: fg, borderColor: 'transparent' }} aria-hidden="true">{picInitials(st.name)}</span>;
 }
 /** The address of a staff profile (optionally on one tab). */
 export const profileHref = (code, tab) => `/staff-profile?code=${encodeURIComponent(code)}${tab ? '&tab=' + tab : ''}`;

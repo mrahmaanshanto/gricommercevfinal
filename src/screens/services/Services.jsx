@@ -1,7 +1,7 @@
 'use client';
 // Services — Services › Get expert help (/services): what GridCommerce's experts can do for the shop, by category (Grow
 // sales · Look · Setup · Content). Each card: what it is, the starting price (a month for SEO and ads), delivery time and
-// rating; it opens the service (/service-detail?id=). What a shop sees follows its edition and plan (set in super admin).
+// rating, with its cover picture (Batch D); it opens the service's own page (/service-detail?id=). What a shop sees follows its edition and plan (set in super admin).
 // Orders in progress are one line at the top, linking My services. Data: lib/platform/services.js.
 
 import React, { useMemo, useState } from 'react';
@@ -20,13 +20,13 @@ export default function Services() {
   const list = useMemo(() => (ready ? catalogFor({ edition: currentEditionId(), plan: currentPlanId() }) : []), [ready, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const mine = useMemo(() => (ready ? getOrders(SELF_SHOP).map((o) => ({ o, st: stateOf(o) })) : []), [ready, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const active = mine.filter((x) => !['closed', 'cancelled', 'refunded'].includes(x.st.status));
-  const needs = mine.filter((x) => x.st.status === 'waiting' || x.st.status === 'delivered' || (x.o.quotes || []).some((q) => q.status === 'sent'));
+  const needs = mine.filter((x) => x.st.status === 'unpaid' || x.st.status === 'waiting' || x.st.status === 'delivered' || (x.o.quotes || []).some((q) => q.status === 'sent'));
   const shown = list.filter((s) => cat === 'all' || s.cat === cat);
   const tabs = [{ key: 'all', id: 'svc-tab-all', label: 'All', count: ready ? list.length : null, on: cat === 'all', onClick: () => setCat('all') },
     ...CATS.map((c) => ({ key: c.id, id: 'svc-tab-' + c.id, label: c.name, count: ready ? list.filter((s) => s.cat === c.id).length : null, on: cat === c.id, onClick: () => setCat(c.id) }))];
 
   return (
-    <SvcFrame screen="Services" active="svc-shop" page="Get expert help">
+    <SvcFrame gate="services" screen="Services" active="svc-shop" page="Get expert help">
       <ShopHeader icon="briefcase-business" title="Get expert help"
         about="Experts from GridCommerce and its partners do the work for you: SEO, Meta and Google ads, branding, store design, product upload, moving from another platform, store setup and product writing. Pick a package, answer a short brief and pay; an expert is assigned within a working day. You follow the work, message the expert and approve it in My services."
         primary={{ label: active.length ? `My services (${active.length})` : 'My services', href: '/my-services' }} />
@@ -46,7 +46,8 @@ export default function Services() {
                 const r = ratingOf(s.id);
                 const fast = Math.min(...s.packages.map((p) => p.days));
                 return (
-                  <Link key={s.id} href={'/service-detail?id=' + s.id} className="svc-card">
+                  <Link key={s.id} href={'/service-detail?id=' + s.id} className="svc-card svc-card--pic">
+                    <span className={'svc-cover' + (s.cover ? '' : ' is-tile')} style={s.cover ? { backgroundImage: `url(${s.cover})` } : undefined} aria-hidden="true">{s.cover ? null : <Icon name={s.icon || 'briefcase'} width="32" height="32" />}</span>
                     <span className="svc-card__top"><span className="svc-ico" aria-hidden="true"><Icon name={s.icon || 'briefcase'} width="18" height="18" /></span><b>{s.name}</b></span>
                     <p>{s.blurb}</p>
                     <span className="svc-card__foot">

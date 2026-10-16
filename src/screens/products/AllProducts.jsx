@@ -28,6 +28,8 @@ import { hasModule } from '@/lib/edition';
 import { CHANNELS_EVENT, channelMap, getChannels, setPublished, retryMany, STATUS, ISSUES, channelBy, PRODUCT_CHS } from '@/lib/channels';
 import { BrandLogo as __BrandLogo } from '@/components/BrandLogo';
 import { ModuleSetup } from '@/components/ModuleSetup';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 
 // Sales channels on the product list (src/lib/channels.js): a filter, a small Meta / Google mark per row and the
 // channel actions for the selected products. Shown when the edition sells on channels.
@@ -219,7 +221,7 @@ class Component extends DCLogic {
       emptyAction: q ? 'Clear search' : filtered ? 'Clear filters' : 'Show all products',
       clearEmpty: function () { if (q) self.setState({ q: '' }); else if (filtered) self.setState({ fCat: '', fBrand: '', fTag: '', fSell: '', fCh: '' }); else self.setTab('all'); },
       rows: list.map(function (p) { var on = !!sel[p.id], href = editHref(p);
-        return { id: p.id, name: p.name, sku: p.sku || 'No SKU', skuColor: p.sku ? 'var(--text-muted)' : 'var(--text-warning)', vars: p.vars, initial: p.name.charAt(0), tbg: p.tbg, sel: on, bg: on ? '#f2f6fc' : 'transparent', st: ST[p.st][0], stCls: ST[p.st][1],
+        return { id: p.id, name: p.name, sku: p.sku || 'No SKU', skuColor: p.sku ? 'var(--text-muted)' : 'var(--text-warning)', vars: p.vars, initial: p.name.charAt(0), pic: (p.flags || []).indexOf('No photo') >= 0 && !(p.media && p.media.length) ? '' : productPic(p), tbg: p.tbg, sel: on, bg: on ? '#f2f6fc' : 'transparent', st: ST[p.st][0], stCls: ST[p.st][1],
           inv: invOf(p).t, invTone: invOf(p).tone,
           cat: p.cat || 'No category', catColor: p.cat ? '#334155' : 'var(--text-warning)', brand: p.brand || '—',
           sell: sellLabel(p.sell), sellCls: SELL_CLS[p.sell] || SELL_CLS.retail, price: priceText(p), ws: wsText(p), wsColor: p.sell !== 'retail' && (p.wholesale == null || p.wholesale === '') ? 'var(--text-warning)' : 'var(--text-muted)',
@@ -388,7 +390,7 @@ class AllProductsView extends Component {
                       {v.rows.map((r) => (
                         <li key={r.id}>
                           <__Link href={r.href} className="ix-pitem ix-pitem--thumb">
-                            <span className="ix-thumb" style={{ background: r.tbg }} aria-hidden="true">{r.initial}</span>
+                            {r.pic ? <span style={{ gridRow: 'span 2' }}><Pic src={r.pic} name={r.name} kind="item" /></span> : <span className="ix-thumb" style={{ background: r.tbg }} aria-hidden="true">{r.initial}</span>}
                             <span className="ix-pitem__top"><b>{r.name}</b><__StatusBadge tone={STATUS_TONE[r.st] || 'neutral'} icon="circle">{r.st}</__StatusBadge></span>
                             <span className="ix-pitem__mid"><span className={r.invTone}>{r.inv}</span> · {r.cat}</span>
                           </__Link>
@@ -414,7 +416,7 @@ class AllProductsView extends Component {
                               <td className="ix-check"><input type="checkbox" checked={r.sel} onChange={r.toggle} aria-label={'Select ' + r.name} /></td>
                               <td>
                                 <span className="ix-prod">
-                                  <span className="ix-thumb" style={{ background: r.tbg }} aria-hidden="true">{r.initial}</span>
+                                  {r.pic ? <Pic src={r.pic} name={r.name} kind="item" /> : <span className="ix-thumb" style={{ background: r.tbg }} aria-hidden="true">{r.initial}</span>}
                                   <__Link href={r.href} className="ix-strong">{r.name}</__Link>
                                 </span>
                               </td>

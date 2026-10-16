@@ -20,6 +20,7 @@ import {
   PACKAGES, itemsOf, itemById, statusOf, liveVersion, assignmentRows, onlineStores, packageLabel, setPackage, applyPending, bulkAssign,
 } from '@/lib/admin/themes';
 import { AdminShell } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 import {
   TH_CSS, useThemes, Skeleton, Thumb, StatusTag, when, plural, FormSheet, Field, ctl, ChangeSheet,
 } from './themeShared';
@@ -29,8 +30,9 @@ const CSS = `
 .tha-mx th:first-child,.tha-mx td:first-child{text-align:left}
 .tha-mx tbody tr{cursor:default}
 .tha-mx .tha-item{display:flex;align-items:center;gap:var(--space-2);min-width:180px}
-.tha-mx .tha-item .thm-thumb{flex:none;width:40px}
-.tha-mx .tha-item span{display:flex;flex-direction:column;align-items:flex-start;gap:2px;white-space:normal}
+.tha-mx .tha-item .thm-thumb{flex:none;width:43px}
+.tha-pic .thm-thumb{flex:none;width:43px;height:32px}
+.tha-mx .tha-item>span:not(.thm-thumb){display:flex;flex-direction:column;align-items:flex-start;gap:2px;white-space:normal}
 .tha-mx .tha-item a,.tha-mx .tha-item b{font-weight:var(--weight-medium);color:var(--text-heading)}
 .tha-mx .gc-switch{vertical-align:middle}
 .tha-mx .gc-switch:disabled{opacity:.5;cursor:not-allowed}
@@ -289,7 +291,8 @@ export default function Assignments() {
               <ul className="ix-plist">
                 {slice.map((r) => (
                   <li key={r.shop.id}>
-                    <div className="ix-pitem">
+                    <div className="ix-pitem ix-pitem--thumb tha-pic" style={{ gridTemplateColumns: '43px minmax(0,1fr)' }}>
+                      <span style={{ gridRow: 'span 3' }}>{r.item ? <Thumb item={r.item} small /> : <Pic name="" kind="cover" icon="palette" />}</span>
                       <span className="ix-pitem__top"><b><Link href={'/admin/merchant?id=' + r.shop.id}>{r.shop.name}</Link></b>{versionCell(r)}</span>
                       <span className="ix-pitem__mid">{r.item ? r.item.name : 'No theme'} · {packageLabel(r.pkg)}{r.a ? ` · ${when(r.a.at, t)}` : ''}</span>
                       <span>{actions(r)}</span>
@@ -311,7 +314,7 @@ export default function Assignments() {
                       <tr key={r.shop.id} tabIndex={0} onClick={() => setSheet({ kind: 'change', shopId: r.shop.id, n: Date.now() })} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) setSheet({ kind: 'change', shopId: r.shop.id, n: Date.now() }); }}>
                         <td><span className="tha-nb"><Link className="ix-strong" href={'/admin/merchant?id=' + r.shop.id} onClick={(e) => e.stopPropagation()}>{r.shop.name}</Link><small>#{r.shop.id}</small></span></td>
                         <td className="ix-muted">{packageLabel(r.pkg)}</td>
-                        <td>{r.item ? <span className="tha-nb"><Link href={'/admin/themes/view?id=' + r.item.id} onClick={(e) => e.stopPropagation()}>{r.item.name}</Link>{r.item.state !== 'active' ? <small>{r.item.state}</small> : null}</span> : <span className="ix-muted">No theme</span>}</td>
+                        <td>{r.item ? <span className="gc-picrow tha-pic"><Thumb item={r.item} small /><span className="tha-nb"><Link href={'/admin/themes/view?id=' + r.item.id} onClick={(e) => e.stopPropagation()}>{r.item.name}</Link>{r.item.state !== 'active' ? <small>{r.item.state}</small> : null}</span></span> : <span className="gc-picrow"><Pic name="" kind="cover" icon="palette" /><span className="ix-muted">No theme</span></span>}</td>
                         <td>{versionCell(r)}</td>
                         <td className="ix-muted">{r.a ? (r.a.by === 'Store owner · setup' ? 'Owner, at setup' : r.a.by) : '—'}</td>
                         <td className="ix-muted">{r.a ? when(r.a.at, t) : '—'}</td>

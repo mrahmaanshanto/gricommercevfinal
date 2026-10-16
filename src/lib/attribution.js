@@ -8,6 +8,7 @@
 //   creditTable({ from, to, model, windowDays, basis }) → rows by channel with orders, net sales and delivered orders
 //   getSetting() / setSetting({ model, windowDays }) — the model the shop reports with, with a history of changes
 //
+// An order that recorded its ad source (o.utm: landing pages save the visit's utm_* / fbclid / gclid) uses that one touch.
 // Demo data: an order's journey is made up the same way every time from its id (a fixed seed), and always ends at the
 // source the order records (Website, Facebook, Phone, Order link). Paid Meta touches carry the ad campaign that was
 // running (adSpend.js). A real shop reads the journeys from the tracking server; front end only.
@@ -122,6 +123,19 @@ export function touchesOf(o) {
   if (!o || !o.id) return [];
   const key = o.id + '|' + o.at;
   if (MEMO.has(key)) return MEMO.get(key);
+  // an order that recorded its ad source (a landing page keeps the visit's utm_* / fbclid on the order): that is the touch
+  if (o.utm && (o.utm.utm_source || o.utm.fbclid || o.utm.gclid)) {
+    const u = o.utm;
+    const rawSrc = u.utm_source || (u.fbclid ? 'facebook' : 'google');
+    const rawMed = u.utm_medium || (u.fbclid || u.gclid ? 'paid' : '(none)');
+    const source = cleanSource(rawSrc);
+    const medium = cleanMedium(rawMed);
+    const channel = channelOf(source, medium);
+    const c = channelBy(channel);
+    const out = [{ at: Number(u.at) || o.at, source, medium, campaign: u.utm_campaign || '', channel, platform: c.platform, paid: c.paid, recorded: true, raw: { utm_source: rawSrc, utm_medium: rawMed, utm_campaign: u.utm_campaign || '' } }];
+    MEMO.set(key, out);
+    return out;
+  }
   const r = seeded(hash(String(o.id)));
   const lastMix = LAST_OF[o.source] || LAST_OF.Website;
   const last = pick(r, lastMix);

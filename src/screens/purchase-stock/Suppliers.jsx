@@ -16,6 +16,7 @@ import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore } from '@/components/ui/IndexKit';
 import { navigate } from '@/runtime/routes';
 import { PaymentLogo } from '@/components/PaymentLogo';
+import { Pic } from '@/components/ui/Pic';
 import { formatBDT } from '@/lib/format';
 import { EMPLOYEES } from '@/lib/posStore';
 import { accountBy, accountsForMethod, balanceOf, getEntries } from '@/lib/ledger';
@@ -177,7 +178,8 @@ export default function Suppliers() {
                   <ul className="ix-plist" aria-label="Suppliers">
                     {shown.map((r) => (
                       <li key={r.id}>
-                        <Link href={hrefOf(r)} className="ix-pitem">
+                        <Link href={hrefOf(r)} className="ix-pitem ix-pitem--thumb">
+                          <span style={{ gridRow: r.next ? 'span 3' : 'span 2' }}><Pic src={r.logo} name={r.name} kind="logo" /></span>
                           <span className="ix-pitem__top"><b>{r.name}</b><span className={r.owe ? '' : 'ix-muted'}>{r.owe ? money(r.owe) : 'Nothing due'}</span></span>
                           <span className="ix-pitem__mid">{r.last ? 'Last paid ' + dm(r.last.at) : 'No payment yet'}{r.bills ? ' · ' + r.bills + (r.bills === 1 ? ' bill' : ' bills') : ''}</span>
                           {r.next ? <span className="ix-pitem__tags"><StatusBadge tone={dueTone(r.off)}>{dueLabel(r.off)}</StatusBadge></span> : null}
@@ -192,7 +194,7 @@ export default function Suppliers() {
                       <tbody>
                         {shown.map((r) => (
                           <tr key={r.id} onClick={(e) => { if (!e.target.closest('a,button')) navigate(hrefOf(r)); }}>
-                            <td><Link href={hrefOf(r)} className="ix-strong sp-name">{r.name}</Link></td>
+                            <td><span className="gc-picrow"><Pic src={r.logo} name={r.name} kind="logo" /><Link href={hrefOf(r)} className="ix-strong sp-name">{r.name}</Link></span></td>
                             <td className={'ix-num' + (r.owe ? ' ix-strong' : ' ix-muted')}>{r.owe ? money(r.owe) : 'Nothing due'}</td>
                             <td>{r.next ? <span className="sp-due"><StatusBadge tone={dueTone(r.off)}>{dueLabel(r.off)}</StatusBadge><span className="ix-muted">{dm(r.next.due)}</span></span> : <span className="ix-muted">—</span>}</td>
                             <td className="ix-num ix-muted">{r.bills || '—'}</td>

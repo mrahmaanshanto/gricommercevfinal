@@ -19,7 +19,7 @@ import {
   staffBy, loanLeft, loanPaid, scheduleOf, nextCutOf, advanceLimitOf, basicOf, giveLoan, decideLoan, repayLoan,
   monthLabel, addMonths, monthOf, todayKey, computeLines,
 } from '@/lib/hr';
-import { HrPage, useHr, money, Person, profileHref, rowGo } from './hrShared';
+import { HrPage, useHr, money, Person, Avatar, profileHref, rowGo } from './hrShared';
 
 const TABS = [['run', 'Running'], ['req', 'Requests'], ['closed', 'Paid back · rejected'], ['people', 'By person']];
 const STATUS = { run: ['Running', 'info'], req: ['Pending', 'warning'], done: ['Paid back', 'success'], no: ['Rejected', 'error'] };
@@ -75,7 +75,8 @@ export default function LoansAdvances() {
       <ul className="ix-plist" aria-label="Loans and advances">
         {rowsOf(list).map(({ l, st }) => (
           <li key={l.id}>
-            <button type="button" className="ix-pitem" onClick={() => openLoan(l)}>
+            <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => openLoan(l)}>
+              <span className="hr-pslot"><Avatar st={st} /></span>
               <span className="ix-pitem__top"><b>{st.name}</b><span>{money(l.amount)}</span></span>
               <span className="ix-pitem__mid">{TYPE[l.type]} · {formatDate(l.at)} · {money(loanPaid(l))} paid back</span>
               {l.status !== 'run' ? <span className="ix-pitem__tags"><StatusBadge tone={STATUS[l.status][1]}>{STATUS[l.status][0]}</StatusBadge></span> : null}
@@ -134,7 +135,8 @@ export default function LoansAdvances() {
             <ul className="ix-plist" aria-label="By person">
               {people.map((p) => (
                 <li key={p.st.code}>
-                  <button type="button" className="ix-pitem" onClick={() => navigate(profileHref(p.st.code, 'salary'))}>
+                  <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => navigate(profileHref(p.st.code, 'salary'))}>
+                    <span className="hr-pslot"><Avatar st={p.st} /></span>
                     <span className="ix-pitem__top"><b>{p.st.name}</b><span className={p.left ? 'hr-out' : ''}>{p.left ? money(p.left) : '—'}</span></span>
                     <span className="ix-pitem__mid">{p.running.length} running · {p.mine.length - p.running.length - p.waiting} closed{p.waiting ? ` · ${p.waiting} waiting` : ''}</span>
                   </button>

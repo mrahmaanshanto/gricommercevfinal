@@ -609,7 +609,7 @@ export function getOnlineOrders() {
   const real = getOrders().filter((o) => !isCounterSale(o) && !o.isInvoice).map((o) => ({
     id: o.id, at: o.at, customer: o.customer, phone: digits(o.phone), zone: o.zone, source: o.source, method: o.method || ORDER_METHOD[o.payment] || 'COD',
     subtotal: o.subtotal, shipping: o.shipping || 0, amount: o.amount, units: o.units, lines: o.lines, status: o.status, courier: o.courier, times: o.times,
-    rtoReason: o.rtoReason || '', deliveryDays: o.times && o.times.delivered && o.times.shipped ? r2((o.times.delivered - o.times.shipped) / (24 * HOUR)) : null, est: false, made: !!o.made,
+    rtoReason: o.rtoReason || '', ...(o.utm ? { utm: o.utm } : {}), deliveryDays: o.times && o.times.delivered && o.times.shipped ? r2((o.times.delivered - o.times.shipped) / (24 * HOUR)) : null, est: false, made: !!o.made,
   }));
   return [...real, ...built].sort((a, b) => b.at - a.at);
 }

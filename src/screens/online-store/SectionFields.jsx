@@ -1,7 +1,8 @@
 'use client';
 // The editor for one section field (Online Store › Layouts › a section's Content tab, and the tweak panel on the store):
 // text · area · number · bool · choice · category · block · image · video · icon · product · products · list (repeating
-// items with their own fields) · slides · banners · faq · offer · pins (Shop the look: click the picture to drop a pin
+// items with their own fields) · slides · banners · faq · offer · custom + values (a custom section and its settings,
+// Nayeem's Batch A) · pins (Shop the look: click the picture to drop a pin
 // on a product; drag-free, each pin keeps x / y in % of the picture). A field is [key, label, type, default, choices,
 // when(s), sub-fields]. FIELDS_CSS is its styling (the panel's own look, not the theme's).
 
@@ -13,6 +14,7 @@ import { flashSales, storeProducts } from '@/lib/storefront/catalog';
 import { ImageField } from '@/components/files/FilePicker';
 import { FileImg } from '@/components/files/FileParts';
 import { BlockPick, CatPick, ProductPick } from './sfShared';
+import { getCustoms, getCustom } from '@/lib/storefront/customs';
 
 /** Pins on a picture: click the picture to add one, then pick its product. */
 function PinsField({ f, k, set, locked }) {
@@ -73,6 +75,33 @@ export function Field({ fd, f, set, locked, variant }) {
   if (type === 'choice') return <div className="sfb-field"><label className="gc-label" htmlFor={id}>{l}</label><select id={id} className="gc-input gc-select" value={f[k]} disabled={locked} onChange={(e) => set({ [k]: e.target.value })}>{ch.map(([v, x]) => <option key={v} value={v}>{x}</option>)}</select></div>;
   if (type === 'category') return <div className="sfb-field"><label className="gc-label" htmlFor={id}>{l}</label><CatPick id={id} value={f[k]} onChange={(x) => set({ [k]: x })} /></div>;
   if (type === 'block') return <div className="sfb-field"><label className="gc-label" htmlFor={id}>{l}</label><BlockPick id={id} value={f[k]} onChange={(x) => set({ [k]: x })} /></div>;
+  if (type === 'custom') {
+    const list = getCustoms();
+    return (
+      <div className="sfb-field"><label className="gc-label" htmlFor={id}>{l}</label>
+        <select id={id} className="gc-input gc-select" value={f[k] || ''} disabled={locked} onChange={(e) => set({ [k]: e.target.value, values: {} })}><option value="">Choose a custom section…</option>{list.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+        <p className="sfb-muted">{list.length ? <a href="/html-blocks?view=custom">Manage custom sections</a> : <>None yet: make one in <a href="/html-blocks?view=custom">HTML blocks › Custom sections</a>.</>}</p>
+      </div>
+    );
+  }
+  if (type === 'values') {
+    const c = getCustom(f.custom);
+    if (!c || !(c.fields || []).length) return null;
+    const vals = f[k] || {};
+    const setVal = (key, v) => set({ [k]: { ...vals, [key]: v } });
+    return (
+      <div className="sfb-fields">
+        {c.fields.map((x) => {
+          const fid = `le-v-${x.key}`;
+          const v = vals[x.key] != null ? vals[x.key] : x.default;
+          if (x.type === 'image') return <div key={x.key} className="sfb-field"><span className="gc-label">{x.label || x.key}</span><ImageField id={fid} value={v} label={(x.label || x.key).toLowerCase()} onChange={(nv) => setVal(x.key, nv)} /></div>;
+          if (x.type === 'area') return <div key={x.key} className="sfb-field"><label className="gc-label" htmlFor={fid}>{x.label || x.key}</label><textarea id={fid} className="gc-input" rows={3} value={v} onChange={(e) => setVal(x.key, e.target.value)} /></div>;
+          if (x.type === 'color') return <div key={x.key} className="sfb-field"><label className="gc-label" htmlFor={fid}>{x.label || x.key}</label><input id={fid} type="color" className="gc-input" value={/^#[0-9a-f]{6}$/i.test(v) ? v : '#000000'} onChange={(e) => setVal(x.key, e.target.value)} style={{ width: 64, padding: 4 }} /></div>;
+          return <div key={x.key} className="sfb-field"><label className="gc-label" htmlFor={fid}>{x.label || x.key}</label><input id={fid} className="gc-input" inputMode={x.type === 'number' ? 'decimal' : undefined} placeholder={x.type === 'link' ? '/offers or https://…' : ''} value={v} onChange={(e) => setVal(x.key, e.target.value)} /></div>;
+        })}
+      </div>
+    );
+  }
   if (type === 'image') return <div className="sfb-field"><span className="gc-label">{l}</span><ImageField id={id} value={f[k]} label={l.toLowerCase()} onChange={(x) => set({ [k]: x })} /></div>;
   if (type === 'video') {
     return (

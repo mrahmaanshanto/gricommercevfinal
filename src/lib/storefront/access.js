@@ -27,9 +27,9 @@ export const SWITCHES = [
   ['sections', 'Add, hide and reorder sections', 'Adding, hiding and moving sections in layouts'],
   ['footer', 'Footer', 'The Footer options'],
   ['css', 'Custom CSS', 'The Custom CSS option'],
-  ['code', 'Theme files (code)', 'Not offered: there is no code editor'],
+  ['code', 'Custom section code', 'Writing HTML and CSS for custom sections (Business plan only)'],
 ];
-const DEFAULT = { colours: true, logo: true, header: true, hero: true, sections: true, footer: true, css: false, code: false };
+const DEFAULT = { colours: true, logo: true, header: true, hero: true, sections: true, footer: true, css: false, code: true };
 
 function admin() {
   if (ssr()) return null;
@@ -51,7 +51,7 @@ export function editing() {
 }
 
 const PLAN_RANK = { starter: 0, growth: 1, business: 2 };
-const SWITCH_TEXT = { colours: 'colours and fonts', logo: 'the logo', header: 'the header', hero: 'hero banners', sections: 'sections', footer: 'the footer', css: 'custom CSS', code: 'theme files' };
+const SWITCH_TEXT = { colours: 'colours and fonts', logo: 'the logo', header: 'the header', hero: 'hero banners', sections: 'sections', footer: 'the footer', css: 'custom CSS', code: 'custom section code' };
 /** '' when the shop may change it, else why not (shown next to the locked control). */
 export function lockOf(thing) {
   const t = typeof thing === 'string' ? { lock: thing } : thing || {};
@@ -81,4 +81,19 @@ export function presetOffer(id) {
   const pkg = shopPackage();
   if (!(it.packages || []).includes(pkg)) return { ok: false, why: `Not offered on ${PKG_NAME[pkg] || pkg}.` };
   return { ok: true, why: it.state === 'deprecated' ? 'Being replaced; still works.' : '' };
+}
+
+/**
+ * Themes from GridCommerce's theme library that carry a store kit (super admin › Storefront themes › a release with a
+ * .gcstore.json, published): [{ id, name, family, label, tagline, accent, version, kit, offer }]. A library theme with
+ * the same id as a built-in preset replaces its kit (a newer version).
+ */
+export function libraryKits() {
+  const a = admin();
+  if (!a) return [];
+  const rels = Array.isArray(a.releases) ? a.releases : [];
+  return a.items.filter((i) => i.kind === 'theme' && i.state !== 'disabled').map((i) => {
+    const rel = rels.filter((r) => r.itemId === i.id && r.stage === 'published' && r.kit).sort((x, y) => (y.publishedAt || 0) - (x.publishedAt || 0))[0];
+    return rel ? { id: i.id, name: i.name, family: i.family, label: i.category || '', tagline: i.tagline || '', accent: i.accent || '#003087', version: rel.version, kit: rel.kit, offer: presetOffer(i.id) } : null;
+  }).filter(Boolean);
 }

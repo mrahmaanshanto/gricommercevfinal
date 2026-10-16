@@ -15,7 +15,7 @@ import {
   todayKey, staffBy, leaveType, leaveDaysOf, leaveBalance, leaveWarnings, applyLeave, decideLeave, dayLabel, dowOf, WEEKDAYS,
   keysOf, monthOf, addMonths, monthLabel, weekStartOf, addDays, isClosedDay,
 } from '@/lib/hr';
-import { HrPage, useHr, Person, rowGo } from './hrShared';
+import { HrPage, useHr, Person, Avatar, rowGo } from './hrShared';
 
 const CSS = `
 .lv-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:var(--space-3) var(--space-4) var(--space-4)}
@@ -103,7 +103,8 @@ export default function Leave() {
                   const days = leaveDaysOf(S, r.code, r.from, r.to);
                   return (
                     <li key={r.id}>
-                      <button type="button" className="ix-pitem" onClick={() => setReview({ kind: 'leave', id: r.id })}>
+                      <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setReview({ kind: 'leave', id: r.id })}>
+                        <span className="hr-pslot"><Avatar st={st} /></span>
                         <span className="ix-pitem__top"><b>{st.name}</b><StatusBadge tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</StatusBadge></span>
                         <span className="ix-pitem__mid">{leaveType(S, r.type).name} · {range(r.from, r.to)} · {days} day{days === 1 ? '' : 's'}</span>
                       </button>

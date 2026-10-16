@@ -22,7 +22,7 @@ import { Sheet, StatusBadge, EmptyState } from '@/components/ui';
 import { RecordHeader } from '@/components/ui/IndexKit';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { getLayout, kindBy, SECTION_TYPES, LIB_GROUPS, groupOf, sectionType, newSection, variantOf, slide, TONES, CONDS, ICONS, condProblem, saveLayoutDraft, publishLayout, discardLayout, duplicateLayout, deleteLayout } from '@/lib/storefront/layouts';
-import { DEVICES, STEPS, SPACING, WIDTHS, ALIGNS, HSIZES, BTNS, ANIMS, FONTS, DIVIDERS, stepAt, ownStep, setStep, boxSummary, cleanBox } from '@/lib/storefront/styles';
+import { DEVICES, STEPS, SPACING, WIDTHS, ALIGNS, HSIZES, BTNS, ANIMS, FONTS, DIVIDERS, PATTERNS, stepAt, ownStep, setStep, boxSummary, cleanBox } from '@/lib/storefront/styles';
 import { sfId } from '@/lib/storefront/store';
 import { lockOf } from '@/lib/storefront/access';
 import { flashSales, storeProducts, topCategories } from '@/lib/storefront/catalog';
@@ -32,6 +32,7 @@ import { getCategories, categoryHandle } from '@/lib/productCategories';
 import { allProducts, productHandle } from '@/lib/products';
 import { ImageField } from '@/components/files/FilePicker';
 import { STARTER, lookPatch } from '@/screens/storefront/sectionStarters';
+import { getCustom } from '@/lib/storefront/customs';
 import { queryParam } from './storeShared';
 import { Field, FIELDS_CSS } from './SectionFields';
 import { useSf, PreviewFrame, DeviceSwitch, LockNote, DocBadge, StyleSketch, BlockPick, CatPick, ProductPick, when, SFB_CSS } from './sfShared';
@@ -138,9 +139,31 @@ body:has(.le) .gc-ai{display:none}
 }
 @media (max-width:640px){.le-looks,.le-libgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `;
+/** The editor's styles, shared with the store editor (StoreEditor.jsx). */
+export const LE_CSS = CSS;
+export { STARTER };
 
-function summary(s) {
+/** A section's look, fields and colours (this editor's Content tab and the store editor's panel). */
+export function SectionFields({ f, set, locked }) {
+  const t = sectionType(f.type);
+  if (!t) return null;
+  const variant = variantOf(f);
+  const fields = (t.fields || []).filter((fd) => !fd[5] || fd[5]({ ...f, variant }));
+  return (<>
+    {t.styles ? (<>
+      <p className="le-h3">Look</p>
+      <div className="le-looks" role="radiogroup" aria-label="Look">
+        {t.styles.map((st) => <button key={st.id} type="button" role="radio" aria-checked={variant === st.id} className="le-look" disabled={locked} onClick={() => set({ variant: st.id, ...lookPatch(f, st.id) })}><StyleSketch sketch={st.sketch} label={st.label} /><span>{st.label}</span></button>)}
+      </div>
+    </>) : null}
+    {fields.map((fd) => <Field key={fd[0]} fd={fd} f={f} set={set} locked={locked} variant={variant} />)}
+    <div className="sfb-field"><label className="gc-label" htmlFor="le-tone">Section colours</label><select id="le-tone" className="gc-input gc-select" value={f.tone || 'none'} disabled={locked} onChange={(e) => set({ tone: e.target.value })}>{TONES.map(([v, x]) => <option key={v} value={v}>{x}</option>)}</select></div>
+  </>);
+}
+
+export function summary(s) {
   if (s.type === 'main') return 'The page itself · moves but stays';
+  if (s.type === 'custom') { const c = getCustom(s.custom); return c ? c.name : 'Choose a custom section · not shown until then'; }
   const t = sectionType(s.type);
   const look = t && t.styles ? (t.styles.find((x) => x.id === variantOf(s)) || {}).label : '';
   let what = '';
@@ -169,7 +192,8 @@ function Colour({ id, label, value, onChange }) {
     </div>
   );
 }
-function StyleTab({ s, dev, setDev, setBox }) {
+/** Style tab: spacing per device, width, alignment, edges, colours, picture, pattern, heading font and size, buttons. */
+export function StyleTab({ s, dev, setDev, setBox }) {
   const box = s.box || {};
   const devLabel = DEVICES.find((x) => x.id === dev).label;
   return (
@@ -197,6 +221,7 @@ function StyleTab({ s, dev, setDev, setBox }) {
       <Colour id="le-bg" label="Background colour" value={box.bg} onChange={(v) => setBox({ ...box, bg: v })} />
       <div className="sfb-field"><span className="gc-label">Background picture</span><ImageField id="le-bgimg" value={box.bgImage || ''} label="background picture" onChange={(v) => setBox({ ...box, bgImage: v, overlay: v ? (box.overlay == null ? 40 : box.overlay) : 0 })} /></div>
       {box.bgImage ? <div className="sfb-field"><label className="gc-label" htmlFor="le-ov">Shade over the picture</label><div className="le-range"><input id="le-ov" type="range" min={0} max={85} step={5} value={Number(box.overlay) || 0} onChange={(e) => setBox({ ...box, overlay: Number(e.target.value) })} /><output htmlFor="le-ov">{Number(box.overlay) || 0}%</output></div></div> : null}
+      <div className="sfb-field"><label className="gc-label" htmlFor="le-pat">Pattern</label><select id="le-pat" className="gc-input gc-select" value={box.pattern || ''} onChange={(e) => setBox({ ...box, pattern: e.target.value })}>{PATTERNS.map(([v, l]) => <option key={v || 'x'} value={v}>{l}</option>)}</select></div>
       <Colour id="le-fg" label="Text colour" value={box.color} onChange={(v) => setBox({ ...box, color: v })} />
       <p className="le-h3">Text and buttons</p>
       <div className="sfb-field"><label className="gc-label" htmlFor="le-font">Heading font</label><select id="le-font" className="gc-input gc-select" value={box.font || ''} onChange={(e) => setBox({ ...box, font: e.target.value })}>{FONTS.map(([v, l]) => <option key={v || 'x'} value={v}>{l}</option>)}</select><p className="sfb-muted">Bangla always uses Hind Siliguri.</p></div>
@@ -206,7 +231,8 @@ function StyleTab({ s, dev, setDev, setBox }) {
     </div>
   );
 }
-function AdvancedTab({ s, setBox }) {
+/** Advanced tab: show per device, entrance animation, anchor, CSS class. base: the page address the anchor hint shows. */
+export function AdvancedTab({ s, setBox, base = '/store' }) {
   const box = s.box || {};
   const hide = box.hide || {};
   return (
@@ -217,20 +243,20 @@ function AdvancedTab({ s, setBox }) {
       ))}
       {hide.d && hide.t && hide.m ? <p className="sfb-warn"><Icon name="triangle-alert" width="14" height="14" aria-hidden="true" /><span>Hidden on every device. Customers won’t see it.</span></p> : null}
       <div className="sfb-field"><label className="gc-label" htmlFor="le-anim">Entrance animation</label><select id="le-anim" className="gc-input gc-select" value={box.anim || ''} onChange={(e) => setBox({ ...box, anim: e.target.value })}>{ANIMS.map(([v, l]) => <option key={v || 'x'} value={v}>{l}</option>)}</select><p className="sfb-muted">Plays once as the section scrolls into view. Off for people who turn motion off.</p></div>
-      <div className="sfb-field"><label className="gc-label" htmlFor="le-anchor">Anchor</label><input id="le-anchor" className="gc-input" placeholder="e.g. offers" value={box.anchor || ''} onChange={(e) => setBox({ ...box, anchor: e.target.value.replace(/[^\w-]/g, '').slice(0, 40) })} /><p className="sfb-muted">{box.anchor ? <>Link straight to it with <code>/store#{box.anchor}</code></> : 'A name to link straight to this section.'}</p></div>
+      <div className="sfb-field"><label className="gc-label" htmlFor="le-anchor">Anchor</label><input id="le-anchor" className="gc-input" placeholder="e.g. offers" value={box.anchor || ''} onChange={(e) => setBox({ ...box, anchor: e.target.value.replace(/[^\w-]/g, '').slice(0, 40) })} /><p className="sfb-muted">{box.anchor ? <>Link straight to it with <code>{base}#{box.anchor}</code></> : 'A name to link straight to this section.'}</p></div>
       <div className="sfb-field"><label className="gc-label" htmlFor="le-cls">CSS class</label><input id="le-cls" className="gc-input" placeholder="For your own CSS" value={box.cls || ''} onChange={(e) => setBox({ ...box, cls: e.target.value.slice(0, 80) })} /></div>
     </div>
   );
 }
 
 // ---- the section library (Add section) -----------------------------------------------------------------------------
-function Library({ open, onClose, onAdd }) {
-  if (!open) return null;
-  return createPortal(
-    <Sheet open title="Add a section" onClose={onClose}>
+/** The store's section library, every kind with its looks (Add section here and in the landing page builder). */
+export function LibraryBody({ onAdd, filter = '' }) {
+  const q = String(filter || '').trim().toLowerCase();
+  return (
       <div className="le-lib">
         {LIB_GROUPS.map((g) => {
-          const types = SECTION_TYPES.filter((t) => groupOf(t) === g.id);
+          const types = SECTION_TYPES.filter((t) => groupOf(t) === g.id && (!q || (t.label + ' ' + (t.styles || []).map((x) => x.label).join(' ')).toLowerCase().includes(q)));
           if (!types.length) return null;
           return (
             <section key={g.id} aria-label={g.label}>
@@ -251,10 +277,14 @@ function Library({ open, onClose, onAdd }) {
           );
         })}
       </div>
-    </Sheet>, document.body);
+  );
+}
+function Library({ open, onClose, onAdd }) {
+  if (!open) return null;
+  return createPortal(<Sheet open title="Add a section" onClose={onClose}><LibraryBody onAdd={onAdd} /></Sheet>, document.body);
 }
 
-function previewPath(kind, cond) {
+export function previewPath(kind, cond) {
   const c = cond || { type: 'all' };
   if (kind === 'home') return '/store';
   if (kind === 'cart') return '/cart';
@@ -415,8 +445,6 @@ export default function LayoutEdit() {
     inspector = <div className="le-insp"><p className="sfb-muted" style={{ fontSize: 'var(--text-sm)' }}>{K.main || 'Main content'} is the page itself (for example the product and its details). Move it up or down among the sections; what it shows is set in the Theme (Customize › {l.kind === 'product' ? 'Product page' : l.kind === 'category' ? 'Category page' : 'Layout'}).</p></div>;
   } else if (cur) {
     const locked = cur.type === 'hero' && !!heroLock;
-    const variant = variantOf(cur);
-    const fields = (t.fields || []).filter((fd) => !fd[5] || fd[5]({ ...cur, variant }));
     const set = (patch) => patchSec(cur.id, patch);
     inspector = (<>
       <div className="le-tabs" role="tablist" aria-label="Section settings">
@@ -425,14 +453,7 @@ export default function LayoutEdit() {
       {tab === 'content' ? (
         <div className="le-insp">
           <LockNote text={locked ? lockOf('hero') : ''} />
-          {t.styles ? (<>
-            <p className="le-h3">Look</p>
-            <div className="le-looks" role="radiogroup" aria-label="Look">
-              {t.styles.map((st) => <button key={st.id} type="button" role="radio" aria-checked={variant === st.id} className="le-look" disabled={locked} onClick={() => set({ variant: st.id, ...lookPatch(cur, st.id) })}><StyleSketch sketch={st.sketch} label={st.label} /><span>{st.label}</span></button>)}
-            </div>
-          </>) : null}
-          {fields.map((fd) => <Field key={fd[0]} fd={fd} f={cur} set={set} locked={locked} variant={variant} />)}
-          <div className="sfb-field"><label className="gc-label" htmlFor="le-tone">Section colours</label><select id="le-tone" className="gc-input gc-select" value={cur.tone || 'none'} disabled={locked} onChange={(e) => set({ tone: e.target.value })}>{TONES.map(([v, x]) => <option key={v} value={v}>{x}</option>)}</select></div>
+          <SectionFields f={cur} set={set} locked={locked} />
         </div>
       ) : tab === 'style' ? <StyleTab s={cur} dev={dev} setDev={(x) => setDevice(PREVIEW_OF[x])} setBox={(b) => set({ box: b })} />
         : <AdvancedTab s={cur} setBox={(b) => set({ box: b })} />}

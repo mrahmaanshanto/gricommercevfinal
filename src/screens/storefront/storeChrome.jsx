@@ -1,7 +1,7 @@
 'use client';
 // storeChrome — the website around every customer page, drawn by the theme (Module A · Online Store › Theme):
 //   the theme's CSS variables (colours, fonts with a Bangla pair, width, corners, buttons, spacing; Custom CSS when the
-//   plan and the theme allow it), the announcement bar, the header from the Header builder (desktop and phone built
+//   plan and the theme allow it), the store notices (storeNotices.jsx), the header from the Header builder (desktop and phone built
 //   separately, sticky rows, the ☰ drawer and the bottom navigation bar), the footer (a footer layout or an HTML block,
 //   payment and delivery marks, copyright from Settings), the chat button, the cookie notice, the side cart, the
 //   preview and "moved here" bars; and useStoreItem(kind, param), which finds the page / post / product / category /
@@ -12,17 +12,18 @@
 // TrackOrder, and around Offers, Offer detail and Checkout (ThemeChrome). Front end only: the live website's server
 // draws the same at dazzleshop.com.bd.
 
-import React, { useEffect, useMemo, useState } from 'react';
+import { EditBridge } from './editBridge';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '@/runtime/dc';
-import { toast, getLocale } from '@/runtime/ui';
+import { toast } from '@/runtime/ui';
 import { STORE_PAGES_EVENT } from '@/lib/storePages';
 import { resolveLink } from '@/lib/storeMenus';
 import { findByHandle, ADAPTERS, contextOf } from '@/lib/seoItems';
 import { headFor, livePath, parsePath, demoHref } from '@/lib/seo';
 import { resolve, logMiss, SEO_EVENT } from '@/lib/redirects';
-import { websiteOffers, promoLine } from '@/lib/storeOffers';
 import { clockNow } from '@/lib/settlements';
-import { isPreview, previewPreset, isEditing } from '@/lib/storefront/store';
+import { isPreview, previewPreset, isEditing, SF_EVENT } from '@/lib/storefront/store';
+import { liveNotices } from '@/lib/storefront/notices';
 import { themeVars, fontHref, customCss, themeClasses, TOKENS_CSS } from '@/lib/storefront/theme';
 import { BOX_CSS } from '@/lib/storefront/styles';
 import { presetBy } from '@/lib/storefront/presets';
@@ -47,6 +48,10 @@ import { LOOKS_CSS, FIT_CSS } from './sectionLooks';
 import { QuickView, AgeCheck, EXTRAS_CSS } from './storeExtras';
 import { shopSocials } from './shopInfo';
 import { w } from '@/lib/storefront/words';
+import { NoticeBar, NOTICES_CSS } from './storeNotices';
+import { PageInfo, Placed, PLACED_CSS } from './storePlaced';
+import { CompareBar, ACCOUNT_CSS } from './accountParts';
+import { liveSnippets, codeAllowedOn, SNIPPETS_EVENT } from '@/lib/storefront/snippets';
 const W = ({ k }) => <span data-w={k}>{w(k)}</span>;
 
 export { MenuLink };
@@ -129,8 +134,24 @@ body:has(.sf-theme) .gc-ai{display:none}
 .spg-body{padding-bottom:var(--sf-section)}
 .spg-pv{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 16px;min-height:40px;padding:8px 16px;background:#fff4e0;color:#a14f06;font-size:var(--sf-fs-sm);font-weight:var(--weight-medium)}
 .spg-moved{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:6px 16px;background:#e7f0ff;color:#003087;font-size:var(--sf-fs-sm)}
-.sf-ann{display:flex;align-items:center;justify-content:center;gap:10px;min-height:36px;padding:6px 16px;background:var(--sf-ann-bg);color:var(--sf-ann-fg);font-size:var(--sf-fs-sm);font-weight:var(--weight-medium);text-align:center}
-.sf-ann a{color:inherit}
+/* the header and the top notices: part of the page (sticky rows keep working) … */
+.sfh-fix{display:contents}
+/* … or, over the Home banner (Header builder › Over the Home banner): fixed, see-through until the customer scrolls */
+.sf-over .sfh-fix{display:block;position:fixed;top:0;left:0;right:0;z-index:60}
+.sf-over .sfh-fix .sfh-row{position:relative!important;top:auto!important;transition:background-color .2s,color .2s,border-color .2s}
+.sf-over:not(.is-scrolled) .sfh-fix .sfh-row{background:transparent!important;color:#fff!important;border-bottom-color:rgba(255,255,255,.2)!important}
+.sf-over:not(.is-scrolled) .sfh-fix .sfh-row .sfl-mark{background:#fff;color:#0f172a}
+.sf-over .sf-main>section.sfs--hero:first-of-type{padding:0}
+.sf-over .sf-main>section.sfs--hero:first-of-type>.sf-wrap{max-width:none;padding:0}
+.sf-over .sf-main>section.sfs--hero:first-of-type .sfs-slides{border-radius:0}
+.sf-over .sf-main>section.sfs--hero:first-of-type .sfs-slide{min-height:calc(var(--sfh-h,120px) + 380px)}
+.sf-over .sf-main>section.sfs--hero:first-of-type .sfs-slide__text{padding-top:calc(var(--sfh-h,120px) + 32px)}
+.sf-over .sf-main>section.sfs--hero:first-of-type .sfs-slide.has-img::after{background:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,0) 40%),linear-gradient(90deg,rgba(0,0,0,.62),rgba(0,0,0,.08) 70%)}
+/* shrink when scrolling (Header builder › Shrink when scrolling) */
+.sf-shrink.is-scrolled .sfh-row.is-sticky{min-height:calc(var(--row-h) * .78)!important;top:calc(var(--row-top) * .78)!important}
+.sf-shrink.is-scrolled .sfh-row .sfl-mark{transform:scale(.86)}
+.sfh-row,.sfl-mark{transition:min-height .2s,transform .2s}
+@media (prefers-reduced-motion:reduce){.sfh-row,.sfl-mark,.sf-over .sfh-fix .sfh-row{transition:none}}
 /* footer */
 .sff{margin-top:auto;background:var(--sf-foot-bg);color:var(--sf-foot-fg);padding:40px 0 24px;font-size:var(--sf-fs-sm)}
 .sff a,.sff button{color:inherit;opacity:.85;text-decoration:none;background:none;border:0;padding:0;font:inherit;cursor:pointer;text-align:left}
@@ -209,19 +230,7 @@ export function TrustMarks({ cod = true }) {
   );
 }
 
-function Announcement({ v }) {
-  const [text, setText] = useState('');
-  useEffect(() => {
-    if (!v.announce) return;
-    if (v.announceText) { setText(v.announceText); return; }
-    let line = null;
-    try { line = promoLine(websiteOffers(clockNow())); } catch { line = null; }
-    setText(line ? (getLocale() === 'bn' ? line.bn : line.en) : '');
-  }, [v.announce, v.announceText]);
-  if (!v.announce || !text) return null;
-  return <div className="sf-ann" role="note"><Icon name="zap" width="14" height="14" aria-hidden="true" /><span>{text}</span></div>;
-}
-
+// The old one-line announcement is a store notice now (Online Store › Store notices; notices.js › themeNotices).
 export function Footer({ st }) {
   const v = st.values;
   const name = (st.shop && st.shop.brand && st.shop.brand.name) || 'Dazzle Shop';
@@ -526,18 +535,71 @@ export function CheckoutPop() {
  * The website around a customer page. children(shell) draws the page; shell = { ready, values, catalog, shop, menus,
  * cats, footers, … } (useStorefront). headerId: the layout's own header ('' = the default). kind: 'home' | 'product' …
  */
-export function StoreChrome({ screen, head, preview, movedFrom, current, css = '', children, headerId = '', kind = '', pageTitle = '' }) {
+export function StoreChrome({ screen, head, preview, movedFrom, current, css = '', children, headerId = '', kind = '', pageTitle = '', subject = null }) {
   const st = useStorefront(headerId);
   // pages without their own SEO entry (Offers, Checkout, an order link) are titled "<page> · <shop>", not the app's name
   const shopName = (st.shop && st.shop.brand && st.shop.brand.name) || 'Dazzle Shop';
   const autoHead = useMemo(() => (!head && pageTitle ? { title: pageTitle + ' · ' + shopName, description: '', robots: kind === 'checkout' ? 'noindex, follow' : 'index, follow', canonical: '', og: {}, jsonld: [] } : null), [head, pageTitle, shopName, kind]);
   const [drawer, setDrawer] = useState(null);
   const [cartOpen, setCartOpen] = useState(false);
+  // the shop's code snippets (Online Store › Snippets, Batch C): verification tags in the head, checked CSS and HTML;
+  // CSS and HTML (and the theme's Custom CSS) never on checkout, account or payment pages
+  const [snip, setSnip] = useState({ css: '', metas: [], html: {}, code: false });
+  useEffect(() => {
+    const load = () => { try { setSnip({ ...liveSnippets(window.location.pathname), code: codeAllowedOn(window.location.pathname) }); } catch { /* ignore */ } };
+    load();
+    window.addEventListener(SNIPPETS_EVENT, load);
+    window.addEventListener('storage', load);
+    return () => { window.removeEventListener(SNIPPETS_EVENT, load); window.removeEventListener('storage', load); };
+  }, []);
+  useEffect(() => {
+    const els = snip.metas.map((m) => { const el = document.createElement('meta'); el.name = m.name; el.content = m.content; el.setAttribute('data-gc-snippet', ''); document.head.appendChild(el); return el; });
+    return () => els.forEach((el) => el.remove());
+  }, [snip.metas]);
   useEffect(() => {
     const open = () => setCartOpen(true);
     window.addEventListener(OPEN_CART_EVENT, open);
     return () => window.removeEventListener(OPEN_CART_EVENT, open);
   }, []);
+  // store notices (after mount: they depend on the time and on what this visitor closed); re-read when the store changes
+  const [notices, setNotices] = useState(null);
+  const subj = subject || {};
+  useEffect(() => {
+    const load = () => { try { setNotices(liveNotices({ kind, product: subj.product || '', category: subj.category || '', now: clockNow() })); } catch { setNotices(null); } };
+    load();
+    const t = setInterval(load, 30000);
+    window.addEventListener(SF_EVENT, load);
+    return () => { clearInterval(t); window.removeEventListener(SF_EVENT, load); };
+  }, [kind, subj.product, subj.category]);
+  // the header over the Home banner and shrinking: a class on the page once the customer scrolls; the header's height
+  const [scrolled, setScrolled] = useState(false);
+  const fixRef = useRef(null);
+  const [overHero, setOverHero] = useState(false);
+  useEffect(() => {
+    const H = st.header;
+    if (!st.ready || !H) return;
+    let first = null;
+    try { first = kind === 'home' && H.overHero ? (layoutFor('home').sections || []).find((x) => !x.hidden) : null; } catch { first = null; }
+    setOverHero(!!(first && first.type === 'hero'));
+  }, [st.ready, st.header, kind]);
+  useEffect(() => {
+    const H = st.header;
+    if (!st.ready || !H || !(H.overHero || H.shrink)) return undefined;
+    const on = () => setScrolled(window.scrollY > 24);
+    on();
+    window.addEventListener('scroll', on, { passive: true });
+    return () => window.removeEventListener('scroll', on);
+  }, [st.ready, st.header]);
+  useEffect(() => {
+    const el = fixRef.current;
+    if (!overHero || !el) return undefined;
+    const set = () => { const root = el.closest('.sf-theme'); if (root) root.style.setProperty('--sfh-h', el.offsetHeight + 'px'); };
+    set();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [overHero, notices]);
   const pv = st.ready && isPreview();
   const shell = { ...st, footers: (st.menus || []).filter((m) => m.place === 'footer'), header: (st.menus || []).find((m) => m.place === 'header') || null, preview: pv };
   if (!st.ready) {
@@ -554,24 +616,38 @@ export function StoreChrome({ screen, head, preview, movedFrom, current, css = '
   const pre = pp ? presetBy(pp) : null;
   const brand = (st.shop && st.shop.brand) || {};
   const logo = pre && pre.logo ? { src: pre.logo, light: pre.logoLight || pre.logo, name: pre.name } : v.logoImage ? { src: v.logoImage, light: v.logoLight || v.logoImage } : brand.logo ? { src: brand.logo, light: brand.logoOnDark || brand.logo, name: brand.name } : null;
-  const ctx = { values: v, menus: st.menus, cats: st.cats, count: st.count, total: st.total, shop: st.shop, general: st.general, catalog: st.catalog, current, preview: pv, kind, logo, openDrawer: (focus) => setDrawer(focus || 'menu') };
+  const nt = notices || {};
+  const pageInfo = { kind, product: subj.product || '', category: subj.category || '', catalog: st.catalog };
+  const ctx = { values: v, menus: st.menus, cats: st.cats, count: st.count, total: st.total, shop: st.shop, general: st.general, catalog: st.catalog, me: st.me, wishCount: st.wishCount, compareCount: st.compareCount, current, preview: pv, kind, logo, notices: nt.header || [], openDrawer: (focus) => setDrawer(focus || 'menu') };
   const bnav = H && H.mobile && H.mobile.bottomNav;
   const font = fontHref(v);
   return (
-    <div className={'dc-screen ds sf-theme ' + themeClasses(v) + (bnav ? ' has-bnav' : '') + (pv && isEditing() ? ' sf-editing' : '')} data-screen={screen} onClickCapture={keepPreview}>
+    <div className={'dc-screen ds sf-theme ' + themeClasses(v) + (v.buttons === 'outline' ? ' sf-outline' : '') + (bnav ? ' has-bnav' : '') + (pv && isEditing() ? ' sf-editing' : '') + (overHero ? ' sf-over' : '') + (H && H.shrink ? ' sf-shrink' : '') + (scrolled ? ' is-scrolled' : '')} data-screen={screen} onClickCapture={keepPreview}>
       {font ? <link rel="stylesheet" href={font} /> : null}
-      <style dangerouslySetInnerHTML={{ __html: themeVars(v) + BLOG_CSS + SF_CSS + TOKENS_CSS + HEADER_CSS + STORE_CSS + SECTIONS_CSS + SECTIONS2_CSS + SECTIONS3_CSS + LOOKS_CSS + FIT_CSS + EXTRAS_CSS + BOX_CSS + css + customCss(v, st.cssAllowed) }} />
+      <style dangerouslySetInnerHTML={{ __html: themeVars(v) + BLOG_CSS + SF_CSS + TOKENS_CSS + HEADER_CSS + STORE_CSS + NOTICES_CSS + PLACED_CSS + SECTIONS_CSS + SECTIONS2_CSS + SECTIONS3_CSS + LOOKS_CSS + FIT_CSS + EXTRAS_CSS + ACCOUNT_CSS + BOX_CSS + css + customCss(v, st.cssAllowed && snip.code) + snip.css + '.sf-snip{padding-top:12px;padding-bottom:12px}' }} />
       <SeoHead head={head || autoHead} />
       {preview ? <div className="spg-pv" role="status"><Icon name="eye" width="16" height="16" aria-hidden="true" /><span>{preview}</span></div> : null}
       {movedFrom ? <div className="spg-moved" role="status"><Icon name="corner-down-right" width="14" height="14" aria-hidden="true" /><span>Moved here from {movedFrom} (a redirect)</span></div> : null}
-      <Announcement v={v} />
-      <StoreHeader H={H} ctx={ctx} />
-      <main className="sf-main">{children(shell)}</main>
+      <PageInfo.Provider value={pageInfo}>
+        <div className="sfh-fix" ref={fixRef} data-sec-id="header" data-sec-label="Header">
+          <NoticeBar list={nt.top} place="top" />
+          <Placed spot="above-header" />
+          <StoreHeader H={H} ctx={ctx} />
+        </div>
+        <NoticeBar list={nt['below-header']} place="below-header" />
+        <Placed spot="below-header" />
+        {(snip.html['below-header'] || []).map((h, i) => <div key={'snb' + i} className="sf-wrap sf-snip" dangerouslySetInnerHTML={{ __html: h }} />)}
+        <NoticeBar list={nt['phone-bar']} place="phone-bar" />
+        <main className="sf-main">{kind === 'home' ? <Placed spot="home-top" /> : null}{children(shell)}</main>
+        {(snip.html['before-footer'] || []).map((h, i) => <div key={'snf' + i} className="sf-wrap sf-snip" dangerouslySetInnerHTML={{ __html: h }} />)}
+        <Placed spot="before-footer" />
+      </PageInfo.Provider>
       <Footer st={{ ...st, logo }} />
       <ChatButton v={v} name={(logo && logo.name) || shopName} />
       <FloatCart v={v} st={st} onOpen={() => setCartOpen(true)} />
       <BackTop v={v} />
       <ImagePopup v={v} kind={kind} editing={pv && isEditing()} />
+      <CompareBar preview={pv} />
       <CookieNotice v={v} />
       <QuickView v={v} />
       <AgeCheck v={v} editing={pv && isEditing()} />
@@ -579,7 +655,8 @@ export function StoreChrome({ screen, head, preview, movedFrom, current, css = '
       <MobileDrawer open={!!drawer} focus={drawer} H={H} ctx={ctx} onClose={() => setDrawer(null)} />
       <SideCart v={v} open={cartOpen} onClose={() => setCartOpen(false)} preview={pv} />
       {v.checkoutMode === 'popup' && kind !== 'checkout' ? <CheckoutPop /> : null}
-      {TWEAK_PART[kind] ? <TweakDock kind={kind} /> : null}
+      {TWEAK_PART[kind] && !(pv && isEditing()) ? <TweakDock kind={kind} /> : null}
+      {pv ? <EditBridge /> : null}
     </div>
   );
 }

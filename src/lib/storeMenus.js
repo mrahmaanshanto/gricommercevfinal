@@ -22,7 +22,8 @@
 // Front end only: kept in this browser (gc.storeMenus). On the live website the theme draws these menus.
 
 import { uid, slugify, getPosts } from './blog';
-import { getPages, getPage, PAGE_BASE, storefrontHref } from './storePages';
+import { previewValue } from './storefront/store';
+import { getPages, getPage, pageByHandle, PAGE_BASE, storefrontHref } from './storePages';
 import { allProducts, productHandle } from './products';
 import { categoryDefaults } from './productTemplates';
 import { getCategories, categoryHandle } from './productCategories';
@@ -31,15 +32,8 @@ const KEY = 'gc.storeMenus';
 export const STORE_MENUS_EVENT = 'gc:store-menus';
 const SITE = 'dazzleshop.com.bd';
 
-export const LINK_TYPES = [
-  { type: 'home', label: 'Home page', icon: 'house' },
-  { type: 'page', label: 'Page', icon: 'file-text' },
-  { type: 'category', label: 'Category', icon: 'folder-tree' },
-  { type: 'product', label: 'Product', icon: 'package' },
-  { type: 'offers', label: 'Offers page', icon: 'ticket-percent' },
-  { type: 'blog', label: 'Blog', icon: 'newspaper' },
-  { type: 'url', label: 'Web address', icon: 'link' },
-];
+export { LINK_TYPES } from './storefront/schema.js';
+import { LINK_TYPES } from './storefront/schema.js';
 export const linkTypeOf = (type) => LINK_TYPES.find((t) => t.type === type) || LINK_TYPES[0];
 
 // ---- where links can point ----------------------------------------------------------------------------
@@ -81,7 +75,8 @@ export function resolveLink(link) {
   const l = link || { type: 'home' };
   switch (l.type) {
     case 'page': {
-      const p = getPage(l.ref);
+      // a page link points at the page's id; a store kit may point at its address (handle) instead
+      const p = getPage(l.ref) || pageByHandle(l.ref);
       if (!p) return { url: '', href: '', title: 'Deleted page', broken: true, note: 'The page was deleted' };
       return { url: PAGE_BASE + p.handle, href: storefrontHref(p.handle), title: p.title || 'Untitled page', broken: false, note: p.status === 'published' ? '' : 'Not on the website: the page is ' + (p.status === 'draft' ? 'a draft' : 'hidden') };
     }
@@ -151,6 +146,8 @@ function seed() {
 let cache = { raw: undefined, list: null };
 function read() {
   if (typeof window === 'undefined') return [];
+  const ov = previewValue('menus');   // a preview frame showing another design's menus (a store kit)
+  if (Array.isArray(ov)) return ov;
   let raw = null;
   try { raw = window.localStorage.getItem(KEY); } catch { /* ignore */ }
   if (raw === cache.raw && cache.list) return cache.list;
@@ -220,13 +217,8 @@ export const newItem = (label = '', link = { type: 'page', ref: '' }) => ({ id: 
 export function setMenus(list) { if (Array.isArray(list) && list.length) write(list); }
 
 // ---- mega menu ----------------------------------------------------------------------------------------------------
-export const MEGA_WIDTHS = [['container', 'Same as the page'], ['full', 'Full width'], ['custom', 'Custom']];
-export const MEGA_KINDS = [
-  { kind: 'cats', label: 'Category list', icon: 'list-tree' },
-  { kind: 'links', label: 'Link list (the sub-items)', icon: 'link' },
-  { kind: 'image', label: 'Image banner', icon: 'image' },
-  { kind: 'block', label: 'HTML block', icon: 'blocks' },
-];
+import { MEGA_WIDTHS, MEGA_KINDS } from './storefront/schema.js';
+export { MEGA_WIDTHS, MEGA_KINDS };
 export const newMegaColumn = (kind = 'cats') => ({ id: uid('col-'), kind, title: '', ref: '', src: '', href: '', block: '' });
 export const blankMega = () => ({ on: true, width: 'container', px: 960, cols: [newMegaColumn('cats'), newMegaColumn('links')], promo: null });
 /** '' when the mega menu can be saved, else what to fix. */

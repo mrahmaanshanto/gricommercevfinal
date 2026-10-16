@@ -12,6 +12,8 @@ import { RecordHeader } from '@/components/ui/IndexKit';
 import { toast as __toast } from '@/runtime/ui';
 import { clockNow } from '@/lib/settlements';
 import { FORM_CSS, Steps, Switch } from './loyShared';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 
 // ---- form helpers: required marker, field error text, invalid attributes, focus the first error ----
 function __Req() { return <span aria-hidden="true" style={{ color: 'var(--text-danger)' }}> *</span>; }
@@ -355,7 +357,7 @@ export default class NewFlashSaleScreen extends Component {
                                     {v.cands.map((r) => (
                                       <tr key={r.name} style={r.inSale ? { opacity: 0.6 } : undefined}>
                                         <td className="ix-check"><input type="checkbox" checked={r.on} disabled={r.inSale} onChange={r.toggle} aria-label={`Select ${r.name}`} /></td>
-                                        <td><span className="ix-strong">{r.name}</span><span className="nf-sub">{r.meta}</span></td>
+                                        <td><span className="gc-picrow"><Pic src={productPic(r.name)} name={r.name} kind="item" /><span><span className="ix-strong">{r.name}</span><span className="nf-sub">{r.meta}</span></span></span></td>
                                         <td><span className="nf-why" style={{ background: r.whyBg, color: r.whyFg }}>{r.why}</span><span className="nf-sub">{r.whySub}</span></td>
                                         <td className="ix-num"><span className="ix-strong">{r.sug}</span> <span className="ix-bad">{r.sugOff}</span><span className="nf-sub">was {r.mrp} · <span className={r.loss ? 'ix-bad' : 'ly-in'}>+{r.profit}</span></span><span className="nf-sub">{r.sugNote}</span></td>
                                       </tr>
@@ -392,7 +394,7 @@ export default class NewFlashSaleScreen extends Component {
                             <tbody>
                               {v.items.map((r) => (
                                 <tr key={r.code + r.name} className={r.cls}>
-                                  <td><span className="ix-strong">{r.name}</span><span className="nf-sub ly-fig">{r.code}</span></td>
+                                  <td><span className="gc-picrow"><Pic src={productPic(r.name)} name={r.name} kind="item" /><span><span className="ix-strong">{r.name}</span><span className="nf-sub ly-fig">{r.code}</span></span></span></td>
                                   <td className="ix-num nf-was">{r.mrp}</td>
                                   <td className="ix-nowrap"><Steps label={`sale price for ${r.name}`} less={`Less sale price for ${r.name}`} more={`More sale price for ${r.name}`} display={r.price} onDec={r.dn} onInc={r.up} /> <span className="ix-bad">{r.off}</span></td>
                                   <td className="ix-num"><span className={'ix-strong ' + (r.loss ? 'ix-bad' : 'ly-in')}>{r.profit}</span><span className={'nf-sub' + (r.loss ? ' ix-bad' : '')}>{r.pNote}</span></td>

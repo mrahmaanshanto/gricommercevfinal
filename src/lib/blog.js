@@ -59,20 +59,8 @@ export const ROLES = {
 export const ROLE_TONE = { Admin: 'primary', Editor: 'info', Author: 'success', Contributor: 'slate' };
 
 // ---- block types -----------------------------------------------------------------------------
-export const BLOCK_TYPES = [
-  { type: 'p', label: 'Paragraph', icon: 'pilcrow' },
-  { type: 'h2', label: 'Heading H2', icon: 'heading-2' },
-  { type: 'h3', label: 'Heading H3', icon: 'heading-3' },
-  { type: 'list', label: 'List', icon: 'list' },
-  { type: 'quote', label: 'Quote', icon: 'quote' },
-  { type: 'image', label: 'Image', icon: 'image' },
-  { type: 'product', label: 'Product card', icon: 'shopping-bag' },
-  { type: 'cta', label: 'Button', icon: 'mouse-pointer-click' },
-  { type: 'divider', label: 'Divider', icon: 'minus' },
-  { type: 'embed', label: 'YouTube video', icon: 'youtube' },
-  { type: 'table', label: 'Table', icon: 'table' },
-  { type: 'faq', label: 'FAQ', icon: 'circle-help' },
-];
+import { CONTENT_BLOCK_TYPES } from './storefront/schema.js';
+export const BLOCK_TYPES = CONTENT_BLOCK_TYPES;
 export const blockLabel = (type) => (BLOCK_TYPES.find((b) => b.type === type) || { label: type }).label;
 
 let seq = 0;

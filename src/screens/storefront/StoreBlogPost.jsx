@@ -20,7 +20,7 @@ export default function StoreBlogPost() {
   const post = st.item;
   const notLive = st.ready && st.shows && post && !(post.status === 'published' && (!post.publishAt || new Date(post.publishAt).getTime() <= Date.now()));
   return (
-    <StoreChrome screen="StoreBlogPost" kind="post" css={PAGE_STYLES_CSS + BLOG_EXTRAS_CSS} head={st.ready ? st.head : null} movedFrom={st.movedFrom}
+    <StoreChrome screen="StoreBlogPost" kind="blog" css={PAGE_STYLES_CSS + BLOG_EXTRAS_CSS} head={st.ready ? st.head : null} movedFrom={st.movedFrom}
       preview={notLive ? <>Preview · this post is not on the website yet <Link href={`/blog-editor?id=${post.id}`} style={{ color: 'inherit' }}>Edit post</Link></> : null}>
       {(shell) => (!st.ready ? <div style={{ minHeight: 400 }} aria-busy="true" /> : st.shows ? (<>
         {(shell.values || {}).postStyle && shell.values.postStyle !== 'wide' ? <Crumbs items={[{ name: 'Blog', href: '/blog' }, { name: post.title }]} /> : null}

@@ -17,15 +17,21 @@ import { StatusBadge } from '@/components/ui';
 import { RecordHeader } from '@/components/ui/IndexKit';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { restorePoints, restoreTo, isDirty } from '@/lib/storefront/store';
-import { GROUPS, OPTIONS, searchOptions, visibleOptions, themeDraft, themeLive, saveThemeDraft, publishTheme, discardTheme, contrastIssues, themeDoc, DEFAULTS } from '@/lib/storefront/theme';
-import { resetThemeToPreset, presetBy } from '@/lib/storefront/presets';
+import { GROUPS, OPTIONS, searchOptions, visibleOptions, themeDraft, themeLive, saveThemeDraft, publishTheme, discardTheme, contrastIssues, themeDoc, DEFAULTS, customCssProblems } from '@/lib/storefront/theme';
+import { checkCss } from '@/lib/storefront/customCode';
+import { resetThemeToPreset, designName } from '@/lib/storefront/presets';
 import { lockOf } from '@/lib/storefront/access';
+import { STYLE_PRESETS } from '@/lib/storefront/schema';
 import { storeProducts, topCategories } from '@/lib/storefront/catalog';
 import { useSf, PreviewFrame, DeviceSwitch, LockNote, BlockPick, when, SFB_CSS } from './sfShared';
 import { queryParam } from './storeShared';
 import { ImageField } from '@/components/files/FilePicker';
 
-const CSS = SFB_CSS + `
+export const TE_CSS = `
+.te-moved{display:flex;align-items:center;gap:var(--space-3);margin:var(--space-3) 0;padding:var(--space-3);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);color:var(--text-heading);text-decoration:none}
+.te-moved:hover{background:var(--surface-subtle)}
+.te-moved span{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.te-moved small{color:var(--text-muted);font-size:var(--text-xs)}
 body:has(.te) .gc-ai{display:none}
 .te .gc-shell__main.te-main{height:calc(100dvh - var(--shell-inset) * 2);min-height:600px}
 .te .gc-shell__content.te-content{flex:1;min-height:0;display:flex;flex-direction:column;padding:var(--space-3) var(--space-4)!important}
@@ -35,6 +41,11 @@ body:has(.te) .gc-ai{display:none}
 .te-panel{display:flex;flex-direction:column;min-height:0;border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-card)}
 .te-search{padding:var(--space-3);border-bottom:1px solid var(--border-subtle)}
 .te-scroll{flex:1;min-height:0;overflow-y:auto;padding:var(--space-2) var(--space-3) var(--space-4)}
+.te-styles{margin:0 0 var(--space-4)}
+.te-styles__list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2);margin-top:var(--space-2)}
+.te-style{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:44px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);color:var(--text-heading);font:inherit;font-size:var(--text-sm);text-align:left;cursor:pointer}
+.te-style small{color:var(--text-muted);font-size:var(--text-xs)}
+.te-style.is-on{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
 .te-groups{list-style:none;margin:0;padding:0}
 .te-groups button{display:flex;align-items:center;gap:var(--space-3);width:100%;min-height:44px;padding:0 var(--space-2);border:0;border-radius:var(--radius-lg);background:none;color:var(--text-heading);font:inherit;font-size:var(--text-sm);text-align:left;cursor:pointer}
 .te-groups button:hover{background:var(--surface-subtle)}
@@ -54,6 +65,7 @@ body:has(.te) .gc-ai{display:none}
 .te-bar select{max-width:200px}
 .te-frame{flex:1;min-height:0}
 .te-tabs{display:none}
+.te-css-err{margin:6px 0 0;padding:8px 10px 8px 26px;border-radius:var(--radius-lg);background:var(--fill-error-soft);color:var(--text-danger);font-size:var(--text-xs);display:flex;flex-direction:column;gap:2px}
 @media (max-width:1023px){
   .te-body{grid-template-columns:300px minmax(0,1fr)}
 }
@@ -66,8 +78,9 @@ body:has(.te) .gc-ai{display:none}
   .te-frame{height:640px;flex:none}
 }
 `;
+const CSS = SFB_CSS + TE_CSS;
 
-function OptControl({ o, value, onChange, locked }) {
+export function OptControl({ o, value, onChange, locked }) {
   const id = 'te-' + o.key;
   const dis = !!locked;
   if (o.type === 'bool') {
@@ -90,7 +103,11 @@ function OptControl({ o, value, onChange, locked }) {
     return (<>{label}<select id={id} className="gc-input gc-select" value={value} disabled={dis} onChange={(e) => onChange(e.target.value)}>{o.choices.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select></>);
   }
   if (o.type === 'number') return (<>{label}<input id={id} type="number" className="gc-input" min={o.min} max={o.max} step={o.step || 1} value={value} disabled={dis} onChange={(e) => onChange(Number(e.target.value))} /></>);
-  if (o.type === 'css') return (<>{label}<textarea id={id} className="gc-input" value={value || ''} disabled={dis} spellCheck={false} placeholder=".sf-card { box-shadow: none; }" onChange={(e) => onChange(e.target.value)} /></>);
+  if (o.type === 'css') {
+    // the same strict check as Online Store › Snippets (Batch C): CSS that fails is not saved or used
+    const probs = String(value || '').trim() ? checkCss(value).problems : [];
+    return (<>{label}<textarea id={id} className="gc-input" value={value || ''} disabled={dis} spellCheck={false} placeholder=".sf-card { box-shadow: none; }" aria-invalid={probs.length ? true : undefined} aria-describedby={probs.length ? id + '-err' : undefined} onChange={(e) => onChange(e.target.value)} />{probs.length ? <ul id={id + '-err'} className="te-css-err" role="alert">{probs.map((p) => <li key={p}>{p}</li>)}</ul> : <span className="gc-help">Checked for safety; used on the store pages, never on checkout, account or payment pages.</span>}</>);
+  }
   if (o.type === 'block') return (<>{label}<BlockPick id={id} value={value} type={o.blockType} onChange={onChange} /></>);
   if (o.type === 'image') return (<><span className="te-lbl">{o.label}</span><ImageField id={id} value={value || ''} folder="brand" label={o.label.toLowerCase()} onChange={onChange} /></>);
   return (<>{label}<input id={id} className="gc-input" value={value || ''} placeholder={o.placeholder || ''} disabled={dis} onChange={(e) => onChange(e.target.value)} /></>);
@@ -127,11 +144,23 @@ export default function ThemeEditor() {
 
   const issues = useMemo(() => (vals ? contrastIssues(vals) : []), [vals]);
   const set = (k, x) => setVals((v) => ({ ...v, [k]: x }));
+  // Style: one switch sets shape, type and spacing together (schema.js STYLE_PRESETS); options locked for the theme stay
+  const styleOn = vals ? STYLE_PRESETS.find((x) => Object.entries(x.values).every(([k, v]) => vals[k] === v)) : null;
+  const applyStyle = (x) => {
+    const before = vals;
+    const skipped = [];
+    const next = { ...vals };
+    Object.entries(x.values).forEach(([k, v]) => { const o = OPTIONS.find((y) => y.key === k); if (o && lockOf(o)) skipped.push(o.label); else next[k] = v; });
+    setVals(next);
+    toast(`${x.label} style in your draft${skipped.length ? ' (kept: ' + skipped.join(', ').toLowerCase() + ')' : ''}`, { undo: () => setVals(before) });
+  };
   const doc = ready ? themeDoc() : null;
   const unpublished = !!doc && (isDirty({ ...doc, draft: vals || doc.draft }));
 
-  const saveDraft = () => { saveThemeDraft(vals); setSaved(JSON.stringify(vals)); toast('Draft saved. Customers still see the published look.'); };
+  const cssBad = () => { const p = customCssProblems(vals); if (p.length) { toast('Fix the Custom CSS first: ' + p[0], { tone: 'error' }); return true; } return false; };
+  const saveDraft = () => { if (cssBad()) return; saveThemeDraft(vals); setSaved(JSON.stringify(vals)); toast('Draft saved. Customers still see the published look.'); };
   const publish = async () => {
+    if (cssBad()) return;
     if (issues.length && !(await confirmDialog({ title: 'Some colours are hard to read', body: issues.map((x) => x.text).join(' ') + ' Publish anyway?', confirmLabel: 'Publish anyway' }))) return;
     publishTheme(vals);
     setSaved(JSON.stringify(vals));
@@ -146,7 +175,7 @@ export default function ThemeEditor() {
     toast('Back to the published look');
   };
   const reset = async () => {
-    const name = presetBy(d && d.preset).name;
+    const name = designName(d && d.preset);
     if (!(await confirmDialog({ title: `Reset to ${name}?`, body: `Every option goes back to the ${name} preset in your draft. Customers see it only after you publish.`, confirmLabel: 'Reset' }))) return;
     const v = { ...DEFAULTS, ...resetThemeToPreset() };
     setVals(v); setSaved(JSON.stringify(v));
@@ -169,6 +198,9 @@ export default function ThemeEditor() {
     );
   };
   const groupsShown = q.trim() ? GROUPS.filter((x) => list.some((o) => o.group === x.id)) : [];
+  // options that moved to their own page (the announcement → Store notices) show as a link where they used to be
+  const movedHere = q.trim() ? searchOptions(q).filter((o) => o.moved) : group ? OPTIONS.filter((o) => o.group === group && o.moved) : [];
+  const movedLink = movedHere.length ? <a className="te-moved" href={movedHere[0].moved}><Icon name="megaphone" width="16" height="16" aria-hidden="true" /><span><b>Announcement bar</b><small>Now in Store notices: several notices, schedules, countdowns and coupon codes.</small></span><Icon name="arrow-right" width="16" height="16" aria-hidden="true" /></a> : null;
 
   return (
     <div className="dc-screen ds te" data-screen="ThemeEditor">
@@ -181,7 +213,7 @@ export default function ThemeEditor() {
             <div className="ix-page te-page">
               <RecordHeader back="/theme" backLabel="Theme" title="Customize"
                 badges={!ready ? null : dirty ? <StatusBadge tone="warning">Not saved</StatusBadge> : unpublished ? <StatusBadge tone="warning">Draft not published</StatusBadge> : <StatusBadge tone="success">Published</StatusBadge>}
-                meta={doc ? `${presetBy(d.preset).name} preset · published ${when(doc.liveAt)}` : null}
+                meta={doc ? `${designName(d.preset)} preset · published ${when(doc.liveAt)}` : null}
                 about="Change colours, fonts, the product card, the product and category pages, the cart, the footer and extras. The preview shows each change at once. Save draft keeps your work; Publish shows it to customers."
                 secondary={[{ label: 'Save draft', onClick: saveDraft, disabled: !vals }]}
                 more={[{ label: 'Undo to last published', onClick: undoToLive }, { label: 'Reset to preset', onClick: reset }, { label: 'View store', onClick: () => window.open('/store', '_blank', 'noopener') }]}
@@ -200,21 +232,26 @@ export default function ThemeEditor() {
                   </div>
                   <div className="te-scroll">
                     {!vals ? <div style={{ minHeight: 200 }} aria-busy="true" /> : q.trim() ? (
-                      list.length ? [<LockNote key="lock" text={sameLock} />, ...groupsShown.map((x) => <div key={x.id}><p className="te-sub">{x.label}</p>{list.filter((o) => o.group === x.id).map(opt)}</div>)] : <p className="sfb-muted" style={{ padding: 'var(--space-3) 0' }}>No option matches “{q}”.</p>
+                      list.length || movedLink ? [<LockNote key="lock" text={sameLock} />, <React.Fragment key="moved">{movedLink}</React.Fragment>, ...groupsShown.map((x) => <div key={x.id}><p className="te-sub">{x.label}</p>{list.filter((o) => o.group === x.id).map(opt)}</div>)] : <p className="sfb-muted" style={{ padding: 'var(--space-3) 0' }}>No option matches “{q}”.</p>
                     ) : group ? (<>
                       <button type="button" className="te-back" onClick={() => setGroup('')}><Icon name="arrow-left" width="16" height="16" aria-hidden="true" />All settings</button>
                       <h2 className="te-gh">{g.label}</h2>
                       {group === 'brand' && issues.length ? issues.map((x, i) => <p key={i} className="sfb-warn"><Icon name="triangle-alert" width="14" height="14" aria-hidden="true" /><span>{x.text}</span></p>) : null}
                       <LockNote text={sameLock} />
                       {list.map(opt)}
-                    </>) : (
+                      {movedLink}
+                    </>) : (<>
+                      <div className="te-styles" role="group" aria-labelledby="te-style-h">
+                        <p className="te-sub" id="te-style-h">Style</p>
+                        <div className="te-styles__list">{STYLE_PRESETS.map((x) => <button key={x.id} type="button" className={'te-style' + (styleOn && styleOn.id === x.id ? ' is-on' : '')} aria-pressed={!!styleOn && styleOn.id === x.id} onClick={() => applyStyle(x)}><b>{x.label}</b><small>{x.hint}</small></button>)}</div>
+                      </div>
                       <ul className="te-groups">
                         {GROUPS.map((x) => {
-                          const n = OPTIONS.filter((o) => o.group === x.id).length;
+                          const n = OPTIONS.filter((o) => o.group === x.id && !o.moved).length;
                           return <li key={x.id}><button type="button" onClick={() => setGroup(x.id)}><Icon name={x.icon} width="16" height="16" aria-hidden="true" /><span>{x.label}</span>{x.id === 'brand' && issues.length ? <StatusBadge tone="warning">{issues.length}</StatusBadge> : <small>{n}</small>}<Icon name="chevron-right" width="16" height="16" aria-hidden="true" /></button></li>;
                         })}
                       </ul>
-                    )}
+                    </>)}
                   </div>
                 </aside>
                 <section className="te-view" aria-label="Preview">

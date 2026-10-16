@@ -1,0 +1,791 @@
+{
+  "gcstore": 1,
+  "meta": {
+    "id": "counter",
+    "name": "Counter",
+    "description": "Dense catalogue browsing for shops with a lot of lines.",
+    "for": "Grocery and retail",
+    "version": "1.0",
+    "author": "GridCommerce",
+    "made": "2026-10-15"
+  },
+  "theme": {
+    "primary": "#15803d",
+    "accent": "#f59e0b",
+    "text": "#14281d",
+    "bg": "#f4f7f2",
+    "headerTone": "brand",
+    "fontPair": "friendly",
+    "width": "full",
+    "corners": "round",
+    "spacing": "compact",
+    "cardRating": false,
+    "gallery": "side",
+    "showWarranty": false,
+    "specsTable": false,
+    "reviewsPos": "tab",
+    "colsDesktop": "5",
+    "filters": "top",
+    "sortDefault": "best",
+    "perPage": "36",
+    "paging": "infinite",
+    "freeShipAt": 1000,
+    "footerLayout": "simple"
+  },
+  "headers": [
+    {
+      "id": "hdr-counter-shop",
+      "name": "Counter · Shop",
+      "default": true,
+      "desktop": {
+        "top": {
+          "height": 34,
+          "tone": "dark",
+          "sticky": false,
+          "left": [
+            {
+              "type": "text",
+              "text": "Delivery in 2 hours inside Dhaka"
+            }
+          ],
+          "center": [],
+          "right": [
+            {
+              "type": "phone",
+              "number": "{{shop_phone}}"
+            },
+            "lang"
+          ]
+        },
+        "main": {
+          "height": 72,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [
+            {
+              "type": "search",
+              "placeholder": "Search 2,000+ items"
+            }
+          ],
+          "right": [
+            "account",
+            {
+              "type": "cart",
+              "total": true
+            }
+          ]
+        },
+        "bottom": {
+          "height": 44,
+          "tone": "light",
+          "sticky": false,
+          "left": [
+            "catmenu"
+          ],
+          "center": [
+            "menu"
+          ],
+          "right": []
+        }
+      },
+      "mobile": {
+        "top": null,
+        "main": {
+          "height": 56,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [],
+          "right": [
+            {
+              "type": "cart",
+              "total": true
+            }
+          ]
+        },
+        "bottom": {
+          "height": 52,
+          "tone": "theme",
+          "sticky": true,
+          "left": [],
+          "center": [
+            {
+              "type": "search",
+              "cats": false
+            }
+          ],
+          "right": []
+        },
+        "drawer": [
+          "catmenu",
+          "menu",
+          "account",
+          "phone",
+          "lang"
+        ],
+        "bottomNav": true,
+        "navItems": [
+          "home",
+          "cats",
+          "search",
+          "cart",
+          "account"
+        ]
+      }
+    },
+    {
+      "id": "hdr-counter-simple",
+      "name": "Counter · Simple",
+      "desktop": {
+        "top": null,
+        "main": {
+          "height": 68,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo",
+            "catmenu"
+          ],
+          "center": [
+            {
+              "type": "search",
+              "cats": false,
+              "size": "M"
+            }
+          ],
+          "right": [
+            "cart"
+          ]
+        },
+        "bottom": null
+      },
+      "mobile": {
+        "top": null,
+        "main": {
+          "height": 56,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [],
+          "right": [
+            "search",
+            "cart"
+          ]
+        },
+        "bottom": null,
+        "drawer": [
+          "catmenu",
+          "menu",
+          "account"
+        ],
+        "bottomNav": true,
+        "navItems": [
+          "home",
+          "cats",
+          "cart",
+          "account"
+        ]
+      }
+    },
+    {
+      "id": "hdr-counter-quick",
+      "name": "Counter · Quick order",
+      "desktop": {
+        "top": {
+          "height": 34,
+          "tone": "accent",
+          "sticky": false,
+          "left": [],
+          "center": [
+            {
+              "type": "text",
+              "text": "Order before 6 PM for same-day delivery"
+            }
+          ],
+          "right": []
+        },
+        "main": {
+          "height": 68,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [
+            "search"
+          ],
+          "right": [
+            {
+              "type": "whatsapp",
+              "label": "Order on WhatsApp",
+              "number": "{{whatsapp}}"
+            },
+            "cart"
+          ]
+        },
+        "bottom": null
+      },
+      "mobile": {
+        "top": null,
+        "main": {
+          "height": 56,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [],
+          "right": [
+            "whatsapp",
+            "cart"
+          ]
+        },
+        "bottom": null,
+        "drawer": [
+          "search",
+          "catmenu",
+          "menu"
+        ],
+        "bottomNav": true,
+        "navItems": [
+          "home",
+          "cats",
+          "cart",
+          "account"
+        ]
+      }
+    }
+  ],
+  "layouts": [
+    {
+      "id": "lay-counter-home",
+      "kind": "home",
+      "name": "Home",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "cattiles",
+          "title": "Shop by aisle",
+          "count": 10
+        },
+        {
+          "type": "countdown",
+          "title": "Today’s flash sale"
+        },
+        {
+          "type": "products",
+          "title": "Best sellers",
+          "source": "best",
+          "count": 10
+        },
+        {
+          "type": "offer",
+          "title": "Free delivery over ৳1,000",
+          "text": "Inside Dhaka, every day.",
+          "button": "Start shopping",
+          "href": "/search?q=",
+          "image": "/assets/901f735d539a8b71fb8e8162bb755ec3.webp"
+        },
+        {
+          "type": "products",
+          "title": "Accessories",
+          "source": "category",
+          "cat": "Accessories",
+          "count": 10,
+          "layout": "carousel"
+        },
+        {
+          "type": "products",
+          "title": "Just in",
+          "count": 10
+        },
+        {
+          "type": "brands",
+          "title": "Brands we stock",
+          "count": 10
+        },
+        {
+          "type": "trust"
+        }
+      ]
+    },
+    {
+      "id": "lay-counter-product",
+      "kind": "product",
+      "name": "Product page",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "products",
+          "title": "Often bought together",
+          "source": "related",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "lay-counter-category",
+      "kind": "category",
+      "name": "Category page",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        }
+      ]
+    },
+    {
+      "id": "lay-counter-page",
+      "kind": "page",
+      "name": "Page",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "trust"
+        }
+      ]
+    },
+    {
+      "id": "lay-counter-cart",
+      "kind": "cart",
+      "name": "Cart",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "products",
+          "title": "Add to your order",
+          "source": "best",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": "lay-counter-search",
+      "kind": "search",
+      "name": "Search",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "recent"
+        }
+      ]
+    },
+    {
+      "id": "lay-counter-404",
+      "kind": "404",
+      "name": "Page not found",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "products",
+          "title": "Popular right now",
+          "source": "best",
+          "count": 4
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "blk-counter-delivery",
+      "name": "Delivery info",
+      "type": "content",
+      "content": [
+        {
+          "type": "h2",
+          "text": "Delivery"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Inside Dhaka: 1–2 days, ৳70",
+            "Outside Dhaka: 3–5 days, ৳150",
+            "Cash on delivery all over Bangladesh"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Open the parcel in front of the rider. If something is wrong, give it back right there."
+        }
+      ]
+    },
+    {
+      "id": "blk-counter-eid",
+      "name": "Eid banner",
+      "type": "banner",
+      "content": [
+        {
+          "type": "image",
+          "src": "/assets/901f735d539a8b71fb8e8162bb755ec3.webp",
+          "alt": "Eid offer",
+          "caption": ""
+        },
+        {
+          "type": "h2",
+          "text": "Eid offer: gifts on orders over ৳3,000"
+        },
+        {
+          "type": "cta",
+          "label": "See the offers",
+          "url": "/offers",
+          "style": "solid"
+        }
+      ]
+    },
+    {
+      "id": "blk-counter-size",
+      "name": "Size guide",
+      "type": "tab",
+      "content": [
+        {
+          "type": "h2",
+          "text": "Pack sizes"
+        },
+        {
+          "type": "table",
+          "header": true,
+          "rows": [
+            [
+              "Pack",
+              "Pieces"
+            ],
+            [
+              "Small",
+              "1"
+            ],
+            [
+              "Family",
+              "3"
+            ],
+            [
+              "Value",
+              "6"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blk-counter-warranty",
+      "name": "Warranty info",
+      "type": "tab",
+      "content": [
+        {
+          "type": "h2",
+          "text": "Fresh or your money back"
+        },
+        {
+          "type": "p",
+          "text": "Not happy with an item? Tell the rider or call us the same day."
+        }
+      ]
+    },
+    {
+      "id": "blk-counter-deals",
+      "name": "Today’s deals",
+      "type": "mega",
+      "content": [
+        {
+          "type": "h2",
+          "text": "Today’s deals"
+        },
+        {
+          "type": "p",
+          "text": "New prices every morning at 9."
+        },
+        {
+          "type": "cta",
+          "label": "See deals",
+          "url": "/offers",
+          "style": "solid"
+        }
+      ]
+    },
+    {
+      "id": "blk-counter-footer",
+      "name": "Footer",
+      "type": "footer",
+      "content": [
+        {
+          "type": "p",
+          "text": "Delivery in 2 hours inside Dhaka · Cash on delivery"
+        },
+        {
+          "type": "p",
+          "text": "Call {{shop_phone}}"
+        }
+      ]
+    }
+  ],
+  "menus": [
+    {
+      "id": "main",
+      "name": "Main menu",
+      "place": "header",
+      "items": [
+        {
+          "label": "Home",
+          "link": {
+            "type": "home"
+          }
+        },
+        {
+          "label": "All aisles",
+          "link": {
+            "type": "category",
+            "ref": "Accessories"
+          },
+          "children": [
+            {
+              "label": "Chargers & cables",
+              "link": {
+                "type": "category",
+                "ref": "Accessories › Chargers & cables"
+              }
+            },
+            {
+              "label": "Batteries",
+              "link": {
+                "type": "category",
+                "ref": "Accessories › Batteries"
+              }
+            },
+            {
+              "label": "Power banks",
+              "link": {
+                "type": "category",
+                "ref": "Power banks"
+              }
+            }
+          ],
+          "mega": {
+            "on": true,
+            "width": "full",
+            "px": 1200,
+            "cols": [
+              {
+                "kind": "cats",
+                "title": "Accessories",
+                "ref": "Accessories"
+              },
+              {
+                "kind": "cats",
+                "title": "Audio",
+                "ref": "Audio"
+              },
+              {
+                "kind": "links",
+                "title": "Quick picks"
+              },
+              {
+                "kind": "block",
+                "block": "blk-counter-deals"
+              }
+            ]
+          }
+        },
+        {
+          "label": "Deals",
+          "link": {
+            "type": "offers"
+          }
+        },
+        {
+          "label": "Delivery areas",
+          "link": {
+            "type": "url",
+            "url": "/page?handle=delivery-areas"
+          }
+        }
+      ]
+    },
+    {
+      "id": "footer",
+      "name": "Footer menu",
+      "place": "footer",
+      "items": [
+        {
+          "label": "Shop",
+          "link": {
+            "type": "home"
+          },
+          "children": [
+            {
+              "label": "Phones",
+              "link": {
+                "type": "category",
+                "ref": "Phones"
+              }
+            },
+            {
+              "label": "Accessories",
+              "link": {
+                "type": "category",
+                "ref": "Accessories"
+              }
+            },
+            {
+              "label": "Offers",
+              "link": {
+                "type": "offers"
+              }
+            },
+            {
+              "label": "Blog",
+              "link": {
+                "type": "blog",
+                "ref": ""
+              }
+            }
+          ]
+        },
+        {
+          "label": "Company",
+          "link": {
+            "type": "page",
+            "ref": "about-us"
+          },
+          "children": [
+            {
+              "label": "About us",
+              "link": {
+                "type": "page",
+                "ref": "about-us"
+              }
+            },
+            {
+              "label": "Contact us",
+              "link": {
+                "type": "page",
+                "ref": "contact-us"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "care",
+      "name": "Customer care",
+      "place": "footer",
+      "items": [
+        {
+          "label": "Shipping & delivery",
+          "link": {
+            "type": "page",
+            "ref": "shipping-delivery"
+          }
+        },
+        {
+          "label": "Return & refund",
+          "link": {
+            "type": "page",
+            "ref": "return-refund"
+          }
+        },
+        {
+          "label": "Privacy policy",
+          "link": {
+            "type": "page",
+            "ref": "privacy-policy"
+          }
+        },
+        {
+          "label": "WhatsApp us",
+          "link": {
+            "type": "url",
+            "url": "https://wa.me/{{whatsapp}}"
+          }
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "handle": "delivery-areas",
+      "title": "Delivery areas",
+      "status": "published",
+      "content": [
+        {
+          "type": "p",
+          "text": "We deliver every day from 9 AM to 9 PM."
+        },
+        {
+          "type": "table",
+          "header": true,
+          "rows": [
+            [
+              "Area",
+              "Time",
+              "Charge"
+            ],
+            [
+              "Inside Dhaka",
+              "2 hours",
+              "৳60"
+            ],
+            [
+              "Savar, Gazipur, Narayanganj",
+              "Same day",
+              "৳100"
+            ],
+            [
+              "Outside Dhaka",
+              "2–3 days",
+              "৳150"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Free delivery inside Dhaka on orders over ৳1,000."
+        }
+      ]
+    }
+  ],
+  "notices": [
+    {
+      "id": "today",
+      "text": "Delivery in 2 hours inside Dhaka",
+      "tone": "dark",
+      "place": "top"
+    }
+  ]
+}

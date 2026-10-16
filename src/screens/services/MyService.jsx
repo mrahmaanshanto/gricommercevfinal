@@ -5,6 +5,8 @@
 // accepting), approve the delivery or this month's report or ask for a change (changes left shown), rate it — then the
 // messages with the expert, the files and deliverables, monthly reports, and the order's details, brief and history.
 // A quiet order (Waiting for you, no reply) closes by itself after 14 days; the page warns from day 10.
+// Batch D: a custom offer that is not paid shows the offer and its payment (OfferPay); the team's shared progress
+// updates show under the steps (only what GridCommerce shares).
 // Data: lib/platform/services.js. Front end only.
 
 import React, { useMemo, useState } from 'react';
@@ -16,9 +18,14 @@ import { RecordHeader, KV } from '@/components/ui/IndexKit';
 import { postEntry } from '@/lib/ledger';
 import {
   orderById, stateOf, pkgOf, postMessage, approveDelivery, requestChange, rate, answerAccess, acceptQuote, declineQuote, cancelOrder, stopRetainer,
-  areaLabel, payLabel, PAY_METHODS, QUIET_DAYS,
+  areaLabel, payLabel, PAY_METHODS, QUIET_DAYS, sharedUpdates,
 } from '@/lib/platform/services';
+import { OfferPay, OFFER_CSS } from './OfferPay';
 import { SvcFrame, useServices, SvcStatus, Steps, Stars, StarPicker, tk, query, dateText, shortDate, timeText, dueWord } from './svcShared';
+import { applyKit, appliedKit } from '@/lib/storefront/kitStore';
+import { restoreTo } from '@/lib/storefront/store';
+import { kitSummary } from '@/lib/storefront/kit';
+import { KitPreviewSheet } from '@/screens/online-store/sfShared';
 
 const PAY_ACCOUNT = { bkash: 'bkash', nagad: 'nagad', card: 'brac', credits: 'gc-credits' };
 const say = (res, ok) => { if (res && res.ok === false) { toast(res.error, { tone: 'error' }); return false; } if (ok) toast(ok); return true; };
@@ -32,18 +39,40 @@ export default function MyService() {
   const [stars, setStars] = useState(0);
   const [review, setReview] = useState('');
   const [qPay, setQPay] = useState('bkash');
+  const [pv, setPv] = useState(null);   // the design file being previewed
   const o = useMemo(() => (ready ? orderById(query('id')) : null), [ready, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!ready) return <SvcFrame screen="MyService" active="svc-mine" page="Order"><div style={{ minHeight: 400 }} aria-busy="true" /></SvcFrame>;
   if (!o) return <SvcFrame screen="MyService" active="svc-mine" page="Order" narrow><RecordHeader back="/my-services" backLabel="My services" title="Order not found" /><section className="ix-card ix-empty"><EmptyState icon="briefcase" title="This order is not here" actionLabel="My services" onAction={() => { window.location.href = '/my-services'; }} /></section></SvcFrame>;
 
   const st = stateOf(o);
   const pkg = pkgOf(st.svc, o.pkgId) || {};
+  // a custom offer that is not paid yet: the offer and its payment, nothing else
+  if (st.status === 'unpaid' || st.status === 'expired') {
+    return (
+      <SvcFrame screen="MyService" active="svc-mine" page={st.svc.name} css={OFFER_CSS} narrow>
+        <RecordHeader back="/my-services" backLabel="My services" title={st.svc.name} badges={<SvcStatus status={st.status} />} meta={<>{o.id} · offered {dateText(o.offer.at)}</>} />
+        <OfferPay o={o} />
+      </SvcFrame>
+    );
+  }
+  const ups = sharedUpdates(o);
   const monthly = o.cycle === 'monthly';
   const openQuote = (o.quotes || []).find((q) => q.status === 'sent');
   const lastReport = st.lastReport;
   const shown = o.messages.filter((m) => !m.internal);
   const delivered = o.deliverables.filter((d) => !d.draft);
   const needRateOrder = st.status === 'closed' && o.closeReason === 'Approved' && !o.rating && !monthly;
+  // a store design delivered as a design file: preview it on the shop's own products, apply it (a restore point first)
+  const design = delivered.filter((d) => d.kit).slice(-1)[0] || null;
+  const applied = design ? appliedKit() : null;
+  const isApplied = !!(design && applied && applied.from === o.id + ':' + design.id);
+  const applyDesign = async () => {
+    if (!(await confirmDialog({ title: 'Apply this design to your store?', body: 'Its theme, headers, layouts, blocks, menus and notices replace yours. A restore point is made first: Online Store › Theme › Go back undoes it.', confirmLabel: 'Apply design' }))) return;
+    const r = applyKit(design.kit, { theme: true, headers: true, layouts: true, blocks: true, menus: true, notices: true, placements: true, customs: true, pages: false }, { label: `Before the design from ${o.id}`, from: o.id + ':' + design.id, trusted: true });
+    if (!r.ok) { toast((r.errors[0] || {}).text || 'The design could not be applied.', { tone: 'error' }); return; }
+    setPv(null);
+    toast('Design applied to your store', { undo: () => { if (r.point) { restoreTo(r.point.id); toast('Back to your earlier look'); } } });
+  };
   const needRateReport = monthly && lastReport && lastReport.approvedAt && !lastReport.rating;
 
   const send = () => { if (say(postMessage(o.id, { from: 'merchant', text, files }))) { setText(''); setFiles([]); } };
@@ -70,6 +99,16 @@ export default function MyService() {
         more={[o.status === 'brief' ? { label: 'Cancel order', onClick: cancel, tone: 'danger' } : null, monthly && !o.stopAt && !['closed', 'cancelled', 'refunded'].includes(st.status) ? { label: 'Stop at the end of this month', onClick: stop } : null, { label: 'Order this again', href: '/service-detail?id=' + o.serviceId }].filter(Boolean)} />
 
       <section className="ix-card svc-pad" aria-label="Progress"><Steps status={st.status} /></section>
+      {ups.list.length ? (
+        <section className="ix-card svc-pad" aria-labelledby="ms-up">
+          <div className="svc-row" style={{ justifyContent: 'space-between' }}><h2 id="ms-up">Progress updates</h2>{ups.progress != null ? <span className="svc-meta">{ups.progress}% done</span> : null}</div>
+          {ups.progress != null ? <span className="svc-bar" role="progressbar" aria-label="How far the work is" aria-valuenow={ups.progress} aria-valuemin={0} aria-valuemax={100}><b style={{ width: ups.progress + '%' }} /></span> : null}
+          <ol className="svc-upd">
+            {ups.list.slice(0, 4).map((u) => <li key={u.id}><span>{u.text}</span><small>{u.by} · {timeText(u.publishedAt || u.at)}{u.progress != null ? ' · ' + u.progress + '%' : ''}</small></li>)}
+          </ol>
+          {ups.list.length > 4 ? <details className="gc-disclose"><summary>Earlier updates · {ups.list.length - 4}</summary><ol className="svc-upd">{ups.list.slice(4).map((u) => <li key={u.id}><span>{u.text}</span><small>{u.by} · {timeText(u.publishedAt || u.at)}</small></li>)}</ol></details> : null}
+        </section>
+      ) : null}
 
       <div className="ix-record">
         <div className="ix-main">
@@ -130,6 +169,17 @@ export default function MyService() {
                   <span className="ix-muted" style={{ fontSize: 'var(--text-xs)' }}>{st.revisionsLeft ? `${st.revisionsLeft} change${st.revisionsLeft === 1 ? '' : 's'} left` : 'No changes left: the expert can offer extra work'}</span>
                 </div>
               )}
+            </section>
+          ) : null}
+          {design ? (
+            <section className="svc-need" aria-labelledby="ms-kit" style={{ borderColor: 'var(--primary)', background: 'var(--surface-card)' }}>
+              <h2 id="ms-kit"><Icon name="paintbrush" width="16" height="16" aria-hidden="true" />{isApplied ? 'Your new store design is live' : 'Your store design is ready'}</h2>
+              <p><b>{design.kit.meta.name || design.name}</b> · {kitSummary(design.kit)}. See it with your own products first; applying it keeps a restore point, so you can go back in one click.</p>
+              <div className="svc-row">
+                <button type="button" className="gc-btn gc-btn--sm" onClick={() => setPv(design)}><Icon name="eye" width="16" height="16" aria-hidden="true" />Preview on my store</button>
+                {isApplied ? <a className="gc-btn gc-btn--sm" href="/theme">Open Theme</a> : <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={applyDesign}>Apply to my store</button>}
+                {isApplied ? <span className="ix-muted" style={{ fontSize: 'var(--text-xs)' }}>Applied {dateText(applied.appliedAt)}</span> : null}
+              </div>
             </section>
           ) : null}
           {needRateOrder || needRateReport ? (
@@ -193,7 +243,7 @@ export default function MyService() {
           <section className="ix-card svc-pad">
             <h2>Details</h2>
             <KV rows={[
-              ['Expert', st.expert ? <span>{st.expert.name}{st.expert.rating ? <> · <Stars value={st.expert.rating} size={11} /></> : null}</span> : 'Assigned within a working day'],
+              st.team ? ['Team', `${st.team.name}${st.expert ? ' · lead ' + st.expert.name : ''}`] : ['Expert', st.expert ? <span>{st.expert.name}{st.expert.rating ? <> · <Stars value={st.expert.rating} size={11} /></> : null}</span> : 'Assigned within a working day'],
               ['Due', st.due && ['brief', 'progress', 'qa', 'waiting'].includes(st.status) ? `${dateText(st.due)} · ${st.waiting ? 'paused while waiting for you' : dueWord(st.left)}` : st.status === 'brief' ? 'Starts when the expert is assigned' : '—'],
               ['Changes left', monthly ? 'Per report: ' + (pkg.revisions || 0) : String(st.revisionsLeft)],
               ['Paid', tk(st.paidTotal) + (st.refunded ? ` · ${tk(st.refunded)} refunded` : '')],
@@ -214,6 +264,8 @@ export default function MyService() {
           <p className="gc-help" style={{ margin: 0 }}>Need help with this order? <Link href="/support-tickets" className="bl-link">Ask support</Link></p>
         </aside>
       </div>
-    </SvcFrame>
+          {pv ? <KitPreviewSheet kit={pv.kit} title={(pv.kit.meta.name || pv.name) + ' · preview'} onClose={() => setPv(null)} note="Your own products, categories and pages, in the new design. Nothing changes until you apply it."
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setPv(null)}>Close</button>{!isApplied ? <button type="button" className="gc-btn gc-btn--solid" onClick={applyDesign}>Apply to my store</button> : null}</>} /> : null}
+</SvcFrame>
   );
 }

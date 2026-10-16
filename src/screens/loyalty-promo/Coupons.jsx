@@ -16,6 +16,16 @@ import MarketingTabs from '@/screens/loyalty-promo/MarketingTabs';
 import { toast as __toast } from '@/runtime/ui';
 import { clockNow } from '@/lib/settlements';
 import { listOffers, setOfferStatus, CHANNEL_LABEL, PROMO_EVENT } from '@/lib/promotions';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
+
+// the code's picture: its banner, else the photo of the product it is for, else '' (a tag tile)
+function offerPic(o) {
+  if (o.banner || o.image) return o.banner || o.image;
+  var p = (o.conditions || {}).products || {}, r = o.reward || {};
+  var sku = (p.mode === 'skus' && (p.skus || [])[0]) || ((r.buy || {}).skus || [])[0] || (r.gift || {}).sku || ((r.get || {}).skus || [])[0];
+  return sku ? productPic(sku) : '';
+}
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -32,7 +42,7 @@ function couponRows(today) {
     var who = cd.customer === 'tiers' ? (cd.tiers || []).map(function (t) { return { silver: 'Silver', gold: 'Gold', plat: 'Platinum' }[t] || t; }).join(' and ') + ' members' : WHO[cd.customer] || 'Everyone';
     return { id: o.id, code: o.code, gets: gets, rule: rule, where: (o.channels || []).map(function (c) { return CHANNEL_LABEL[c]; }).join(' + '), who: who,
       from: sch.start != null && sch.end != null ? Math.round((sch.start - today) / DAY) : null, to: sch.end != null ? Math.floor((sch.end - today) / DAY) : null,
-      used: o.usage.used, limit: o.limits.total || 0, sales: o.usage.sales, st: LIFE_ST[o.life] || 'off', on: o.status !== 'paused', life: o.life };
+      used: o.usage.used, limit: o.limits.total || 0, sales: o.usage.sales, st: LIFE_ST[o.life] || 'off', on: o.status !== 'paused', life: o.life, pic: offerPic(o) };
   });
 }
 // Coupon dates are kept as days from today (from / to), so the running codes stay current. The first render uses the
@@ -65,7 +75,7 @@ class Component extends DCLogic {
     var needle = String(s.q || '').trim().toLowerCase();
     var rows = C.filter(function (c) { return eff(c) === tab && (!needle || (c.code + ' ' + c.gets + ' ' + c.rule).toLowerCase().indexOf(needle) >= 0); }).map(function (c) {
       var on = isOn(c), pct = c.limit ? Math.round(c.used / c.limit * 100) : Math.min(100, Math.round(c.used / 3)), cd = couponDates(c, today);
-      return { code: c.code, gets: c.gets, rule: c.rule, where: c.where, who: c.who, summary: [c.gets, c.rule, c.where, c.who].join(' · '), dates: cd.dates, left: cd.left, urgent: !!cd.urgent,
+      return { code: c.code, pic: c.pic, gets: c.gets, rule: c.rule, where: c.where, who: c.who, summary: [c.gets, c.rule, c.where, c.who].join(' · '), dates: cd.dates, left: cd.left, urgent: !!cd.urgent,
         used: c.limit ? c.used + ' of ' + c.limit : c.used + ' times', pct: pct + '%', sales: c.sales ? bdt(c.sales) : '—', on: on,
         copy: function () { try { if (navigator.clipboard) navigator.clipboard.writeText(c.code); } catch (e) { /* clipboard blocked: the toast still tells the code */ } flash(c.code + ' copied. Paste it in your Facebook post or SMS.'); },
         toggle: function () { var q = assign({}, sw); q[c.id] = !on; self.setState({ sw: q }); setOfferStatus(c.id, on ? 'paused' : 'active', 'Turned off');
@@ -99,6 +109,7 @@ const CSS = `
 .cp-use .gc-progress{display:block;height:4px}
 .cp-pitem{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-bottom:1px solid var(--border-subtle)}
 .ix-plist>li:last-child>.cp-pitem{border-bottom:0}
+.cp-pitem--pic{display:grid;grid-template-columns:43px minmax(0,1fr);column-gap:10px;row-gap:4px}
 `;
 
 // ---- markup ----
@@ -144,7 +155,8 @@ export default class CouponsScreen extends Component {
                   ) : (<>
                     <ul className="ix-plist" aria-label="Coupons">
                       {v.rows.map((r) => (
-                        <li key={r.code} className="cp-pitem">
+                        <li key={r.code} className="cp-pitem cp-pitem--pic">
+                          <span style={{ gridRow: 'span 3' }}><Pic src={r.pic} name={r.code} kind="cover" icon="tag" /></span>
                           <span className="ix-pitem__top">{code(r)}{sw(r)}</span>
                           <span className="ix-pitem__mid">{r.gets} · {r.rule}</span>
                           <span className="ix-pitem__mid"><span suppressHydrationWarning className={r.urgent ? 'ix-bad' : ''}>{r.left}</span> · {r.used} · {r.sales}</span>
@@ -166,7 +178,7 @@ export default class CouponsScreen extends Component {
                         <tbody>
                           {v.rows.map((r) => (
                             <tr key={r.code}>
-                              <td>{code(r)}<span className="cp-sum" title={r.summary}>{r.summary}</span></td>
+                              <td><span className="gc-picrow"><Pic src={r.pic} name={r.code} kind="cover" icon="tag" /><span>{code(r)}<span className="cp-sum" title={r.summary}>{r.summary}</span></span></span></td>
                               <td><span suppressHydrationWarning>{r.dates}</span><span suppressHydrationWarning className={'cp-sum' + (r.urgent ? ' ix-bad' : '')}>{r.left}</span></td>
                               <td><span className="cp-use"><span>{r.used}</span><span className="gc-progress" aria-hidden="true"><span className="gc-progress__fill" style={{ display: 'block', width: r.pct }} /></span></span></td>
                               <td className="ix-num">{r.sales}</td>

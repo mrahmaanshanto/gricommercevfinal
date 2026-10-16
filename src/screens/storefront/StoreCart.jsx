@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { cartLines, cartTotal, CART_EVENT } from '@/lib/storefront/cart';
 import { StoreChrome, Crumbs, CartLines, FreeDelivery, TrustMarks } from './storeChrome';
+import { Placed } from './storePlaced';
 import { Sections, useLayout } from './sections';
 import { bdt } from './storeKit';
 
@@ -42,6 +43,7 @@ export default function StoreCart() {
         const main = (
           <div className="sf-wrap">
             <Crumbs items={[{ name: 'Cart' }]} />
+            <Placed spot="cart" />
             <div className="sct">
               <div className="sct-box">
                 <h1>Your cart</h1>

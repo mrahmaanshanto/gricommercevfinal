@@ -6,9 +6,10 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { StatusBadge } from '@/components/ui';
+import { StatusBadge, EmptyState } from '@/components/ui';
 import { formatBDT } from '@/lib/format';
-import { read, EVENT, KEY, STATUS, statusLabel } from '@/lib/platform/services';
+import { read, EVENT, KEY, STATUS, statusLabel, SELF_SHOP } from '@/lib/platform/services';
+import { canUse, MARKET_EVENT, MARKET_KEY } from '@/lib/platform/marketAccess';
 
 export const tk = (n) => formatBDT(Math.round(n || 0));
 export const query = (k) => (typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get(k) || '');
@@ -84,6 +85,11 @@ export const SVC_CSS = `
 .svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--space-3)}
 .svc-card{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);color:inherit;text-decoration:none;box-shadow:0 1px 2px rgba(15,23,42,.04)}
 .svc-card:hover,.svc-card:focus-visible{border-color:var(--primary)}
+.svc-card--pic{padding:0;overflow:hidden}
+.svc-card--pic>*:not(.svc-cover){margin-inline:var(--space-4)}
+.svc-card--pic>.svc-card__foot{margin-bottom:var(--space-4)}
+.svc-cover{display:grid;place-items:center;aspect-ratio:16/9;background:var(--surface-subtle) top center/cover no-repeat;border-bottom:1px solid var(--border-subtle);color:var(--primary)}
+.svc-cover.is-tile{background:linear-gradient(135deg,var(--fill-primary-soft),var(--surface-subtle))}
 .svc-card__top{display:flex;align-items:center;gap:var(--space-2)}
 .svc-ico{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
 .svc-card b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
@@ -151,26 +157,51 @@ export const SVC_CSS = `
 .svc-pay{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--space-2)}
 .svc-pay label{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--border-field);border-radius:var(--radius-lg);font-size:var(--text-sm);cursor:pointer}
 .svc-pay label.is-on{border-color:var(--primary);background:var(--fill-primary-soft)}
+.svc-bar{display:block;height:8px;border-radius:var(--radius-full);background:var(--surface-subtle);overflow:hidden}
+.svc-bar b{display:block;height:100%;border-radius:var(--radius-full);background:var(--success)}
+.svc-upd{display:flex;flex-direction:column;gap:var(--space-3);margin:0;padding:0 0 0 18px;list-style:none;border-left:2px solid var(--border-subtle)}
+.svc-upd li{position:relative;display:flex;flex-direction:column;gap:2px;font-size:var(--text-sm);color:var(--text-body)}
+.svc-upd li::before{content:'';position:absolute;left:-24px;top:5px;width:10px;height:10px;border-radius:var(--radius-full);background:var(--surface-card);border:2px solid var(--primary)}
+.svc-upd small{font-size:var(--text-xs);color:var(--text-muted)}
 .svc-note{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:var(--radius-lg);background:var(--fill-info-soft);font-size:var(--text-sm);color:var(--text-body)}
 .svc-note svg{flex:none;margin-top:2px;color:var(--text-info)}
 @media (max-width:640px){.svc-msg{max-width:92%}.svc-steps{flex-wrap:nowrap}.svc-steps li{flex:1 1 auto;min-width:0}.svc-steps li span:last-child{display:none}.svc-steps li.is-now{flex:0 0 auto}.svc-steps li.is-now span:last-child{display:inline;white-space:nowrap}}
 `;
 
-/** The merchant page frame (shell + Services crumb). */
-export function SvcFrame({ screen, active, page, css = '', narrow, after, children }) {
+/** May this store use a GridCommerce offer (Batch D, lib/platform/marketAccess.js)? { ready, ok, why, code } after mount. */
+export function useMarket(module) {
+  const [st, setSt] = useState({ ready: false, ok: true, why: '', code: '' });
+  useEffect(() => {
+    const load = () => setSt({ ready: true, ...canUse(module, SELF_SHOP) });
+    load();
+    const onStorage = (e) => { if (!e.key || e.key === MARKET_KEY) load(); };
+    window.addEventListener(MARKET_EVENT, load); window.addEventListener('storage', onStorage);
+    return () => { window.removeEventListener(MARKET_EVENT, load); window.removeEventListener('storage', onStorage); };
+  }, [module]);
+  return st;
+}
+/** What a store sees when GridCommerce has closed a module to it. */
+export function MarketClosed({ title, why, mine }) {
+  return <section className="ix-card" style={{ padding: 'var(--space-6) var(--space-4)' }}><EmptyState icon="lock" title={title} body={why} actionLabel={mine ? mine[0] : undefined} onAction={mine ? () => { window.location.href = mine[1]; } : undefined} /></section>;
+}
+
+/** The merchant page frame (shell + Services crumb). `gate` = a module in marketAccess: closed stores see why instead. */
+export function SvcFrame({ screen, active, page, css = '', narrow, after, children, gate, crumb = 'Services' }) {
+  const m = useMarket(gate || 'services');
+  const closed = !!gate && m.ready && !m.ok;
   return (
     <div className="dc-screen ds" data-screen={screen}>
       <style dangerouslySetInnerHTML={{ __html: SVC_CSS + css }} />
       <div className="gc-shell">
         <Sidebar sticky="" active={active} />
         <main className="gc-shell__main">
-          <Topbar crumb="Services" page={page} />
+          <Topbar crumb={crumb} page={page} />
           <div className="gc-shell__content">
-            <div className={'ix-page' + (narrow ? ' ix-page--narrow' : '')}>{children}</div>
+            <div className={'ix-page' + (narrow ? ' ix-page--narrow' : '')}>{closed ? <MarketClosed title={gate === 'shop' ? 'Grid Shop isn’t open for your store' : gate === 'partners' ? 'Grid Partners isn’t open for your store' : 'Expert help isn’t open for your store'} why={m.why} mine={gate === 'services' ? ['My services', '/my-services'] : null} /> : children}</div>
           </div>
         </main>
       </div>
-      {after}
+      {closed ? null : after}
     </div>
   );
 }

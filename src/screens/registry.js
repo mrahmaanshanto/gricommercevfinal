@@ -2631,6 +2631,72 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "StoreAccount",
+    "route": "/account",
+    "folder": "storefront",
+    "title": "My account",
+    "description": "Shopper account: sign in with mobile number and code (or email and password), orders, returns, addresses, points and credit, coupons, warranty, profile and message choices.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "StoreWishlist",
+    "route": "/wishlist",
+    "folder": "storefront",
+    "title": "Wishlist",
+    "description": "Saved products (guest or account), share link, add all to cart; ?ids= shows a shared list.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "StoreCompare",
+    "route": "/compare",
+    "folder": "storefront",
+    "title": "Compare products",
+    "description": "Up to 4 products side by side: price, rating, stock, brand, warranty and template specifications, only differences.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "StoreAffiliate",
+    "route": "/affiliate-program",
+    "folder": "storefront",
+    "title": "Become an affiliate",
+    "description": "Affiliate programme sign-up: what affiliates earn, how it works, the application form and terms.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "Affiliates",
+    "route": "/affiliates",
+    "folder": "loyalty-promo",
+    "title": "Affiliates",
+    "description": "Marketing › Affiliates: affiliates, applications, commissions, programme settings and Make payouts.",
+    "canvasPage": "Marketing",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "AffiliateProfile",
+    "route": "/affiliate",
+    "folder": "loyalty-promo",
+    "title": "Affiliate",
+    "description": "One affiliate: link, code, QR, results, orders, payouts and details.",
+    "canvasPage": "Marketing",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
     "name": "SetCheckout",
     "route": "/set-checkout",
     "folder": "settings-console",
@@ -2829,6 +2895,270 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "ServiceOffer",
+    "route": "/service-offer",
+    "folder": "services",
+    "title": "Pay your custom offer",
+    "description": "The payment link for a custom offer from GridCommerce: what is included, the price with VAT, pay to confirm (Batch D).",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "GridShop",
+    "route": "/grid-shop",
+    "folder": "services",
+    "title": "Business supplies",
+    "description": "Services › Business supplies (Grid Shop): packaging, POS hardware, labels and shop supplies by category, with the cart (Batch D).",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "GridShopItem",
+    "route": "/grid-shop-item",
+    "folder": "services",
+    "title": "Supply item",
+    "description": "A Grid Shop product: pictures, price and bulk prices, where it ships from, quantity, add to cart or buy now.",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "GridShopCheckout",
+    "route": "/grid-shop-checkout",
+    "folder": "services",
+    "title": "Supplies checkout",
+    "description": "Grid Shop checkout: parcels by where they ship from, delivery address, payment and the total with VAT.",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "GridShopOrders",
+    "route": "/grid-shop-orders",
+    "folder": "services",
+    "title": "My supply orders",
+    "description": "Services › My supply orders: Grid Shop orders with status and parcels.",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "GridShopOrder",
+    "route": "/grid-shop-order",
+    "folder": "services",
+    "title": "Supply order",
+    "description": "A Grid Shop order: each parcel with courier and tracking, items, payment; cancel before shipping, order again.",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "Partners",
+    "route": "/partners",
+    "folder": "partners",
+    "title": "Grid Partners",
+    "description": "Services \u203a Grid Partners: browse approved models, influencers and video creators (type tabs, niche, city, followers and budget filters); cards with photo, blue tick, top platform followers, from-price and availability (Batch E).",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "Partner",
+    "route": "/partner",
+    "folder": "partners",
+    "title": "Partner profile",
+    "description": "A Grid Partner's profile for the store (cover, platforms, samples with lightbox, rate card, ratings) with Request a quote (package or custom, brief, budget, wanted by).",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "PartnerRequests",
+    "route": "/partner-requests",
+    "folder": "partners",
+    "title": "Partner requests",
+    "description": "The store's quote requests to Grid Partners: status, conversation, the partner's phone and email once accepted, withdraw, mark done and rate.",
+    "canvasPage": "Services",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "GpLanding",
+    "route": "/grid-partners",
+    "folder": "partners",
+    "title": "Grid Partners for creators",
+    "description": "Landing page for creators: what Grid Partners is, how it works in 3 steps, Join.",
+    "canvasPage": "Grid Partners",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "GpJoin",
+    "route": "/grid-partners/join",
+    "folder": "partners",
+    "title": "Join Grid Partners",
+    "description": "Creator application: type, name, link, city, niches, platforms and followers, 3+ samples (upload or video link), rate card, phone code check (demo 1234), ID declaration.",
+    "canvasPage": "Grid Partners",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "GpSignIn",
+    "route": "/gp-sign-in",
+    "folder": "partners",
+    "title": "Grid Partners sign-in",
+    "description": "Partner sign-in (demo: tap a partner such as Nadia Islam).",
+    "canvasPage": "Grid Partners",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "GpHome",
+    "route": "/gp",
+    "folder": "partners",
+    "title": "Partner home",
+    "description": "The partner's home: review status, profile completeness, new requests, views and the share card (link, QR, social share, downloadable card).",
+    "canvasPage": "Grid Partners",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "GpProfile",
+    "route": "/gp-profile",
+    "folder": "partners",
+    "title": "Partner profile editor",
+    "description": "The partner edits photo, cover, about, niches, platforms, samples, rate card, budget, availability and contact; share card at the side.",
+    "canvasPage": "Grid Partners",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "GpRequests",
+    "route": "/gp-requests",
+    "folder": "partners",
+    "title": "Partner requests (partner side)",
+    "description": "Store requests to the partner: accept or decline with a note, message; accepted requests show the store's phone and email.",
+    "canvasPage": "Grid Partners",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "PartnerPublic",
+    "route": "/p",
+    "folder": "partners",
+    "title": "Public partner profile",
+    "description": "The public profile a partner shares on social media (/p?h=<handle>): no contact details; only approved partners show.",
+    "canvasPage": "Grid Partners",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "VendorSignIn",
+    "route": "/vendor-sign-in",
+    "folder": "vendor",
+    "title": "Vendor sign-in",
+    "description": "Grid Shop vendor portal sign-in (demo: tap a vendor such as Star Tech to sign in).",
+    "canvasPage": "Grid Shop vendors",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "VendorHome",
+    "route": "/vendor",
+    "folder": "vendor",
+    "title": "Vendor home",
+    "description": "Grid Shop vendor portal home: sales today and this month, parcels to ship, balance, products waiting for approval and the vendor's rates (Batch E).",
+    "canvasPage": "Grid Shop vendors",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "VendorProducts",
+    "route": "/vendor-products",
+    "folder": "vendor",
+    "title": "Vendor products",
+    "description": "The vendor's Grid Shop products: status (on sale, waiting for approval, rejected with the reason), price, what stores pay and what the vendor gets, stock edited in the row.",
+    "canvasPage": "Grid Shop vendors",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "VendorProduct",
+    "route": "/vendor-product",
+    "folder": "vendor",
+    "title": "Vendor product",
+    "description": "Add or edit a vendor product: details, pictures, price and bulk prices, stock; 'Stores will pay ৳x; you get ৳y'; save draft or send for approval; changes to live products wait for approval.",
+    "canvasPage": "Grid Shop vendors",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "VendorOrders",
+    "route": "/vendor-orders",
+    "folder": "vendor",
+    "title": "Vendor orders",
+    "description": "The vendor's Grid Shop parcels: To ship, On the way, Delivered, with what the vendor gets.",
+    "canvasPage": "Grid Shop vendors",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "VendorOrder",
+    "route": "/vendor-order",
+    "folder": "vendor",
+    "title": "Vendor parcel",
+    "description": "A vendor parcel: items, deliver-to address, Accept, Packing, book Steadfast / Pathao / RedX (simulated) or own courier, Delivered; the money for the parcel.",
+    "canvasPage": "Grid Shop vendors",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "VendorMoney",
+    "route": "/vendor-money",
+    "folder": "vendor",
+    "title": "Vendor money",
+    "description": "The vendor's statement: delivered parcels (price, commission, discount paid, fee, you get), monthly fees, payouts, balance and Request payout.",
+    "canvasPage": "Grid Shop vendors",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "VendorProfile",
+    "route": "/vendor-profile",
+    "folder": "vendor",
+    "title": "Vendor profile",
+    "description": "The vendor's company, logo, contact, payout account, return and warranty terms; pricing model and current rates read-only.",
+    "canvasPage": "Grid Shop vendors",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
     "name": "BusinessEmail",
     "route": "/email",
     "folder": "settings-console",
@@ -2895,6 +3225,50 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "MessageDesign",
+    "route": "/message-design",
+    "folder": "communication",
+    "title": "Message design",
+    "description": "Communications › Message design: Email design (the shared look, the language customers get, every email in English and Bangla, test emails) and SMS design (sender name, every SMS with a phone preview and ready wordings).",
+    "canvasPage": "Communications",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },  {
+    "name": "Snippets",
+    "route": "/snippets",
+    "folder": "online-store",
+    "title": "Code snippets",
+    "description": "Online Store › Snippets: tracking and verification by ID, checked CSS and text/HTML for the online store; no JavaScript, never on checkout, account or payment pages.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1000,
+    "interactive": true
+  },
+
+  {
+    "name": "EmailEditor",
+    "route": "/email-editor",
+    "folder": "settings-console",
+    "title": "Email",
+    "description": "One designed email: parts (heading, text, button, order table, product cards, coupon, tracking, details, picture), English and Bangla, preview on computer or phone, light or dark, send test.",
+    "canvasPage": "Settings",
+    "width": 1440,
+    "height": 1000,
+    "interactive": true
+  },
+  {
+    "name": "StoreEditor",
+    "route": "/store-editor",
+    "folder": "online-store",
+    "title": "Store editor",
+    "description": "One visual editor: click a section on the live page to edit it, drag sections to reorder, add from the section library, change the style and the header; draft, publish, undo.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1000,
+    "interactive": true
+  },
+  {
     "name": "HeaderBuilder",
     "route": "/header-builder",
     "folder": "online-store",
@@ -2903,6 +3277,17 @@ export const SCREENS = [
     "canvasPage": "Online store",
     "width": 1440,
     "height": 1400,
+    "interactive": true
+  },
+  {
+    "name": "StoreNotices",
+    "route": "/store-notices",
+    "folder": "online-store",
+    "title": "Store notices",
+    "description": "Notices above, under or inside the header or on a phone bar: schedule, countdown, coupon code, pages and devices, can be closed; they take turns.",
+    "canvasPage": "Online store",
+    "width": 1440,
+    "height": 1100,
     "interactive": true
   },
   {
@@ -3376,6 +3761,72 @@ export const SCREENS = [
     "canvasPage": "25 · Sales channels",
     "width": 1380,
     "height": 880,
+    "interactive": true
+  },
+  {
+    "name": "Hiring",
+    "route": "/hiring",
+    "folder": "career",
+    "title": "Hiring",
+    "description": "Staff & HR › Hiring (Batch F · Grid Career): job posts with applicants per stage, New job, the shop's careers page and the messages candidates get.",
+    "canvasPage": "Grid Career",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "HiringJob",
+    "route": "/hiring-job",
+    "folder": "career",
+    "title": "Job",
+    "description": "A job post and its application form: questions, required answers and knockout answers; publish, pause, close and share (Batch F).",
+    "canvasPage": "Grid Career",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },
+  {
+    "name": "HiringApplicants",
+    "route": "/hiring-applicants",
+    "folder": "career",
+    "title": "Applicants",
+    "description": "The hiring board: applicants by stage (drag or Move), a table with filters and CSV, the applicant sheet; Hire opens Add staff prefilled (Batch F).",
+    "canvasPage": "Grid Career",
+    "width": 1440,
+    "height": 1200,
+    "interactive": true
+  },
+  {
+    "name": "StoreCareers",
+    "route": "/careers",
+    "folder": "storefront",
+    "title": "Careers",
+    "description": "Customer storefront — the store's careers page: open jobs, one job with the Apply form (?job=), where the link was shared (?src=) (Batch F).",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 1600,
+    "interactive": true
+  },
+  {
+    "name": "JobsPage",
+    "route": "/jobs",
+    "folder": "career",
+    "title": "Jobs at GridCommerce",
+    "description": "GridCommerce's own careers page: open jobs and the Apply form (?job=), no menu or sign-in (Batch F).",
+    "canvasPage": "Grid Career",
+    "width": 1440,
+    "height": 1600,
+    "interactive": true
+  },
+  {
+    "name": "ApplicationStatus",
+    "route": "/application",
+    "folder": "career",
+    "title": "Your application",
+    "description": "The candidate's status page (?code=): the job, the stage in plain words and the interview time; no internal notes (Batch F).",
+    "canvasPage": "Grid Career",
+    "width": 1440,
+    "height": 1000,
     "interactive": true
   },
   {

@@ -1,10 +1,13 @@
 'use client';
 // Generated from design/templates/storefront/Checkout.dc.html by scripts/convert-design.mjs.
 // Checkout — Storefront checkout: details, delivery zone, payment (cash on delivery, bKash offer, Nagad, card), coupon and live order summary, then confirmation.
+// Partial payment (Batch C step 7): when a shop rule matches a cash-on-delivery order, the COD choice becomes "Pay part now,
+// rest on delivery": the part goes through a payment link with the online method picked, the rest is the COD amount.
 // "Place order" makes a real order (see the logic note below).
 // Edit freely: this file is now the source for the screen.
 
 import { ThemeChrome } from './storeChrome';
+import { Placed } from './storePlaced';
 import React from 'react';
 import __Link from 'next/link';
 import { PaymentLogo } from '@/components/PaymentLogo';
@@ -18,17 +21,20 @@ import { onlinePlace } from '@/lib/locations';
 import { createLink } from '@/lib/paymentLinks';
 import { submitManualPayment } from '@/lib/manualPayments';
 import { businessProfile } from '@/lib/businessProfile';
-import { findOrder } from '@/lib/orders';
+import { findOrder, patchOrder, logOrder } from '@/lib/orders';
+import { partFor, partSettings, PART_METHODS } from '@/lib/partialPayment';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { deliveryRates, DEFAULT_RATES } from '@/lib/deliveryRates';
 import { checkoutSettings, CHECKOUT_DEFAULTS, demoCode } from '@/lib/checkoutSettings';
-import { addressText } from '@/lib/bdAreas';
+import { addressText, zoneOf } from '@/lib/bdAreas';
+import { currentAccount, defaultAddress, accountSettings, hasAccount, signInWithCode, createFromCheckout, phoneKey } from '@/lib/storefront/account';
 import { AreaPicker } from '@/components/AreaPicker';
 import { getCart, clearCart } from '@/lib/storefront/cart';
 import { themeValues } from '@/lib/storefront/theme';
 import { SF_EVENT } from '@/lib/storefront/store';
 import { storeProducts } from '@/lib/storefront/catalog';
+import { attributeOrder, affiliateByCode, isAffiliateCode } from '@/lib/affiliates';
 
 // ---- logic ----
 // The storefront checkout (review ON-U3): the cart holds real products from the one catalogue (sellable.js, price and
@@ -79,8 +85,14 @@ class Component extends DCLogic {
     // the All sections page shows each style in turn: its `cs` and `bump` props win over the theme
     var pr = this.props || {};
     var cs = pr.cs || th.checkoutStyle || 'classic';
-    this.setState({ ready: true, items: items, cart: cart, freeAt: freeAt, note: note0, zones: cs === 'specs' ? deliveryRates({ pickup: true }) : readZones(), ck: checkoutSettings(), termsUrl: String(settingValue('privacy', 'terms_url', '/pages/terms-of-service')),
-      cs: cs, payTo: prettyPhone(String((businessProfile().contact || {}).phone || '').replace(/\D/g, '').replace(/^88/, '')), bumpOn: pr.bump != null ? !!pr.bump : !!th.checkoutBump, adv: Number(th.advanceAmount) || (pr.cs ? 200 : 0), payMode: 'full' });
+    // a signed-in shopper (My account) finds their name, number, email and first address filled in; the number counts as confirmed
+    var me = currentAccount(), ad = me ? defaultAddress(me) : null, pre = {};
+    if (me) {
+      pre = { name: me.name || '', phone: me.phone, email: me.email || '', verified: me.phone };
+      if (ad) { pre.district = ad.district; pre.thana = ad.thana; pre.addr = ad.line; if (ad.name) pre.name = ad.name; var zk = ZONE_KEY[zoneOf(ad.district, ad.thana)]; if (zk) pre.zone = zk; }
+    }
+    this.setState(Object.assign({ ready: true, items: items, cart: cart, freeAt: freeAt, note: note0, zones: cs === 'specs' ? deliveryRates({ pickup: true }) : readZones(), ck: checkoutSettings(), acct: accountSettings(), ps: partSettings(), me: me, termsUrl: String(settingValue('privacy', 'terms_url', '/pages/terms-of-service')),
+      cs: cs, payTo: prettyPhone(String((businessProfile().contact || {}).phone || '').replace(/\D/g, '').replace(/^88/, '')), bumpOn: pr.bump != null ? !!pr.bump : !!th.checkoutBump, adv: Number(th.advanceAmount) || (pr.cs ? 200 : 0), payMode: 'full' }, pre));
   }
   // the tweak panel changes the checkout style while the page is open: follow it
   componentDidUpdate() { if (!this._sf && typeof window !== 'undefined') { this._sf = () => { var t = themeValues(); var pr = this.props || {}; this.setState({ cs: pr.cs || t.checkoutStyle || 'classic', bumpOn: pr.bump != null ? !!pr.bump : !!t.checkoutBump, adv: Number(t.advanceAmount) || (pr.cs ? 200 : 0) }); }; window.addEventListener(SF_EVENT, this._sf); } }
@@ -89,13 +101,13 @@ class Component extends DCLogic {
     var self = this, s = this.state || {};
     var items = s.items || [], cart = s.cart || [], zones = s.zones || DEFAULT_ZONES, zone = s.zone || 'in', ck = s.ck || CHECKOUT_DEFAULTS;
     var cs = s.cs || 'classic', adv = s.adv || 0;
-    // the payment choices this checkout style offers
-    var payList = cs === 'quick' ? PAYS.slice(0, 1)
+    // the payment choices this checkout style offers (labelled again below, once the advance is known)
+    var payListFor = function (adv) { return cs === 'quick' ? PAYS.slice(0, 1)
       : cs === 'advance' ? [PAYS[0], ['card', 'Pay online', 'Card, mobile banking · secured by SSLCOMMERZ', ''], ['adv-bkash', 'Cash on delivery (advance ' + bdt(adv) + ')', 'Send ' + bdt(adv) + ' by bKash now, pay the rest on delivery', ''], ['adv-nagad', 'Cash on delivery (advance ' + bdt(adv) + ')', 'Send ' + bdt(adv) + ' by Nagad now, pay the rest on delivery', '']]
       : cs === 'steps' ? [['bkash', 'bKash', 'Pay with bKash', ''], PAYS[0]]
-      : PAYS;
+      : PAYS; };
+    var payList = payListFor(adv);
     var pay = payList.some(function (x) { return x[0] === s.pay; }) ? s.pay : payList[0][0];
-    var advOn = adv > 0 && ((cs === 'advance' && /^adv-/.test(pay)) || (cs === 'steps' && s.payMode === 'advance'));
     var byS = function (sku) { return items.find(function (it) { return it.sku === sku; }); };
     var lines = cart.map(function (c, i) { var it = byS(c.sku); return it && c.qty > 0 ? { it: it, qty: c.qty, i: i } : null; }).filter(Boolean);
     var units = lines.reduce(function (a, l) { return a + l.qty; }, 0);
@@ -111,6 +123,19 @@ class Component extends DCLogic {
     // a cash-on-delivery fee (Settings › Checkout) is added on top of the offers
     var codFee = (pay === 'cod' || /^adv-/.test(pay)) && lines.length ? ck.codFee : 0;
     var total = Math.max(0, Math.round(promo.total)) + codFee;
+    // part now, rest on delivery (Batch C step 7, lib/partialPayment.js): a cash-on-delivery order a shop rule matches
+    // pays a part online first; the shopper picks which online method
+    var ps = s.ps || null;
+    var part = ps && lines.length ? partFor({ lines: lines.map(function (l) { return { productId: l.it.productId, price: l.it.price, qty: l.qty }; }), zone: z.label, total: total }, ps) : null;
+    var partBy = part ? (ps.methods.indexOf(s.partBy) >= 0 ? s.partBy : ps.methods[0]) : '';
+    var partByL = part ? (PART_METHODS.filter(function (m) { return m[0] === partBy; })[0] || ['', ''])[1] : '';
+    // the Advance and Steps styles (Customize › Cart & checkout) take their advance from Settings › Checkout › Partial
+    // payment when one of its rules matches this order, else the theme's advance amount; they ask for it their own way
+    // (the bKash / Nagad number paid from + transaction ID, or a payment link), so the part-payment choice stays out
+    var ownAdv = cs === 'advance' || cs === 'steps';
+    if (ownAdv && part) adv = part.now;
+    if (ownAdv) { part = null; payList = payListFor(adv); }
+    var advOn = adv > 0 && ((cs === 'advance' && /^adv-/.test(pay)) || (cs === 'steps' && s.payMode === 'advance'));
     var phone = (s.phone || '').replace(/\D/g, '').replace(/^88/, ''), phoneBad = !!s.tried && !/^01[3-9]\d{8}$/.test(phone);
     // the mobile number is checked with a code when the shop asks for it, or when guests must sign in (demo: shown here)
     var needCode = ck.otp || !ck.guest || cs === 'signin', verified = !needCode || s.verified === phone;
@@ -144,12 +169,18 @@ class Component extends DCLogic {
       needCode: needCode, verified: verified && /^01[3-9]\d{8}$/.test(phone), codeSent: !!s.codeSent && s.codeSent === phone, otp: s.code6 || '', otpMsg: s.otpMsgS || '',
       onCode6: function (e) { self.setState({ code6: val(e), otpMsgS: '' }); },
       sendCode: function () { if (!/^01[3-9]\d{8}$/.test(phone)) { self.setState({ tried: true, otpMsgS: 'Enter your mobile number first.' }); return; } self.setState({ codeSent: phone, code6: '', otpMsgS: 'Demo: your code is ' + demoCode(phone) + '. A real shop sends it by SMS.' }); },
-      checkCode: function () { if (String(s.code6 || '').trim() === demoCode(phone)) self.setState({ verified: phone, otpMsgS: '' }); else self.setState({ otpMsgS: 'That code is not right. Try again.' }); },
+      checkCode: function () {
+        if (String(s.code6 || '').trim() !== demoCode(phone)) { self.setState({ otpMsgS: 'That code is not right. Try again.' }); return; }
+        // when the shop asks customers to sign in, the confirmed number signs them in (and makes the account the first time)
+        var me = null;
+        if (!ck.guest && s.acct && s.acct.mode !== 'off') { var r = signInWithCode(phone, s.code6, { name: s.name || '' }); me = r.ok ? r.account : null; }
+        self.setState({ verified: phone, otpMsgS: '', me: me || s.me || null });
+      },
       agree: !!s.agree, onAgree: function (e) { self.setState({ agree: !!(e && e.target && e.target.checked) }); }, agreeBad: !!s.tried && ck.terms && !s.agree,
       termsHref: '/page?handle=' + encodeURIComponent((s.termsUrl || '/pages/terms-of-service').split('/').filter(Boolean).pop() || 'terms-of-service'),
       codFee: codFee ? bdt(codFee) : '',
       zones: zones.map(function (x) { var on = x.k === zone; return { l: x.label, s: x.note, fee: bdt(lines.length ? feeOf(x) : x.fee), on: on, cls: on ? 'ck-opt on' : 'ck-opt', pick: function () { self.setState({ zone: x.k }); } }; }),
-      pays: payList.map(function (x) { var on = x[0] === pay; return { l: x[1], s: x[2], tag: x[3], hasTag: !!x[3], logo: PAY_LOGO[x[0].replace('adv-', '')] || (x[0] === 'cod' ? null : null), logoFull: x[0] === 'card', on: on, cls: on ? 'ck-opt on' : 'ck-opt', pick: function () { self.setState({ pay: x[0] }); } }; }),
+      pays: payList.map(function (x) { var on = x[0] === pay; var pt = x[0] === 'cod' && part; return { l: pt ? 'Pay part now, rest on delivery' : x[1], s: pt ? (on ? part.text : 'Pay a part online now, the rest to the rider') : x[2], tag: x[3], hasTag: !!x[3], logo: PAY_LOGO[x[0].replace('adv-', '')] || null, logoFull: x[0] === 'card', on: on, cls: on ? 'ck-opt on' : 'ck-opt', pick: function () { self.setState({ pay: x[0] }); } }; }),
       lines: lines.map(function (l) {
         var it = l.it, more = canAdd(it, l.qty + 1).ok;
         return { img: photoOf(it.productId), n: it.name, v: variantOf(it), was: it.mrp && Number(it.mrp) > it.price ? bdt(it.mrp) : '', i: it.name[0], bg: TILE[l.i % TILE.length], q: String(l.qty), amt: bdt(it.price * l.qty), canInc: more,
@@ -159,10 +190,14 @@ class Component extends DCLogic {
       addable: items.filter(function (it) { return !cart.some(function (c) { return c.sku === it.sku; }) && canAdd(it, 1).ok; }).map(function (it) { return { sku: it.sku, l: it.name + (variantOf(it) ? ' · ' + variantOf(it) : '') + ' · ' + bdt(it.price) }; }),
       addItem: function (e) { var sku = val(e); if (!sku) return; self.setState({ cart: cart.concat([{ sku: sku, qty: 1 }]), stockMsg: null }); },
       empty: !!s.ready && lines.length === 0,
-      applyCode: function () { var c = (s.code || '').trim().toUpperCase(); var r = tryCode(c, Object.assign({}, cartIn, { codes: [] }), null, 'online'); if (!r.ok) { self.setState({ codeMsg: r.reason, codeOk: false, coupon: '' }); return; } self.setState({ coupon: c, code: c, codeOk: true, codeMsg: c + ' applied · ' + bdt(r.offer.discount + r.offer.delivery) + ' off' }); },
+      applyCode: function () { var c = (s.code || '').trim().toUpperCase(); var r = tryCode(c, Object.assign({}, cartIn, { codes: [] }), null, 'online');
+        // an affiliate's code (Marketing › Affiliates) is not a discount: it says who sent the shopper
+        if (!r.ok && isAffiliateCode(c)) { self.setState({ affCode: c, code: '', codeOk: true, codeMsg: 'Thanks! ' + affiliateByCode(c).name + ' sent you here.' }); return; }
+        if (!r.ok) { self.setState({ codeMsg: r.reason, codeOk: false, coupon: '' }); return; } self.setState({ coupon: c, code: c, codeOk: true, codeMsg: c + ' applied · ' + bdt(r.offer.discount + r.offer.delivery) + ' off' }); },
       hasCodeMsg: !!s.codeMsg, codeMsg: s.codeMsg || '', codeC: s.codeOk ? '#047857' : '#b83210',
       sub: bdt(sub), discounts: disc, zoneL: z.label, fee: bdt(fee), total: bdt(total), payL: payL,
-      placeL: advOn ? 'Place order · pay ' + bdt(adv) + ' now' : cs === 'quick' ? 'Confirm order · ' + bdt(total) : pay === 'cod' ? 'Place order · ' + bdt(total) : cs === 'steps' && pay === 'bkash' ? 'Pay with bKash' : 'Pay ' + bdt(total) + ' with ' + payL,
+      part: pay === 'cod' && part ? { now: bdt(part.now), later: bdt(part.later), by: partBy, methods: ps.methods.map(function (m) { var on = m === partBy; return { k: m, l: (PART_METHODS.filter(function (x) { return x[0] === m; })[0] || [m, m])[1], on: on, pick: function () { self.setState({ partBy: m }); } }; }) } : null,
+      placeL: advOn ? 'Place order · pay ' + bdt(adv) + ' now' : pay === 'cod' && part ? 'Pay ' + bdt(part.now) + ' now with ' + partByL : cs === 'quick' ? 'Confirm order · ' + bdt(total) : pay === 'cod' ? 'Place order · ' + bdt(total) : cs === 'steps' && pay === 'bkash' ? 'Pay with bKash' : 'Pay ' + bdt(total) + ' with ' + payL,
       hasErr: !!s.err, err: s.err || '',
       place: function () {
         var miss = []; if (!lines.length) miss.push('add an item'); if (!(s.name || '').trim()) miss.push('your name'); if (!/^01[3-9]\d{8}$/.test(phone)) miss.push('a valid mobile number'); if (ck.area && !(s.district && s.thana)) miss.push('your district and area'); if (!(s.addr || '').trim()) miss.push('your house and road');
@@ -184,6 +219,8 @@ class Component extends DCLogic {
         });
         if (!row.duplicate) {
           announceNewOrder(row.id);
+          // an order through an affiliate's link (or with their code) is theirs (lib/affiliates.js)
+          try { attributeOrder(row, { phone: phone, code: s.affCode || '' }); } catch (e) { /* ignore */ }
           clearCart();   // the order has the items now; the store's cart starts empty again
           // the shop's customer book keeps the customer (matched by mobile number, never twice)
           saveCustomerOnce({ name: name, phone: phone, address: addr, types: ['Online'], addedFrom: ADDED_FROM.order });
@@ -192,6 +229,12 @@ class Component extends DCLogic {
             // the transaction ID goes to Payments › manual payments for the shop to check; without one, a payment link
             if (s.txn) submitManualPayment({ order: row.id, customer: name, phone: pretty, method: pay === 'adv-nagad' ? 'Nagad' : 'bKash', sender: String(s.payNo || '').trim(), txn: s.txn, claimed: adv });
             else createLink({ ref: row.id, refKind: 'order', customer: name, phone: pretty, amount: adv, days: 1 }, { name: 'Website checkout · advance' });
+          } else if (pay === 'cod' && part) {
+            // the part is paid through a payment link; the order waits (On hold) until it arrives, then the rest is COD
+            commit(row.id, promo, { customer: { phone: phone } });
+            var pl = createLink({ ref: row.id, refKind: 'order', customer: name, phone: pretty, amount: part.now, days: 1 }, { name: 'Website checkout' });
+            var o0 = findOrder(row.id);
+            if (o0 && pl) { patchOrder(o0, { advance: { amount: part.now, state: 'requested', at: Date.now(), link: pl.id, method: partByL } }); logOrder(row.id, 'hand-coins', 'Part payment asked at checkout', bdt(part.now) + ' now by ' + partByL + ' · ' + bdt(part.later) + ' on delivery'); }
           } else if (pay === 'cod') commit(row.id, promo, { customer: { phone: phone } });
           else {
             // the offer is held for the order while the payment is pending; the link is what the customer pays
@@ -200,24 +243,28 @@ class Component extends DCLogic {
           }
         }
         // the same order sent twice within seconds is one order (orderLinks.addOrder): show the one already made
-        self.setState({ placed: row.duplicate ? { id: row.id, total: row.amount || total, pay: row.payment === 'COD' ? 'cod' : 'online', payL: row.method || payL, phone: row.phone, dup: true } : { id: row.id, total: total, pay: advOn ? 'cod' : pay, payL: advOn ? 'Cash on delivery · ' + bdt(adv) + ' advance' : payL, phone: pretty }, err: '', checked: '' });
+        var who = { name: name, raw: phone, email: email, district: s.district || '', thana: s.thana || '', line: (s.addr || '').trim() };
+        self.setState({ placed: row.duplicate ? Object.assign({ id: row.id, total: row.amount || total, pay: row.payment === 'COD' ? 'cod' : 'online', payL: row.method || payL, phone: row.phone, dup: true }, who) : Object.assign({ id: row.id, total: total, pay: advOn ? 'cod' : pay, payL: advOn ? 'Cash on delivery · ' + bdt(adv) + ' advance' : pay === 'cod' && part ? partByL : payL, phone: pretty, part: pay === 'cod' && part ? { now: part.now, later: part.later } : null }, who), err: '', checked: '', saved: '' });
         if (typeof window !== 'undefined') window.scrollTo(0, 0);
       },
       orderNo: placed ? placed.id : '',
       // the thank-you page links to the order-status page (/track), the same one the SMS links to
       trackHref: placed ? '/track?id=' + encodeURIComponent(placed.id) : '',
-      paidNow: !!placed && placed.pay !== 'cod',
-      doneTitle: !placed ? '' : placed.dup ? 'Order already placed' : placed.pay === 'cod' ? 'Order placed' : 'Payment pending',
-      doneLine: placed ? bdt(placed.total) + ' · ' + placed.payL : '',
-      doneNote: !placed ? '' : placed.dup ? 'You placed this order a moment ago, so it wasn’t made twice.' : placed.pay === 'cod' ? 'Keep ' + bdt(placed.total) + ' ready for the rider. We’ll call ' + placed.phone + ' to confirm before it ships.'
+      paidNow: !!placed && (placed.pay !== 'cod' || !!placed.part),
+      doneTitle: !placed ? '' : placed.dup ? 'Order already placed' : placed.part ? 'Pay ' + bdt(placed.part.now) + ' to confirm' : placed.pay === 'cod' ? 'Order placed' : 'Payment pending',
+      doneLine: !placed ? '' : placed.part ? bdt(placed.part.now) + ' now by ' + placed.payL + ' · ' + bdt(placed.part.later) + ' on delivery' : bdt(placed.total) + ' · ' + placed.payL,
+      doneNote: !placed ? '' : placed.dup ? 'You placed this order a moment ago, so it wasn’t made twice.' : placed.part ? 'We sent a payment link to ' + placed.phone + '. Your order is confirmed once ' + bdt(placed.part.now) + ' arrives; pay the rider ' + bdt(placed.part.later) + ' when it comes.' : placed.pay === 'cod' ? 'Keep ' + bdt(placed.total) + ' ready for the rider. We’ll call ' + placed.phone + ' to confirm before it ships.'
         : 'Your order is saved but not paid yet. We sent a payment link to ' + placed.phone + '. The order goes ahead once your ' + placed.payL + ' payment is confirmed.',
       checkMsg: s.checked || '',
       checkPay: function () {
         var o = placed ? findOrder(placed.id) : null;
         var paid = o ? Number(o.paid) || 0 : 0;
-        self.setState({ checked: !o ? 'We couldn’t find this order.' : paid >= (o.amount || 0) && paid > 0 ? 'Payment confirmed. Thank you!' : paid > 0 ? 'Part paid: ' + bdt(paid) + ' received.' : 'Not paid yet. Finish the payment from the link we sent, then check again.' });
+        self.setState({ checked: !o ? 'We couldn’t find this order.' : placed.part && paid >= placed.part.now ? 'Part payment received. Pay the rest on delivery. Thank you!' : paid >= (o.amount || 0) && paid > 0 ? 'Payment confirmed. Thank you!' : paid > 0 ? 'Part paid: ' + bdt(paid) + ' received.' : 'Not paid yet. Finish the payment from the link we sent, then check again.' });
       },
-      again: function () { self.setState({ placed: null, tried: false, err: '', coupon: '', codeMsg: '', code: '', checked: '' }); }
+      again: function () { self.setState({ placed: null, tried: false, err: '', coupon: '', codeMsg: '', code: '', checked: '', saved: '' }); },
+      // "Save my details" (Settings › Checkout › Customer accounts): a guest's order makes an account from the same number
+      acctLine: !placed || !s.acct || s.acct.mode === 'off' ? '' : s.me && phoneKey(s.me.phone) === phoneKey(placed.raw) ? 'in' : s.saved ? 'saved' : hasAccount(placed.raw) ? 'has' : s.acct.save ? 'offer' : '',
+      saveDetails: function () { var r = createFromCheckout({ name: placed.name, phone: placed.raw, email: placed.email, district: placed.district, thana: placed.thana, line: placed.line }); self.setState(r.ok ? { saved: '1', me: r.account } : { checked: r.error }); }
     };
     return v;
   }
@@ -383,6 +430,12 @@ a{color:var(--sf-primary)}a:hover{color:color-mix(in srgb,var(--sf-primary) 82%,
 .ck-in:focus{outline:none;border-color:var(--sf-primary);box-shadow:var(--sf-focus-ring)}
 .ck-in.bad{border-color:#b83210;box-shadow:0 0 0 3px rgba(184,50,16,.12)}
 .ck-opt{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border-radius:var(--radius-xl);border:1.5px solid #e2e8f0;background:#fff;font:inherit;text-align:left;cursor:pointer}
+.ck-part{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 14px;border-radius:var(--radius-lg);background:#f8fafc;font-size:var(--text-sm);color:#334155}
+.ck-part>span{margin-right:4px;font-weight:var(--weight-medium)}
+.ck-chip{min-height:36px;padding:0 14px;border:1.5px solid #e2e8f0;border-radius:var(--radius-full);background:#fff;font:inherit;font-size:var(--text-sm);color:#0f172a;cursor:pointer}
+.ck-chip.on{border-color:var(--sf-primary);color:var(--sf-primary);box-shadow:inset 0 0 0 1px var(--sf-primary)}
+.ck-split{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:var(--radius-lg);background:color-mix(in srgb,var(--sf-primary) 6%,transparent)}
+.ck-split .ck-row b{font-weight:var(--weight-semibold);color:#0f172a}
 .ck-opt.on{border-color:var(--sf-primary);background:color-mix(in srgb,var(--sf-primary) 4%,transparent)}
 .ck-opt:focus-visible,.ck-q:focus-visible{outline:3px solid color-mix(in srgb,var(--sf-primary) 40%,transparent);outline-offset:2px}
 .ck-dot{width:18px;height:18px;border-radius:var(--radius-full);border:2px solid #cbd5e1;flex-shrink:0;display:flex;align-items:center;justify-content:center}
@@ -420,6 +473,7 @@ export class CheckoutBody extends Component {
               <span style={{ color: "#0f172a", fontWeight: "var(--weight-medium)" }}>Checkout</span>
             </div>
             {v.notPlaced ? (<>
+              <Placed spot="checkout" />
               {v.cs === 'steps' ? (
                 <div className="ck-secure">
                   <span className="ck-secure__ic"><__Icon name="lock" width="20" height="20" aria-hidden="true" /></span>
@@ -558,6 +612,12 @@ export class CheckoutBody extends Component {
                         <label><span className="ck-lbl">{v.advPay} transaction ID</span><input className="ck-in mono" value={v.txn} onChange={v.onTxn} placeholder="e.g. 9JH4K2L8PQ" /></label>
                       </div>
                     ) : null}
+                    {v.part ? (
+                      <div className="ck-part" role="group" aria-label="Pay the part with">
+                        <span>Pay {v.part.now} now with</span>
+                        {v.part.methods.map((m) => <button key={m.k} type="button" className={'ck-chip' + (m.on ? ' on' : '')} aria-pressed={m.on} onClick={m.pick}>{m.l}</button>)}
+                      </div>
+                    ) : null}
                   </section>
                   </div>
                   {v.cs === 'steps' ? (
@@ -638,6 +698,12 @@ export class CheckoutBody extends Component {
                       <span><b>Add {v.bump.n}</b><small><span className="ck-bump__p">{v.bump.price}</span>{v.bump.was ? <> <s>{v.bump.was}</s> · save {v.bump.save}</> : null}</small><small>Often bought together. Tick to add it to this order.</small></span>
                     </label>
                   ) : null}
+                  {v.part ? (
+                    <div className="ck-split">
+                      <div className="ck-row"><b>Pay now</b><b>{v.part.now}</b></div>
+                      <div className="ck-row"><span>On delivery</span><span>{v.part.later}</span></div>
+                    </div>
+                  ) : null}
                   {v.ck.terms ? (
                     <label style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "var(--text-sm)", color: v.agreeBad ? "var(--sf-sale)" : "#475569", cursor: "pointer" }}>
                       <input type="checkbox" checked={v.agree} onChange={v.onAgree} style={{ width: "20px", height: "20px", marginTop: "0", flex: "none", accentColor: "var(--sf-primary)" }} />
@@ -660,6 +726,14 @@ export class CheckoutBody extends Component {
                 <p style={{ margin: "0", fontSize: "var(--text-base)", color: "#475569" }}>Order <b className="mono">{v.orderNo}</b> · {v.doneLine}</p>
                 <p style={{ margin: "0", fontSize: "var(--text-sm)", lineHeight: "21px", color: "var(--text-muted)" }}>{v.doneNote}</p>
                 {v.checkMsg ? <p role="status" style={{ margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{v.checkMsg}</p> : null}
+                {v.acctLine === 'offer' ? (
+                  <div className="ck-save" style={{ width: "100%", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "10px 14px", padding: "14px 16px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#f8fafc", fontSize: "var(--text-sm)", color: "#334155" }}>
+                    <span>Save your details for next time and follow this order in My account.</span>
+                    <button type="button" className="btn" onClick={v.saveDetails} style={{ height: "40px", background: "var(--sf-primary)", color: "#fff" }}>Save my details</button>
+                  </div>
+                ) : null}
+                {v.acctLine === 'saved' || v.acctLine === 'in' ? <p role="status" style={{ margin: "0", fontSize: "var(--text-sm)", color: "#047857" }}>{v.acctLine === 'saved' ? 'Saved. You are signed in. ' : 'This order is in your account. '}<a href="/account?tab=orders">My account</a></p> : null}
+                {v.acctLine === 'has' ? <p style={{ margin: "0", fontSize: "var(--text-sm)", color: "#475569" }}>You have an account with this number. <a href="/account">Sign in</a> to see all your orders.</p> : null}
                 <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", marginTop: "8px" }}>
                   {v.paidNow ? <button type="button" className="btn" onClick={v.checkPay} style={{ background: "var(--sf-primary)", color: "#fff" }}>Check payment</button> : null}
                   <a href={v.trackHref} className="btn" style={{ background: "#fff", color: "var(--sf-primary)", border: "1px solid #cbd5e1" }}>Track your order</a>
@@ -667,6 +741,7 @@ export class CheckoutBody extends Component {
                   <button type="button" className="btn" onClick={v.again} style={{ background: "#fff", color: "var(--sf-primary)", border: "1px solid #cbd5e1" }}>Start again</button>
                 </div>
               </section>
+              <div style={{ maxWidth: "640px", width: "100%", margin: "0 auto" }}><Placed spot="thank-you" kind="thank-you" /></div>
             </>) : null}
           </div>
         </div>

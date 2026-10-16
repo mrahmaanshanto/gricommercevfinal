@@ -197,7 +197,7 @@ export default function CourierStatement() {
                       <tbody>
                         {data.couriers.map((r) => (
                           <tr key={r.name}>
-                            <td><button type="button" className="cst-cname" onClick={() => { setOpen((o) => ({ ...o, [r.name]: true })); const el = document.getElementById('cst-h-' + r.name); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}><BrandLogo brand={r.brand} size={24} decorative />{r.name}</button></td>
+                            <td><button type="button" className="cst-cname" onClick={() => { setOpen((o) => ({ ...o, [r.name]: true })); const el = document.getElementById('cst-h-' + r.name); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}><BrandLogo brand={r.brand} size={32} decorative />{r.name}</button></td>
                             <td className="ix-num">{r.dispatched}</td><td className="ix-num">{r.counts.pickup}</td><td className="ix-num">{r.active}{r.counts.out ? <small className="cst-sub">{r.counts.out} out</small> : null}</td>
                             <td className="ix-num">{r.counts.delivered}</td><td className="ix-num">{r.counts.returning + r.counts.partial}</td><td className="ix-num">{r.counts.returned}</td>
                             <td className="ix-num">{r.rate == null ? '—' : <span className={'cst-rate' + (r.rate < 80 ? ' is-low' : '')}>{r.rate}%</span>}</td>

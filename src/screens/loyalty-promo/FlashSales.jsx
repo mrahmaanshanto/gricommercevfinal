@@ -16,6 +16,16 @@ import MarketingTabs from '@/screens/loyalty-promo/MarketingTabs';
 import { navigate } from '@/runtime/routes';
 import { clockNow } from '@/lib/settlements';
 import { listOffers, PROMO_EVENT } from '@/lib/promotions';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
+
+// the sale's picture: its banner, else the photo of its first product, else '' (a tag tile)
+function offerPic(o) {
+  if (o.banner || o.image) return o.banner || o.image;
+  var p = (o.conditions || {}).products || {}, r = o.reward || {};
+  var sku = (p.mode === 'skus' && (p.skus || [])[0]) || ((r.buy || {}).skus || [])[0] || (r.gift || {}).sku || ((r.get || {}).skus || [])[0];
+  return sku ? productPic(sku) : '';
+}
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -36,7 +46,7 @@ function salesNow() {
     var a = new Date(o.schedule.start), b = new Date(o.schedule.end || o.schedule.start), st = LIFE_ST[o.life] || 'ended';
     var short = b - a < 2 * DAY;
     return { id: o.id, name: o.name, sub: o.sub || o.summary, dates: span(a, b, short || st === 'live'), left: st === 'live' ? countdown(b.getTime()) : st === 'soon' ? (o.life === 'Paused' ? 'Paused' : startsIn(a.getTime())) : o.life === 'Exhausted' ? 'Sold out' : 'Ended',
-      sold: o.usage.used, stock: o.limits.total || Math.max(1, o.usage.used), sales: o.usage.sales, st: st, featured: !!o.featured };
+      sold: o.usage.used, stock: o.limits.total || Math.max(1, o.usage.used), sales: o.usage.sales, st: st, featured: !!o.featured, pic: offerPic(o) };
   }).sort(function (x, y) { return (x.st === 'ended') - (y.st === 'ended'); });
 }
 var TABS = [{ k: 'live', label: 'Running' }, { k: 'soon', label: 'Coming soon' }, { k: 'ended', label: 'Ended' }];
@@ -47,7 +57,7 @@ class Component extends DCLogic {
   renderVals() {
     var self = this, s = this.state || {}, tab = s.tab || 'live', F = s.ready ? salesNow() : [];
     var cnt = {}; TABS.forEach(function (t) { cnt[t.k] = F.filter(function (f) { return f.st === t.k; }).length; });
-    var cards = F.filter(function (f) { return f.st === tab; }).map(function (f) { var p = Math.round(f.sold / f.stock * 100); return { name: f.name, sub: f.sub, dates: f.dates, left: f.left, live: f.st === 'live', sold: f.sold + ' of ' + f.stock, pct: p + '%', pctLabel: p + '%', sales: f.sales ? bdt(f.sales) : '—', status: SN[f.st][0], tone: SN[f.st][1], featured: f.featured,
+    var cards = F.filter(function (f) { return f.st === tab; }).map(function (f) { var p = Math.round(f.sold / f.stock * 100); return { name: f.name, sub: f.sub, dates: f.dates, left: f.left, live: f.st === 'live', sold: f.sold + ' of ' + f.stock, pct: p + '%', pctLabel: p + '%', sales: f.sales ? bdt(f.sales) : '—', status: SN[f.st][0], tone: SN[f.st][1], featured: f.featured, pic: f.pic,
       href: '/new-flash-sale', onRowClick: function (e) { if (e.target.closest('a,button')) return; navigate('/new-flash-sale'); } }; });
     return { tabs: TABS.map(function (t) { return { key: t.k, id: 'fs-tab-' + t.k, label: t.label, count: cnt[t.k], on: t.k === tab, onClick: function () { self.setState({ tab: t.k }); } }; }),
       cards: cards, empty: !cards.length, countLabel: cards.length === 1 ? '1 sale' : cards.length + ' sales' };
@@ -100,7 +110,8 @@ export default class FlashSalesScreen extends Component {
                     <ul className="ix-plist" aria-label="Flash sales">
                       {v.cards.map((c) => (
                         <li key={c.name}>
-                          <__Link href={c.href} className="ix-pitem">
+                          <__Link href={c.href} className="ix-pitem ix-pitem--thumb" style={{ gridTemplateColumns: '43px minmax(0,1fr)' }}>
+                            <span style={{ gridRow: 'span 2' }}><Pic src={c.pic} name={c.name} kind="cover" icon="tag" /></span>
                             <span className="ix-pitem__top"><b>{c.name}</b><span>{c.sales}</span></span>
                             <span className="ix-pitem__mid" suppressHydrationWarning>{c.left} · {c.sold} pieces sold</span>
                           </__Link>
@@ -123,7 +134,7 @@ export default class FlashSalesScreen extends Component {
                         <tbody>
                           {v.cards.map((c) => (
                             <tr key={c.name} onClick={c.onRowClick}>
-                              <td><__Link href={c.href} className="ix-strong">{c.name}</__Link><span className="fs-sub">{c.sub}</span></td>
+                              <td><span className="gc-picrow"><Pic src={c.pic} name={c.name} kind="cover" icon="tag" /><span><__Link href={c.href} className="ix-strong">{c.name}</__Link><span className="fs-sub">{c.sub}</span></span></span></td>
                               <td className="ix-muted" suppressHydrationWarning>{c.dates}</td>
                               <td className={'fs-left' + (c.live ? ' ix-bad' : '')} suppressHydrationWarning>{c.left}</td>
                               <td><span className="fs-sold"><span>{c.sold} · {c.pctLabel}</span><span className="gc-progress" aria-hidden="true"><span className="gc-progress__fill" style={{ display: 'block', width: c.pct }} /></span></span></td>

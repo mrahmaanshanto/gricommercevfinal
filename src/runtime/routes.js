@@ -53,6 +53,8 @@ const NAMED_ROUTES = {
   "BusinessEmail": "/email",
   // Customer storefront (Module A)
   "StoreHome": "/store", "StoreCart": "/cart", "StoreShowcase": "/store-showcase", "StoreBlog": "/blog", "StoreWishlist": "/wishlist", "StoreCompare": "/compare", "StoreAccount": "/account", "StoreAuthor": "/author", "StoreSearch": "/search",
+  // Marketing › Affiliates (Batch B): one affiliate's record
+  "AffiliateProfile": "/affiliate",
 };
 
 /** Maps a design link to its app route. Anything else is returned unchanged. */

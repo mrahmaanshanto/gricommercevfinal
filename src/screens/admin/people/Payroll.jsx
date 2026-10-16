@@ -20,7 +20,7 @@ import {
   approveRun, markRunPaid, recalcRun, startRun, monthlyTax,
 } from '@/lib/admin/people';
 import { AdminShell } from '../AdminShell';
-import { PEOPLE_CSS, usePeople, meName, money, minus, plural, viewHref, Person, Skeleton, rowGo, setParam, Field, ctl } from './peopleShared';
+import { PEOPLE_CSS, usePeople, meName, money, minus, plural, viewHref, Person, Avatar, Skeleton, rowGo, setParam, Field, ctl } from './peopleShared';
 
 const CSS = `
 .pr-steps{display:flex;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border-subtle);overflow-x:auto;scrollbar-width:none}
@@ -206,7 +206,8 @@ export default function Payroll() {
             ) : null}
             <ul className="ix-plist" aria-label="Salary sheet">
               {lines.map((l) => { const e = empBy(D, l.emp) || { name: l.emp }; return (
-                <li key={l.emp}><button type="button" className="ix-pitem" onClick={() => setSlip(l.emp)}>
+                <li key={l.emp}><button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setSlip(l.emp)}>
+                  <span className="pp-pslot"><Avatar e={e} /></span>
                   <span className="ix-pitem__top"><b>{e.name}</b><span className="pp-fig">{money(l.net)}</span></span>
                   <span className="ix-pitem__mid">Gross {money(l.gross)} · deductions {money(l.deductions)}{l.part ? ` · ${l.part}` : ''}</span>
                 </button></li>
@@ -255,7 +256,8 @@ export default function Payroll() {
             </div>
             <ul className="ix-plist" aria-label="Salary structures">
               {current(D).map((e) => (
-                <li key={e.id}><button type="button" className="ix-pitem" onClick={() => router.push(viewHref(e.id, 'salary'))}>
+                <li key={e.id}><button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => router.push(viewHref(e.id, 'salary'))}>
+                  <span className="pp-pslot"><Avatar e={e} /></span>
                   <span className="ix-pitem__top"><b>{e.name}</b><span className="pp-fig">{money(grossOf(e.salary))}</span></span>
                   <span className="ix-pitem__mid">Basic {money(e.salary.basic)} · house {money(e.salary.house)}</span>
                 </button></li>

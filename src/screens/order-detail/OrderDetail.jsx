@@ -35,11 +35,12 @@ import {
   CAN_CANCEL, DEFAULT_HOLD_PLACE,
 } from '@/lib/orders';
 import {
-  verifyOf, startAutoCall, settleAutoCall, recordCall, CALL_RESULTS, callResultLabel, requestAdvance, receiveAdvance, ADVANCE_METHODS,
+  verifyOf, startAutoCall, settleAutoCall, recordCall, CALL_RESULTS, callResultLabel, receiveAdvance, ADVANCE_METHODS,
   COURIERS, courierCharge, prepOf, prepDone, updatePrep, markReady, sendToCourier, trackingOf, courierWebhook, syncCourier, HOOK_LABEL, setLinePhoto, serialLinesOf, setPackSerial,
   isDigitalOrder, sendDigital, resendDigital,
 } from '@/lib/orderFlow';
 import { advanceFor } from '@/lib/deliveryRates';
+import { requestPartPayment, PART_CHANNELS } from '@/lib/partialPayment';
 import { maskKey } from '@/lib/licenceKeys';
 import { allUsers, canSee, currentUser } from '@/lib/team';
 import { requestsForOrder, requestReturn, canRequestReturn, RR_LABEL, RR_TONE, RR_REASONS, RETURN_REQUESTS_EVENT } from '@/lib/returnRequests';
@@ -246,6 +247,7 @@ export default function OrderDetail() {
   const [dlg, setDlg] = useState(null);                // 'approve' | 'advance' | 'cancel' | 'call'
   const [stepsOpen, setStepsOpen] = useState(false);   // phones: the steps fold to one line
   const [adv, setAdv] = useState({ amount: '', method: 'bkash online' });
+  const [part, setPart] = useState({ amount: '', channels: ['sms'] });   // Request part payment (Batch C step 7)
   const [cancel, setCancel] = useState({ reason: CANCEL_REASONS[0], tell: true });
   const [call, setCall] = useState({ result: 'confirmed', note: '' });
   const [lastHook, setLastHook] = useState(null);      // the last courier update, to send it again (it is ignored)
@@ -449,8 +451,17 @@ export default function OrderDetail() {
   };
   const askAdvance = () => {
     if (!advOk) return;
-    requestAdvance(o, advNum); refresh();
-    toast('Payment link sent');
+    // the part-payment request (link + SMS / WhatsApp / email / Messenger) replaces the old one-SMS link
+    setPart({ amount: String(advNum), channels: ['sms'] }); setDlg('part');
+  };
+  const sendPart = (e) => {
+    e.preventDefault();
+    const r = requestPartPayment(o, { amount: Number(part.amount) || 0, channels: part.channels, by: (currentUser() || {}).name || 'Staff' });
+    if (!r.ok) { toast(r.error, { tone: 'error' }); return; }
+    setDlg(null); refresh();
+    const bad = r.sent.filter((x) => ['Failed', 'Suppressed', 'Blocked', 'Skipped'].includes(x.status));
+    const name = (k) => (PART_CHANNELS.find(([c]) => c === k) || [0, k])[1];
+    toast(bad.length ? `Link ${r.link.id} made. Not sent by ${bad.map((x) => name(x.channel) + (x.reason ? ' (' + x.reason + ')' : '')).join(', ')}.` : `Part payment request sent by ${r.sent.map((x) => name(x.channel)).join(', ')} · ${r.link.id}`, bad.length ? { tone: 'error' } : undefined);
   };
   const takeAdvance = (e) => {
     e.preventDefault();
@@ -636,6 +647,7 @@ export default function OrderDetail() {
       <div className="od-acts">
         <button type="button" className={'gc-btn ' + (toReview ? 'gc-btn--neutral' : 'gc-btn--solid')} onClick={() => setDlg('approve')}><Icon name="check" width="16" height="16" aria-hidden="true" /> Approve</button>
         {o.payment !== 'Paid' ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDlg('advance')}><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /> Take advance + approve</button> : null}
+        {o.payment !== 'Paid' ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => { setPart({ amount: String(o.advance && o.advance.state === 'requested' ? o.advance.amount : advanceFor(o)), channels: ['sms'] }); setDlg('part'); }}><Icon name="send" width="16" height="16" aria-hidden="true" /> Request part payment</button> : null}
       </div>
     </>),
   };
@@ -1141,10 +1153,37 @@ export default function OrderDetail() {
           {!advOk ? <p className="gc-help gc-help--error" style={{ margin: 0 }}>Enter an amount below {formatBDT(o.amount - paid)}.</p> : null}
           {holdPlaces.length > 1 ? <div><label className="gc-label" htmlFor="od-adv-place">{holds2 ? 'Hold stock at' : 'Take stock from'}</label><select id="od-adv-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div> : null}
           <div className="gc-modal__foot" style={{ marginTop: 0, flexWrap: 'wrap' }}>
-            <button type="button" className="gc-btn gc-btn--neutral" disabled={!advOk} onClick={askAdvance}><Icon name="send" width="16" height="16" aria-hidden="true" /> Send payment link</button>
+            <button type="button" className="gc-btn gc-btn--neutral" disabled={!advOk} onClick={askAdvance}><Icon name="send" width="16" height="16" aria-hidden="true" /> Request it instead…</button>
             <button type="submit" className="gc-btn gc-btn--solid" disabled={!advOk}>Received · approve</button>
           </div>
         </form>
+      </Dialog>
+
+      <Dialog open={dlg === 'part'} title="Request part payment" onClose={() => setDlg(null)} width={480}>
+        {(() => {
+          const pNum = Math.round(Number(part.amount) || 0);
+          const pOk = pNum > 0 && pNum < o.amount - paid;
+          const toggle = (k) => setPart({ ...part, channels: part.channels.includes(k) ? part.channels.filter((x) => x !== k) : [...part.channels, k] });
+          return (
+            <form onSubmit={sendPart} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <div><label className="gc-label" htmlFor="od-part">Pay now (৳)</label><input id="od-part" className="gc-input" type="number" min="1" inputMode="numeric" data-autofocus value={part.amount} onChange={(e) => setPart({ ...part, amount: e.target.value })} aria-invalid={!pOk} /></div>
+              <div className="od-money"><div><span>Total</span><b>{formatBDT(o.amount)}</b></div><div><span>Pay now</span><b>{formatBDT(pOk ? pNum : 0)}</b></div><div className="is-cod"><span>On delivery</span><b>{formatBDT(Math.max(0, o.amount - paid - (pOk ? pNum : 0)))}</b></div></div>
+              {!pOk ? <p className="gc-help gc-help--error" style={{ margin: 0 }}>Enter an amount below {formatBDT(o.amount - paid)}.</p> : null}
+              <fieldset style={{ border: 0, margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2) var(--space-4)' }}>
+                <legend className="gc-label" style={{ marginBottom: 'var(--space-1)' }}>Send by</legend>
+                {PART_CHANNELS.map(([k, l]) => {
+                  const off = k === 'email' && !o.email;
+                  return <label key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 36, fontSize: 'var(--text-sm)', color: off ? 'var(--text-muted)' : undefined }} title={off ? 'No email on this order' : undefined}><input type="checkbox" disabled={off} checked={part.channels.includes(k) && !off} onChange={() => toggle(k)} style={{ width: 18, height: 18, accentColor: 'var(--primary)' }} />{l}</label>;
+                })}
+              </fieldset>
+              <p className="gc-help" style={{ margin: 0 }}>A payment link (bKash, Nagad or card) for {formatBDT(pOk ? pNum : 0)} goes to {o.customer} · {o.phone}. When it is paid, the rest becomes the cash-on-delivery amount.</p>
+              <div className="gc-modal__foot" style={{ marginTop: 0 }}>
+                <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDlg(null)}>Cancel</button>
+                <button type="submit" className="gc-btn gc-btn--solid" disabled={!pOk || !part.channels.length}><Icon name="send" width="16" height="16" aria-hidden="true" /> Send request</button>
+              </div>
+            </form>
+          );
+        })()}
       </Dialog>
 
       <Dialog open={dlg === 'cancel'} title={`Cancel ${o.id}?`} onClose={() => setDlg(null)} width={440}>

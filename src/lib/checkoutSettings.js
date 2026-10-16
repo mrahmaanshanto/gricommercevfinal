@@ -23,8 +23,10 @@ export function checkoutSettings() {
   if (typeof window === 'undefined') return { ...CHECKOUT_DEFAULTS };
   const get = (n, d) => settingValue('checkout', n, d);
   const email = String(get('email_field', 'Optional')).toLowerCase();
+  const accounts = String(get('accounts', 'Optional')).toLowerCase();
   return {
-    guest: bool(get('guest_checkout', true), true),
+    // Customer accounts › Required turns guest checkout off (lib/storefront/account.js › accountSettings)
+    guest: accounts === 'required' ? false : bool(get('guest_checkout', true), true),
     otp: bool(get('phone_otp', false), false),
     email: ['hidden', 'optional', 'required'].includes(email) ? email : 'optional',
     area: bool(get('area_required', true), true),
@@ -35,9 +37,8 @@ export function checkoutSettings() {
     minOrder: num(get('min_order', '0')),
   };
 }
-/** A sign-in or check code for a mobile number (demo: the same number always gets the same code). */
-export function demoCode(phone) {
-  let h = 7;
-  for (const c of String(phone || '')) h = (h * 31 + c.charCodeAt(0)) % 9000;
-  return String(1000 + h);
+/** A sign-in or check code for a mobile number. Demo: always 1234 (the same as My account's sign-in,
+ * lib/storefront/account.js › DEMO_CODE); a live shop sends a fresh code by SMS or WhatsApp from its server. */
+export function demoCode() {
+  return '1234';
 }

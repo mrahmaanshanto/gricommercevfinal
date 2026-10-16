@@ -50,7 +50,7 @@ export default function Templates() {
   const header = (
     <ShopHeader icon="file-text" title="Templates"
       about="The SMS and emails GridCommerce sends to merchants and leads, by purpose, each in English and Bangla with {{variables}} filled in per recipient. Automations, campaigns and the Send SMS / Compose sheets use them. Editing one keeps its old versions."
-      more={[{ label: 'Automations', href: '/admin/automations' }, { label: 'SMS', href: '/admin/sms' }, { label: 'Email', href: '/admin/email' }]}
+      more={[{ label: 'Automations', href: '/admin/automations' }, { label: 'SMS', href: '/admin/sms' }, { label: 'Email', href: '/admin/comms/email' }]}
       primary={{ label: 'New template', icon: 'plus', onClick: () => setAdd({ purpose: purpose || 'promo', ch: ch === 'email' ? 'email' : 'sms', name: '', error: '' }) }} />
   );
 

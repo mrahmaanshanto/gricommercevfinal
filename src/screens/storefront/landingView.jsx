@@ -5,12 +5,28 @@
 // real phone look the same. The order form is real on the live page: it makes a cash-on-delivery order through
 // orderLinks.addOrder (Orders, source "Landing page", the page's id kept on the order), with the quantity offer, the
 // variant, the delivery charge for the area (Settings › Delivery) and free delivery over the page's amount.
+// The page is drawn inside the store theme (.sf-theme, with the page's accent, font, corners and colours), so a part can
+// also be any section of the store's library (isStorePart: drawn by sections.jsx › Section with its looks and Style tab).
+// Every part takes the Style / Advanced settings (box: spacing, background, pattern, colours, fonts, show per device,
+// animation) and an "Order now" button under it. In the builder the page runs in a preview frame (?preview=1&edit=1):
+// a click selects a part (selectInEditor), the selected one is outlined (previewValue('select')).
+// The visit's ad source (utm_*, fbclid, gclid) is kept for the session and saved on the order (`utm`; attribution.js).
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { formatBDT } from '@/lib/format';
-import { partType, factsOf, productReviews, PAGE_STYLE } from '@/lib/landingParts';
-import { fontPair, onColour } from '@/lib/storefront/theme';
+import { partType, partLabel, isStorePart, factsOf, productReviews, PAGE_STYLE } from '@/lib/landingParts';
+import { fontPair, onColour, themeValues, themeVars, themeClasses, fontHref, TOKENS_CSS } from '@/lib/storefront/theme';
+import { boxProps, BOX_CSS } from '@/lib/storefront/styles';
+import { isEditing, selectInEditor, previewValue, SF_EVENT } from '@/lib/storefront/store';
+import { useFileSrc } from '@/lib/files';
+import { allProducts, getSavedProducts } from '@/lib/products';
+import { getCatalog } from '@/lib/stock';
+import { Section, SECTIONS_CSS } from './sections';
+import { SECTIONS2_CSS } from './sections2';
+import { SECTIONS3_CSS } from './sections3';
+import { LOOKS_CSS, FIT_CSS } from './sectionLooks';
+import { SF_CSS } from './storeKit';
 import { rateOf, feeFor } from '@/lib/deliveryRates';
 import { addOrder, prettyPhone } from '@/lib/orderLinks';
 import { announceNewOrder } from '@/lib/orderFlow';
@@ -40,6 +56,38 @@ export function lpVars(style) {
   return { '--lp-accent': s.accent, '--lp-on': onColour(s.accent), '--lp-bg': t.bg, '--lp-surface': t.surface, '--lp-text': t.text, '--lp-muted': t.muted, '--lp-line': t.line, '--lp-r': RAD[s.corners] || RAD.round,
     '--lp-head': `${fp.head},"Hind Siliguri",system-ui,sans-serif`, '--lp-body': `${fp.body},"Hind Siliguri",system-ui,sans-serif`, '--lp-hw': fp.hw || 700 };
 }
+/** The store theme values the page's sections are drawn with: the shop's theme, with the page's own look on top. */
+export function lpTheme(style) {
+  const s = { ...PAGE_STYLE, ...(style || {}) };
+  const t = THEME[s.theme] || THEME.light;
+  let base = {};
+  try { base = themeValues(); } catch { base = {}; }
+  return { ...base, primary: s.accent, accent: s.accent, fontPair: s.font, corners: s.corners, bg: t.bg, surface: t.surface, text: t.text };
+}
+
+// ---- the visit's ad source -------------------------------------------------------------------------------------------
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utm_id', 'fbclid', 'gclid'];
+const UTM_STORE = 'gc.lp.utm';
+/** Keep the ad parameters of the first page of this visit (a later page without them doesn't wipe them). */
+function captureUtm() {
+  try {
+    const q = new URLSearchParams(window.location.search);
+    const got = Object.fromEntries(UTM_KEYS.map((k) => [k, (q.get(k) || '').slice(0, 200)]).filter(([, v]) => v));
+    if (Object.keys(got).length) window.sessionStorage.setItem(UTM_STORE, JSON.stringify({ ...got, at: Date.now(), page: window.location.pathname + window.location.search.replace(/[?&](fbclid|gclid)=[^&]*/g, '') }));
+  } catch { /* ignore */ }
+}
+const readUtm = () => { try { return JSON.parse(window.sessionStorage.getItem(UTM_STORE)) || null; } catch { return null; } };
+/** Where the order came from, from the ad source (Orders › Source). */
+function sourceOf(utm) {
+  const src = String((utm && utm.utm_source) || '').toLowerCase();
+  if (utm && utm.fbclid && !src) return 'Facebook';
+  if (/^(ig|instagram)/.test(src)) return 'Instagram';
+  if (/^(fb|facebook|meta|an|msg|messenger)/.test(src)) return 'Facebook';
+  if (/tiktok/.test(src)) return 'TikTok';
+  if (/whatsapp|wa$/.test(src)) return 'WhatsApp';
+  return 'Website';
+}
+
 export const lpFontHref = (style) => { const fp = fontPair({ ...PAGE_STYLE, ...(style || {}) }.font); return fp.q ? 'https://fonts.googleapis.com/css2?' + fp.q + '&display=swap' : ''; };
 
 function Countdown({ hours, pageId, compact }) {
@@ -59,23 +107,47 @@ function Countdown({ hours, pageId, compact }) {
   return <span className={'lp-clock' + (compact ? ' is-compact' : '')} role="timer" aria-label={`${parts[0][0]} hours ${parts[1][0]} minutes left`}>{parts.map(([n, l]) => <span key={l}><b>{String(n).padStart(2, '0')}</b><small>{l}</small></span>)}</span>;
 }
 
-function OrderForm({ part, page, product, f, editing, preview }) {
-  const tiers = (part.tiers || []).filter((t) => Number(t.qty) > 0 && Number(t.price) > 0);
-  const [tier, setTier] = useState(tiers.length > 1 ? 1 : 0);
+/** The order form's offers: one product in different quantities (tiers) or several products / combos (choices). */
+export function offersOf(part, product, products) {
+  if (!part) return [];
+  if (part.mode === 'choices') {
+    return (part.choices || []).map((c, i) => {
+      const p = (products || []).find((x) => x.id === c.product) || (!c.product ? product : null);
+      const qty = Math.max(1, Number(c.qty) || 1);
+      const price = Number(c.price) || (p ? Number(p.price) * qty : 0);
+      if (!p || !(price > 0)) return null;
+      const pf = factsOf(p);
+      const mrp = Number(c.mrp) || (pf && pf.mrp ? pf.mrp * qty : 0);
+      return { key: c.id || 'c' + i, label: c.label || p.name, product: p, qty, price, mrp: mrp > price ? mrp : 0, tag: c.tag || '', image: c.image || (pf && pf.photos[0]) || '', note: c.note || '' };
+    }).filter(Boolean);
+  }
+  const f = factsOf(product);
+  return (part.tiers || []).filter((t) => Number(t.qty) > 0 && Number(t.price) > 0).map((t, i) => {
+    const list = f ? f.price * Number(t.qty) : 0;
+    return { key: t.id || 't' + i, label: t.label, product, qty: Number(t.qty), price: Number(t.price), mrp: list > Number(t.price) ? list : 0, tag: t.tag || '', image: (f && f.photos[0]) || '', note: '' };
+  });
+}
+
+function OrderForm({ part, page, product, f, editing, preview, offers, pick, setPick }) {
+  const choices = part.mode === 'choices';
+  const tiers = offers;
+  const tier = Math.min(Math.max(0, pick == null ? (tiers.length > 1 && !choices ? 1 : 0) : pick), Math.max(0, tiers.length - 1));
+  const setTier = setPick;
   const [qty, setQty] = useState(1);
   const [v, setV] = useState({ name: '', phone: '', district: '', area: '', zone: '', line: '', note: '', variant: (f && f.variants[0]) || '' });
   const [err, setErr] = useState({});
   const [done, setDone] = useState(null);
-  const t = tiers[Math.min(tier, tiers.length - 1)];
+  const t = tiers.length ? tiers[tier] : null;
   const units = t ? Number(t.qty) : qty;
   const sub = t ? Number(t.price) : (f ? f.price : 0) * qty;
-  const list = (f ? f.price : 0) * units;
+  const lineProduct = (t && t.product) || product;
+  const lf = lineProduct === product ? f : factsOf(lineProduct);
+  const list = (lf ? lf.price : 0) * units;
   const freeAt = Number(part.freeAt) || 0;
   const rate = v.zone ? rateOf(v.zone) : null;
   const fee = rate ? (freeAt && sub >= freeAt ? 0 : feeFor(rate.id, units)) : 0;
   const total = sub + fee;
   const set = (k) => (e) => setV((x) => ({ ...x, [k]: e.target.value }));
-  useEffect(() => { if (tier >= tiers.length) setTier(0); }, [tiers.length, tier]);
   const submit = (e) => {
     e.preventDefault();
     if (editing) return;
@@ -86,16 +158,18 @@ function OrderForm({ part, page, product, f, editing, preview }) {
     if (v.line.trim().length < 4) bad.line = 'Write your house, road or village.';
     setErr(bad);
     if (Object.keys(bad).length) { const el = document.getElementById('lpf-' + Object.keys(bad)[0]); if (el) el.focus(); return; }
-    if (!product) { setDone({ id: '', total }); return; }
+    if (!lineProduct) { setDone({ id: '', total }); return; }
     if (preview) { setDone({ id: '', total, preview: true }); return; }
-    const variant = (product.variants || []).find((x) => x.name === v.variant) || null;
-    const unit = Math.round((sub / units) * 100) / 100;
+    const variant = !choices ? (lineProduct.variants || []).find((x) => x.name === v.variant) || null : null;
     const address = addressText({ line: v.line.trim(), area: v.area, district: v.district });
+    // the list price per unit; an offer cheaper than the list is a discount, a dearer one (a priced combo) is its own price
+    const unit = list > sub || !units ? (lf ? lf.price : sub) : Math.round((sub / units) * 100) / 100;
+    const utm = readUtm();
     const row = addOrder({
-      lines: [{ name: product.name + (variant ? ' (' + variant.name + ')' : ''), qty: units, price: f.price, listPrice: f.price, sku: (variant && variant.sku) || product.sku, cat: product.cat, variant: variant ? variant.name : '', productId: product.id }],
-      customer: v.name.trim(), phone: prettyPhone(digits(v.phone)), zone: rate ? rate.label : '', address, shipping: fee, total, status: 'New', payment: 'COD', channel: 'Online store', source: 'Website', method: 'COD',
+      lines: [{ name: (choices && t ? t.label : lineProduct.name) + (variant ? ' (' + variant.name + ')' : ''), qty: units, price: unit, listPrice: lf ? lf.price : unit, sku: (variant && variant.sku) || lineProduct.sku, cat: lineProduct.cat, variant: variant ? variant.name : '', productId: lineProduct.id }],
+      customer: v.name.trim(), phone: prettyPhone(digits(v.phone)), zone: rate ? rate.label : '', address, shipping: fee, total, status: 'New', payment: 'COD', channel: 'Online store', source: sourceOf(utm), method: 'COD',
       discount: Math.max(0, Math.round(list - sub)), discountReason: t && list > sub ? 'Landing page offer: ' + t.label : '', note: [v.note.trim(), 'Landing page: ' + page.title].filter(Boolean).join(' · '),
-      district: v.district, thana: v.area, tags: ['Landing page'], more: { landingPage: page.id },
+      district: v.district, thana: v.area, tags: ['Landing page'], more: { landingPage: page.id, ...(utm ? { utm } : {}) },
     });
     if (!row.duplicate) {
       try { announceNewOrder(row.id); } catch { /* ignore */ }
@@ -121,18 +195,19 @@ function OrderForm({ part, page, product, f, editing, preview }) {
       {tiers.length ? (
         <div className="lp-tiers" role="radiogroup" aria-label="How many">
           {tiers.map((x, i) => (
-            <button key={x.id || i} type="button" role="radio" aria-checked={tier === i} className="lp-tier" onClick={() => setTier(i)} tabIndex={editing ? -1 : undefined}>
+            <button key={x.key} type="button" role="radio" aria-checked={tier === i} className={'lp-tier' + (choices ? ' has-pic' : '')} onClick={() => setTier(i)} tabIndex={editing ? -1 : undefined}>
               {x.tag ? <em>{x.tag}</em> : null}
               <i aria-hidden="true" />
-              <span><b>{x.label}</b>{f && f.price * Number(x.qty) > Number(x.price) ? <small>Save {tk(f.price * Number(x.qty) - Number(x.price))}</small> : null}</span>
-              <strong>{tk(x.price)}</strong>
+              {choices && x.image ? <span className="lp-tier__pic"><Pic src={x.image} alt="" /></span> : null}
+              <span><b>{x.label}</b>{x.note ? <small>{x.note}</small> : x.mrp > x.price ? <small>Save {tk(x.mrp - x.price)}</small> : null}</span>
+              <strong>{x.mrp > x.price && choices ? <s>{tk(x.mrp)}</s> : null}{tk(x.price)}</strong>
             </button>
           ))}
         </div>
       ) : (
         <div className="lp-qty"><span>Quantity</span><span className="lp-qty__b"><button type="button" aria-label="One less" onClick={() => setQty((n) => Math.max(1, n - 1))}><Icon name="minus" width="16" height="16" /></button><b aria-live="polite">{qty}</b><button type="button" aria-label="One more" onClick={() => setQty((n) => Math.min(10, n + 1))}><Icon name="plus" width="16" height="16" /></button></span></div>
       )}
-      {part.variants && f && f.variants.length > 1 ? field('variant', 'Variant', <select {...a('variant')}>{f.variants.map((x) => <option key={x}>{x}</option>)}</select>) : null}
+      {!choices && part.variants && f && f.variants.length > 1 ? field('variant', 'Variant', <select {...a('variant')}>{f.variants.map((x) => <option key={x}>{x}</option>)}</select>) : null}
       <div className="lp-row2">
         {field('name', 'Your name', <input {...a('name')} autoComplete="name" />)}
         {field('phone', 'Mobile number', <input {...a('phone')} type="tel" inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" />)}
@@ -155,8 +230,22 @@ function OrderForm({ part, page, product, f, editing, preview }) {
   );
 }
 
-function PartBody({ part, page, product, f, editing, preview, reviews, shop }) {
-  const go = (e) => { if (editing) { e.preventDefault(); return; } const el = document.getElementById('lp-order'); if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
+/** Scroll to the order form (a click on any "Order now"); in the builder buttons don't act. */
+const goOrder = (editing) => (e) => { if (editing) { e.preventDefault(); return; } const el = document.getElementById('lp-order'); if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
+
+function ProofSlider({ photos }) {
+  const ref = React.useRef(null);
+  const by = (d) => { const el = ref.current; if (el) el.scrollBy({ left: d * el.clientWidth * 0.8, behavior: 'smooth' }); };
+  return (
+    <div className="lp-slider">
+      <div className="lp-slider__track" ref={ref}>{photos.map((x, i) => <figure key={x.id || i}><Pic src={x.image} alt={x.caption || ''} />{x.caption ? <figcaption>{x.caption}</figcaption> : null}</figure>)}</div>
+      {photos.length > 1 ? <><button type="button" className="lp-slider__a is-prev" aria-label="Previous photos" onClick={() => by(-1)}><Icon name="chevron-left" width="20" height="20" aria-hidden="true" /></button><button type="button" className="lp-slider__a is-next" aria-label="Next photos" onClick={() => by(1)}><Icon name="chevron-right" width="20" height="20" aria-hidden="true" /></button></> : null}
+    </div>
+  );
+}
+
+function PartBody({ part, page, product, f, editing, preview, reviews, shop, offers, pick, setPick, orderPart }) {
+  const go = goOrder(editing);
   const photo = part.image || (f && f.photos[0]) || '';
   switch (part.type) {
     case 'announce':
@@ -224,7 +313,55 @@ function PartBody({ part, page, product, f, editing, preview, reviews, shop }) {
     case 'guarantee':
       return <div className="lp-guar"><span className="lp-guar__ic" aria-hidden="true"><Icon name="shield-check" width="30" height="30" /></span><div><h2>{part.title}</h2><p>{part.text}</p></div></div>;
     case 'order':
-      return <div id="lp-order" className="lp-order"><h2>{part.title}</h2>{part.sub ? <p className="lp-center lp-muted">{part.sub}</p> : null}<OrderForm part={part} page={page} product={product} f={f} editing={editing} preview={preview} /></div>;
+      return <div id="lp-order" className="lp-order"><h2>{part.title}</h2>{part.sub ? <p className="lp-center lp-muted">{part.sub}</p> : null}<OrderForm part={part} page={page} product={product} f={f} editing={editing} preview={preview} offers={offers} pick={pick} setPick={setPick} /></div>;
+    case 'offers': {
+      if (!offers.length) return editing ? <p className="lp-empty">Offer cards show the order form’s offers. Add quantity offers or offers to the Order form part.</p> : null;
+      return (<>
+        {part.title ? <h2>{part.title}</h2> : null}{part.sub ? <p className="lp-center lp-muted">{part.sub}</p> : null}
+        <div className={'lp-offers is-' + (part.look || 'cards')}>
+          {offers.map((x, i) => (
+            <div key={x.key} className={'lp-offer-card' + (pick === i ? ' is-on' : '')}>
+              {x.tag ? <em className="lp-offer-card__tag">{x.tag}</em> : null}
+              {x.image ? <span className="lp-offer-card__pic"><Pic src={x.image} alt="" /></span> : null}
+              <span className="lp-offer-card__t"><b>{x.label}</b>{x.note ? <small>{x.note}</small> : null}</span>
+              <span className="lp-offer-card__p">{x.mrp > x.price ? <s>{tk(x.mrp)}</s> : null}<strong>{tk(x.price)}</strong>{part.save && x.mrp > x.price ? <small>Save {tk(x.mrp - x.price)}</small> : null}</span>
+              <a className="lp-btn" href="#lp-order" onClick={(e) => { if (!editing && setPick) setPick(i); go(e); }}>{part.button || 'Order now'}</a>
+            </div>
+          ))}
+        </div>
+      </>);
+    }
+    case 'callout':
+      if (!part.title && !part.text) return null;
+      return <div className={'lp-callout is-' + (part.tone || 'brand') + ' look-' + (part.look || 'soft')}><span className="lp-callout__ic" aria-hidden="true"><Icon name={part.icon || 'badge-check'} width="22" height="22" /></span><div>{part.title ? <b>{part.title}</b> : null}{part.text ? <p>{part.text}</p> : null}</div></div>;
+    case 'proof': {
+      const faces = (part.avatars || []).filter((x) => x.image).slice(0, 6);
+      const photos = (part.photos || []).filter((x) => x.image);
+      return (
+        <div className={'lp-proof is-' + (part.look || 'slider')}>
+          <div className="lp-proof__h">
+            {faces.length ? <span className="lp-proof__faces" aria-hidden="true">{faces.map((x, i) => <span key={x.id || i}><Pic src={x.image} alt="" /></span>)}</span> : null}
+            <span><b>{part.number}</b> {part.label}</span>
+          </div>
+          {part.sub ? <p className="lp-center lp-muted">{part.sub}</p> : null}
+          {part.look !== 'header' && photos.length ? (part.look === 'grid' ? <div className="lp-gal">{photos.map((x, i) => <span key={x.id || i}><Pic src={x.image} alt={x.caption || ''} /></span>)}</div> : <ProofSlider photos={photos} />) : null}
+          {editing && part.look !== 'header' && !photos.length ? <p className="lp-empty">Add customer photos in the panel.</p> : null}
+        </div>
+      );
+    }
+    case 'image':
+      if (!part.image) return editing ? <p className="lp-empty">Choose a picture in the panel. A banner designed with its own words works best.</p> : null;
+      return (
+        <div className={'lp-image is-' + (part.width || 'contained')}>
+          <Pic src={part.image} alt={part.alt || ''} />
+          {part.button ? <a className="lp-btn is-big" href={part.href || '#lp-order'} onClick={part.href ? (e) => editing && e.preventDefault() : go}>{part.button}</a> : null}
+        </div>
+      );
+    case 'logos': {
+      const items = (part.items || []).filter((x) => x.image);
+      if (!items.length) return editing ? <p className="lp-empty">Add certificate or partner logos in the panel.</p> : null;
+      return <>{part.title ? <h2>{part.title}</h2> : null}<div className={'lp-logos is-' + (part.look || 'cards')}>{items.map((x, i) => <figure key={x.id || i}><Pic src={x.image} alt={x.label || ''} />{x.label && part.look !== 'plain' ? <figcaption>{x.label}</figcaption> : null}</figure>)}</div></>;
+    }
     case 'faq': {
       const items = (part.items || []).filter((x) => x.q);
       if (!items.length) return null;
@@ -238,6 +375,7 @@ function PartBody({ part, page, product, f, editing, preview, reviews, shop }) {
         <div className="lp-contact"><div><h2>{part.title}</h2>{part.text ? <p>{part.text}</p> : null}</div>
           <span className="lp-contact__b">
             {part.call && phone ? <a className="lp-btn is-line" href={'tel:' + phone.replace(/[^\d+]/g, '')} onClick={(e) => editing && e.preventDefault()}><Icon name="phone" width="16" height="16" aria-hidden="true" />Call {phone}</a> : null}
+            {part.facebook ? <a className="lp-btn is-line" href={part.facebook} target="_blank" rel="noopener noreferrer" onClick={(e) => editing && e.preventDefault()}><Icon name="facebook" width="16" height="16" aria-hidden="true" />Facebook</a> : null}
             {part.whatsapp && phone ? <a className="lp-btn is-wa" href={'https://wa.me/' + digits(phone).replace(/^0/, '880') + '?text=' + encodeURIComponent('I want to order ' + (f ? f.name : ''))} target="_blank" rel="noopener noreferrer" onClick={(e) => editing && e.preventDefault()}><Icon name="message-circle" width="16" height="16" aria-hidden="true" />WhatsApp</a> : null}
           </span>
         </div>
@@ -247,32 +385,83 @@ function PartBody({ part, page, product, f, editing, preview, reviews, shop }) {
   }
 }
 
-/** The whole page. editing: the builder's preview (click selects). preview: a draft seen by staff (no real orders). */
-export default function LandingView({ page, product, editing = false, preview = false, selected = '', onSelect }) {
+/** A landing part's wrapper: the Style / Advanced settings (box) as classes and variables, like a store section. */
+function PartShell({ part, editing, selected, onPick, children }) {
+  const box = part.box || {};
+  const bgUrl = useFileSrc(box.bgImage || '', 'full');
+  const bp = boxProps(box, { bgUrl, editing });
+  const label = partLabel(part);
+  return (
+    <section id={bp.id} style={bp.style}
+      className={'lp-part lp-part--' + part.type + ' ' + bp.className + (part.hidden ? ' is-hidden' : '') + (selected ? ' is-sel' : '')}
+      data-part={part.id} data-sec-id={editing ? part.id : undefined} data-sec-label={editing ? label : undefined}
+      {...(editing ? { onClickCapture: (e) => { if (e.target.closest('input,select,textarea,label,.lp-tier,.lp-qty__b button,summary,.lp-slider__a')) return; e.preventDefault(); onPick(part.id); }, 'data-label': label + (part.hidden ? ' · hidden' : '') } : {})}>
+      {box.divTop ? <span className={'sfx-div is-t is-' + box.divTop} aria-hidden="true" /> : null}
+      {box.divBottom ? <span className={'sfx-div is-b is-' + box.divBottom} aria-hidden="true" /> : null}
+      {children}
+    </section>
+  );
+}
+const OrderUnder = ({ text, editing }) => (text ? <div className="lp-under"><a className="lp-btn is-big" href="#lp-order" onClick={goOrder(editing)}>{text}</a></div> : null);
+
+/** The whole page. editing: the builder's preview (click selects). preview: a draft seen by staff (no real orders).
+ *  In the builder's frame (?preview=1&edit=1) editing and the selection come from the frame (isEditing, previewValue). */
+export default function LandingView({ page, product, editing: editingProp = false, preview = false, selected: selectedProp = '', onSelect }) {
   const f = useMemo(() => factsOf(product), [product]);
   const reviews = useMemo(() => productReviews(product, 6), [product]);
   const shop = useMemo(() => { let p = null; try { p = businessProfile(); } catch { p = null; } return { phone: (p && p.contact && p.contact.phone) || '+8801811843300', name: (p && p.brand && p.brand.name) || 'Dazzle Shop', logo: p && p.brand && p.brand.logo }; }, []);
+  const [frame, setFrame] = useState({ editing: false, selected: '' });
+  const [products, setProducts] = useState([]);
+  const [catalog, setCatalog] = useState([]);
+  const [pick, setPick] = useState(null);
+  useEffect(() => {
+    const read = () => setFrame({ editing: isEditing(), selected: previewValue('select') || '' });
+    read();
+    try { setProducts(allProducts(getSavedProducts())); } catch { setProducts([]); }
+    try { setCatalog(getCatalog()); } catch { setCatalog([]); }
+    if (!isEditing() && !preview) captureUtm();
+    window.addEventListener(SF_EVENT, read);
+    return () => window.removeEventListener(SF_EVENT, read);
+  }, [preview]);
+  const editing = editingProp || frame.editing;
+  const selected = selectedProp || frame.selected;
+  const pickPart = onSelect || selectInEditor;
   const style = { ...PAGE_STYLE, ...(page.style || {}) };
+  const theme = useMemo(() => lpTheme(style), [JSON.stringify(style)]); // eslint-disable-line react-hooks/exhaustive-deps
   const parts = (page.parts || []).filter((x) => !x.hidden || editing);
-  const hasOrder = parts.some((x) => x.type === 'order' && !x.hidden);
+  const orderPart = parts.find((x) => x.type === 'order' && !x.sf && !x.hidden) || null;
+  const offers = useMemo(() => offersOf(orderPart, product, products), [orderPart, product, products]);
+  const hasOrder = !!orderPart;
   const href = lpFontHref(style);
+  const themeHref = fontHref(theme);
   return (
-    <div className={'lpv' + (editing ? ' is-editing' : '')} style={lpVars(style)}>
+    <div className={'lpv sf-theme ' + themeClasses(theme) + (editing ? ' is-editing sf-editing' : '') + (style.pattern ? ' sfx-pat sfx-pat-' + style.pattern : '')} style={lpVars(style)}>
       {href ? <link rel="stylesheet" href={href} /> : null}
-      <style dangerouslySetInnerHTML={{ __html: LP_CSS }} />
+      {themeHref && themeHref !== href ? <link rel="stylesheet" href={themeHref} /> : null}
+      <style dangerouslySetInnerHTML={{ __html: themeVars(theme) + SF_CSS + TOKENS_CSS + SECTIONS_CSS + SECTIONS2_CSS + SECTIONS3_CSS + LOOKS_CSS + FIT_CSS + BOX_CSS + LP_CSS }} />
       <header className="lp-top">{shop.logo ? <img src={shop.logo} alt={shop.name} /> : <b>{shop.name}</b>}<a href={'tel:' + shop.phone.replace(/[^\d+]/g, '')} onClick={(e) => editing && e.preventDefault()}><Icon name="phone" width="16" height="16" aria-hidden="true" />{shop.phone}</a></header>
       {parts.map((part) => {
-        const t = partType(part.type);
-        const body = <PartBody part={part} page={page} product={product} f={f} editing={editing} preview={preview} reviews={reviews} shop={shop} />;
+        if (isStorePart(part)) {
+          const { sf, orderBtn, hidden, ...sec } = part; // eslint-disable-line no-unused-vars
+          return (
+            <div key={part.id} className={'lp-sf' + (hidden ? ' is-hidden' : '')} data-part={part.id}>
+              <Section s={sec} v={theme} catalog={catalog} ctx={{ product }} />
+              <OrderUnder text={orderBtn} editing={editing} />
+            </div>
+          );
+        }
+        if (!partType(part.type)) return null;
         return (
-          <section key={part.id} className={'lp-part lp-part--' + part.type + (part.hidden ? ' is-hidden' : '') + (selected === part.id ? ' is-sel' : '')} data-part={part.id}
-            {...(editing ? { onClickCapture: (e) => { if (e.target.closest('input,select,textarea,label,.lp-tier,.lp-qty__b button,summary')) return; e.preventDefault(); onSelect && onSelect(part.id); }, 'data-label': (t && t.label) + (part.hidden ? ' · hidden' : '') } : {})}>
-            <div className="lp-wrap">{body}</div>
-          </section>
+          <PartShell key={part.id} part={part} editing={editing} selected={selected === part.id} onPick={pickPart}>
+            <div className="lp-wrap">
+              <PartBody part={part} page={page} product={product} f={f} editing={editing} preview={preview} reviews={reviews} shop={shop} offers={offers} pick={pick} setPick={setPick} orderPart={orderPart} />
+              <OrderUnder text={part.type === 'order' ? '' : part.orderBtn} editing={editing} />
+            </div>
+          </PartShell>
         );
       })}
       {style.sticky && hasOrder && f ? (
-        <div className="lp-sticky"><span><b>{tk(f.price)}</b>{f.mrp ? <s>{tk(f.mrp)}</s> : null}</span><a className="lp-btn" href="#lp-order" onClick={(e) => { e.preventDefault(); if (editing) return; const el = document.getElementById('lp-order'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }}>Order now</a></div>
+        <div className="lp-sticky"><span><b>{tk(offers.length ? offers[Math.min(pick == null ? 0 : pick, offers.length - 1)].price : f.price)}</b>{!offers.length && f.mrp ? <s>{tk(f.mrp)}</s> : null}</span><a className="lp-btn" href="#lp-order" onClick={goOrder(editing)}>Order now</a></div>
       ) : null}
       <footer className="lp-foot">© {shop.name} · Cash on delivery all over Bangladesh</footer>
     </div>
@@ -287,9 +476,97 @@ export const LP_CSS = `
 .lpv p{margin:0}
 .lpv img{display:block;max-width:100%}
 .lp-wrap{width:100%;max-width:1080px;margin:0 auto;padding:0 20px}
-.lp-part{padding:clamp(36px,6cqi,72px) 0}
-.lp-part--announce{padding:0}
-.lp-part--hero{padding-top:clamp(20px,4cqi,48px)}
+/* spacing: the page's own rhythm, unless the part's Style tab sets steps (box → --sfx-*; computer, tablet, phone) */
+.lp-part{--lp-pt:clamp(36px,6cqi,72px);--lp-pb:clamp(36px,6cqi,72px);position:relative;padding-top:var(--sfx-pt-d,var(--lp-pt));padding-bottom:var(--sfx-pb-d,var(--lp-pb));margin-top:var(--sfx-mt-d,0);margin-bottom:var(--sfx-mb-d,0)}
+@media (max-width:1023px){.lp-part{padding-top:var(--sfx-pt-t,var(--sfx-pt-d,var(--lp-pt)));padding-bottom:var(--sfx-pb-t,var(--sfx-pb-d,var(--lp-pb)));margin-top:var(--sfx-mt-t,var(--sfx-mt-d,0));margin-bottom:var(--sfx-mb-t,var(--sfx-mb-d,0))}}
+@media (max-width:640px){.lp-part{padding-top:var(--sfx-pt-m,var(--sfx-pt-t,var(--sfx-pt-d,var(--lp-pt))));padding-bottom:var(--sfx-pb-m,var(--sfx-pb-t,var(--sfx-pb-d,var(--lp-pb))));margin-top:var(--sfx-mt-m,var(--sfx-mt-t,var(--sfx-mt-d,0)));margin-bottom:var(--sfx-mb-m,var(--sfx-mb-t,var(--sfx-mb-d,0)))}}
+.lp-part--announce{--lp-pt:0;--lp-pb:0}
+.lp-part--hero{--lp-pt:clamp(20px,4cqi,48px)}
+.lp-part--image{--lp-pt:0;--lp-pb:0}
+.lp-part.sfx-w-wide .lp-wrap{max-width:1320px}
+.lp-part.sfx-w-full .lp-wrap{max-width:none;padding:0}
+.lp-part.sfx-al-center .lp-wrap{text-align:center}
+.lp-part.sfx-al-right .lp-wrap{text-align:right}
+.lp-part.sfx-has-fg :is(h1,h2,h3,p,b,small,li){color:var(--sfx-fg)}
+.lp-part.sfx-has-font :is(h1,h2,h3){font-family:var(--sfx-font)}
+.lp-part.sfx-has-hs h2{font-size:calc(clamp(24px,3.4cqi,34px) * var(--sfx-hs,1))}
+.lp-sf.is-hidden{opacity:.45}
+/* "Order now" under a part */
+.lp-under{display:flex;justify-content:center;margin-top:clamp(20px,3cqi,32px)}
+.lp-sf>.lp-under{margin:0;padding:0 20px clamp(24px,4cqi,40px)}
+/* offer cards (read the order form's offers; the button picks that offer in the form) */
+.lp-offers{display:grid;gap:14px}
+.lp-offers.is-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+.lp-offer-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 14px;border:2px solid var(--lp-line);border-radius:var(--lp-r);background:var(--lp-bg);text-align:center}
+.lp-offer-card.is-on{border-color:var(--lp-accent)}
+.lp-offer-card__tag{position:absolute;top:-11px;left:50%;transform:translateX(-50%);padding:2px 12px;border-radius:var(--radius-full);background:var(--lp-accent);color:var(--lp-on);font-style:normal;font-size:var(--text-xs);font-weight:var(--weight-semibold);white-space:nowrap}
+.lp-offer-card__pic{display:grid;place-items:center;width:100%;aspect-ratio:1/1;border-radius:calc(var(--lp-r) - 4px);background:var(--lp-surface);overflow:hidden}
+.lp-offer-card__pic img{width:100%;height:100%;object-fit:contain}
+.lp-offer-card__t{display:flex;flex-direction:column;gap:2px}
+.lp-offer-card__t b{font-family:var(--lp-head);font-size:var(--text-base);line-height:1.3}
+.lp-offer-card__t small{color:var(--lp-muted)}
+.lp-offer-card__p{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:2px 8px}
+.lp-offer-card__p s{color:var(--lp-muted)}
+.lp-offer-card__p strong{font-size:var(--text-xl);color:var(--lp-accent)}
+.lp-offer-card__p small{width:100%;color:#16a34a;font-weight:var(--weight-medium)}
+.lp-offer-card .lp-btn{width:100%}
+.lp-offers.is-wide .lp-offer-card,.lp-offers.is-compact .lp-offer-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;text-align:left}
+.lp-offers.is-wide .lp-offer-card__pic{width:96px}
+.lp-offers.is-wide .lp-offer-card .lp-btn,.lp-offers.is-compact .lp-offer-card .lp-btn{grid-column:1/-1}
+.lp-offers.is-compact .lp-offer-card__pic{display:none}
+.lp-offers.is-compact .lp-offer-card{grid-template-columns:minmax(0,1fr) auto}
+.lp-offers:is(.is-wide,.is-compact) .lp-offer-card__p{justify-content:flex-end}
+.lp-offers:is(.is-wide,.is-compact) .lp-offer-card__tag{left:16px;transform:none}
+@container (max-width:420px){.lp-offers.is-cards{gap:10px}.lp-offer-card{padding:14px 10px}}
+/* order offers with a picture */
+.lp-tier.has-pic{grid-template-columns:auto 56px minmax(0,1fr) auto}
+.lp-tier__pic{display:grid;place-items:center;width:56px;height:56px;border-radius:var(--radius-lg);background:var(--lp-surface);overflow:hidden}
+.lp-tier__pic img{width:100%;height:100%;object-fit:contain}
+.lp-tier small{color:var(--lp-muted)}
+.lp-tier strong{display:flex;flex-direction:column;align-items:flex-end}
+.lp-tier strong s{color:var(--lp-muted);font-size:var(--text-sm);font-weight:var(--weight-medium)}
+/* callout box */
+.lp-callout{--c:var(--lp-accent);display:flex;align-items:flex-start;gap:14px;max-width:720px;margin:0 auto;padding:18px 20px;border-radius:var(--lp-r);background:color-mix(in srgb,var(--c) 10%,var(--lp-bg));border:1px solid color-mix(in srgb,var(--c) 30%,transparent);text-align:left}
+.lp-callout.is-success{--c:#16a34a}.lp-callout.is-warning{--c:#d97706}.lp-callout.is-danger{--c:#dc2626}.lp-callout.is-dark{--c:#0f172a}
+.lp-callout.look-outline{background:transparent;border-width:2px;border-style:dashed}
+.lp-callout.look-solid{background:var(--c);border-color:var(--c)}
+.lp-callout.look-solid :is(b,p){color:#fff}
+.lp-callout__ic{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;background:var(--c);color:#fff}
+.lp-callout.look-solid .lp-callout__ic{background:rgba(255,255,255,.2)}
+.lp-callout b{display:block;font-family:var(--lp-head);font-size:var(--text-lg);color:var(--c)}
+.lp-callout p{margin-top:2px;color:var(--lp-text)}
+/* customer proof */
+.lp-proof{display:flex;flex-direction:column;gap:16px}
+.lp-proof__h{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;text-align:center}
+.lp-proof__h>span:last-child{font-family:var(--lp-head);font-size:clamp(20px,3cqi,28px);font-weight:var(--lp-hw)}
+.lp-proof__h b{color:var(--lp-accent)}
+.lp-proof__faces{display:flex}
+.lp-proof__faces span{width:42px;height:42px;margin-left:-10px;border:3px solid var(--lp-bg);border-radius:50%;overflow:hidden;background:var(--lp-surface)}
+.lp-proof__faces span:first-child{margin-left:0}
+.lp-proof__faces img{width:100%;height:100%;object-fit:cover}
+.lp-slider{position:relative}
+.lp-slider__track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:4px}
+.lp-slider__track::-webkit-scrollbar{display:none}
+.lp-slider__track figure{flex:0 0 min(78%,320px);margin:0;scroll-snap-align:start;border-radius:var(--lp-r);overflow:hidden;background:var(--lp-surface)}
+.lp-slider__track img{width:100%;aspect-ratio:4/5;object-fit:cover}
+.lp-slider__track figcaption{padding:8px 12px;font-size:var(--text-sm);color:var(--lp-muted)}
+.lp-slider__a{position:absolute;top:calc(50% - 22px);display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:50%;background:color-mix(in srgb,var(--lp-bg) 92%,transparent);color:var(--lp-text);box-shadow:0 4px 14px -6px rgba(15,23,42,.35);cursor:pointer}
+.lp-slider__a.is-prev{left:6px}.lp-slider__a.is-next{right:6px}
+/* picture banner */
+.lp-image{display:flex;flex-direction:column;align-items:center;gap:16px}
+.lp-image img{width:100%;height:auto;border-radius:var(--lp-r)}
+.lp-image.is-contained{max-width:1080px;margin:0 auto;padding:clamp(16px,3cqi,32px) 20px}
+.lp-image.is-full img{border-radius:0}
+.lp-image.is-full .lp-btn{margin-bottom:clamp(16px,3cqi,28px)}
+/* certificates and logos */
+.lp-logos{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+.lp-logos figure{display:flex;flex-direction:column;align-items:center;gap:6px;margin:0;width:calc((100% - 24px) / 3);max-width:180px}
+.lp-logos img{width:100%;aspect-ratio:1/1;object-fit:contain}
+.lp-logos figcaption{font-size:var(--text-xs);font-weight:var(--weight-semibold);text-align:center;text-transform:uppercase;letter-spacing:.02em}
+.lp-logos.is-cards figure{padding:12px;border:1px solid var(--lp-line);border-radius:var(--lp-r);background:var(--lp-bg)}
+.lp-logos.is-strip{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;scrollbar-width:none}
+.lp-logos.is-strip figure{flex:0 0 120px}
+
 .lp-part:nth-of-type(even):not(.lp-part--announce):not(.lp-part--hero):not(.lp-part--cta){background:var(--lp-surface)}
 .lp-top{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1080px;margin:0 auto;padding:12px 20px}
 .lp-top img{height:28px;width:auto}

@@ -22,6 +22,8 @@ import { Topbar, Search, HelpSheet } from './AdminTopbar';
 import { AccessBanner } from './access/StoreAccess';
 import { syncServices } from '@/lib/admin/servicesSync';
 import { EVENT as SERVICES_EVENT } from '@/lib/platform/services';
+import { syncGridShop } from '@/lib/admin/gridShopSync';
+import { GS_EVENT } from '@/lib/platform/gridShop';
 
 const LOGO = '/assets/62dadbbb3f365aebdd41bb9975f5931f.png';
 const LOGO_MINI = '/assets/9b6f9ad369f1cbde65271a968e6ba1f1.png';
@@ -153,9 +155,10 @@ export function AdminShell({ active, title, children }) {
   // Services orders paid, refunded or approved in a merchant's panel reach the books here (lib/admin/servicesSync.js)
   useEffect(() => {
     if (!live) return undefined;
-    syncServices();
+    syncServices(); syncGridShop();
     window.addEventListener(SERVICES_EVENT, syncServices);
-    return () => window.removeEventListener(SERVICES_EVENT, syncServices);
+    window.addEventListener(GS_EVENT, syncGridShop);   // Grid Shop (Batch D, lib/admin/gridShopSync.js)
+    return () => { window.removeEventListener(SERVICES_EVENT, syncServices); window.removeEventListener(GS_EVENT, syncGridShop); };
   }, [live]);
   useEffect(() => {
     const k = (e) => {

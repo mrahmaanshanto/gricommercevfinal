@@ -22,6 +22,11 @@ import { allProducts } from '@/lib/products';
 import { productBy } from '@/lib/stock';
 import { coverOf } from '@/lib/warranty';
 import { notifyWords } from '@/lib/notifications';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
+
+// a claim or serial names its product; its picture comes from the catalogue row
+const itemPic = (name) => productPic(productBy(name) || name);
 
 const DAY = 864e5;
 const STEP_TONE = { received: 'info', centre: 'warning', ready: 'success', returned: 'neutral', rejected: 'error' };
@@ -216,7 +221,8 @@ export default function WarrantyClaimsScreen() {
                   <ul className="ix-plist" aria-label="Warranty claims">
                     {shownClaims.map((c) => (
                       <li key={c.id}>
-                        <button type="button" className="ix-pitem" onClick={() => pick(c)}>
+                        <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => pick(c)}>
+                          <span style={{ gridRow: 'span 2' }}><Pic src={itemPic(c.item)} name={c.item} kind="item" /></span>
                           <span className="ix-pitem__top"><b className="wc-id">{c.id}</b><StatusBadge tone={STEP_TONE[stepOf(c)]}>{CLAIM_LABEL[stepOf(c)]}</StatusBadge></span>
                           <span className="ix-pitem__mid">{c.item} · {c.name || 'Walk-in customer'} · <span className={isOpenClaim(c) && daysOpen(c) > 7 ? 'wc-late' : ''}>{daysOpen(c)}d</span></span>
                         </button>
@@ -232,7 +238,7 @@ export default function WarrantyClaimsScreen() {
                           {shownClaims.map((c) => (
                             <tr key={c.id} className={c.id === sel ? 'is-sel' : ''} onClick={() => pick(c)}>
                               <td><button type="button" className="ix-strong wc-id" onClick={(e) => { e.stopPropagation(); pick(c); }}>{c.id}</button></td>
-                              <td>{c.item}</td>
+                              <td><span className="gc-picrow"><Pic src={itemPic(c.item)} name={c.item} kind="item" /><span>{c.item}</span></span></td>
                               <td className="wc-id ix-muted">{(c.serials || []).join(', ') || '—'}</td>
                               <td className="ix-muted">{c.name || 'Walk-in customer'}</td>
                               <td><StatusBadge tone={STEP_TONE[stepOf(c)]}>{CLAIM_LABEL[stepOf(c)]}</StatusBadge></td>
@@ -248,7 +254,8 @@ export default function WarrantyClaimsScreen() {
                   <ul className="ix-plist" aria-label="Serial & IMEI register">
                     {snRows.map((sr) => (
                       <li key={sr.no}>
-                        <div className="ix-pitem">
+                        <div className="ix-pitem ix-pitem--thumb">
+                          <span style={{ gridRow: 'span 2' }}><Pic src={itemPic(sr.p)} name={sr.p} kind="item" /></span>
                           <span className="ix-pitem__top"><b className="wc-id">{sr.no}</b><StatusBadge tone={SN_TONE[sr.st] || 'neutral'}>{sr.st}</StatusBadge></span>
                           <span className="ix-pitem__mid">{sr.p} · {sr.c} · {sr.e}</span>
                         </div>
@@ -263,7 +270,7 @@ export default function WarrantyClaimsScreen() {
                         {snRows.map((sr) => (
                           <tr key={sr.no}>
                             <td className="ix-strong wc-id">{sr.no}</td>
-                            <td>{sr.p}</td>
+                            <td><span className="gc-picrow"><Pic src={itemPic(sr.p)} name={sr.p} kind="item" /><span>{sr.p}</span></span></td>
                             <td className="ix-muted">{sr.b}</td>
                             <td><StatusBadge tone={SN_TONE[sr.st] || 'neutral'}>{sr.st}</StatusBadge></td>
                             <td className="ix-muted">{sr.c}</td>

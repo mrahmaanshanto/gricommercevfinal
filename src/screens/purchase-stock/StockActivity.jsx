@@ -23,6 +23,8 @@ import { traceSerial, getUnits, SERIAL_KIND, SERIAL_STATUS, SERIAL_EVENT } from 
 import { openCustody, sendToVendor, receiveBack, closeCustody, CUSTODY_REASONS, CUSTODY_EVENT } from '@/lib/custody';
 import { fmtQty } from '@/lib/units';
 import { currentUser } from '@/lib/team';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 
 const PAGE = 50;
 // a badge only where the status adds something to the type (held / on the way already say it)
@@ -219,7 +221,8 @@ export default function StockActivity() {
                   <ul className="ix-plist" aria-label="Stock activity">
                     {shown.map((r) => (
                       <li key={r.id}>
-                        <button type="button" className="ix-pitem" onClick={() => setOpen(r)}>
+                        <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setOpen(r)}>
+                          <span style={{ gridRow: BADGE[r.status] ? 'span 3' : 'span 2' }}><Pic src={productPic({ sku: r.sku, name: r.name })} name={r.name} kind="item" /></span>
                           <span className="ix-pitem__top"><b>{r.name}</b><span className={'sa-qty ' + tone(r)}>{qtyText(r)}</span></span>
                           <span className="ix-pitem__mid">{r.label} · {r.place || '—'} · {formatDateTime(r.at)}</span>
                           {BADGE[r.status] ? <span className="ix-pitem__tags"><__StatusBadge tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</__StatusBadge></span> : null}
@@ -245,7 +248,7 @@ export default function StockActivity() {
                         {shown.map((r) => (
                           <tr key={r.id} onClick={(e) => { if (e.target.closest && e.target.closest('a,button')) return; setOpen(r); }}>
                             <td className="ix-muted">{formatDateTime(r.at)}</td>
-                            <td><button type="button" className="ix-strong sa-name" onClick={() => setOpen(r)}>{r.name}</button></td>
+                            <td><span className="gc-picrow"><Pic src={productPic({ sku: r.sku, name: r.name })} name={r.name} kind="item" /><button type="button" className="ix-strong sa-name" onClick={() => setOpen(r)}>{r.name}</button></span></td>
                             <td>{BADGE[r.status] ? <__StatusBadge tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</__StatusBadge> : r.label}</td>
                             <td className="ix-muted">{r.place || '—'}</td>
                             <td className={'ix-num sa-qty ' + tone(r)}>{qtyText(r)}</td>

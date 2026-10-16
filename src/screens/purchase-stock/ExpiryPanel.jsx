@@ -11,6 +11,8 @@ import { EmptyState } from '@/components/ui';
 import { formatBDT, formatDate } from '@/lib/format';
 import { expiryList, writeOffBatch, BATCH_EVENT } from '@/lib/batches';
 import { isOnePlace } from '@/lib/stockSetup';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 
 const CSS = `
 .xp-head{align-items:flex-start;padding-bottom:var(--space-3)}
@@ -59,10 +61,11 @@ export default function ExpiryPanel() {
         <ul className="ix-plist" aria-label="Expiry">
           {rows.map((r) => (
             <li key={r.id}>
-              <div className="ix-pitem xp-pitem">
+              <div className="ix-pitem ix-pitem--thumb xp-pitem">
+                <span style={{ gridRow: 'span 2' }}><Pic src={productPic({ sku: r.sku, name: r.name })} name={r.name} kind="item" /></span>
                 <span className="ix-pitem__top"><b>{r.name}</b><span>{`${r.left} pcs`}</span></span>
                 <span className="ix-pitem__mid">{[one ? '' : r.place, r.supplier, r.ref].filter(Boolean).join(' · ')}</span>
-                <span className="xp-pitem__ctl">{when(r)}<button type="button" className="ix-btn ix-btn--sm" onClick={() => writeOff(r)}>Write off</button></span>
+                <span className="xp-pitem__ctl" style={{ gridColumn: '1 / -1' }}>{when(r)}<button type="button" className="ix-btn ix-btn--sm" onClick={() => writeOff(r)}>Write off</button></span>
               </div>
             </li>
           ))}
@@ -84,7 +87,7 @@ export default function ExpiryPanel() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td><span className="ix-strong xp-cell">{r.name}</span></td>
+                  <td><span className="gc-picrow"><Pic src={productPic({ sku: r.sku, name: r.name })} name={r.name} kind="item" /><span className="ix-strong xp-cell">{r.name}</span></span></td>
                   <td className="ix-muted"><span className="xp-cell">{[r.supplier, r.ref].filter(Boolean).join(' · ') || '—'}</span></td>
                   {one ? null : <td className="ix-muted">{r.place}</td>}
                   <td>{when(r)}</td>

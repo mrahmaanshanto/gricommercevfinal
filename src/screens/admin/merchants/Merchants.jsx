@@ -26,6 +26,7 @@ import { ask, rightOf, ruleFor } from '@/lib/admin/actionRights';
 import { VIEWS, merchantList, assignManager } from '@/lib/admin/merchants';
 import { KYC_STATES } from '@/lib/platform/shops';
 import { AdminShell, usePlatform } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 
 const PAGE = 20;
 const NONE = '__none';   // the "No account manager" filter value
@@ -281,7 +282,8 @@ export default function Merchants() {
             <ul className="ix-plist" aria-label={viewLabel + ' merchants'}>
               {rows.map((r) => (
                 <li key={r.id}>
-                  <Link href={'/admin/merchant?id=' + r.id} className="ix-pitem">
+                  <Link href={'/admin/merchant?id=' + r.id} className="ix-pitem ix-pitem--thumb">
+                    <span style={{ gridRow: 'span 3' }}><Pic src={r.logo} name={r.name} kind="logo" /></span>
                     <span className="ix-pitem__top"><b>{r.name}</b><span className="mer-money">{r.monthly ? money(r.monthly) : '—'}</span></span>
                     <span className="ix-pitem__mid"><span className="ix-id">#{r.id}</span> · {r.owner} · {r.packageName}</span>
                     <span className="ix-pitem__tags">
@@ -319,12 +321,13 @@ export default function Merchants() {
                       <td className="ix-check" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={sel.has(r.id)} onChange={() => toggle(r.id)} aria-label={'Select ' + r.name} /></td>
                       <td><span className="ix-id ix-muted">#{r.id}</span></td>
                       <td>
+                        <span className="gc-picrow"><Pic src={r.logo} name={r.name} kind="logo" />
                         <span className="mer-name">
                           <Link href={'/admin/merchant?id=' + r.id} className="ix-strong" onClick={(e) => e.stopPropagation()}>{r.name}</Link>
                           <small>{r.domain}</small>
                           {r.kyc === 'verified' ? <span className="mer-kyc"><Icon name="shield-check" width="12" height="12" aria-hidden="true" />Verified</span>
                             : r.kyc === 'submitted' ? <span className="mer-kyc is-wait"><Icon name="shield" width="12" height="12" aria-hidden="true" />Verification to review</span> : null}
-                        </span>
+                        </span></span>
                       </td>
                       <td><span className="mer-owner"><span>{r.owner || '—'}</span>{r.phone ? <small>{r.phone}</small> : null}</span></td>
                       <td><StatusBadge tone={r.tone}>{r.stateLabel}</StatusBadge></td>

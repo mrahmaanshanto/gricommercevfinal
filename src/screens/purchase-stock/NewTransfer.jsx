@@ -18,6 +18,8 @@ import { CATALOG, productBy, stockAt, getMoves } from '@/lib/stock';
 import { resolveScan } from '@/lib/identifiers';
 import { getHolds } from '@/lib/stockHolds';
 import { addTransfer } from '@/lib/transfers';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 
 // ---- form helpers: required marker, field error text, invalid attributes, focus the first error ----
 function __Req() { return <span aria-hidden="true" style={{ color: 'var(--text-danger)' }}> *</span>; }
@@ -59,7 +61,7 @@ class Component extends DCLogic {
     var haveOf = function (p) { return from0 ? stockAt(p.sku, from0, s.holds || [], s.moves || [], null).available : 0; };
     var rows = lines.map(function (l, k) {
       var p = TP[l.i], have = haveOf(p); pcs += l.q; val += l.q * p.cost; var left = have - l.q; if (left < 0) tooMany = true;
-      return { key: p.sku, name: p.name, code: p.code, initial: p.name.charAt(0), have: have, qty: l.q, left: left, short: left < 0, flash: s.flash === l.i,
+      return { key: p.sku, name: p.name, code: p.code, initial: p.name.charAt(0), pic: productPic(p), have: have, qty: l.q, left: left, short: left < 0, flash: s.flash === l.i,
         inc: function () { var x = lines.slice(); x[k] = { i: l.i, q: l.q + 1 }; setL(x); },
         dec: function () { var x = lines.slice(); x[k] = { i: l.i, q: Math.max(1, l.q - 1) }; setL(x); },
         remove: function () { var x = lines.slice(); x.splice(k, 1); setL(x); } };
@@ -236,10 +238,11 @@ export default class NewTransferScreen extends Component {
                       <ul className="ix-plist" aria-label="Items to send">
                         {v.lines.map((r) => (
                           <li key={r.key}>
-                            <div className="ix-pitem ntr-pitem">
+                            <div className="ix-pitem ix-pitem--thumb ntr-pitem">
+                              <span style={{ gridRow: 'span 2' }}><Pic src={r.pic} name={r.name} kind="item" /></span>
                               <span className="ix-pitem__top"><b>{r.name}</b><span className={r.short ? 'ntr-short' : ''}>{`${r.left} left here`}</span></span>
                               <span className="ix-pitem__mid">{r.code} · {`${r.have} here`}</span>
-                              <span className="ntr-pitem__ctl">
+                              <span className="ntr-pitem__ctl" style={{ gridColumn: '1 / -1' }}>
                                 <Stepper r={r} />
                                 <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={`Remove ${r.name}`} onClick={r.remove}><__Icon name="trash-2" width="16" height="16" aria-hidden="true" /></button>
                               </span>
@@ -265,7 +268,7 @@ export default class NewTransferScreen extends Component {
                                 <tr key={r.key} className={r.flash ? 'ntr-flash' : ''}>
                                   <td>
                                     <span className="ix-prod">
-                                      <span className="ix-thumb ntr-thumb" aria-hidden="true">{r.initial}</span>
+                                      {r.pic ? <Pic src={r.pic} name={r.name} kind="item" /> : <span className="ix-thumb ntr-thumb" aria-hidden="true">{r.initial}</span>}
                                       <span className="ix-strong">{r.name}<span className="ntr-code">{r.code}</span></span>
                                     </span>
                                   </td>

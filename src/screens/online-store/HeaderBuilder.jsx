@@ -15,9 +15,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ICONS } from '@/lib/storefront/layouts';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
-import { Sheet, StatusBadge } from '@/components/ui';
+import { Sheet, StatusBadge, InfoTip } from '@/components/ui';
 import { ShopHeader, IndexTabs } from '@/components/ui/IndexKit';
-import { ELEMENTS, elementBy, newElement, ROWS, AREAS, ROW_TONES, DRAWER_ITEMS, NAV_ITEMS, getHeader, defaultHeaderId, saveHeaderDraft, publishHeader, discardHeader, addHeader, duplicateHeader, deleteHeader, setDefaultHeader, headerUses } from '@/lib/storefront/headers';
+import { ELEMENTS, elementBy, newElement, ROWS, AREAS, ROW_TONES, DRAWER_ITEMS, NAV_ITEMS, HEADER_SWITCHES, getHeader, defaultHeaderId, saveHeaderDraft, publishHeader, discardHeader, addHeader, duplicateHeader, deleteHeader, setDefaultHeader, headerUses } from '@/lib/storefront/headers';
 import { lockOf } from '@/lib/storefront/access';
 import { StoreFrame, useStoreMenus, queryParam } from './storeShared';
 import { useSf, PreviewFrame, LockNote, BlockPick, DocBadge, when, SFB_CSS } from './sfShared';
@@ -59,6 +59,7 @@ function ElementPanel({ el, onChange, onMove, onRemove, menus, locked }) {
   return (
     <div className="sfb-fields">
       <LockNote text={why} />
+      {el.type === 'notice' ? <p className="sfb-muted">Shows the notices placed “Inside the header” in <a href="/store-notices">Store notices</a>. Nothing shows when there is none.</p> : null}
       {(def ? def.settings : []).map(([k, l, t, , ch]) => {
         const id = 'hb-' + el.id + '-' + k;
         if (t === 'bool') return <div key={k} className="sfb-row"><span id={id}>{l}</span><button type="button" role="switch" className="gc-switch" aria-checked={el[k] !== false && !!el[k]} aria-labelledby={id} disabled={dis} onClick={() => onChange({ [k]: !el[k] })}><span className="gc-switch__knob" /></button></div>;
@@ -230,6 +231,16 @@ export default function HeaderBuilder() {
               </div>
             </div>
             <aside className="ix-side" style={{ padding: '0 var(--space-4) var(--space-4) 0' }}>
+              <section className="ix-card ix-card--pad" aria-label="How the header behaves" style={{ boxShadow: 'none', border: '1px solid var(--border-subtle)' }}>
+                <h2 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)' }}>Behaviour</h2>
+                {HEADER_SWITCHES.map(([k, l, help]) => (
+                  <div key={k} className="sfb-row">
+                    <span id={'hb-sw-' + k} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{l}<InfoTip text={help} /></span>
+                    <button type="button" role="switch" className="gc-switch" aria-checked={!!work[k]} aria-labelledby={'hb-sw-' + k} disabled={!!locked} onClick={() => setWork((W) => ({ ...W, [k]: !W[k] }))}><span className="gc-switch__knob" /></button>
+                  </div>
+                ))}
+                {work.overHero ? <p className="sfb-muted" style={{ marginTop: 'var(--space-2)' }}>Works when Home’s first section is a hero banner.</p> : null}
+              </section>
               <section className="ix-card ix-card--pad" aria-label="Element settings" style={{ boxShadow: 'none', border: '1px solid var(--border-subtle)' }}>
                 {selEl ? (<>
                   <h2 style={{ margin: '0 0 var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)' }}>{elementBy(selEl.type).label}</h2>

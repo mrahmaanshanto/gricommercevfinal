@@ -23,6 +23,7 @@ import { shopOf, subOf, subState, planOf, priceOf, monthlyOf, isYearly, billItem
 import { activityOf, nextRenewal } from '@/lib/admin/merchants';
 import { ask, rightOf, figureOf } from '@/lib/admin/actionRights';
 import { AdminShell, usePlatform } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 import { PROFILE_CSS } from '../merchants/profile/profileShared';
 import { PlanSimulator } from '../merchants/profile/ProfileActions';
 import { SUBS_VIEWS, SUBS_CSS, subsList, subsMoney as money, subsPlural as plural, subsWhen, subsDue, subsFromUrl, subsToUrl } from './subsShared';
@@ -315,7 +316,8 @@ export default function Subscriptions() {
             <ul className="ix-plist" aria-label={viewLabel + ' subscriptions'}>
               {rows.map((r) => (
                 <li key={r.id}>
-                  <button type="button" className="ix-pitem" onClick={() => setOpenId(r.id)}>
+                  <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setOpenId(r.id)}>
+                    <span style={{ gridRow: 'span 3' }}><Pic src={r.logo} name={r.name} kind="logo" /></span>
                     <span className="ix-pitem__top"><b>{r.name}</b><span className="subs-fig">{r.monthly ? money(r.monthly) : '—'}</span></span>
                     <span className="ix-pitem__mid"><span className="ix-id">#{r.id}</span> · {r.packageName} · {cycleText(r.cycle)}</span>
                     <span className="ix-pitem__tags">
@@ -345,7 +347,7 @@ export default function Subscriptions() {
                   {rows.map((r) => (
                     <tr key={r.id} tabIndex={0} aria-label={`${r.name}, open subscription`}
                       onClick={() => setOpenId(r.id)} onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); setOpenId(r.id); } }}>
-                      <td><span className="subs-name"><b>{r.name}</b><small>#{r.id}</small></span></td>
+                      <td><span className="gc-picrow"><Pic src={r.logo} name={r.name} kind="logo" /><span className="subs-name"><b>{r.name}</b><small>#{r.id}</small></span></span></td>
                       <td>{r.packageName}</td>
                       <td className="ix-muted">{cycleText(r.cycle)}</td>
                       <td className="ix-num"><span className="subs-fig">{r.monthly ? money(r.monthly) : '—'}</span></td>

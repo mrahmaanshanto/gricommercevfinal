@@ -24,6 +24,7 @@ import { collections } from '@/lib/platform/views';
 import { downloadCsv } from '@/lib/reports/period';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { AdminShell, usePlatform } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 import { BILL_CSS, Skeleton, money, plural, when, packageOf, payLink, PaySheet, CallSheet, GraceSheet } from './billingShared';
 import { rightOf } from '@/lib/admin/actionRights';
 
@@ -41,6 +42,7 @@ const CSS = `
 .col-group .ix-table td{vertical-align:middle}
 .col-filters{margin-bottom:0}
 .col-dot.is-autofail{background:var(--error)}
+.col-group .gc-picrow .bl-name{max-width:198px}
 `;
 
 const GROUPS = [
@@ -235,7 +237,8 @@ export default function Collections() {
               <ul className="ix-plist" aria-label={label}>
                 {list.map((r) => (
                   <li key={r.shopId}>
-                    <div className="ix-pitem ix-pitem--box">
+                    <div className="ix-pitem ix-pitem--box ix-pitem--thumb">
+                      <span style={{ gridRow: 'span 4' }}><Pic src={r.logo} name={r.name} kind="logo" /></span>
                       <span className="ix-pitem__top"><b><Link href={'/admin/merchant?id=' + r.shopId}>{r.name}</Link></b><span className="bl-fig">{money(r.owed)}</span></span>
                       <span className="ix-pitem__mid">{odText(r)} · {r.lastText}{r.promiseAt ? ` · promised ${dm(r.promiseAt)}` : ''}</span>
                       <span className="ix-pitem__mid">Next call {r.nextAt ? when(r.nextAt, t) : '—'} · {r.collector}</span>
@@ -268,10 +271,11 @@ export default function Collections() {
                     {list.map((r) => (
                       <tr key={r.shopId}>
                         <td>
+                          <span className="gc-picrow"><Pic src={r.logo} name={r.name} kind="logo" />
                           <span className="bl-name">
                             <Link href={'/admin/merchant?id=' + r.shopId + '&tab=billing'} className="ix-strong">{r.name}</Link>
                             <small>#{r.shopId} · {r.owner}{r.phone ? ' · ' + r.phone : ''}</small>
-                          </span>
+                          </span></span>
                         </td>
                         <td className="ix-num">
                           <span className="bl-name" style={{ alignItems: 'flex-end' }}>

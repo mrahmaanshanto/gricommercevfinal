@@ -1,6 +1,6 @@
-import { StoreCompare as Screen } from '@/screens/storefront/StoreSaved';
+import Screen from '@/screens/storefront/StoreCompare';
 
-export const metadata = { title: "Compare" };
+export const metadata = { title: "Compare products" };
 
 export default function Page() {
   return <Screen />;

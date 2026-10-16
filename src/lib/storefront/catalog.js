@@ -20,6 +20,7 @@ import { websiteOffers } from '../storeOffers';
 import { clockNow } from '../settlements';
 import { demoHref } from '../seo';
 import { templateFor, fieldsOf, fieldValue } from '../productTemplates';
+import { getPlaces } from '../locations';
 
 let cache = null;
 export function refreshCatalog() { cache = null; }
@@ -159,3 +160,13 @@ export function liveFlashSale(offerId = '') {
   return (offerId && live.find((o) => o.id === offerId)) || live.find((o) => o.state === 'live') || live[0] || null;
 }
 export const flashSales = () => { try { return websiteOffers(clockNow()).filter((o) => o.kind === 'flash'); } catch { return []; } };
+
+/** The shop's branches for the Store locator section (Inventory › Places): name, address, hours, phone, map link. */
+export function storeBranches() {
+  let list = [];
+  try { list = getPlaces({ active: true }); } catch { list = []; }
+  return list.filter((p) => /branch|shop|store/i.test(String(p.type || '')) && p.address).map((p) => ({
+    name: p.name, address: p.address, hours: p.hours || '', phone: p.phone || '',
+    map: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.address),
+  }));
+}

@@ -22,6 +22,8 @@ import { StatusBadge as __StatusBadge } from '@/components/ui';
 import { ShopHeader, RecordHeader, IndexTabs, KV, LearnMore } from '@/components/ui/IndexKit';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 import { ManagerPin } from '@/components/ManagerPin';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
 import { CATALOG, productBy, STOCK_EVENT } from '@/lib/stock';
 import { formatBDT, formatDateTime } from '@/lib/format';
@@ -66,7 +68,7 @@ class Component extends DCLogic {
       if (counted) { done++; if (d === 0) match++; else { diffs.push(l); if (d < 0) { shortL++; missP -= d; missV -= d * unit; } else { overL++; exP += d; exV += d * unit; } } }
       var others = counted && l.counters.some(function (c) { return c !== me; }) ? l.counted - (mine || 0) : 0;
       var set = function (n) { setCount(ses.id, l.sku, n, me); self.setState({ tick: Date.now() }); };
-      return { sku: l.sku, name: p.name, code: [p.sku, p.variant].filter(Boolean).join(' · '), initial: p.name.charAt(0), rack: (RACK[p.cat] || 'R') + '-' + (i + 1),
+      return { sku: l.sku, name: p.name, code: [p.sku, p.variant].filter(Boolean).join(' · '), initial: p.name.charAt(0), pic: productPic(p), rack: (RACK[p.cat] || 'R') + '-' + (i + 1),
         sys: blind ? '—' : l.expected, since: l.since ? (l.since > 0 ? '+' : '−') + Math.abs(l.since) + ' since the snapshot' : '',
         qty: mine == null ? '' : mine, counted: mine != null || counted, notCounted: !counted, others: others ? '+' + others + ' by ' + l.counters.filter(function (c) { return c !== me; }).join(', ') : '',
         recount: l.recount ? 'Recount' : l.needsRecount && !blind ? 'Big difference' : '',
@@ -301,10 +303,11 @@ export default class StockCountScreen extends Component {
                     <ul className="ix-plist" aria-label="Count lines">
                       {v.lines.map((r) => (
                         <li key={r.sku}>
-                          <div className="ix-pitem sc-pitem">
+                          <div className="ix-pitem ix-pitem--thumb sc-pitem">
+                            <span style={{ gridRow: 'span 2' }}><Pic src={r.pic} name={r.name} kind="item" /></span>
                             <span className="ix-pitem__top"><b>{r.name}</b>{r.dTone ? <__StatusBadge tone={r.dTone}>{r.diff}</__StatusBadge> : null}</span>
                             <span className="ix-pitem__mid">{r.code} · {r.rack}{v.blind ? '' : ` · System ${r.sys}`}{r.since && !v.blind ? ' · ' + r.since : ''}{r.others ? ' · ' + r.others : ''}</span>
-                            <span className="sc-pitem__ctl">
+                            <span className="sc-pitem__ctl" style={{ gridColumn: '1 / -1' }}>
                               {r.counted ? <Stepper r={r} /> : <button type="button" className="ix-btn ix-btn--sm" onClick={r.start}>Not counted yet</button>}
                               <span className={r.vCls}>{r.value}</span>
                             </span>
@@ -330,7 +333,7 @@ export default class StockCountScreen extends Component {
                             <tr key={r.sku} className={r.flash ? 'sc-flash' : ''}>
                               <td>
                                 <span className="ix-prod">
-                                  <span className="ix-thumb sc-thumb" aria-hidden="true">{r.initial}</span>
+                                  {r.pic ? <Pic src={r.pic} name={r.name} kind="item" /> : <span className="ix-thumb sc-thumb" aria-hidden="true">{r.initial}</span>}
                                   <span className="ix-strong">{r.name}<span className="sc-code">{r.code}</span></span>
                                 </span>
                               </td>

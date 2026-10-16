@@ -21,6 +21,7 @@ import {
   STAGES, SOURCES, TYPES, SALES_NAMES, stageOf, isOpen, followState, forecast, planLabel, bulkAssign, bulkMove, parseImport, importLeads,
 } from '@/lib/admin/crm';
 import { AdminShell } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 import {
   CRM_CSS, useCrm, money, plural, StageBadge, Who, whenText, nextText, FOLLOW_CLS, dateTime, LeadFormSheet, LostDialog, Field, ctl, STAGE_OPTIONS,
 } from './crmShared';
@@ -265,10 +266,11 @@ export default function Leads() {
                 const fs = followState(l, t);
                 return (
                   <li key={l.id}>
-                    <Link href={'/admin/leads/view?id=' + l.id} className="ix-pitem">
+                    <Link href={'/admin/leads/view?id=' + l.id} className="ix-pitem ix-pitem--thumb">
+                      <span style={{ gridRow: 'span 2', alignSelf: 'center', display: 'flex' }}><Pic name={l.name} kind="person" /></span>
                       <span className="ix-pitem__top"><b>{l.business}</b><span className="crm-fig">{money(l.value)}/mo</span></span>
                       <span className="ix-pitem__mid">{l.name} · {l.mobile} · {l.owner.split(' ')[0]}</span>
-                      <span className="ix-pitem__tags">
+                      <span className="ix-pitem__tags" style={{ gridColumn: 2 }}>
                         <StageBadge stage={l.stage} />
                         {l.next && isOpen(l) ? <span className={'ix-pitem__mid ' + (FOLLOW_CLS[fs] || '')}>Next {nextText(l, t)}</span> : null}
                       </span>
@@ -306,7 +308,7 @@ export default function Leads() {
                       <tr key={l.id} className={sel.has(l.id) ? 'is-sel' : ''} tabIndex={0}
                         onClick={() => open(l.id)} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) open(l.id); }}>
                         <td className="ix-check" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={sel.has(l.id)} onChange={() => toggle(l.id)} aria-label={'Select ' + l.business} /></td>
-                        <td><span className="ld-cell"><Link href={'/admin/leads/view?id=' + l.id} className="ix-strong" onClick={(e) => e.stopPropagation()}>{l.name}</Link><span className="crm-sub ix-id">{l.id}</span></span></td>
+                        <td><span className="gc-picrow"><Pic name={l.name} kind="person" /><span className="ld-cell"><Link href={'/admin/leads/view?id=' + l.id} className="ix-strong" onClick={(e) => e.stopPropagation()}>{l.name}</Link><span className="crm-sub ix-id">{l.id}</span></span></span></td>
                         <td><span className="ld-cell"><span>{l.business}</span><span className="crm-sub">{l.district}</span></span></td>
                         <td className="crm-data">{l.mobile}</td>
                         <td className="ix-muted"><span className="ld-email" title={l.email || undefined}>{l.email || '—'}</span></td>

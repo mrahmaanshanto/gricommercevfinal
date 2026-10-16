@@ -21,9 +21,12 @@ import { downloadCsv } from '@/lib/reports/period';
 import { dmy } from '@/lib/platform/util';
 import { posts as allPosts, postStatus, categories, authors, catLabel, saveCategory, removeCategory, saveAuthor, removeAuthor, LIVE_HOST } from '@/lib/admin/website';
 import { AdminShell } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 import { WEB_CSS, useWeb, when, StatusTag, Who, Field, ctl, plural } from './webShared';
 
 const PAGE = 20;
+// a cover is shown only when it is an address the browser can load (demo covers are bare file names: the image icon shows)
+const coverSrc = (c) => (typeof c === 'string' && /^(\/|https?:|data:image)/.test(c) ? c : '');
 const VIEWS = [['all', 'All'], ['Published', 'Published'], ['Scheduled', 'Scheduled'], ['review', 'In review'], ['Draft', 'Drafts']];
 const inView = (s, v) => v === 'all' || (v === 'review' ? s === 'In review' || s === 'Approved' : s === v);
 const AREAS = [['posts', 'Posts'], ['categories', 'Categories'], ['authors', 'Authors']];
@@ -31,7 +34,6 @@ const CSS = `
 .bg-filters{padding:8px;border-bottom:1px solid var(--border-subtle)}
 .bg-filters .gc-filterbar__search{max-width:300px}
 .bg-post{display:flex;align-items:center;gap:var(--space-3);min-width:0;max-width:420px}
-.bg-thumb{display:grid;place-items:center;flex:none;width:40px;height:28px;border-radius:var(--radius-md);background:var(--fill-primary-soft);color:var(--primary)}
 .bg-post .wb-title{max-width:360px}
 .bg-lang{display:inline-flex;gap:4px}
 .bg-lang span{padding:0 6px;border-radius:var(--radius-full);border:1px solid var(--border-subtle);font-size:var(--text-xs);color:var(--text-muted)}
@@ -228,7 +230,8 @@ export default function Blog() {
             <ul className="ix-plist" aria-label="Posts">
               {rows.map((p) => (
                 <li key={p.slug}>
-                  <Link href={editHref(p.slug)} className="ix-pitem">
+                  <Link href={editHref(p.slug)} className="ix-pitem ix-pitem--thumb" style={{ gridTemplateColumns: '43px minmax(0,1fr)' }}>
+                    <span style={{ gridRow: 'span 3' }}><Pic src={coverSrc(p.cover)} name={p.title.en} kind="cover" icon="image" /></span>
                     <span className="ix-pitem__top"><b>{p.title.en}</b><StatusTag s={p.st} /></span>
                     <span className="ix-pitem__mid">{catLabel(p.cat)} · {p.author}</span>
                     <span className="ix-pitem__mid">{dateOf(p)}</span>
@@ -245,7 +248,7 @@ export default function Blog() {
                     <tr key={p.slug} className="is-link" tabIndex={0} onClick={() => router.push(editHref(p.slug))} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) router.push(editHref(p.slug)); }}>
                       <td>
                         <span className="bg-post">
-                          <span className="bg-thumb" aria-hidden="true"><Icon name="image" width="16" height="16" /></span>
+                          <Pic src={coverSrc(p.cover)} name={p.title.en} kind="cover" icon="image" />
                           <span className="wb-title"><Link href={editHref(p.slug)} className="ix-strong" onClick={(e) => e.stopPropagation()} title={p.title.en}>{p.title.en}</Link><span className="wb-path">/blog/{p.slug}</span></span>
                         </span>
                       </td>

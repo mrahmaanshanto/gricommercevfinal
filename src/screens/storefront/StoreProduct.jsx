@@ -20,6 +20,7 @@ import { warrantyOf } from '@/lib/warranty';
 import { templateFor, groupsOf, fieldValue } from '@/lib/productTemplates';
 import { getBlock } from '@/lib/storefront/blocks';
 import { viewed, goCheckout } from '@/lib/storefront/cart';
+import { placedAt } from '@/lib/storefront/placements';
 import { sanitizeHtml } from '@/screens/products/RichText';
 import { StoreChrome, useStoreItem, NotFound, Crumbs, TrustMarks } from './storeChrome';
 import { Stars, Price, addAndShow, BlockContent, bdt, StockBar, wishToggle, compareToggle } from './storeKit';
@@ -30,6 +31,7 @@ import { toast } from '@/runtime/ui';
 import { clockNow } from '@/lib/settlements';
 import { storeProducts, liveFlashSale } from '@/lib/storefront/catalog';
 import { Sections, useLayout } from './sections';
+import { Placed } from './storePlaced';
 
 const CSS = `
 /* buy box styles (Customize › Product page › Buy box style) */
@@ -194,6 +196,7 @@ const CSS = `
   .spd-detail.is-side{grid-template-columns:minmax(0,1fr)}
   .spd-detail.is-side .spd-tabs{flex-direction:row;overflow-x:auto}
 }
+.spd-acc{display:flex;flex-wrap:wrap;gap:8px}
 .spd-sticky{display:none}
 @media (max-width:899px){
   .spd{grid-template-columns:minmax(0,1fr);gap:20px}
@@ -271,6 +274,8 @@ export function ProductMain({ p, ctx, v, general }) {
   const specs = useMemo(() => (v.specsTable || ps === 'specs' ? specRows(p) : []), [p, v.specsTable, ps]);
   const reviews = useMemo(() => { try { return reviewsOf(p).filter((r) => r.status === 'published').slice(0, 8); } catch { return []; } }, [p]);
   const tabBlock = v.tabBlock ? getBlock(v.tabBlock) : null;
+  // HTML blocks placed as extra tabs on this product's page (HTML blocks › Placements)
+  const tabPlaced = (() => { try { return placedAt('product-tab', { kind: 'product', product: p.id, category: p.cat, now: clockNow() }); } catch { return []; } })();
   const warranty = v.showWarranty || has('warrantyChip') ? warrantyOf(p) : null;
   const faq = ctx.faq || [];
   const badge = v.saleBadge !== 'none' && off ? (v.saleBadge === 'text' ? 'Sale' : off + '% off') : '';
@@ -287,6 +292,7 @@ export function ProductMain({ p, ctx, v, general }) {
     desc ? ['desc', w('tabDescription')] : null,
     specs.length ? ['specs', w('tabSpecs')] : null,
     tabBlock ? ['extra', tabBlock.name] : null,
+    ...tabPlaced.map((x) => ['pl-' + x.id, (getBlock(x.block) || {}).name || 'More']),
     v.reviewsPos === 'tab' || v.detailsStyle === 'accordion' || v.detailsStyle === 'open' ? ['reviews', `${w('tabReviews')} (${reviews.length})`] : null,
     faq.length ? ['faq', `Questions (${faq.length})`] : null,
     v.detailsStyle === 'accordion' ? ['delivery', 'Delivery and returns'] : null,
@@ -301,6 +307,7 @@ export function ProductMain({ p, ctx, v, general }) {
     if (k === 'desc') return desc ? <div className="spd-desc" dangerouslySetInnerHTML={{ __html: desc }} /> : <p className="sf-muted" style={{ margin: 0 }}>No description yet.</p>;
     if (k === 'specs') return <table className="spd-specs">{specs.map((g) => <tbody key={g.name}><tr className="spd-specs__g"><th colSpan={2}>{g.name}</th></tr>{g.rows.map(([a, b]) => <tr key={a}><th scope="row">{a}</th><td>{b}</td></tr>)}</tbody>)}</table>;
     if (k === 'extra') return <BlockContent id={v.tabBlock} />;
+    if (k.startsWith('pl-')) { const x = tabPlaced.find((y) => 'pl-' + y.id === k); return x ? <BlockContent id={x.block} /> : null; }
     if (k === 'reviews') return reviewList;
     if (k === 'faq') return <div className="sfs-faq">{faq.map((x, i) => <details key={i}><summary>{x.q}</summary><p>{x.a}</p></details>)}</div>;
     if (k === 'delivery') return <div className="spd-desc"><p>{v.deliveryNote || 'Delivery all over Bangladesh with cash on delivery.'}</p><p>Something wrong with your order? Ask for a return from the tracking page within 7 days.</p></div>;
@@ -423,6 +430,7 @@ export function ProductMain({ p, ctx, v, general }) {
               {has('salebar') ? <span className={'spd-stocktag' + (out ? ' is-out' : '')}>Stock: {stock}</span> : null}
             </div>
           ) : null}
+          <Placed spot="product-under-price" />
           {has('keys') && keyRows.length ? (
             <div className="spd-keys"><b>Key features</b><ul>{keyRows.map(([a, b]) => <li key={a}>{a}: {b}</li>)}</ul><button type="button" className="sf-link" onClick={() => { setTab('specs'); try { document.getElementById('spt-specs').scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* ignore */ } }}>View more info</button></div>
           ) : null}
@@ -451,6 +459,7 @@ export function ProductMain({ p, ctx, v, general }) {
           ) : null}
           {has('urgency') && stock > 0 && stock < 10 ? <span className="spd-urgent"><Icon name="flame" width="16" height="16" aria-hidden="true" />Only <b>{stock}</b> items left in stock</span> : null}
           {v.catalogMode ? <div className="spd-ask"><b>{v.catalogText || 'Call or WhatsApp for the price'}</b><span><a className="sf-btn" href={tel(phone)}><Icon name="phone" width="16" height="16" aria-hidden="true" />Call</a><a className="sf-btn sf-btn--line" href={wa(waNo, 'Price of ' + p.name + '?')} target="_blank" rel="noopener noreferrer"><Icon name="message-circle" width="16" height="16" aria-hidden="true" />WhatsApp</a></span></div> : buy}
+          <Placed spot="product-under-cart" />
           {has('consult') ? <><p className="spd-hint">Get private advice before you buy</p><a className="sf-btn spd-dark spd-full" href={wa(waNo, 'I need advice about ' + p.name)} target="_blank" rel="noopener noreferrer"><Icon name="message-circle" width="16" height="16" aria-hidden="true" />Ask an expert</a></> : null}
           {has('bulk') ? <div className="spd-box is-row"><span><b>Corporate deal or bulk order?</b><small>Chat with our sales team on WhatsApp for special prices and a quick quote.</small></span><a className="sf-btn sf-btn--sm sf-btn--line" href={wa(waNo, 'Bulk order: ' + p.name)} target="_blank" rel="noopener noreferrer">WhatsApp now</a></div> : null}
           {(v.showDelivery || warranty) && !has('warrantyChip') ? (
@@ -484,7 +493,7 @@ export default function StoreProduct() {
   const lay = useLayout('product', { product: p }, p ? p.id + (st.shows ? '1' : '0') : '');
   useEffect(() => { if (p && st.shows) viewed(p.id); }, [p, st.shows]);
   return (
-    <StoreChrome screen="StoreProduct" kind="product" css={PRODUCT_CSS} head={st.ready ? st.head : null} movedFrom={st.movedFrom} headerId={lay ? lay.header : ''}
+    <StoreChrome screen="StoreProduct" kind="product" css={PRODUCT_CSS} head={st.ready ? st.head : null} movedFrom={st.movedFrom} headerId={lay ? lay.header : ''} subject={p ? { product: p.id, category: p.cat } : null}
       preview={st.ready && st.shows && p && p.st !== 'active' ? <>Preview · this product is not on sale yet <Link href={`/add-product?id=${p.id}`} style={{ color: 'inherit' }}>Edit product</Link></> : null}>
       {(shell) => (!st.ready || !lay ? <div style={{ minHeight: 400 }} aria-busy="true" /> : st.shows ? (
         <Sections sections={lay.sections} values={shell.values} catalog={shell.catalog} ctx={{ product: { id: p.id, cat: p.cat, brand: p.brand } }}

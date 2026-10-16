@@ -136,7 +136,8 @@ export default function AllStaff() {
             <ul className="ix-plist" aria-label="Staff">
               {list.map((s) => { const t = todayOf(s); return (
                 <li key={s.code}>
-                  <Link href={profileHref(s.code)} className="ix-pitem">
+                  <Link href={profileHref(s.code)} className="ix-pitem ix-pitem--thumb">
+                    <span className="hr-pslot"><Avatar st={s} /></span>
                     <span className="ix-pitem__top"><b>{s.name}</b><StaffStatus S={S} st={s} /></span>
                     <span className="ix-pitem__mid">{s.designation} · {s.branch} · <span className={t.cls}>{t.l}</span></span>
                   </Link>

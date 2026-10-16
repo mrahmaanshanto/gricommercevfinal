@@ -14,6 +14,7 @@ import { useAdminStore } from '@/lib/admin/store';
 import { merchantAi, usageRows, totals, grantCredits, setPolicy, setRate, suspendAi, restoreAi, POLICIES, POLICY_WORD, STATUS_TONE } from '@/lib/admin/merchantAi';
 import { taka, num, dmy } from '@/lib/platform/util';
 import { AdminShell, usePlatform } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 import { MAI_CSS } from './maiShared';
 
 const TABS = [['all', 'All'], ['over', 'Over allowance'], ['trial', 'Trial'], ['suspended', 'Suspended']];
@@ -58,7 +59,8 @@ export default function MaiUsage() {
           </div>
           {!ready ? <div className="mai-skel" aria-busy="true" /> : !shown.length ? <div className="ix-empty"><EmptyState icon="bot" title="No stores here" /></div> : (<>
             <ul className="ix-plist" aria-label="Stores">{shown.slice(0, 60).map((r) => (
-              <li key={r.id}><button type="button" className="ix-pitem" onClick={() => openRow(r)}>
+              <li key={r.id}><button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => openRow(r)}>
+                <span style={{ gridRow: 'span 2' }}><Pic src={r.logo} name={r.name} kind="logo" /></span>
                 <span className="ix-pitem__top"><b>{r.name}</b><StatusBadge tone={STATUS_TONE[r.status]}>{r.status}</StatusBadge></span>
                 <span className="ix-pitem__mid">{r.plan} · {taka(r.cost)} of {taka(r.allowance)} ({r.used}%)</span>
               </button></li>
@@ -69,7 +71,7 @@ export default function MaiUsage() {
                 <thead><tr><th scope="col">Store</th><th scope="col">Plan</th><th scope="col" className="ix-num">AI turns</th><th scope="col" className="ix-num">Cost</th><th scope="col">Allowance used</th><th scope="col">At the limit</th><th scope="col">Status</th></tr></thead>
                 <tbody>{shown.slice(0, 60).map((r) => (
                   <tr key={r.id} onClick={() => openRow(r)}>
-                    <td><button type="button" className="ga-name" onClick={() => openRow(r)}>{r.name}</button><span className="mai-sub">{r.id}</span></td>
+                    <td><span className="gc-picrow"><Pic src={r.logo} name={r.name} kind="logo" /><span><button type="button" className="ga-name" onClick={() => openRow(r)}>{r.name}</button><span className="mai-sub">{r.id}</span></span></span></td>
                     <td>{r.plan}{r.trial ? <span className="mai-sub">Trial</span> : null}</td>
                     <td className="ix-num">{num(r.turns)}</td>
                     <td className="ix-num">{taka(r.cost)}</td>

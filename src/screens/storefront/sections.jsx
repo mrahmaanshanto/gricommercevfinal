@@ -3,7 +3,7 @@
 // hero / slider, category tiles, products (grid or swipe row: new, best sellers, on sale, a category, hand-picked,
 // related), offer banner, countdown (the live flash sale from Marketing), brands strip, reviews (Online Store ›
 // Reviews), blog posts, video (loads YouTube only on tap), text and picture, FAQ, newsletter, HTML block, "why shop
-// with us" and recently viewed; plus "main", the page's own content (the product, the category's products …), which
+// with us", recently viewed, a custom section (Nayeem's Batch A: the shop's own HTML + CSS, customs.js); plus "main", the page's own content (the product, the category's products …), which
 // the page passes in. Light by default for 3G phones: pictures load lazily, no animations.
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -23,6 +23,8 @@ import { ProductCard, BlockContent, Stars } from './storeKit';
 import { moreBody, OWN_HEAD } from './sections2';
 import { moreBody3, TITLED3, OWN_HEAD3 } from './sections3';
 import { w } from '@/lib/storefront/words';
+import { getCustom } from '@/lib/storefront/customs';
+import { renderCustom } from '@/lib/storefront/customCode';
 
 const pad = (n) => (n < 10 ? '0' : '') + n;
 
@@ -299,6 +301,16 @@ function Newsletter({ s }) {
   );
 }
 
+
+/** A custom section: the shop's HTML (filled, allow-listed) and CSS (scoped to it). */
+export function CustomBody({ def, values }) {
+  if (!def) return null;
+  const r = renderCustom(def, values || {});
+  if (!r.html.trim()) return null;
+  return <div className={'sfc ' + r.scope}>{r.css ? <style>{r.css}</style> : null}<div dangerouslySetInnerHTML={{ __html: r.html }} /></div>;
+}
+
+
 const TRUST = [['truck', 'Delivery all over Bangladesh', '1–2 days in Dhaka'], ['banknote', 'Cash on delivery', 'Pay when it arrives'], ['shield-check', 'Official warranty', 'On every phone'], ['rotate-ccw', '7-day return', 'If something is wrong']];
 
 /** One section's content (exported for the layout editor's thumbnails and checks). */
@@ -308,6 +320,7 @@ export function sectionBody(s, v, catalog, ctx = {}) {
   const more3 = moreBody3(s, v);
   if (more3 !== undefined) return more3;
   switch (s.type) {
+    case 'custom': return <CustomBody def={getCustom(s.custom)} values={s.values} />;
     case 'hero': return <Hero s={s} />;
     case 'cattiles': return <CatTiles s={s} />;
     case 'products': {
@@ -349,7 +362,8 @@ const TITLED = new Set(['cattiles', 'products', 'countdown', 'brands', 'reviews'
 // looks that place the section's title themselves
 const OWN_TITLE = new Set(['faq:split', ...OWN_HEAD3]);
 
-function Section({ s, v, catalog, ctx }) {
+/** One store section with its Style tab (box), as customer pages and preview frames draw it. */
+export function Section({ s, v, catalog, ctx }) {
   const [ready, setReady] = useState(false);
   const [inView, setInView] = useState(false);
   const ref = useRef(null);
@@ -376,7 +390,7 @@ function Section({ s, v, catalog, ctx }) {
   const own = OWN_TITLE.has(s.type + ':' + variantOf(s)) || OWN_HEAD.has(s.type + ':' + variantOf(s));
   const edit = editing ? { 'data-sfx-label': label, onClickCapture: (e) => { e.preventDefault(); e.stopPropagation(); selectInEditor(s.id); } } : {};
   return (
-    <section ref={ref} id={bp.id} className={'sfs sfs--' + s.type + ' tone-' + (s.tone || 'none') + ' ' + bp.className + (inView ? ' is-in' : '') + (selected ? ' is-selected' : '')} style={bp.style} aria-label={s.title || label} data-sec={s.id} {...edit}>
+    <section ref={ref} id={bp.id} className={'sfs sfs--' + s.type + ' tone-' + (s.tone || 'none') + ' ' + bp.className + (inView ? ' is-in' : '') + (selected ? ' is-selected' : '')} style={bp.style} aria-label={s.title || label} data-sec={s.id} data-sec-id={editing ? s.id : undefined} data-sec-label={editing ? label : undefined} {...edit}>
       {box.divTop ? <span className={'sfx-div is-t is-' + box.divTop} aria-hidden="true" /> : null}
       {box.divBottom ? <span className={'sfx-div is-b is-' + box.divBottom} aria-hidden="true" /> : null}
       <div className="sf-wrap">
@@ -718,4 +732,5 @@ iframe.sfs-bgvid{width:177.78vh;min-width:100%;height:56.25vw;min-height:100%;le
   .sfs-head{flex-wrap:wrap}
   .sf-titles-center .sfs-more,.sf-titles-caps .sfs-more,.sf-titles-subtitle .sfs-more{position:static}
 }
+
 `;

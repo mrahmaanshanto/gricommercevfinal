@@ -1,0 +1,940 @@
+{
+  "gcstore": 1,
+  "meta": {
+    "id": "signal",
+    "name": "Signal",
+    "description": "Specification tables that stay readable on a phone.",
+    "for": "Electronics",
+    "version": "1.0",
+    "author": "GridCommerce",
+    "made": "2026-10-15"
+  },
+  "theme": {
+    "primary": "{{brand_primary}}",
+    "accent": "{{brand_accent}}",
+    "bg": "#f5f7fb",
+    "showEmi": true,
+    "reviewsPos": "tab",
+    "tabBlock": "blk-signal-warranty",
+    "freeShipAt": 5000
+  },
+  "headers": [
+    {
+      "id": "hdr-signal-classic",
+      "name": "Signal · Classic",
+      "default": true,
+      "desktop": {
+        "top": {
+          "height": 36,
+          "tone": "dark",
+          "sticky": false,
+          "left": [
+            "text"
+          ],
+          "center": [],
+          "right": [
+            {
+              "type": "phone",
+              "number": "{{shop_phone}}"
+            },
+            "divider",
+            "lang"
+          ]
+        },
+        "main": {
+          "height": 76,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [
+            "search"
+          ],
+          "right": [
+            "account",
+            "wishlist",
+            "compare",
+            "cart"
+          ]
+        },
+        "bottom": {
+          "height": 48,
+          "tone": "theme",
+          "sticky": false,
+          "left": [
+            "catmenu"
+          ],
+          "center": [
+            "menu"
+          ],
+          "right": [
+            {
+              "type": "button",
+              "label": "Today’s offers",
+              "style": "outline"
+            }
+          ]
+        }
+      },
+      "mobile": {
+        "top": null,
+        "main": {
+          "height": 58,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [],
+          "right": [
+            "search",
+            "cart"
+          ]
+        },
+        "bottom": null,
+        "drawer": [
+          "search",
+          "catmenu",
+          "menu",
+          "account",
+          "lang",
+          "phone",
+          "social"
+        ],
+        "bottomNav": true,
+        "navItems": [
+          "home",
+          "cats",
+          "cart",
+          "account"
+        ]
+      }
+    },
+    {
+      "id": "hdr-signal-compact",
+      "name": "Signal · Compact",
+      "desktop": {
+        "top": null,
+        "main": {
+          "height": 68,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [
+            "menu"
+          ],
+          "right": [
+            {
+              "type": "search",
+              "cats": false,
+              "size": "S"
+            },
+            "account",
+            "cart"
+          ]
+        },
+        "bottom": null
+      },
+      "mobile": {
+        "top": null,
+        "main": {
+          "height": 56,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [],
+          "right": [
+            "cart"
+          ]
+        },
+        "bottom": null,
+        "drawer": [
+          "search",
+          "menu",
+          "account",
+          "lang"
+        ],
+        "bottomNav": true,
+        "navItems": [
+          "home",
+          "cats",
+          "cart",
+          "account"
+        ]
+      }
+    },
+    {
+      "id": "hdr-signal-campaign",
+      "name": "Signal · Campaign",
+      "desktop": {
+        "top": {
+          "height": 36,
+          "tone": "brand",
+          "sticky": false,
+          "left": [],
+          "center": [
+            {
+              "type": "text",
+              "text": "Flash sale: up to 20% off chargers and earbuds"
+            }
+          ],
+          "right": []
+        },
+        "main": {
+          "height": 72,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [
+            "menu"
+          ],
+          "right": [
+            {
+              "type": "whatsapp",
+              "number": "{{whatsapp}}"
+            },
+            "cart"
+          ]
+        },
+        "bottom": null
+      },
+      "mobile": {
+        "top": {
+          "height": 32,
+          "tone": "brand",
+          "sticky": false,
+          "left": [],
+          "center": [
+            {
+              "type": "text",
+              "text": "Flash sale today"
+            }
+          ],
+          "right": []
+        },
+        "main": {
+          "height": 56,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "logo"
+          ],
+          "center": [],
+          "right": [
+            "whatsapp",
+            "cart"
+          ]
+        },
+        "bottom": null,
+        "drawer": [
+          "search",
+          "menu",
+          "phone"
+        ],
+        "bottomNav": true,
+        "navItems": [
+          "home",
+          "cats",
+          "cart",
+          "account"
+        ]
+      }
+    },
+    {
+      "id": "hdr-signal-centered",
+      "name": "Signal · Centred logo",
+      "desktop": {
+        "top": null,
+        "main": {
+          "height": 80,
+          "tone": "theme",
+          "sticky": true,
+          "left": [
+            "menu"
+          ],
+          "center": [
+            {
+              "type": "logo",
+              "size": "L"
+            }
+          ],
+          "right": [
+            {
+              "type": "search",
+              "cats": false,
+              "size": "S"
+            },
+            "account",
+            "cart"
+          ]
+        },
+        "bottom": null
+      },
+      "mobile": {
+        "top": null,
+        "main": {
+          "height": 58,
+          "tone": "theme",
+          "sticky": true,
+          "left": [],
+          "center": [
+            "logo"
+          ],
+          "right": [
+            "cart"
+          ]
+        },
+        "bottom": null,
+        "drawer": [
+          "search",
+          "menu",
+          "account",
+          "lang"
+        ],
+        "bottomNav": true,
+        "navItems": [
+          "home",
+          "cats",
+          "cart",
+          "account"
+        ]
+      }
+    }
+  ],
+  "layouts": [
+    {
+      "id": "lay-signal-home",
+      "kind": "home",
+      "name": "Home",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "hero",
+          "slides": [
+            {
+              "title": "Official phones with real warranty",
+              "text": "Galaxy, Redmi, Realme and iPhone · EMI from 3 months.",
+              "button": "Shop phones",
+              "href": "/category?handle=phones",
+              "image": "/assets/99e39eac40a8abf8968649c253b23f9e.webp",
+              "tone": "dark"
+            },
+            {
+              "title": "Chargers and earbuds on sale",
+              "text": "Up to 20% off this week.",
+              "button": "See offers",
+              "href": "/offers",
+              "image": "",
+              "tone": "primary"
+            }
+          ]
+        },
+        {
+          "type": "cattiles"
+        },
+        {
+          "type": "products"
+        },
+        {
+          "type": "countdown"
+        },
+        {
+          "type": "products",
+          "title": "Best sellers",
+          "source": "best",
+          "layout": "carousel"
+        },
+        {
+          "type": "offer",
+          "title": "Trade in your old phone",
+          "text": "Bring it to Dhanmondi or Mirpur and get up to ৳8,000 off a new one.",
+          "button": "Find a branch",
+          "href": "/page?handle=contact-us",
+          "image": "/assets/99e39eac40a8abf8968649c253b23f9e.webp"
+        },
+        {
+          "type": "brands"
+        },
+        {
+          "type": "reviews"
+        },
+        {
+          "type": "blog",
+          "title": "Guides and news"
+        },
+        {
+          "type": "trust"
+        }
+      ]
+    },
+    {
+      "id": "lay-signal-product",
+      "kind": "product",
+      "name": "Product page",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "products",
+          "title": "You may also like",
+          "source": "related",
+          "count": 4
+        },
+        {
+          "type": "recent"
+        }
+      ]
+    },
+    {
+      "id": "lay-signal-category",
+      "kind": "category",
+      "name": "Category page",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        }
+      ]
+    },
+    {
+      "id": "lay-signal-phones",
+      "kind": "category",
+      "name": "Phones category",
+      "when": {
+        "type": "category",
+        "ref": "Phones"
+      },
+      "sections": [
+        {
+          "type": "html",
+          "block": "blk-signal-deals"
+        },
+        {
+          "type": "main"
+        },
+        {
+          "type": "faq",
+          "title": "Buying a phone",
+          "items": [
+            {
+              "q": "Is the warranty official?",
+              "a": "Yes. Every phone is the official Bangladesh version with the brand’s warranty."
+            },
+            {
+              "q": "Can I pay in instalments?",
+              "a": "Yes, EMI from 3 to 12 months on most bank credit cards."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lay-signal-page",
+      "kind": "page",
+      "name": "Page",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "trust"
+        }
+      ]
+    },
+    {
+      "id": "lay-signal-cart",
+      "kind": "cart",
+      "name": "Cart",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "products",
+          "title": "Add to your order",
+          "source": "best",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": "lay-signal-search",
+      "kind": "search",
+      "name": "Search",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "recent"
+        }
+      ]
+    },
+    {
+      "id": "lay-signal-404",
+      "kind": "404",
+      "name": "Page not found",
+      "when": {
+        "type": "all"
+      },
+      "sections": [
+        {
+          "type": "main"
+        },
+        {
+          "type": "products",
+          "title": "Popular right now",
+          "source": "best",
+          "count": 4
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "blk-signal-delivery",
+      "name": "Delivery info",
+      "type": "content",
+      "content": [
+        {
+          "type": "h2",
+          "text": "Delivery"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Inside Dhaka: 1–2 days, ৳70",
+            "Outside Dhaka: 3–5 days, ৳150",
+            "Cash on delivery all over Bangladesh"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Open the parcel in front of the rider. If something is wrong, give it back right there."
+        }
+      ]
+    },
+    {
+      "id": "blk-signal-eid",
+      "name": "Eid banner",
+      "type": "banner",
+      "content": [
+        {
+          "type": "image",
+          "src": "/assets/901f735d539a8b71fb8e8162bb755ec3.webp",
+          "alt": "Eid offer",
+          "caption": ""
+        },
+        {
+          "type": "h2",
+          "text": "Eid offer: gifts on orders over ৳3,000"
+        },
+        {
+          "type": "cta",
+          "label": "See the offers",
+          "url": "/offers",
+          "style": "solid"
+        }
+      ]
+    },
+    {
+      "id": "blk-signal-warranty",
+      "name": "Warranty info",
+      "type": "tab",
+      "content": [
+        {
+          "type": "h2",
+          "text": "Warranty"
+        },
+        {
+          "type": "p",
+          "text": "Every phone comes with the brand’s official warranty. Accessories have a 6-month shop warranty."
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Keep your invoice or order number",
+            "Bring it to Dhanmondi or Mirpur branch",
+            "We tell you the cost before any paid repair"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blk-signal-size",
+      "name": "Size guide",
+      "type": "tab",
+      "content": [
+        {
+          "type": "h2",
+          "text": "Which case fits?"
+        },
+        {
+          "type": "table",
+          "header": true,
+          "rows": [
+            [
+              "Phone",
+              "Case size"
+            ],
+            [
+              "Galaxy A15 / A25",
+              "6.5 in"
+            ],
+            [
+              "Redmi Note 13",
+              "6.67 in"
+            ],
+            [
+              "iPhone 15",
+              "6.1 in"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blk-signal-deals",
+      "name": "Phone deals",
+      "type": "mega",
+      "content": [
+        {
+          "type": "h2",
+          "text": "This week"
+        },
+        {
+          "type": "p",
+          "text": "Up to ৳5,000 off selected 5G phones. EMI from 3 months on bank cards."
+        },
+        {
+          "type": "cta",
+          "label": "See phone deals",
+          "url": "/offers",
+          "style": "solid"
+        }
+      ]
+    },
+    {
+      "id": "blk-signal-footer",
+      "name": "Footer",
+      "type": "footer",
+      "content": [
+        {
+          "type": "p",
+          "text": "**Dazzle Shop** · official phones, accessories and repairs · Dhanmondi and Mirpur"
+        },
+        {
+          "type": "p",
+          "text": "Call {{shop_phone}} · hello@dazzleshop.com.bd"
+        }
+      ]
+    }
+  ],
+  "menus": [
+    {
+      "id": "main",
+      "name": "Main menu",
+      "place": "header",
+      "items": [
+        {
+          "label": "Home",
+          "link": {
+            "type": "home"
+          }
+        },
+        {
+          "label": "Phones",
+          "link": {
+            "type": "category",
+            "ref": "Phones"
+          },
+          "children": [
+            {
+              "label": "Smartphones",
+              "link": {
+                "type": "category",
+                "ref": "Phones › Smartphones"
+              }
+            },
+            {
+              "label": "Feature phones",
+              "link": {
+                "type": "category",
+                "ref": "Phones › Feature phones"
+              }
+            }
+          ],
+          "mega": {
+            "on": true,
+            "width": "container",
+            "px": 960,
+            "cols": [
+              {
+                "kind": "cats",
+                "title": "Phones",
+                "ref": "Phones"
+              },
+              {
+                "kind": "links",
+                "title": "Popular"
+              },
+              {
+                "kind": "block",
+                "block": "blk-signal-deals"
+              },
+              {
+                "kind": "image",
+                "title": "Trade in",
+                "src": "/assets/99e39eac40a8abf8968649c253b23f9e.webp",
+                "href": "/page?handle=contact-us"
+              }
+            ]
+          }
+        },
+        {
+          "label": "Accessories",
+          "link": {
+            "type": "category",
+            "ref": "Accessories"
+          },
+          "children": [
+            {
+              "label": "Cases & covers",
+              "link": {
+                "type": "category",
+                "ref": "Accessories › Cases & covers"
+              }
+            },
+            {
+              "label": "Chargers & cables",
+              "link": {
+                "type": "category",
+                "ref": "Accessories › Chargers & cables"
+              }
+            },
+            {
+              "label": "Holders & stands",
+              "link": {
+                "type": "category",
+                "ref": "Accessories › Holders & stands"
+              }
+            }
+          ],
+          "mega": {
+            "on": true,
+            "width": "full",
+            "px": 1200,
+            "cols": [
+              {
+                "kind": "cats",
+                "title": "Accessories",
+                "ref": "Accessories"
+              },
+              {
+                "kind": "cats",
+                "title": "Audio",
+                "ref": "Audio"
+              },
+              {
+                "kind": "image",
+                "title": "Delivery all over Bangladesh",
+                "src": "/assets/901f735d539a8b71fb8e8162bb755ec3.webp",
+                "href": "/offers"
+              }
+            ]
+          }
+        },
+        {
+          "label": "Audio",
+          "link": {
+            "type": "category",
+            "ref": "Audio"
+          }
+        },
+        {
+          "label": "Offers",
+          "link": {
+            "type": "offers"
+          }
+        }
+      ]
+    },
+    {
+      "id": "footer",
+      "name": "Footer menu",
+      "place": "footer",
+      "items": [
+        {
+          "label": "Shop",
+          "link": {
+            "type": "home"
+          },
+          "children": [
+            {
+              "label": "Phones",
+              "link": {
+                "type": "category",
+                "ref": "Phones"
+              }
+            },
+            {
+              "label": "Accessories",
+              "link": {
+                "type": "category",
+                "ref": "Accessories"
+              }
+            },
+            {
+              "label": "Offers",
+              "link": {
+                "type": "offers"
+              }
+            },
+            {
+              "label": "Blog",
+              "link": {
+                "type": "blog",
+                "ref": ""
+              }
+            }
+          ]
+        },
+        {
+          "label": "Company",
+          "link": {
+            "type": "page",
+            "ref": "about-us"
+          },
+          "children": [
+            {
+              "label": "About us",
+              "link": {
+                "type": "page",
+                "ref": "about-us"
+              }
+            },
+            {
+              "label": "Contact us",
+              "link": {
+                "type": "page",
+                "ref": "contact-us"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "care",
+      "name": "Customer care",
+      "place": "footer",
+      "items": [
+        {
+          "label": "Shipping & delivery",
+          "link": {
+            "type": "page",
+            "ref": "shipping-delivery"
+          }
+        },
+        {
+          "label": "Return & refund",
+          "link": {
+            "type": "page",
+            "ref": "return-refund"
+          }
+        },
+        {
+          "label": "Privacy policy",
+          "link": {
+            "type": "page",
+            "ref": "privacy-policy"
+          }
+        },
+        {
+          "label": "WhatsApp us",
+          "link": {
+            "type": "url",
+            "url": "https://wa.me/{{whatsapp}}"
+          }
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "handle": "emi-plans",
+      "title": "EMI plans",
+      "status": "published",
+      "content": [
+        {
+          "type": "p",
+          "text": "Pay for a phone in monthly parts with a bank credit card. No extra charge for 3 and 6 months."
+        },
+        {
+          "type": "table",
+          "header": true,
+          "rows": [
+            [
+              "Months",
+              "Extra charge",
+              "Banks"
+            ],
+            [
+              "3",
+              "None",
+              "City, BRAC, EBL, Dutch-Bangla"
+            ],
+            [
+              "6",
+              "None",
+              "City, BRAC, EBL"
+            ],
+            [
+              "12",
+              "6%",
+              "City, BRAC"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Choose EMI at checkout or ask at a branch."
+        }
+      ]
+    }
+  ],
+  "notices": [
+    {
+      "id": "today",
+      "from": "offers",
+      "tone": "primary",
+      "place": "top"
+    }
+  ]
+}

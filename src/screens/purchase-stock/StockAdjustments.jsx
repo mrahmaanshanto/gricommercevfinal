@@ -16,6 +16,8 @@ import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, EmptyState, Sheet, StatusBadge } from '@/components/ui';
 import { ShopHeader, IndexTabs, LearnMore, KV } from '@/components/ui/IndexKit';
 import { ManagerPin } from '@/components/ManagerPin';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 import { ProductPicker, PICKER_CSS } from '@/components/ProductPicker';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
@@ -149,6 +151,7 @@ export default function StockAdjustments() {
   const tabs = TABS.map(([id, label]) => ({ key: id, id: 'sa-tab-' + id, label, count: groups[id].length, on: tab === id, onClick: () => setTab(id) }));
   const foot = (shown.length === 1 ? '1 adjustment' : `${shown.length} adjustments`) + (tab === 'rejected' ? ' · stock not changed' : ` · ${tab === 'approved' ? 'net ' : ''}${signed(pcs(shown))} pcs`);
   const nameOf = (a) => { const p = productBy(a.sku); return p ? p.name : a.sku; };
+  const picOf = (a) => productPic(productBy(a.sku) || { sku: a.sku });
   const openRow = (a) => (e) => { if (e && e.target.closest && e.target.closest('a,button,input,select,label')) return; setView(a.id); };
   const viewing = view ? list.find((a) => a.id === view) : null;
   const viewNow = viewing && ready ? stockAt(viewing.sku, viewing.place, holds, moves).onHand : 0;
@@ -182,7 +185,8 @@ export default function StockAdjustments() {
                   <ul className="ix-plist" aria-label="Adjustments">
                     {shown.map((a) => (
                       <li key={a.id}>
-                        <button type="button" className="ix-pitem" onClick={() => setView(a.id)}>
+                        <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setView(a.id)}>
+                          <span style={{ gridRow: 'span 3' }}><Pic src={picOf(a)} name={nameOf(a)} kind="item" /></span>
                           <span className="ix-pitem__top"><b>{nameOf(a)}</b><span className={a.qty > 0 ? 'sa-up' : 'sa-down'}>{signed(a.qty)}</span></span>
                           <span className="ix-pitem__mid">{a.id} · {a.place} · {formatDate(a.at)}</span>
                           <span className="ix-pitem__tags"><StatusBadge tone={STATUS[a.status][1]}>{STATUS[a.status][0]}</StatusBadge></span>
@@ -199,7 +203,7 @@ export default function StockAdjustments() {
                           <tr key={a.id} onClick={openRow(a)}>
                             <td><button type="button" className="ix-strong sa-id" onClick={() => setView(a.id)}>{a.id}</button></td>
                             <td className="ix-muted">{formatDate(a.at)}</td>
-                            <td>{nameOf(a)}</td>
+                            <td><span className="gc-picrow"><Pic src={picOf(a)} name={nameOf(a)} kind="item" /><span>{nameOf(a)}</span></span></td>
                             <td className="ix-muted">{a.place}</td>
                             <td className={'ix-num ix-strong ' + (a.qty > 0 ? 'sa-up' : 'sa-down')}>{signed(a.qty)}</td>
                             <td className="ix-muted">{a.reason}</td>

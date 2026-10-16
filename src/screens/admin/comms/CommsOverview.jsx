@@ -89,7 +89,7 @@ export default function CommsOverview() {
       <>
         <MetricStrip lead={lead} label={'Key figures, ' + PERIODS.find((p) => p[0] === period)[1].toLowerCase()} items={[
           { label: 'SMS sent', value: num(f.sms.sent), sub: prevSent ? deltaText(delta(f.sms.sent, f.prev.sms.sent)) : null, href: '/admin/sms', icon: 'message-square' },
-          { label: 'Emails sent', value: num(f.email.sent), sub: prevSent ? deltaText(delta(f.email.sent, f.prev.email.sent)) : null, href: '/admin/email?tab=sent', icon: 'mail' },
+          { label: 'Emails sent', value: num(f.email.sent), sub: prevSent ? deltaText(delta(f.email.sent, f.prev.email.sent)) : null, href: '/admin/comms/email?tab=sent', icon: 'mail' },
           { label: 'Delivery rate', value: pct(f.rate), sub: 'SMS ' + pct(f.smsRate, 0) + ' · email ' + pct(f.emailRate, 0) },
           { label: 'Failed', value: num(f.failed), sub: 'bounced or not delivered', href: '/admin/sms?tab=history&status=Failed' },
           { label: 'Cost', value: money(f.cost), sub: prevSent ? deltaText(delta(f.cost, f.prevCost)) : null, icon: 'wallet' },
@@ -133,7 +133,7 @@ export default function CommsOverview() {
           <Card title="Providers" link={{ href: '/admin/sms?tab=provider', label: 'Manage' }}>
             <div className="cm-rows">
               {prov.map((p) => (
-                <Row key={p.id} dot={!p.on ? 'off' : p.tone === 'success' ? 'ok' : 'warn'} href={p.ch === 'sms' ? '/admin/sms?tab=provider' : '/admin/email?tab=settings'}
+                <Row key={p.id} dot={!p.on ? 'off' : p.tone === 'success' ? 'ok' : 'warn'} href={p.ch === 'sms' ? '/admin/sms?tab=provider' : '/admin/comms/email?tab=settings'}
                   title={`${p.name}${p.primary ? ' · main' : ''}`} sub={`${p.ch === 'sms' ? 'SMS' : 'Email'} · ${p.status} · ${pct(p.delivery)} delivered`}
                   end={<span className="cm-fig">{money(p.balance)}</span>} />
               ))}

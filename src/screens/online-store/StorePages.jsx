@@ -18,13 +18,13 @@ import { formatDate, formatTime } from '@/lib/format';
 import { TEMPLATES, setStatus, deletePages, duplicatePage, pageUrl, storefrontHref, publishProblems } from '@/lib/storePages';
 import { menusLinking, removeLinksTo } from '@/lib/storeMenus';
 import { StoreFrame, useStorePages, PageStatus, queryParam } from './storeShared';
+import { Pic } from '@/components/ui/Pic';
 
 const TABS = [['all', 'All'], ['published', 'Published'], ['draft', 'Drafts'], ['hidden', 'Hidden']];
 
 const CSS = `
 .sp-title{display:flex;align-items:center;gap:var(--space-3);min-width:0;max-width:320px}
 .sp-title>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.sp-ico{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:var(--radius-md);background:var(--surface-subtle);color:var(--text-muted)}
 .sp-url{font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap}
 .sp-tpls{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4)}
 .sp-tpls>span{font-size:var(--text-xs);color:var(--text-muted);margin-right:var(--space-1)}
@@ -33,6 +33,8 @@ const CSS = `
 @media (max-width:640px){.sp-tpl{height:36px}}
 `;
 
+// the page's first picture (an image block), else '' (the template's icon shows)
+const picOf = (p) => p.hero || ((p.blocks || []).find((b) => b.type === 'image' && b.src) || {}).src || '';
 const iconOf = (p) => (TEMPLATES.find((t) => t.id === p.template) || { icon: 'file-text' }).icon || 'file-text';
 
 export default function StorePages() {
@@ -151,7 +153,8 @@ export default function StorePages() {
           <ul className="ix-plist" aria-label="Pages">
             {shown.map((p) => (
               <li key={p.id}>
-                <Link href={edit(p)} className="ix-pitem">
+                <Link href={edit(p)} className="ix-pitem ix-pitem--thumb" style={{ gridTemplateColumns: '43px minmax(0,1fr)' }}>
+                  <span style={{ gridRow: 'span 2' }}><Pic src={picOf(p)} name={p.title} kind="cover" icon={iconOf(p)} /></span>
                   <span className="ix-pitem__top"><b>{p.title || 'Untitled page'}</b><PageStatus status={p.status} /></span>
                   <span className="ix-pitem__mid">{`/pages/${p.handle} · ${formatDate(p.updatedAt)}`}</span>
                 </Link>
@@ -169,7 +172,7 @@ export default function StorePages() {
                 {shown.map((p) => (
                   <tr key={p.id} className={picked.includes(p.id) ? 'is-sel' : ''} onClick={(e) => { if (!e.target.closest('a,button,input,label')) navigate(edit(p)); }}>
                     <td className="ix-check"><input type="checkbox" aria-label={`Select ${p.title || 'untitled page'}`} checked={picked.includes(p.id)} onChange={() => toggle(p.id)} /></td>
-                    <td><span className="sp-title"><span className="sp-ico" aria-hidden="true"><Icon name={iconOf(p)} width="16" height="16" /></span><span><Link href={edit(p)} className="ix-strong">{p.title || 'Untitled page'}</Link></span></span></td>
+                    <td><span className="sp-title"><Pic src={picOf(p)} name={p.title} kind="cover" icon={iconOf(p)} /><span><Link href={edit(p)} className="ix-strong">{p.title || 'Untitled page'}</Link></span></span></td>
                     <td><span className="sp-url" title={pageUrl(p)}>/pages/{p.handle}</span></td>
                     <td><PageStatus status={p.status} /></td>
                     <td className="ix-muted">{edited(p)}</td>

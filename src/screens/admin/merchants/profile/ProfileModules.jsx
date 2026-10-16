@@ -2,14 +2,72 @@
 // Merchant 360° profile › Modules: every module, grouped by set, with what this store has (in plan, add-on, trial,
 // locked, off, or set by staff) and a switch. Turning one on or off asks why (setModule); a module set by staff can go
 // back to what the package gives. Platform core runs in every store and has no switch.
+// Code snippets (Batch C step 8): GridCommerce's kill switch for the store's snippets (lib/admin/snippetGuard.js).
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBadge } from '@/components/ui';
 import { confirmDialog, toast } from '@/runtime/ui';
 import { SETS } from '@/lib/platform/catalogue';
 import { modulesOf, setModule } from '@/lib/admin/merchants';
 import { rightOf } from '@/lib/admin/actionRights';
 import { Card, Row } from './profileShared';
+import { snippetGuardOf, setSnippetGuard, SNIPPET_GUARD_EVENT } from '@/lib/admin/snippetGuard';
+import { MARKET_MODULES, MARKET_EVENT, moduleAccess, canUse, allowShop, disallowShop, blockShop, unblockShop } from '@/lib/platform/marketAccess';
+import { staff as currentStaff } from '@/lib/platform/store';
+
+/** Services and Grid Shop for this store (Batch D): open, close or block it here; the rules for all stores are in
+ *  Services › Access. */
+function MarketCard({ shop, by }) {
+  const [, setTick] = useState(0);
+  const [why, setWhy] = useState({});
+  useEffect(() => { const on = () => setTick((x) => x + 1); window.addEventListener(MARKET_EVENT, on); return () => window.removeEventListener(MARKET_EVENT, on); }, []);
+  const right = rightOf('module');
+  const act = (fn) => { if (!right.ok) { toast(right.reason); return; } fn(); };
+  return (
+    <Card title="Services & Grid Shop" action={<a className="ix-btn ix-btn--sm" href="/admin/services/access">Rules for all stores</a>}>
+      {MARKET_MODULES.map(([k, l]) => {
+        const m = moduleAccess(k), u = canUse(k, shop.id), blocked = (m.blocked || []).find((b) => b.shopId === shop.id);
+        return (
+          <div key={k} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-2) var(--space-3)', padding: 'var(--space-2) 0', borderTop: k === 'shop' ? '1px solid var(--border-subtle)' : 0 }}>
+            <span style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column' }}><b style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>{l}</b><span className="mp-muted" style={{ fontSize: 'var(--text-xs)' }}>{u.ok ? 'This store can use it' : blocked ? 'Blocked: ' + blocked.reason : !m.on ? 'Off for every store' : 'Not open to this store (chosen stores only)'}</span></span>
+            <StatusBadge tone={u.ok ? 'success' : blocked ? 'error' : 'neutral'}>{u.ok ? 'Open' : blocked ? 'Blocked' : 'Closed'}</StatusBadge>
+            {m.mode === 'chosen' && !blocked ? ((m.allow || []).includes(shop.id) ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => act(() => { disallowShop(k, shop.id, by); toast(`${l} closed for ${shop.name}`); })}>Close</button> : <button type="button" className="ix-btn ix-btn--sm" onClick={() => act(() => { allowShop(k, shop.id, by); toast(`${l} opened for ${shop.name}`); })}>Open for this store</button>) : null}
+            {blocked ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => act(() => { unblockShop(k, shop.id, by); toast(`${shop.name} unblocked from ${l}`); })}>Unblock</button> : (<>
+              <input className="gc-input" style={{ flex: '1 1 200px' }} value={why[k] || ''} onChange={(e) => setWhy({ ...why, [k]: e.target.value })} placeholder="Why block (the store sees it)" aria-label={`Why block ${l}`} />
+              <button type="button" className="ix-btn ix-btn--sm" onClick={() => act(() => { if (!(why[k] || '').trim()) { toast('Write why: the store sees it.', { tone: 'error' }); return; } blockShop(k, shop.id, why[k], by); setWhy({ ...why, [k]: '' }); toast(`${shop.name} blocked from ${l}`); })}>Block</button>
+            </>)}
+          </div>
+        );
+      })}
+    </Card>
+  );
+}
+
+/** Turn every code snippet of this store off (a reason the merchant sees) or back on. */
+function SnippetGuard({ shop }) {
+  const [g, setG] = useState({ off: false });
+  const [why, setWhy] = useState('');
+  useEffect(() => { const load = () => setG(snippetGuardOf(shop.id)); load(); window.addEventListener(SNIPPET_GUARD_EVENT, load); return () => window.removeEventListener(SNIPPET_GUARD_EVENT, load); }, [shop.id]);
+  const right = rightOf('module');
+  const by = (() => { try { return (currentStaff() || {}).name || 'Staff'; } catch { return 'Staff'; } })();
+  const flip = async () => {
+    if (!right.ok) { toast(right.reason); return; }
+    if (!g.off) {
+      if (!why.trim()) { toast('Write why: the store sees it.', { tone: 'error' }); document.getElementById('mp-snip-why')?.focus(); return; }
+      if (!(await confirmDialog({ title: `Turn off ${shop.name}'s code snippets?`, body: 'Every snippet (tracking IDs, CSS, text) comes off the store at once. The store sees your reason.', confirmLabel: 'Turn off', tone: 'danger' }))) return;
+      setSnippetGuard(shop.id, true, why, by); setWhy(''); toast('Code snippets turned off for this store');
+    } else { setSnippetGuard(shop.id, false, '', by); toast('Code snippets are allowed again'); }
+  };
+  return (
+    <Card title="Code snippets" action={<StatusBadge tone={g.off ? 'error' : 'success'}>{g.off ? 'Off by GridCommerce' : 'Allowed'}</StatusBadge>}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 'var(--space-3)' }}>
+        {g.off ? <p className="mp-muted" style={{ margin: 0, flex: '1 1 260px', fontSize: 'var(--text-sm)' }}>Turned off{g.by ? ' by ' + g.by : ''}: {g.reason}</p>
+          : <div style={{ flex: '1 1 260px', display: 'flex', flexDirection: 'column', gap: 6 }}><label className="gc-label" htmlFor="mp-snip-why">If you turn them off: why (the store sees it)</label><input id="mp-snip-why" className="gc-input" value={why} onChange={(e) => setWhy(e.target.value)} placeholder="e.g. A CSS snippet hid the checkout button" /></div>}
+        <button type="button" className={'ix-btn' + (g.off ? ' ix-btn--primary' : '')} onClick={flip}>{g.off ? 'Allow snippets again' : 'Turn off all snippets'}</button>
+      </div>
+    </Card>
+  );
+}
 
 const STATE = {
   in: ['In plan', 'success'], addon: ['Add-on', 'success'], trial: ['Trial', 'primary'], locked: ['Locked', 'neutral'],
@@ -45,6 +103,8 @@ export function ModulesTab({ ctx }) {
         <button type="button" className="ix-btn" onClick={() => open('modtrial')}>Start a module trial</button>
       </div>
       {!right.ok ? <p className="mp-muted" style={{ margin: 0, fontSize: 'var(--text-xs)' }}>{right.reason}</p> : null}
+      <SnippetGuard shop={shop} />
+      <MarketCard shop={shop} by={(() => { try { return (currentStaff() || {}).name || 'Staff'; } catch { return 'Staff'; } })()} />
       {groups.length ? groups.map((g) => (
         <Card key={g.id} title={g.label} action={<span className="mp-muted" style={{ fontSize: 'var(--text-xs)' }}>{g.sub}</span>} flush>
           <div className="mp-mods">

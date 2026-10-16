@@ -12,6 +12,7 @@ import { Sheet, StatusBadge, EmptyState } from '@/components/ui';
 import { staff as currentStaff } from '@/lib/platform/store';
 import { read, EVENT, KEY, stateOf, mailboxesOf, address, RECORDS, alerts, suspendDomain, restoreDomain, suspendMailbox, updateMailbox, logOf } from '@/lib/platform/mail';
 import { AdminShell } from '../AdminShell';
+import { Pic } from '@/components/ui/Pic';
 
 const CSS = `
 .md-dns{display:inline-flex;gap:4px}
@@ -82,14 +83,14 @@ export default function MailDirectory() {
         <section className="ix-card" aria-label="Mail domains">
           <div className="ix-bar"><IndexTabs tabs={tabs} label="Mail domains" /></div>
           {!ready ? <div style={{ minHeight: 200 }} aria-busy="true" /> : shown.length ? (<>
-            <ul className="ix-plist">{shown.map((x) => <li key={x.d.id}><button type="button" className="ix-pitem" onClick={() => setOpen(x.d.id)}><span className="ix-pitem__top"><b>{x.d.domain}</b><StatusBadge tone={x.d.state === 'active' ? (problem(x) ? 'warning' : 'success') : x.d.state === 'suspended' ? 'error' : 'neutral'}>{x.d.state === 'active' ? (problem(x) ? 'Needs a look' : 'Healthy') : x.d.state === 'suspended' ? 'Suspended' : 'Setting up'}</StatusBadge></span><span className="ix-pitem__mid">{x.d.shopName} · {x.st.seatsUsed}/{x.d.seats} mailboxes · {tk(x.st.monthly)}/mo</span></button></li>)}</ul>
+            <ul className="ix-plist">{shown.map((x) => <li key={x.d.id}><button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => setOpen(x.d.id)}><span style={{ gridRow: 'span 2' }}><Pic src={x.d.shopLogo} name={x.d.shopName} kind="logo" /></span><span className="ix-pitem__top"><b>{x.d.domain}</b><StatusBadge tone={x.d.state === 'active' ? (problem(x) ? 'warning' : 'success') : x.d.state === 'suspended' ? 'error' : 'neutral'}>{x.d.state === 'active' ? (problem(x) ? 'Needs a look' : 'Healthy') : x.d.state === 'suspended' ? 'Suspended' : 'Setting up'}</StatusBadge></span><span className="ix-pitem__mid">{x.d.shopName} · {x.st.seatsUsed}/{x.d.seats} mailboxes · {tk(x.st.monthly)}/mo</span></button></li>)}</ul>
             <div className="ix-table-wrap">
               <table className="ix-table">
                 <caption className="sr-only">Mail domains</caption>
                 <thead><tr><th scope="col">Domain</th><th scope="col">DNS</th><th scope="col">Mailboxes</th><th scope="col">Storage</th><th scope="col">Last sign-in</th><th scope="col" className="ix-num">A month</th><th scope="col">Status</th></tr></thead>
                 <tbody>{shown.map((x) => (
                   <tr key={x.d.id} onClick={() => setOpen(x.d.id)}>
-                    <td><b className="ix-strong">{x.d.domain}</b><span className="md-sub">{x.d.shopName} · #{x.d.shopId}</span></td>
+                    <td><span className="gc-picrow"><Pic src={x.d.shopLogo} name={x.d.shopName} kind="logo" /><span><b className="ix-strong">{x.d.domain}</b><span className="md-sub">{x.d.shopName} · #{x.d.shopId}</span></span></span></td>
                     <td>{dns(x.st)}{x.st.dnsFailingDays ? <span className="md-sub" style={{ color: 'var(--text-danger)' }}>failing {x.st.dnsFailingDays} days</span> : null}</td>
                     <td>{x.st.seatsUsed} of {x.d.seats}<span className="md-sub">{x.st.plan.name}{x.d.cycle === 'yearly' ? ' · yearly' : ''}</span></td>
                     <td>{gb(x.st.usedMB)} / {x.st.storageGB} GB{x.st.nearQuota.length ? <span className="md-sub" style={{ color: 'var(--text-warning)' }}>{x.st.nearQuota.length} near full</span> : null}</td>

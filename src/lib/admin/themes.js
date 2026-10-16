@@ -11,7 +11,7 @@
 //   release:  { id 'REL-0142', itemId, version '2.4.0', notes, stage 'draft'|'review'|'approved'|'published'|'rolledback',
 //               uploadedBy, uploadedAt, submittedAt, approvedBy, approvedAt, scheduledAt, publishedBy, publishedAt,
 //               rollout 'all'|'selected'|'next-visit', stores [shopId] (selected), rejected { by, at, reason },
-//               rolledBackBy, rolledBackAt, rollbackReason }
+//               rolledBackBy, rolledBackAt, rollbackReason, kit (the store kit: the design itself, Batch A step 4) }
 //   assign:   { [shopId]: { themeId, version, pending (version waiting for the next visit) | null, by, at } }
 //   pages:    [{ id, shopId, templateId, version, title, at }]  landing pages made from a template
 //   log:      [{ id, at, by, itemId, kind 'release'|'state'|'assign'|'edit'|'package', text }]
@@ -73,7 +73,7 @@ export const sectionName = (k) => (SECTIONS.find((s) => s[0] === k) || [k, k])[1
  *  Theme, follows these for the store the theme is assigned to; an unassigned store follows `editing`). */
 export const EDITABLE = [
   ['colours', 'Colours and fonts'], ['logo', 'Logo and favicon'], ['header', 'Header and menu'], ['hero', 'Hero banner'],
-  ['sections', 'Add, hide and reorder sections'], ['footer', 'Footer'], ['css', 'Custom CSS'], ['code', 'Theme files (code)'],
+  ['sections', 'Add, hide and reorder sections'], ['footer', 'Footer'], ['css', 'Custom CSS'], ['code', 'Custom section code'],
 ];
 /** What switching each one off hides in the merchant's builder. */
 export const EDITABLE_HINT = {
@@ -84,11 +84,11 @@ export const EDITABLE_HINT = {
   sections: 'Sections can’t be added, hidden, moved or removed in layouts',
   footer: 'The Footer options are locked',
   css: 'The Custom CSS option stays off (it also needs the Business plan)',
-  code: 'Not offered: merchants have no theme code editor',
+  code: 'Custom sections can’t be written or changed (the shop can still fill in their settings); Business plan only anyway',
 };
 /** The families offered to merchants as one-click presets (their main theme decides the packages). */
 export const PRESET_FAMILIES = ['signal', 'nokshi', 'counter'];
-const EDIT_DEFAULT = { colours: true, logo: true, header: true, hero: true, sections: true, footer: true, css: false, code: false };
+const EDIT_DEFAULT = { colours: true, logo: true, header: true, hero: true, sections: true, footer: true, css: false, code: true };
 
 export const TEAMS = ['Design', 'Technical ops'];
 export const DESIGNERS = ['Sumaiya Ahmed', 'Tanvir Alam', 'Nabila Chowdhury'];
@@ -659,7 +659,7 @@ export function setEditable(itemId, key, on) {
 }
 
 /** Put a new version into the workflow. submit = straight to review (the usual "Release update"). */
-export function newRelease(itemId, { version, notes, rollout, stores, submit = true }) {
+export function newRelease(itemId, { version, notes, rollout, stores, submit = true, kit = null }) {
   const v = String(version || '').trim();
   const n = String(notes || '').trim();
   if (!isSemver(v)) return fail('Write the version as three numbers, like 2.4.0.');
@@ -678,9 +678,12 @@ export function newRelease(itemId, { version, notes, rollout, stores, submit = t
       id: 'REL-' + String(data.seq.rel++).padStart(4, '0'), itemId, version: v, notes: n, stage: submit ? 'review' : 'draft', uploadedBy: me().name,
       uploadedAt: now, submittedAt: submit ? now : null, approvedBy: null, approvedAt: null, scheduledAt: null, publishedBy: null, publishedAt: null,
       rollout, stores: rollout === 'selected' ? [...stores] : [], rejected: null, rolledBackBy: null, rolledBackAt: null, rollbackReason: null,
+      // the design itself: a store kit (.gcstore.json, checked by lib/storefront/kit.js). Once published, shops on the
+      // theme's packages see it in Online Store › Theme (lib/storefront/access.js › libraryKits)
+      ...(kit ? { kit } : {}),
     };
     data.releases.push(rel);
-    it.file = `${it.id}-${v}.zip`;
+    it.file = kit ? `${it.id}-${v}.gcstore.json` : `${it.id}-${v}.zip`;
     it.updatedAt = now;
     pushLog(data, now, itemId, 'release', `${v} uploaded${submit ? ' and sent for review' : ''}`);
     return { ok: true, id: rel.id };

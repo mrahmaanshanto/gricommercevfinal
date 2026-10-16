@@ -11,7 +11,8 @@ import { toast } from '@/runtime/ui';
 import { EmptyState } from '@/components/ui';
 import { ShopHeader, IndexTabs, SearchField, Menu, LearnMore } from '@/components/ui/IndexKit';
 import { PRODUCT_CHANNELS as CHANNELS, ISSUES, channelBy, getIssues, channelProducts, retryMany, ago } from '@/lib/channels';
-import { ChannelFrame, ChannelLogo, StatusTag, FixSheet, ItemSheet, useChannels } from './chShared';
+import { ChannelFrame, ChannelLogo, StatusTag, FixSheet, ItemSheet, useChannels, chPic } from './chShared';
+import { Pic } from '@/components/ui/Pic';
 
 const TABS = [['open', 'All open'], ['attention', 'Needs attention'], ['failed', 'Failed'], ['processing', 'Processing'], ['resolved', 'Resolved']];
 const CSS = `
@@ -107,12 +108,14 @@ export default function SyncIssues() {
           {shown.map((i) => (
             <li key={i.id}>
               {canOpen(i) ? (
-                <button type="button" className="ix-pitem" onClick={() => openIssue(i)}>
+                <button type="button" className="ix-pitem ix-pitem--thumb" onClick={() => openIssue(i)}>
+                  <span style={{ gridRow: 'span 2' }}><Pic src={chPic(i)} name={i.name} kind="item" /></span>
                   <span className="ix-pitem__top"><b>{i.name}</b><StatusTag st={i.st} /></span>
                   <span className="ix-pitem__mid">{chName(i.ch)} · {probOf(i)}</span>
                 </button>
               ) : (
-                <div className="ix-pitem">
+                <div className="ix-pitem ix-pitem--thumb">
+                  <span style={{ gridRow: 'span 2' }}><Pic src={chPic(i)} name={i.name} kind="item" /></span>
                   <span className="ix-pitem__top"><b>{i.name}</b><StatusTag st={i.st} /></span>
                   <span className="ix-pitem__mid">{chName(i.ch)} · {probOf(i)}</span>
                 </div>
@@ -139,7 +142,7 @@ export default function SyncIssues() {
                 return (
                   <tr key={i.id} className={sel[i.id] ? 'is-sel' : ''} style={canOpen(i) ? undefined : { cursor: 'default' }} onClick={(e) => { if (!canOpen(i) || e.target.closest('input')) return; openIssue(i); }}>
                     <td className="ix-check">{canPick ? <input type="checkbox" aria-label={`Select ${i.name}`} checked={!!sel[i.id]} onChange={() => setSel({ ...sel, [i.id]: !sel[i.id] })} /> : null}</td>
-                    <td><span className="ix-strong si-item" title={i.sku ? i.name + ' · ' + i.sku : i.name}>{i.name}</span></td>
+                    <td><span className="gc-picrow"><Pic src={chPic(i)} name={i.name} kind="item" /><span className="ix-strong si-item" title={i.sku ? i.name + ' · ' + i.sku : i.name}>{i.name}</span></span></td>
                     <td><span className="si-chan"><ChannelLogo ch={i.ch} size={20} />{chName(i.ch)}</span></td>
                     <td><span className="si-prob" title={probOf(i)}>{probOf(i)}</span></td>
                     <td><StatusTag st={i.st} /></td>

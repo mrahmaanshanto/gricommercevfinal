@@ -44,6 +44,8 @@ export const MAI_CSS = `
 .mai-prov b{display:block;font-weight:var(--weight-medium);color:var(--text-heading)}
 .mai-prov small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 button.ix-pitem{width:100%;border:0;border-bottom:1px solid var(--border-subtle);background:none;font:inherit;text-align:left;cursor:pointer}
+.ga-name{padding:0;border:0;background:none;font:inherit;font-weight:var(--weight-medium);color:var(--text-heading);text-align:left;cursor:pointer}
+.ga-name:hover{color:var(--primary);text-decoration:underline}
 .ix-table tbody tr{cursor:pointer}
 @media (max-width:1023px){.mai-plans,.mai-grid2{grid-template-columns:minmax(0,1fr)}}
 `;

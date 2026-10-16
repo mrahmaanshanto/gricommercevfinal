@@ -23,7 +23,8 @@ import { navForEdition, currentEditionId, hasModule } from '@/lib/edition';
 import { limitsOf } from '@/lib/planLimits';
 import { currentPlan, upgradeHref } from '@/lib/plans';
 import { getPlaces } from '@/lib/locations';
-import { isBdPhone, isEmail, agoText } from '@/lib/myAccount';
+import { isBdPhone, isEmail, agoText, withAccount } from '@/lib/myAccount';
+import { Pic } from '@/components/ui/Pic';
 import { formatDate, formatTime } from '@/lib/format';
 import { send } from '@/lib/messaging';
 import { domainOf as mailDomain, createMailbox, address as mailAddress, stateOf as mailState } from '@/lib/platform/mail';
@@ -38,6 +39,8 @@ const CSS = `
 .su-row:first-child{border-top:0}
 .su-av{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary);font-size:var(--text-xs);font-weight:var(--weight-semibold)}
 .su-av.is-off{background:var(--surface-subtle);color:var(--text-muted)}
+.su-pic{display:flex;flex:none}
+.su-pic.is-off{opacity:.5;filter:grayscale(1)}
 .su-mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .su-name{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .su-sub{font-size:var(--text-xs);color:var(--text-muted);overflow-wrap:anywhere}
@@ -274,7 +277,7 @@ export default function SetUsers() {
               const sent = (u.sends || [])[0];
               return (
                 <div className="su-row" key={u.id}>
-                  <span className={'su-av' + (st === 'off' ? ' is-off' : '')} aria-hidden="true">{u.initials}</span>
+                  <span className={'su-pic' + (st === 'off' ? ' is-off' : '')}><Pic src={(withAccount(u) || {}).photo || u.photo || ''} name={u.name} kind="person" /></span>
                   <span className="su-mid">
                     <span className="su-name">{u.name}{u.id === data.me.id ? <StatusBadge tone="info">You</StatusBadge> : null}<StatusBadge tone={tone}>{label}</StatusBadge></span>
                     <span className="su-sub">{(u.roles || [u.role]).map(roleTitle).join(' + ')} · {places}</span>

@@ -13,6 +13,8 @@ import { IndexTabs, SearchField, Menu, LearnMore } from '@/components/ui/IndexKi
 import { getCatalog } from '@/lib/stock';
 import { getProductPoints, setProductPoints, pointsForProduct, getLoyaltySettings, PRODUCT_MODES } from '@/lib/loyalty';
 import { LoyPage, useLoyalty, money, pts, plural } from './loyShared';
+import { Pic } from '@/components/ui/Pic';
+import { productPic } from '@/lib/pictures';
 
 const MODE_WORD = { normal: 'normal points', double: 'double points', off: 'no points' };
 const TABS = [['all', 'All'], ['normal', 'Normal points'], ['double', 'Double points'], ['off', 'No points']];
@@ -99,8 +101,13 @@ export default function ProductPoints() {
           <ul className="ix-plist" aria-label="Products">
             {shown.map((p) => (
               <li key={p.sku} className="pp-pitem">
-                <span className="ix-pitem__top"><b>{p.name}</b><span>{money(p.price)}</span></span>
-                <span className="ix-pitem__mid">{gets(p)}</span>
+                <span className="gc-picrow">
+                  <Pic src={productPic(p)} name={p.name} kind="item" />
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', flex: 1, minWidth: 0 }}>
+                    <span className="ix-pitem__top"><b>{p.name}</b><span>{money(p.price)}</span></span>
+                    <span className="ix-pitem__mid">{gets(p)}</span>
+                  </span>
+                </span>
                 {seg(p)}
               </li>
             ))}
@@ -114,7 +121,7 @@ export default function ProductPoints() {
                   const n = pointsForProduct(p.sku, p.price, null, data.s, data.modes);
                   return (
                     <tr key={p.sku}>
-                      <td><span className="pp-name" title={[p.name, p.variant].filter(Boolean).join(' · ')}><span className="ix-strong">{p.name}</span>{p.variant ? <span className="ix-muted"> · {p.variant}</span> : null}</span></td>
+                      <td><span className="gc-picrow"><Pic src={productPic(p)} name={p.name} kind="item" /><span className="pp-name" title={[p.name, p.variant].filter(Boolean).join(' · ')}><span className="ix-strong">{p.name}</span>{p.variant ? <span className="ix-muted"> · {p.variant}</span> : null}</span></span></td>
                       <td className="ix-muted">{p.cat || '—'}</td>
                       <td className="ix-num">{money(p.price)}</td>
                       <td>{seg(p)}</td>
